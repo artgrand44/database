@@ -3,7 +3,7 @@ package org.art.storage;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.art.client.Client;
+import org.art.db.client.Client;
 import org.art.db.common.DocumentSet;
 import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;

@@ -1,7 +1,7 @@
 package org.art.storage;
 
 import org.art.db.common.Configuration;
-import org.art.server.Server;
+import org.art.db.server.Server;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

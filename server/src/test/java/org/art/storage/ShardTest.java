@@ -2,7 +2,7 @@ package org.art.storage;
 
 import java.net.InetAddress;
 
-import org.art.client.Client;
+import org.art.db.client.Client;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;

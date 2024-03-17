@@ -12,6 +12,12 @@ import java.util.TreeMap;
 
 import org.art.db.common.Document;
 import org.art.db.common.Key;
+import org.art.db.storage.ColumnInfo;
+import org.art.db.storage.Comparison;
+import org.art.db.storage.IndexInfo;
+import org.art.db.storage.Metadata;
+import org.art.db.storage.StorageManager;
+import org.art.db.storage.TableManager;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;

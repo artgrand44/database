@@ -3,8 +3,8 @@ package org.art.storage;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.art.client.dao.Entity;
-import org.art.client.dao.Id;
+import org.art.db.client.dao.Entity;
+import org.art.db.client.dao.Id;
 
 @Entity(table="orders")
 public class Order {

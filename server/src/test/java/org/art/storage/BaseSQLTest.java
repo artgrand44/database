@@ -7,9 +7,12 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.art.client.Client;
+import org.art.db.client.Client;
 import org.art.db.common.ServerDocumentSet;
-import org.art.sql.SQLHandler;
+import org.art.db.sql.SQLHandler;
+import org.art.db.storage.ColumnInfo;
+import org.art.db.storage.IndexInfo;
+import org.art.db.storage.Metadata;
 import org.junit.jupiter.api.BeforeEach;
 
 public abstract class BaseSQLTest extends BaseTest {

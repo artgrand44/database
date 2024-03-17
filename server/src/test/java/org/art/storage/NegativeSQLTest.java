@@ -1,9 +1,10 @@
 package org.art.storage;
 
-import org.art.client.Client;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.art.db.client.Client;
+import org.art.db.storage.DBRuntimeException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 

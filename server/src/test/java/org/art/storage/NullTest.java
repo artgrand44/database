@@ -2,9 +2,10 @@ package org.art.storage;
 
 import java.util.Objects;
 
-import org.art.client.Client;
+import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
+import org.art.db.storage.DBNull;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;

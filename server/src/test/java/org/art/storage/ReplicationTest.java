@@ -3,7 +3,7 @@ package org.art.storage;
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
-import org.art.client.Client;
+import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.assertj.core.api.Assertions;

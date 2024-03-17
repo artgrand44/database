@@ -7,6 +7,8 @@ import org.apache.commons.io.IOUtils;
 import org.art.db.common.Configuration;
 import org.art.db.common.Document;
 import org.art.db.common.ServerDocumentSet;
+import org.art.db.storage.StorageManager;
+import org.art.db.storage.TableManager;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;

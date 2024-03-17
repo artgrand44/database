@@ -12,6 +12,7 @@ import org.art.db.common.Configuration;
 import org.art.db.common.Key;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
+import org.art.db.storage.Comparison;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;

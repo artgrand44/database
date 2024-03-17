@@ -1,7 +1,7 @@
 package org.art.storage;
 
-import org.art.security.SecurityHandler;
-import org.art.security.User;
+import org.art.db.security.SecurityHandler;
+import org.art.db.security.User;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;

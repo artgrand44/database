@@ -6,7 +6,7 @@ import java.net.InetAddress;
 import java.net.URI;
 
 import org.art.db.common.DiscoveryHandler;
-import org.art.server.Server;
+import org.art.db.server.Server;
 import org.junit.jupiter.api.AfterEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

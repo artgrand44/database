@@ -1,6 +1,6 @@
 package org.art.storage;
 
-import org.art.client.dao.DAO;
+import org.art.db.client.dao.DAO;
 
 public interface ItemDAO extends DAO<Item>{
 	

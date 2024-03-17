@@ -2,7 +2,7 @@ package org.art.storage;
 
 import java.util.Objects;
 
-import org.art.client.Client;
+import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.assertj.core.api.Assertions;

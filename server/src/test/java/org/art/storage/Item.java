@@ -2,10 +2,10 @@ package org.art.storage;
 
 import java.util.Objects;
 
-import org.art.client.dao.Column;
-import org.art.client.dao.Entity;
-import org.art.client.dao.Id;
-import org.art.client.dao.Transient;
+import org.art.db.client.dao.Column;
+import org.art.db.client.dao.Entity;
+import org.art.db.client.dao.Id;
+import org.art.db.client.dao.Transient;
 
 @Entity(table="items")
 public class Item implements Comparable<Item> {
