@@ -14,8 +14,8 @@ import org.art.db.query.QueryManager;
 import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
 import org.art.db.storage.ColumnInfo;
-import org.art.db.storage.DBNull;
-import org.art.db.storage.DBRuntimeException;
+import org.art.db.common.DBNull;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.storage.Metadata;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
@@ -172,6 +172,11 @@ public class DMLHandler {
 				
 				if (value == DBNull.NULL && !info.nullable()) {
 					throw new DBRuntimeException("The value for " + column + " cannot be null");
+				}
+				
+				if (value instanceof DBNull) {
+					Object xyz = Converter.convert(value, info.type());
+					logger.info("xyz = " + xyz);
 				}
 				
 				doc.put(column, Converter.convert(value, info.type()));

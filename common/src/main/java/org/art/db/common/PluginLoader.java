@@ -42,7 +42,7 @@ public class PluginLoader {
 	@SuppressWarnings("unchecked")
 	public <T> T getPlugin(Class<? extends T> iface) {
 		try {
-			String className = "org.art.server." + iface.getSimpleName() + "Impl";
+			String className = "org.art.db.common." + iface.getSimpleName() + "Impl";
 			Class<T> clazz = (Class<T>) this.pluginLoader.loadClass(className);
 			Constructor<T> cons = clazz.getConstructor();
 

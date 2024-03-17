@@ -6,7 +6,12 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Document extends Serializable<Document> implements Iterable<Map.Entry<String, Object>>{
+	
+	private static final Logger logger = LoggerFactory.getLogger(Document.class);
 	
 	private final Map<String, Object> map = new HashMap<>();
 	private Key key;
@@ -15,7 +20,6 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 		
 	}
 	
-
 	public Document(Document that) {
 		this.key = that.key;
 		
@@ -30,6 +34,7 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 			}
 		}
 	}
+	
 	@Override
 	public Document deserialize(TypedInputStream stream) throws IOException {
 		int size = stream.readInt();
@@ -38,6 +43,9 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 			String key = stream.readUTF();
 			Object value = stream.readObject();
 			
+			if (value instanceof String str && str.contains("org.art.db.storage.DBNull@")) {
+				logger.info("oops");
+			}
 			this.map.put(key, value);
 		}
 		
@@ -100,6 +108,9 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 	public void put(String name, Object value) {
 		int dot = name.indexOf('.');
 		
+		if (value instanceof String str && str.contains("org.art.db.storage.DBNull@")) {
+			logger.info("oops");
+		}
 		if (dot == -1) {
 			this.map.put(name, value);
 		} else {		

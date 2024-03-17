@@ -8,6 +8,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.art.db.common.DBRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

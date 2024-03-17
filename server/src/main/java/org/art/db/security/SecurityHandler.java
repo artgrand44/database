@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.art.db.common.Key;
 import org.art.db.storage.Comparison;
-import org.art.db.storage.DBRuntimeException;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.storage.Files;
 import org.art.db.storage.Tree;
 

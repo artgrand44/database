@@ -1,6 +1,7 @@
 package org.art.db.storage;
 
 import org.art.db.common.Blob;
+import org.art.db.common.DBNull;
 import org.art.db.common.Document;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;

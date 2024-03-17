@@ -1,6 +1,9 @@
 package org.art.db.storage;
 
 import java.util.function.BiFunction;
+
+import org.art.db.common.DBNull;
+
 import java.util.List;
 
 public enum Comparison {

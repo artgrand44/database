@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.art.db.common.DBRuntimeException;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.TypedInputStream;

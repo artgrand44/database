@@ -1,6 +1,6 @@
 package org.art.db.sql;
 
-import org.art.db.storage.DBRuntimeException;
+import org.art.db.common.DBRuntimeException;
 
 public class UnsupportedSyntaxException extends DBRuntimeException {
 

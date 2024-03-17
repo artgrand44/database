@@ -7,7 +7,7 @@ import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.ServerDocumentSet;
 import org.art.db.storage.Comparison;
-import org.art.db.storage.DBNull;
+import org.art.db.common.DBNull;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
 import org.art.db.storage.TableManager;

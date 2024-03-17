@@ -5,7 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.art.db.common.Converter;
-import org.art.db.storage.DBRuntimeException;
+import org.art.db.common.DBRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

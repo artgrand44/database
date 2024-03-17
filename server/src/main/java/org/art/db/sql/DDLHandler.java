@@ -17,7 +17,7 @@ import org.art.db.common.GUID;
 import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
 import org.art.db.storage.ColumnInfo;
-import org.art.db.storage.DBRuntimeException;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.storage.Files;
 import org.art.db.storage.IndexInfo;
 import org.art.db.storage.Metadata;
