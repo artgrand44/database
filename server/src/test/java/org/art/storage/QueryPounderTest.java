@@ -1,0 +1,119 @@
+package org.art.storage;
+
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.art.client.Client;
+import org.art.db.common.DocumentSet;
+import org.assertj.core.api.Assertions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class QueryPounderTest extends BaseQueryPounder {
+
+	private static final Logger logger = LoggerFactory.getLogger(QueryPounderTest.class);
+	
+	private static int NITEMS = 10000;
+	private static int NLOOPS = 10000;
+	private static int NTHREADS = 50;
+	
+	private AtomicInteger nextId  = new AtomicInteger(NITEMS + 1);
+	
+	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);
+	
+	public QueryPounderTest() {
+		super("./application.properties", NITEMS, NTHREADS);
+	}
+
+	private String getName(int idx) {
+		return "Name" + idx;
+	}
+	
+	private int getId(int idx) {
+		return idx;
+	}
+	
+	@Override
+	protected void pound(int index, int mainLoop) {	
+		try {
+			String nameQuery = "select * from pounder where FirstName = ?";
+			String idQuery = "select * from pounder where ID = ?";
+			Random random = new Random(index);
+			Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+
+			for (int loop = 0; loop < NLOOPS; loop++) {
+				int idx = super.getRandom(random);
+				int id = this.getId(idx);
+				String name = this.getName(idx);
+				
+				DocumentSet ids = client.executeQuery(idQuery, id);
+				DocumentSet names = client.executeQuery(nameQuery, name);
+				
+				Assertions.assertThat(ids.size() == 1).isTrue();
+				
+				Assertions.assertThat(ids.iterator().next().get("ID").equals(Long.valueOf(id))).isTrue();
+				
+				if (names.size() != 1) {
+					logger.info("Names is bad " + names);
+				}
+				Assertions.assertThat(names.size() == 1).isTrue();
+				Assertions.assertThat(ids.iterator().next().get("FirstName").equals(name)).isTrue();
+				
+				if (loop % 3 == 0) {
+					this.insert(client, this.nextId.incrementAndGet());
+					this.addWrite();
+				}
+				
+				if (loop % 10 == 0) {
+					id = -(this.deleteNextId.incrementAndGet());
+					
+					this.insert(client, id);
+					this.remove(client, id);
+					this.addWrite();
+					this.addDelete();
+				}
+				this.addRead(2);
+			}
+		} catch (Throwable exc) {
+			logger.error(exc.getMessage());
+			this.addError(exc);
+		}
+	}
+
+		
+	
+
+	@Override
+	protected void loadDabase() throws Exception {
+		Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+		String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
+		String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
+		
+		client.execute(create);
+		client.execute(createIndex);
+		
+		for (int idx = 0; idx < NITEMS; idx++) {
+			this.insert(client, idx);
+			
+			if (idx % 1000 == 0) {
+				logger.info("Inserted " + idx);
+			}
+		}
+		
+		logger.info("inserts complete");
+	}
+
+	private void insert(Client client, int idx) throws Exception {
+		String insert = "insert into pounder (ID, FirstName, LastName, Age) values (?, ?, 'grand', '1')";
+		
+		client.execute(insert, getId(idx), getName(idx));
+		
+	}
+	
+	private void remove(Client client, int idx) throws Exception {
+		String delete = "delete from pounder where ID = ?";
+		
+		client.execute(delete, getId(idx));
+		
+	}
+}

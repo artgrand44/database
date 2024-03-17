@@ -1,0 +1,592 @@
+
+<html>
+
+
+
+
+
+
+
+
+<head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+	<title>Database Console</title>
+	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+	<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+	<style type="text/css" class="init">
+	
+	</style>
+	<script type="text/javascript" src="https://code.jquery.com/jquery-3.7.0.js"></script>
+	<script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+	<script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+	<script type="text/javascript" class="init">
+		var editProperty;
+		var editPattern;
+		var editError;
+		var editTextBox;
+		var editOldValue;
+		var currentTab;
+		
+		function applyEdit() {
+			try {
+				if (!editTextBox) {
+					return;
+				}
+
+				let value = $(editTextBox).val();
+				let regexp = new RegExp(editPattern);
+
+				if (!regexp.test(value)) {
+					showError(editError);
+					return false;
+				} 
+				
+				hideError();
+
+				$(editTextBox).prop("readonly", true);
+				$(editTextBox).attr("class", 'readonly');
+				
+				editTextBox = null;
+
+				sendPropertyChange(editProperty, value);
+				return true;
+			} catch (error) {
+				alert("apply " + error);
+				return false;
+			}
+		}
+
+		function applyPassword() {
+			var newPassword = $('#newpassword').val().trim();
+			var confirm =  $('#confirmpassword').val().trim();
+
+			if (newPassword.length == 0) {
+				$('#alerttext').text("The password cannot be empty");
+				$('#passwordalert').css("display", "block");
+				return;
+			}
+
+			if (newPassword != confirm) {
+				$('#alerttext').text("The passwords to not match");
+				$('#passwordalert').css("display", "block");
+				return;
+			}
+
+			$('#passwordModal').modal('hide');
+			
+			try {
+				sendPropertyChange(editProperty, newPassword);
+				return true;
+			} catch (error) {
+				alert("apply " + error);
+				return false;
+			}
+			
+		}
+
+		function cancelEdit() {
+		
+			$('#passwordModal').modal('hide');
+			
+			if (editTextBox != null) {
+				console.log("cancel hide");
+				$(editTextBox).prop("readonly", true);
+				$(editTextBox).attr("class", 'readonly');
+				$(editTextBox).val(editOldValue);
+
+				editTextBox = null;
+
+				$('#SettingsTable').DataTable().draw();
+			}
+		}
+
+		function createGrid(id, columns, data) {
+			new DataTable(id, {
+        		data : data,
+        		info: false,
+            	paging: false,
+				cellAttributes: { alignment : 'left'},
+            	scrollCollapse: true,
+            	scrollY: '50vh',
+            	columns: columns
+            });
+       	}
+		
+		function dosubmit() {
+			console.log("before submit " + document.getElementById("form"));
+			document.getElementById("form").submit();
+			console.log("after submit");
+	 	}
+		
+		function editorKeyPress(e){
+			if(e.keyCode === 13){
+            	e.preventDefault(); // Ensure it is only this code that runs
+				console.log("call from key press");
+				applyEdit();
+			}
+        }
+
+		function editorKeyUp(e){
+			if(e.key === "Escape"){
+            	e.preventDefault(); 
+				cancelEdit();
+			}
+        }
+		
+		function editorBlur() {
+			if (editTextBox != null) {
+				console.log("call from blur");
+				applyEdit();
+			}	
+		}
+    
+		function hideError() {
+			$('#error').attr("style", "display:none");
+		}	
+
+		function renderLog(data, type, row) {
+			return type === 'display' ? `<a href="http://${row.server}/db/log"
+					                     target="_blank"><img src="/db/resource/download.jpeg"></a>` : data;
+		}
+
+
+		function renderMemory(data, type) {
+			return type === 'display' ? renderText(data + "M", type) : data;
+		}
+
+		 function renderMeter(data, suffix) {
+	        	return `<div class="left-cell" style="padding-right: 4px">
+							<meter id="cpu1" min="0" max="100" low="10" high="80" value="${data}"></meter>
+							<span class="center-text">${data}${suffix}</span>
+						</div>`;
+	       }
+
+		function renderPercent(data, type) {
+			return type === 'display' ? renderMeter(data, '&#37') : data;
+		}
+
+		function renderRate(data, type) {
+			return type === 'display' ? renderMeter(data, '/Second') : data;
+		}
+
+		function renderValue(data, type) {
+			if (type == 'display') {
+				return `<input type='text' value='${data}' class='readonly' readonly
+				        onkeypress='editorKeyPress(event)' 
+						onkeyup = 'editorKeyUp(event)' 
+						onblur = 'editorBlur()' style='width:100%'>`;
+			} else {	
+				return data;
+			}
+
+		}
+		
+		function renderText(data, type) {
+			return type === 'display' ? `<div class="left-cell"><span>${data}</span></div>` : data;
+		}
+
+		function sendPropertyChange(editProperty, value) {
+			
+			$.ajax({
+    			url: '/db/setproperty',
+    			type: 'PUT',
+    			contentType: "text/plain",
+    			data: editProperty + "=" + value,
+    			success: function(data){  },
+    			error: function(jqXHR, textStatus, errorThrown) { showError("status = " + textStatus + " jqXHR = "  + JSON.stringify(jqXHR)) }
+			});
+		}
+
+		function showError(text) {
+			$('#error').text(text);
+				$('#error').attr("style", "display:block");
+		}
+
+		function showPasswordEditor() {
+			$('#newpassword').val("");
+			$('#newpassword').attr("type", "password");
+			$('#confirmpassword').val("");
+			$('#confirmpassword').attr("type", "password");
+			$('#passwordalert').css("display", "none");
+			$('#newpasswordToggle').attr("src", "./icons8-password-reset-25.png");
+			$('#confirmpasswordToggle').attr("src", "/db/resource/icons8-password-reset-25.png");
+
+			$('#passwordModal').modal('show');
+		}
+
+		function startEdit() {
+			let admin =  $('#admin').val();
+
+			
+			if ($('#admin').val() === 'false') {
+				return;
+			}
+			
+			hideError();
+
+			var table = $('#SettingsTable').DataTable();
+			var nameCell = table.cell(this, 0);
+    		var valueCell = table.cell(this, 1);
+    		var propertyCell = table.cell(this, 2);
+			var patternCell = table.cell(this, 3);
+			var errorCell = table.cell(this, 4);
+			
+			editProperty = propertyCell.data();
+			editPattern = patternCell.data()
+			editError = errorCell.data();
+
+			if (nameCell.data() === "User Password" || nameCell.data() === "Admin Password") {
+				showPasswordEditor();
+				return;
+			}
+
+			editTextBox = $(valueCell.node()).find(">:first-child");
+			editOldValue = $(editTextBox).val();
+
+			$(editTextBox).prop("readonly", false);
+			$(editTextBox).attr("class", 'readwrite');
+			
+		}  			
+        
+		function tabChanged(event) {
+			hideError();
+			DataTable.tables({ visible: true, api: true }).columns.adjust();
+			
+			var id = event.target.id;
+			var length = id.length;
+			var page = id.slice(0, length - "Button".length);
+
+			$('#currentPage').val(page);
+
+		}
+
+		function togglePassword(name) {
+			let textField = $("#" + name);
+			let image = $("#" + name + "Toggle");
+
+			if (textField.attr("type") === "text") {
+				textField.attr("type", "password");
+				image.attr("src", "/db/resource/icons8-password-reset-25.png");
+			} else {
+				textField.attr("type", "text");
+				image.attr("src", "/db/resource/icons8-password-eye-25.png");
+			}
+		}
+
+		$(document).ready( function () {
+            let clusterColumns = [
+          		{ data: 'shard',  render : renderText },
+          		{ data: 'cpu',      render:  renderPercent },
+          		{ data: 'memory',   render:  renderMemory },
+          		{ data: 'removes',  render:  renderRate },
+  				{ data: 'inserts',  render:  renderRate },
+				{ data: 'updates',  render:  renderRate },
+  				{ data: 'selects',  render:  renderRate}
+          		
+			];
+
+    		let serverColumns = [
+  				{ data: 'shard',  render:  renderText },
+        		{ data: 'server',   render : renderText },
+  				{ data: 'cpu',      render:  renderPercent },
+  				{ data: 'memory',   render:  renderMemory },
+  				{ data: 'removes',  render:  renderRate },
+  				{ data: 'inserts',  render:  renderRate },
+				{ data: 'updates',  render:  renderRate },
+  				{ data: 'selects',  render:  renderRate},
+  				{ data: 'port',     render:  renderLog}
+  				
+			];
+
+   			let queryColumns = [
+          		{ data: 'query',     render: renderText },
+                { data: 'calls',     render: renderText },
+          		{ data: 'time',      render: renderText },
+          		{ data: 'matches',   render: renderText }
+			];
+   			
+   			let clientColumns = [
+          		{ data: 'shard',   	render: renderText },
+          		{ data: 'sql',      render: renderText },
+          		{ data: 'calls',    render: renderText },
+          		{ data: 'time',     render: renderText },
+          		{ data: 'matches',  render: renderText },
+			];
+
+    		let settingsColumns = [
+    			{ data: 'name',     render: renderText},
+  				{ data: 'value',    render: renderValue},
+  				{ data: 'property', visible: false},
+  				{ data: 'pattern',  visible: false},
+  				{ data: 'error',    visible: false},
+			];
+
+            createGrid('#ClustersTable', clusterColumns,  JSON.parse($('#clustersData').val()));
+           	createGrid('#ServersTable',  serverColumns,   JSON.parse($('#serversData').val()));
+            createGrid('#QueriesTable',  queryColumns,    JSON.parse($('#queriesData').val()));
+            createGrid('#SettingsTable', settingsColumns, JSON.parse($('#settingsData').val()));
+            createGrid('#ClientTable',   clientColumns,   JSON.parse($('#clientsData').val()));
+            
+			$('#SettingsTable').on('click', 'td', startEdit);
+			
+			$('button[data-bs-toggle="tab"]').filter(function() {
+				this.addEventListener('shown.bs.tab', tabChanged);
+			});
+			
+			$('#passwordModal').on('shown.bs.modal', function() { $('#newpassword').focus() });
+
+			var currentButton = $("#" +  $("#currentPage").val() + "Button");
+			var tab = new bootstrap.Tab(currentButton);
+			
+  			tab.show();
+       });
+    </script>
+    
+<style>
+.mytable {
+	margin: auto;
+	padding: 10px;
+	text-align: center;
+}
+
+.mytable th {
+	padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.mytable tr {
+	padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.banner {
+    padding-top: 4px;
+    padding-bottom: 16px;
+	margin: auto;
+	width: 100%;
+	text-align: center;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 40px;
+    text-shadow: -1px -1px rgba(0,0,0,0.5), 1px 1px rgba(255,255,255,0.5);
+  color: black
+}
+
+	
+.text-column-left {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12;
+	text-align: left;
+}
+
+.center-text {
+	font-family: Arial, Helvetica, sans-serif;
+	text-align: center;
+}
+
+.error-text {
+	font-family: Arial, Helvetica, sans-serif;
+	text-align: center;
+	color: red;
+}
+
+
+.left-cell {
+	width: 100%; 
+	text-align: left;
+	font-family: Arial, Helvetica, sans-serif;
+	text-align: left;
+}
+
+.readonly {
+	font-family: Arial, Helvetica, sans-serif;
+	text-align: left;
+	border-color: transparent;
+	outline: none;
+	background-color: inherit
+}
+
+.readwrite {
+	font-family: Arial, Helvetica, sans-serif;
+	text-align: left;
+	background-color: inherit
+}
+
+th, td {
+	padding-bottom: 0px
+}
+
+
+
+</style>
+</head>
+
+
+<body style="margin:0; padding:0">
+ 
+ <form style="width:100%; height:100%" id="form">
+    <div class="banner" style="width:100%; text-align: center;padding-right: 10px;">
+		<span style="width:80%">Database Console</span>
+		<img src="/db/resource/reload.png" style="float: right;cursor: pointer;padding-top: 5px;padding-left: 20px; vertical-align:center" onclick="dosubmit('Servers'); return false;"/>
+	</div>
+	
+	<div style="width:100%">
+	<ul class="nav nav-tabs" role="tablist" id="myTab">
+		<li class="nav-item" role="presentation"><button id="ClustersButton" class="nav-link active" href="#Clusters" data-bs-toggle="tab" data-bs-target="#Clusters" onclick="return false;">Shards</button></li>
+		<li class="nav-item" role="presentation"><button id="ServersButton" class="nav-link" href="#Servers" data-bs-toggle="tab" data-bs-target="#Servers" onclick="return false;">Servers</button></li>
+		<li class="nav-item" role="presentation"><button id="ClientsButton" class="nav-link" href="#Clients" data-bs-toggle="tab" data-bs-target="#Clients" onclick="return false;">Clients</button></li>
+		<li class="nav-item" role="presentation"><button id="QueriesButton" class="nav-link" href="#Queries" data-bs-toggle="tab" data-bs-target="#Queries" onclick="return false;">Queries</button></li>
+		<li class="nav-item" role="presentation"><button id="SettingsButton" class="nav-link" href="Settings" data-bs-toggle="tab" data-bs-target="#Settings" onclick="return false;">Settings</button></li>
+	</ul>
+	
+ 	</div>
+	 <div class="tab-content pt-2" style="padding-left: 10px; padding-right: 10px; width:100%; height: 100%;">
+	<div id="Clusters" class="tab-pane active">
+		<table id="ClustersTable"  class="table-striped">
+			<thead>
+				<tr>
+					<th class="text-column-left">Shard</th>
+					<th class="text-column-left">CPU</th>
+					<th class="text-column-left">Memory</th>
+					<th class="text-column-left">Deletes</th>
+					<th class="text-column-left">Inserts</th>
+					<th class="text-column-left">Updates</th>
+					<th class="text-column-left">Selects</th>
+				</tr>
+			</thead>
+		</table>
+		
+	</div>
+
+	<div id="Servers" style="width:100%; height: 100%" class="tab-pane">
+
+		<table id="ServersTable" class="table-striped">
+			<thead>
+				<tr>
+					<th class="text-column-left">Shard</th>
+					<th class="text-column-left">Server</th>
+					<th class="text-column-left">CPU</th>
+					<th class="text-column-left">Memory</th>
+					<th class="text-column-left">Deletes</th>
+					<th class="text-column-left">Inserts</th>
+					<th class="text-column-left">Updates</th>
+					<th class="text-column-left">Selects</th>
+					<th class="text-column-left">Log</th>
+				</tr>
+			</thead>
+		</table>
+
+	</div>
+
+	<div id="Queries" class="tab-pane">
+		<table id="QueriesTable" class="table-striped" style="width:100%">
+			<thead>
+				<tr>
+					<th class="text-column-left">Query</th>
+					<th class="text-column-left">Calls</th>
+					<th class="text-column-left">Time(ms)</th>
+					<th class="text-column-left">Matches</th>
+				</tr>
+			</thead>
+		</table>
+		
+	
+	</div>
+	
+	
+	<div id="Clients" class="tab-pane">
+		<table id="ClientTable" class="table-striped" style="width:100%">
+			<thead>
+				<tr>
+					<th class="text-column-left">Client</th>
+					<th class="text-column-left">Query</th>
+					<th class="text-column-left">Calls</th>
+					<th class="text-column-left">Time(ms)</th>
+					<th class="text-column-left">Matches</th>
+				</tr>
+			</thead>
+		</table>
+		
+	</div>
+	<div id="Settings" class="tab-pane">
+		<table id="SettingsTable" class="table-striped" style="width:100%">
+			<thead>
+				<tr>
+					<th class="text-column-left">Name</th>
+					<th class="text-column-left">Value</th>
+					<th></th>
+					<th></th>
+					<th></th>
+				</tr>
+			</thead>
+		</table>
+	</div>
+
+<div id="passwordModal" class="modal hide fade" tabindex="-1">
+		<div class="modal-dialog">
+		  <div class="modal-content">
+			<div class="modal-header">
+			  <h5 class="modal-title">Enter New Password</h5>
+			  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+			  	<table style="width:80%">
+					<tr>
+						<td>
+							<span class="left-cell">New Password:</span>
+						</td>
+						<td>
+							<div>
+								<input type="password" id="newpassword">
+								<img src="/db/resource/icons8-password-reset-25.png" id="newpasswordToggle" style="margin-left: -30px;cursor: pointer" onclick="togglePassword('newpassword')"></img>
+								</div>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span class="left-cell">Confirm Password:</span>
+						</td>
+						<td>
+							<div>
+								<input type="password" id="confirmpassword">
+								<img src="/db/resource/icons8-password-reset-25.png" id="confirmpasswordToggle" style="margin-left: -30px;cursor: pointer" onclick="togglePassword('confirmpassword')"></img>
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+
+			<div id="passwordalert" class="alert alert-danger" role="alert" style="width:80%; margin: auto; display:none;">
+					<span id="alerttext">A simple primary alert—check it out!</span>
+			</div>
+			
+			<div class="modal-footer">
+			  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			  <button type="button" class="btn btn-primary" onclick="applyPassword(); return false;">Save changes</button>
+			</div>
+		  </div>
+		</div>
+	</div>
+	
+	
+	<div style="text-align: center;"><span id="error" class="error-text" style="display:none"> my err</span></div>
+
+	<div style="text-align: center;"><span id="error" class="error-text" style="display:none"> my err</span></div>
+	<div>
+	<input type="hidden" id="serversData" name="serversData" th:value="${serversData}">
+	<input type="hidden" id="clustersData" name="clustersData" th:value="${clustersData}">
+	<input type="hidden" id="queriesData" name="queriesData" th:value="${queriesData}">
+	<input type="hidden" id="settingsData" name="settingsData" th:value="${settingsData}">
+	<input type="hidden" id="clientsData" name="clienstData" th:value="${clientsData}">
+	<input type="hidden" id="currentPage" name="currentPage" th:value="${currentPage}">
+   	<input type="hidden" id="admin" name="admin" th:value=${admin}>
+   
+	</div>
+	</form>
+</body>
+</html>

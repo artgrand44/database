@@ -1,0 +1,1 @@
+{"name":"test1","primaryKeyFields":["id"],"columns":{"id":{"type":"java.lang.String","primary":false,"nullable":false,"defaultValue":null},"name":{"type":"java.lang.String","primary":false,"nullable":false,"defaultValue":null}},"indices":[{"name":"name","multiValue":false,"fields":["name"]}]}
