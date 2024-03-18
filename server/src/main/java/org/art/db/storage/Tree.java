@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.art.db.common.Blob;
 import org.art.db.common.Key;
-import org.art.db.common.Trace;
 import org.art.db.storage.LockManager.UpgradeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

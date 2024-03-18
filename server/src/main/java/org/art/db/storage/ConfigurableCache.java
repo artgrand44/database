@@ -5,7 +5,6 @@ import java.beans.PropertyChangeListener;
 import java.util.function.Predicate;
 
 import org.art.db.common.Configuration;
-import org.art.db.common.Size;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

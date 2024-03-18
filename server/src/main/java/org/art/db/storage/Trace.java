@@ -1,4 +1,4 @@
-package org.art.db.common;
+package org.art.db.storage;
 
 /**
  * A utility class for thread-specific tracing

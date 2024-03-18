@@ -16,7 +16,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
-import org.art.db.common.Interval;
 import org.art.db.common.Key;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
