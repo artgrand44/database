@@ -2,7 +2,7 @@ package org.art.storage;
 
 
 import org.art.db.common.Document;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
@@ -37,7 +37,7 @@ public class AlternateKeyTest extends BaseSQLTest {
 				String key =  "Art" + idx;
 				String newKey = "Sam" + idx;
 				
-				ServerDocumentSet set = executeSelect(query, key);
+				DocumentSet set = executeSelect(query, key);
 				
 				
 				Assertions.assertThat(set.size() == 1).isTrue();

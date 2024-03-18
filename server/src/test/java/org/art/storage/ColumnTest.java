@@ -1,6 +1,6 @@
 package org.art.storage;
 
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
@@ -26,7 +26,7 @@ public class ColumnTest extends BaseSQLTest {
 				
 			}
 			
-			ServerDocumentSet set = executeSelect("select * from coltest where ID = 1");
+			DocumentSet set = executeSelect("select * from coltest where ID = 1");
 			
 			Assertions.assertThat(set.iterator().next().get("FirstName").equals("noah")).isTrue();
 			

@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.art.db.common.Document;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.storage.StorageManager;
 import org.art.db.storage.TableManager;
 import org.assertj.core.api.Assertions;
@@ -53,8 +53,8 @@ public class QueryTest extends BaseSQLTest {
 	private void doQuery(TableManager storage, int[] expectedIds, String projections, String sql) throws Exception {
 		List<String> projectionList = projections == null ? null : Arrays.asList(projections.split(","));
 		
-		ServerDocumentSet docs = super.executeSelect(sql);
-		ServerDocumentSet expected = new ServerDocumentSet();
+		DocumentSet docs = super.executeSelect(sql);
+		DocumentSet expected = new DocumentSet();
 		
 		for (int id : expectedIds) {
 			if (projections == null) {

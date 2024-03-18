@@ -10,7 +10,7 @@ import org.art.db.client.Client;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.query.Filter;
 import org.art.db.storage.Comparison;
 import org.art.db.storage.Metadata;
@@ -57,8 +57,8 @@ public class SQLUtils {
 		}
 	}
 	
-	static ServerDocumentSet broadcastExecuteQuery(String database, String statement, String user, String password, List<Comparable<?>> parameters) throws Exception {
-		ServerDocumentSet set = new ServerDocumentSet();
+	static DocumentSet broadcastExecuteQuery(String database, String statement, String user, String password, List<Comparable<?>> parameters) throws Exception {
+		DocumentSet set = new DocumentSet();
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 
 		if (handler != null) {
@@ -93,8 +93,8 @@ public class SQLUtils {
 		}
 	}
 	
-	static ServerDocumentSet forwardExecuteQuery(String database, String shard, String statement, String user, String password, List<Comparable<?>> parameters) throws Exception {
-		ServerDocumentSet set = new ServerDocumentSet();
+	static DocumentSet forwardExecuteQuery(String database, String shard, String statement, String user, String password, List<Comparable<?>> parameters) throws Exception {
+		DocumentSet set = new DocumentSet();
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
 		if (handler != null) {

@@ -32,7 +32,7 @@ public class TypedOutputStream extends DataOutputStream {
 			List.class,
 			ArrayList.class,
 			LinkedList.class,
-			ServerDocumentSet.class,
+			DocumentSet.class,
 			DBNull.class,
 			Blob.class,
 			GUID.class,
@@ -138,8 +138,8 @@ public class TypedOutputStream extends DataOutputStream {
 			for (Object item : list) {
 				this.writeObject(item);
 			}
-		} else if (clazz == ServerDocumentSet.class) {
-			((ServerDocumentSet)obj).serialize(this);
+		} else if (clazz == DocumentSet.class) {
+			((DocumentSet)obj).serialize(this);
 		} else if (clazz == Key.class) {
 			((Key)obj).serialize(this);
 		} else if (clazz == Document.class) {

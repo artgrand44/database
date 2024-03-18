@@ -32,7 +32,7 @@ public class TypedInputStream extends DataInputStream {
 			List.class,
 			ArrayList.class,
 			LinkedList.class,
-			ClientDocumentSet.class,
+			DocumentSet.class,
 			DBNull.class,
 			Blob.class,
 			GUID.class,
@@ -94,8 +94,8 @@ public class TypedInputStream extends DataInputStream {
 			}
 			
 			return list;
-		} else if (clazz == ClientDocumentSet.class) {
-			return new ClientDocumentSet().deserialize(this); 
+		} else if (clazz == DocumentSet.class) {
+			return new DocumentSet().deserialize(this); 
 		} else if (clazz == Document.class) {
 			return new Document().deserialize(this);
 		} else if (clazz == Key.class) {

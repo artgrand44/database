@@ -6,7 +6,7 @@ import java.util.Objects;
 
 import org.art.db.common.Converter;
 import org.art.db.common.Document;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.query.Filter;
 import org.art.db.query.OrderBy;
 import org.art.db.query.QueryManager;
@@ -165,12 +165,12 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	
 	
 	
-	ServerDocumentSet evaluateWhere(Expression exp, List<String> selectColumns, List<OrderBy> orderBy, List<Comparable<?>> parameters) {
+	DocumentSet evaluateWhere(Expression exp, List<String> selectColumns, List<OrderBy> orderBy, List<Comparable<?>> parameters) {
 		this.selectColumns = selectColumns;
 		this.parameters = parameters;
 		this.orderBy = orderBy;
 		
-		return (ServerDocumentSet) this.evaluate(exp);
+		return (DocumentSet) this.evaluate(exp);
 	}
 	
 	
@@ -420,8 +420,8 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	public void visit(AndExpression andExpression) {
 		
 		if (andExpression.getLeftExpression() instanceof FilterExpression filter) {
-			ServerDocumentSet set = (ServerDocumentSet)this.evaluate(filter);
-			ServerDocumentSet newSet = new ServerDocumentSet();
+			DocumentSet set = (DocumentSet)this.evaluate(filter);
+			DocumentSet newSet = new DocumentSet();
 			
 			for (Document doc : set) {
 				this.document = doc;
@@ -436,8 +436,8 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		}
 		
 		if (andExpression.getRightExpression() instanceof FilterExpression filter) {
-			ServerDocumentSet set = (ServerDocumentSet)this.evaluate(filter);
-			ServerDocumentSet newSet = new ServerDocumentSet();
+			DocumentSet set = (DocumentSet)this.evaluate(filter);
+			DocumentSet newSet = new DocumentSet();
 			
 			for (Document doc : set) {
 				this.document = doc;
@@ -455,17 +455,17 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		Object left = this.evaluate(andExpression.getLeftExpression());
 		Object right = this.evaluate(andExpression.getRightExpression());
 		
-		if (left instanceof ServerDocumentSet lset && right instanceof ServerDocumentSet rset) {
+		if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
 			throw new UnsupportedSyntaxException("Bad plan for " + andExpression);
 		} 
 		
-		if (left instanceof ServerDocumentSet set) {
-			this.result = right.equals(Boolean.TRUE) ? left : new ServerDocumentSet();
+		if (left instanceof DocumentSet set) {
+			this.result = right.equals(Boolean.TRUE) ? left : new DocumentSet();
 			return;
 		}
 		
-		if (right instanceof ServerDocumentSet) {
-			this.result = left.equals(Boolean.TRUE) ? right : new ServerDocumentSet();
+		if (right instanceof DocumentSet) {
+			this.result = left.equals(Boolean.TRUE) ? right : new DocumentSet();
 			return;
 		}
 		
@@ -488,18 +488,18 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		Object left = this.evaluate(orExpression.getLeftExpression());
 		Object right = this.evaluate(orExpression.getRightExpression());
 		
-		if (left instanceof ServerDocumentSet lset && right instanceof ServerDocumentSet rset) {
+		if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
 			lset.addAll(rset);
 			this.result = left;
 			return;
 		} 
 		
-		if (left instanceof ServerDocumentSet) {
+		if (left instanceof DocumentSet) {
 			this.result = left;
 			return;
 		} 
 		
-		if (right instanceof ServerDocumentSet) {
+		if (right instanceof DocumentSet) {
 			this.result = right;
 			return;
 		} 

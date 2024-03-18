@@ -8,7 +8,7 @@ import java.util.Map;
 import org.art.db.client.Client;
 import org.art.db.common.Converter;
 import org.art.db.common.Document;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.query.OrderBy;
 import org.art.db.query.QueryManager;
 import org.art.db.security.SecurityHandler;
@@ -112,7 +112,7 @@ public class DMLHandler {
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression normalized = new ExpressionNormalizer().normalize(where);
 			
-			ServerDocumentSet docs = evaluator.evaluateWhere(normalized, null, null, parameters);
+			DocumentSet docs = evaluator.evaluateWhere(normalized, null, null, parameters);
 
 			for (Document doc : docs) {
 				QueryManager.getInstance().remove(table, doc);
@@ -223,7 +223,7 @@ public class DMLHandler {
 		
 	}
 	
-	static ServerDocumentSet select(Select select, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+	static DocumentSet select(Select select, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		
 		if (select instanceof PlainSelect plainSelect && plainSelect.getFromItem() instanceof Table fromTable) {
 			String table = SQLUtils.getFQN(fromTable, database);
@@ -239,7 +239,7 @@ public class DMLHandler {
 				return SQLUtils.forwardExecuteQuery(database, shard, select.toString(), user, password, parameters);
 			}
 			
-			ServerDocumentSet set = selectLocal(plainSelect, fromTable, database, user, password, parameters);
+			DocumentSet set = selectLocal(plainSelect, fromTable, database, user, password, parameters);
 
 			if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
 				set.addAll(SQLUtils.broadcastExecuteQuery(database, select.toString(), user, password, parameters));
@@ -251,7 +251,7 @@ public class DMLHandler {
 		throw new UnsupportedOperationException("Syntax not supported.");
 	}
 	
-	private static ServerDocumentSet selectLocal(PlainSelect plainSelect, Table fromTable, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+	private static DocumentSet selectLocal(PlainSelect plainSelect, Table fromTable, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		String table = SQLUtils.getFQN(fromTable, database);
 		long start = System.currentTimeMillis();
 		
@@ -278,7 +278,7 @@ public class DMLHandler {
 						
 		// Get the document set then process any aliases and expressions in the select items
 		
-		ServerDocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters);	
+		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters);	
 				
 		if (!plainSelect.getSelectItems().stream().anyMatch(x -> x.getExpression() instanceof AllColumns)) {		
 			for (Document doc : set) {
@@ -368,7 +368,7 @@ public class DMLHandler {
 			
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression normalized = new ExpressionNormalizer().normalize(where);
-			ServerDocumentSet docs =  evaluator.evaluateWhere(normalized, null, null, parameters);
+			DocumentSet docs =  evaluator.evaluateWhere(normalized, null, null, parameters);
 			
 			for (Document oldDoc : docs) {
 				Document newDoc = new Document(oldDoc);

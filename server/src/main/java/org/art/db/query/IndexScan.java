@@ -5,7 +5,7 @@ import java.util.Set;
 
 import org.art.db.common.Document;
 import org.art.db.common.Key;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.storage.TableManager;
 
 public class IndexScan extends Plan {
@@ -27,9 +27,9 @@ public class IndexScan extends Plan {
 	}
 	
 	@Override
-	public ServerDocumentSet execute(TableManager engine) throws Exception {
+	public DocumentSet execute(TableManager engine) throws Exception {
 		Set<Key> keys = engine.getAllKeys(scan.getIndex(), scan.getComparison(), key);
-		ServerDocumentSet result = new ServerDocumentSet();
+		DocumentSet result = new DocumentSet();
 		
 		for (Key key : keys) {
 			Document doc = new Document();

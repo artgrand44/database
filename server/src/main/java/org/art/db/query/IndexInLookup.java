@@ -6,7 +6,7 @@ import java.util.Set;
 
 import org.art.db.common.Document;
 import org.art.db.common.Key;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.storage.Comparison;
 import org.art.db.storage.TableManager;
 import org.slf4j.Logger;
@@ -28,14 +28,14 @@ public class IndexInLookup extends Plan {
 	}
 	
 	@Override
-	public ServerDocumentSet execute(TableManager engine) throws Exception {
+	public DocumentSet execute(TableManager engine) throws Exception {
 		Set<Key> keys = new HashSet<>();
 		
 		for (Comparable<?> value : this.inClause) {
 			keys.addAll(engine.getAll(this.indexName, Comparison.EQ, new Key(value)));
 		}
 		
-		ServerDocumentSet result = new ServerDocumentSet();
+		DocumentSet result = new DocumentSet();
 		
 		for (Key key : keys) {
 			Document doc = engine.getDocument(key);

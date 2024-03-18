@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.art.db.common.Key;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.storage.Comparison;
 import org.art.db.storage.IndexInfo;
 import org.art.db.storage.Metadata;
@@ -185,7 +185,7 @@ public class Planner {
 		}
 
 		@Override
-		public ServerDocumentSet execute(TableManager engine) throws Exception { return null; }
+		public DocumentSet execute(TableManager engine) throws Exception { return null; }
 	}
 	
 }

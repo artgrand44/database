@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.art.db.common.Document;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
@@ -19,7 +19,7 @@ public class DocumentSetTest extends BaseSQLTest {
 	@Test
 	public void test() {
 		try {
-			ServerDocumentSet set = new ServerDocumentSet();
+			DocumentSet set = new DocumentSet();
 			
 			
 			for (int idx = 0; idx < 2000; idx++) {

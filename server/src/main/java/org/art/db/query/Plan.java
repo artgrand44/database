@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.art.db.common.Document;
 import org.art.db.common.Key;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.storage.Comparison;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
@@ -27,7 +27,7 @@ public abstract class Plan  {
 		this.metadata = Metadata.getMetadata(table);
 	}
 	
-	public abstract ServerDocumentSet execute(TableManager engine) throws Exception;
+	public abstract DocumentSet execute(TableManager engine) throws Exception;
 	
 	protected Key buildKey(List<String> keys, List<Filter> filters) {
 		List<Comparable<?>> fields = new ArrayList<>();

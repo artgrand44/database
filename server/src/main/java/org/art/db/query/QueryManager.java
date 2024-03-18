@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.art.db.common.Document;
 import org.art.db.common.Key;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.storage.Comparison;
 import org.art.db.common.DBNull;
 import org.art.db.storage.Metadata;
@@ -32,12 +32,12 @@ public class QueryManager {
 		manager.insert(doc, true);
 	}
 	
-	public ServerDocumentSet select(String table, List<String> selectColumns, List<OrderBy> orderBy, List<Filter> filters) throws Exception {
+	public DocumentSet select(String table, List<String> selectColumns, List<OrderBy> orderBy, List<Filter> filters) throws Exception {
 		Metadata metadata = Metadata.getMetadata(table);
 		Plan plan = Planner.buildPlan(table, selectColumns, filters);
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
-		ServerDocumentSet set = plan.execute(manager);
+		DocumentSet set = plan.execute(manager);
 		
 		if (orderBy != null && !orderBy.isEmpty()) {
 			set.sort(new DocumentComparer(orderBy));
@@ -47,7 +47,7 @@ public class QueryManager {
 			return set;
 		}
 		
-		ServerDocumentSet newSet = new ServerDocumentSet();
+		DocumentSet newSet = new DocumentSet();
 		
 		for (Document doc : set) {
 			Document newDoc = new Document();

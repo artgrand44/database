@@ -9,7 +9,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.art.db.common.Document;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.query.Filter;
 import org.art.db.query.Plan;
 import org.art.db.query.Planner;
@@ -79,8 +79,8 @@ public class PlanTest {
 		
 		logger.info("Got plan " + plan);
 		
-		ServerDocumentSet docs = plan.execute(storage);
-		ServerDocumentSet expected = new ServerDocumentSet();
+		DocumentSet docs = plan.execute(storage);
+		DocumentSet expected = new DocumentSet();
 		
 		for (int id : expectedIds) {
 			expected.add(getDocument(id));

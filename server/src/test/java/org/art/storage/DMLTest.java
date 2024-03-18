@@ -1,7 +1,7 @@
 package org.art.storage;
 
 import org.art.db.common.Document;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
@@ -21,7 +21,7 @@ public class DMLTest extends BaseSQLTest {
 			
 			execute(insert);
 			
-			ServerDocumentSet docs = executeSelect(query);
+			DocumentSet docs = executeSelect(query);
 			
 			Assertions.assertThat(docs.size() == 1).isTrue();
 			

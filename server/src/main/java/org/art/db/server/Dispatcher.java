@@ -12,7 +12,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 import org.art.db.security.SecurityHandler;
@@ -110,7 +110,7 @@ public class Dispatcher {
 				List<Comparable<?>> parameterList = (List<Comparable<?>>)inStream.readObject();
 				long start = System.currentTimeMillis();
 			
-				ServerDocumentSet set = SQLHandler.getInstance().executeQuery(shard, database, user, password, sql, parameterList);
+				DocumentSet set = SQLHandler.getInstance().executeQuery(shard, database, user, password, sql, parameterList);
 				
 				UIConsole console = UIConsole.getCurrent();
 				
@@ -141,7 +141,7 @@ public class Dispatcher {
 			int index = Integer.parseInt(parameters.get("index"));
 			int size = Integer.parseInt(parameters.get("size"));
 			
-			return ServerDocumentSet.fetch(file, index, size);
+			return DocumentSet.fetch(file, index, size);
 		}
 		
 	}

@@ -2,7 +2,7 @@ package org.art.db.sql;
 
 import java.util.List;
 
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.common.DBRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +74,7 @@ public class SQLHandler {
 		} 
 	}
 	
-	public ServerDocumentSet executeQuery(String shard, String database,  String user, String password, String sql, List<Comparable<?>> parameters) throws Exception {
+	public DocumentSet executeQuery(String shard, String database,  String user, String password, String sql, List<Comparable<?>> parameters) throws Exception {
 		try {
 			Statement statement = this.parse(sql);
 		

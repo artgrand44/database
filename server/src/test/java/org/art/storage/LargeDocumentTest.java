@@ -6,7 +6,7 @@ import java.nio.charset.Charset;
 import org.apache.commons.io.IOUtils;
 import org.art.db.common.Configuration;
 import org.art.db.common.Document;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.storage.StorageManager;
 import org.art.db.storage.TableManager;
 import org.assertj.core.api.Assertions;
@@ -43,7 +43,7 @@ public class LargeDocumentTest extends BaseSQLTest {
 			
 			manager.insert(doc, false);
 			
-			ServerDocumentSet docs = super.executeSelect("select * from largedoc where id = 'key'");
+			DocumentSet docs = super.executeSelect("select * from largedoc where id = 'key'");
 			
 			Assertions.assertThat(!docs.isEmpty()).isTrue();
 			

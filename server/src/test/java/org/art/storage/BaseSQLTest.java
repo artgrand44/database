@@ -8,7 +8,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.art.db.client.Client;
-import org.art.db.common.ServerDocumentSet;
+import org.art.db.common.DocumentSet;
 import org.art.db.sql.SQLHandler;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.IndexInfo;
@@ -84,11 +84,11 @@ public abstract class BaseSQLTest extends BaseTest {
 		SQLHandler.getInstance().execute(Client.WILDCARD, "", "admin", "admin", sql, list);
 	}
 	
-	ServerDocumentSet executeSelect(String sql) throws Exception {
+	DocumentSet executeSelect(String sql) throws Exception {
 		return SQLHandler.getInstance().executeQuery(Client.WILDCARD, "", "admin", "admin", sql, Collections.emptyList());
 	}
 	
-	ServerDocumentSet executeSelect(String sql, Comparable<?>...args) throws Exception {
+	DocumentSet executeSelect(String sql, Comparable<?>...args) throws Exception {
 		List<Comparable<?>> list = new ArrayList<>();
 		
 		for (Comparable<?> arg : args) {
