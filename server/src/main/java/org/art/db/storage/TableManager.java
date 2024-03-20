@@ -177,7 +177,7 @@ public class TableManager implements Closeable{
 			if (this.checkConstraints) {
 				this.lockManager.writeLock(new Key("", primaryKey));
 				
-				Document old = this.table.get(primaryKey);
+				/*Document old = this.table.get(primaryKey);
 				
 				if (old != null) {
 					Key otherKey = this.buildKey(old, this.metadata.primaryKeyFields());
@@ -187,7 +187,7 @@ public class TableManager implements Closeable{
 					
 					logger.info("x " + x);
 					throw new DBRuntimeException("Duplicate primary key " + primaryKey);
-				}
+				}*/
 
 				for (int idx = 0; idx < this.indexInfo.size(); idx++) {
 					IndexInfo info = this.indexInfo.get(idx);

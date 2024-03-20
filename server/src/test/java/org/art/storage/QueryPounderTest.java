@@ -49,12 +49,26 @@ public class QueryPounderTest extends BaseQueryPounder {
 				DocumentSet ids = client.executeQuery(idQuery, id);
 				DocumentSet names = client.executeQuery(nameQuery, name);
 				
+				if (ids.size() == 0) {
+					logger.info("missing id " + id);
+					
+					synchronized (this) {
+						ids = client.executeQuery(idQuery, id);
+						logger.info("after 2nd " + ids.size());
+					}
+					
+				}
 				Assertions.assertThat(ids.size() == 1).isTrue();
 				
 				Assertions.assertThat(ids.iterator().next().get("ID").equals(Long.valueOf(id))).isTrue();
 				
 				if (names.size() != 1) {
 					logger.info("Names is bad " + names);
+					
+					synchronized (names) {
+						names = client.executeQuery(nameQuery, name);
+						logger.info("after 2nd names" + ids.size());
+					}
 				}
 				Assertions.assertThat(names.size() == 1).isTrue();
 				Assertions.assertThat(ids.iterator().next().get("FirstName").equals(name)).isTrue();

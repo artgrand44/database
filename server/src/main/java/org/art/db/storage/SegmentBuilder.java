@@ -184,11 +184,11 @@ public class SegmentBuilder {
 	}
 	
 	static void merge(File toFile, int diskBlockSize, File[] fromFiles) throws Exception {
-		Segment[] segments = new Segment[fromFiles.length];
+		DiskSegment[] segments = new DiskSegment[fromFiles.length];
 		BitSet bloomFilter = new BitSet();
 		
 		for (int idx = 0; idx < fromFiles.length; idx++) {
-			segments[idx] = new Segment(fromFiles[idx]);
+			segments[idx] = new DiskSegment(fromFiles[idx]);
 			bloomFilter.or(segments[idx].getBloomFilter());
 		}
 		

@@ -71,7 +71,7 @@ public class Table implements Closeable {
 			
 			for (File file : list) {
 				logger.info("found file " + file.getAbsolutePath());
-				this.segments.add(new Segment(file));
+				this.segments.add(new DiskSegment(file));
 			}
 		}
 		
@@ -113,7 +113,7 @@ public class Table implements Closeable {
 		Document result = cache.getIfPresent(id); 
 
 		if (result != null) {
-			return result;
+			//return result;
 		}
 
 		this.readLock.lock();
@@ -132,9 +132,9 @@ public class Table implements Closeable {
 					cache.put(id, result);
 					
 					return result;
-				} else if (key.isGUID() && key.getGUID().compareTo(segment.getHighGUID()) > 0) {
+				} /*else if (key.isGUID() && key.getGUID().compareTo(segment.getHighGUID()) > 0) {
 					return null;
-				} 
+				} */
 			}
 
 			return null;
@@ -164,10 +164,10 @@ public class Table implements Closeable {
 
 					if (segment instanceof MemorySegment) {
 						idx++;
-					} else if (segment.getFile().equals(file)) {
-						this.segments.set(idx, new Segment(merged));
+					} else if (((DiskSegment)segment).getFile().equals(file)) {
+						this.segments.set(idx, new DiskSegment(merged));
 						idx++;
-					} else if (fileList.contains(segment.getFile())) {
+					} else if (fileList.contains(((DiskSegment)segment).getFile())) {
 						this.segments.remove(idx);
 					} else {
 						idx++;
