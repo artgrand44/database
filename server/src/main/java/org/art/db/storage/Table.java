@@ -275,7 +275,7 @@ public class Table implements Closeable {
 		this.writeLock.lock();
 
 		try {
-			if (this.currentSegment.size() > this.maxSegmentSize && this.currentSegment.iterator().hasNext() && this.prevSegment == null && !this.closed) {
+			if (this.currentSegment.size() > this.maxSegmentSize && this.prevSegment == null && !this.closed) {
 				for (Index index : this.indices.values()) {
 					index.flush();
 				}

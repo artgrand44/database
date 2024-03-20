@@ -3,13 +3,17 @@ package org.art.db.storage;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.art.db.common.Blob;
 import org.art.db.common.Document;
@@ -33,6 +37,7 @@ public class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 	private final Tree<Blob> tree;
 	private final TreeStore treeStore;
 	private final BitSet bloomFilter;
+	private final ConcurrentHashMap<Key, Document> documents;
 	private final File file;
 	
 	private Metadata metadata;
@@ -47,6 +52,7 @@ public class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 		this.metadata = Metadata.getMetadata(table);
 		this.tree = new Tree<>(File.createTempFile("data", ".dat"), MEMORY_BLOCK_SIZE, true, Blob.class);
 		this.treeStore = this.tree.treeStore;
+		this.documents = new ConcurrentHashMap<>(10000);
 	}
 	
 	public Segment(File file) throws Exception {
@@ -54,6 +60,7 @@ public class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 		this.file = file;
 		this.tree = new Tree<>(file, DISK_BLOCK_SIZE, false, Blob.class);
 		this.treeStore = tree.treeStore;
+		this.documents = null;
 		this.metadata = this.treeStore.getMetadata();
 		this.highGUID = this.treeStore.getHighGUID();
 		byte[] bytes = this.treeStore.getZombies();
@@ -70,12 +77,21 @@ public class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 	}
 	
 	public Set<Document> getAll(Key key) throws Exception {
+		Document doc;
+		
+		if (this.documents != null && (doc = this.documents.get(key)) != null) {
+			Set<Document> result = new HashSet<>();
+			
+			result.add(doc);
+			return result;
+		}
+		
 		if (this.bloomFilter.get(this.getHash(key))) {
 			Set<Blob> blobs = this.tree.getAll(Comparison.EQ, key);
 			Set<Document> result = new HashSet<>();
 			
 			for (Blob blob : blobs) {
-				Document doc = BlobConverter.toDocument(this.metadata, blob);
+				doc = BlobConverter.toDocument(this.metadata, blob);
 				
 				blob.setDocument(doc);
 				result.add(doc);
@@ -104,6 +120,10 @@ public class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 
 	@Override
 	public Iterator<Entry<Key, Blob>> iterator() {
+		if (this.documents != null) {
+			return new SortedIterator(this.documents);
+		}
+		
 		return this.tree.iterator();
 	}
 
@@ -112,7 +132,12 @@ public class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 		
 		blob.setDocument(doc);
 		
-		this.tree.put(key, blob);
+		if (this.documents == null) {
+			this.tree.put(key, blob);
+		} else {
+			this.documents.put(key, doc);
+		}
+		
 		this.bloomFilter.set(this.getHash(key));
 		
 		this.zombies.remove(key);
@@ -130,15 +155,21 @@ public class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 	}
 	
 	public long size() {
-		return this.tree.size();
+		return this.documents == null ? this.tree.size() : this.documents.size();
 	}
 	
 	public void update(Key key, Document doc, boolean propagate) throws Exception {
-		Blob blob = BlobConverter.fromDocument(this.metadata, doc);
 		
-		blob.setDocument(doc);
+		if (this.documents == null) {
+			Blob blob = BlobConverter.fromDocument(this.metadata, doc);
+			
+			blob.setDocument(doc);
+			
+			this.tree.put(key, blob);
+		} else {
+			this.documents.put(key, doc);
+		}
 		
-		this.tree.put(key, blob);
 		this.bloomFilter.set(this.getHash(key));
 		
 		this.zombies.remove(key);
@@ -184,6 +215,40 @@ public class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 		return "Segment [file=" + file + ", highGUID=" + highGUID + "]";
 	}
 
-	
+	class SortedIterator implements Iterator<Map.Entry<Key, Blob>> {
+		private final Map<Key, Document> map;
+		private final List<Key> sortedKeys;
+		private final Iterator<Key> iterator;
+		
+		SortedIterator(Map<Key, Document> map) {
+			this.map = map;
+			this.sortedKeys = new ArrayList<>(map.size());
+			
+			this.sortedKeys.addAll(map.keySet());
+			
+			Collections.sort(this.sortedKeys);
+			
+			this.iterator = this.sortedKeys.iterator();
+		}
+		
+		@Override
+		public boolean hasNext() {
+			return this.iterator.hasNext();
+		}
+
+		@Override
+		public Entry<Key, Blob> next() {
+			try {
+				Key key = this.iterator.next();
+				Blob blob = BlobConverter.fromDocument(metadata, this.map.get(key));
+			
+				return new SimpleEntry<>(key, blob);
+			} catch (Exception exc) {
+				throw new IllegalStateException(exc);
+			}
+		}
+		
+	}
+
 }
 
