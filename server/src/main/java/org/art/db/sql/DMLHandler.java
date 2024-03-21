@@ -174,11 +174,6 @@ public class DMLHandler {
 					throw new DBRuntimeException("The value for " + column + " cannot be null");
 				}
 				
-				if (value instanceof DBNull) {
-					Object xyz = Converter.convert(value, info.type());
-					logger.info("xyz = " + xyz);
-				}
-				
 				doc.put(column, Converter.convert(value, info.type()));
 			}
 			

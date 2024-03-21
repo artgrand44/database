@@ -447,12 +447,12 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			first = this.getFirstGE(key);
 			last = this.getLastEQ(key);
 			
-			boolean hasData = first.currentKey() != null && first.currentKey().compareTo(key) >= 0 && first.currentKey().compareTo(max) < 0;
+			/*boolean hasData = first.currentKey() != null && first.currentKey().compareTo(key) >= 0 && first.currentKey().compareTo(max) < 0;
 			
 			if (trace && !hasData) {
 				Trace.log("missing key = " + key);
 				dumpVisited();
-			}
+			}*/
 			
 			return first.currentKey() != null && first.currentKey().compareTo(key) >= 0 && first.currentKey().compareTo(max) < 0 ? new RangeIterator(first, last) : empty; 
 			

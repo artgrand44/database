@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -161,7 +162,6 @@ public class MemorySegment extends Segment {
 	}
 	
 	public void crash() throws IOException {
-		logger.info("in crash " + this.logFile.getAbsolutePath() + " " + this.logFile.length());
 		this.log.close();
 	}
 	
@@ -231,7 +231,7 @@ public class MemorySegment extends Segment {
 	public Set<Document> getAll(Key key) throws Exception {
 		Document doc;
 		
-		if (this.documents != null && (doc = this.documents.get(key)) != null) {
+		if ((doc = this.documents.get(key)) != null) {
 			Set<Document> result = new HashSet<>();
 			
 			result.add(doc);
@@ -281,6 +281,7 @@ public class MemorySegment extends Segment {
 		SegmentBuilder.build(this, file, DISK_BLOCK_SIZE);
 		
 		return new DiskSegment(file);
+		
 	}
 
 	public long size() {

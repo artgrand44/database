@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 	
 	@SuppressWarnings("unused")
-	private static final Logger logger = LoggerFactory.getLogger(Segment.class);
+	private static final Logger logger = LoggerFactory.getLogger(DiskSegment.class);
 	
 	private static final int BLOOM_SIZE = 2048;
 	
@@ -34,7 +34,6 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 	
 	public DiskSegment(File file) throws Exception {
 		super();
-		logger.info("create disk");
 		
 		this.file = file;
 		this.tree = new Tree<>(file, DISK_BLOCK_SIZE, false, Blob.class);
@@ -56,7 +55,6 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 		}
 		
 		this.setZombies(zombies);
-		
 	}
 	
 	public Set<Document> getAll(Key key) throws Exception {

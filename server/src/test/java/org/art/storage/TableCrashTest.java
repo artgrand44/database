@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class TableCrashTest  {
 	
-	private static final Logger logger = LoggerFactory.getLogger(MemorySegment.class);
+	private static final Logger logger = LoggerFactory.getLogger(TableCrashTest.class);
 	
 	private Document createDocument(int idx) throws Exception {
 		Document doc = new Document();
@@ -60,7 +60,7 @@ public class TableCrashTest  {
 	}
 	
 	//@Test
-	@RepeatedTest(5)
+	@RepeatedTest(50)
 	public void test() {
 		try {
 			File directory = new File("./atest");
@@ -95,7 +95,7 @@ public class TableCrashTest  {
 				Document doc1 = createDocument(idx);
 				
 				if (idx % 50 == 0) {
-					logger.info("***insert " + idx);
+					logger.info("test inserting " + idx);
 				}
 				
 				manager.insert(doc1, true);
@@ -107,7 +107,7 @@ public class TableCrashTest  {
 					
 					manager = new TableManager("test");
 					
-					logger.info("****reopened " + idx);
+					logger.info("test reopened" + idx);
 					for (int jdx = 0; jdx <= idx; jdx++) {
 						Key key = new Key("Key" + jdx);
 						Document doc = manager.get(key);

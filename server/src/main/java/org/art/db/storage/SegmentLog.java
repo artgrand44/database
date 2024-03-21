@@ -3,7 +3,12 @@ package org.art.db.storage;
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 
 import org.art.db.common.Document;
@@ -31,7 +36,7 @@ public class SegmentLog implements Closeable {
 	
 	SegmentLog(File file, boolean write) throws Exception {
 		this.inputStream = write ? null : new TypedInputStream(file);
-		this.outputStream = write ? new TypedOutputStream(file) : null;
+		this.outputStream = write ? new TypedOutputStream(new EOFFileOutputStream(file)) : null;
 	}
 	
 	SegmentLog(TypedInputStream stream) {
@@ -52,8 +57,7 @@ public class SegmentLog implements Closeable {
 	}
 	
 	void flush() throws IOException {
-		this.outputStream.flush();
-		
+		this.outputStream.flush();		
 	}
 	
 	LogEntry read() throws IOException {
@@ -99,4 +103,71 @@ public class SegmentLog implements Closeable {
 			this(op, key, document, timestamp, propagate, new CompletableFuture<>());
 		}
 	}
+	
+	class EOFFileOutputStream extends FileOutputStream {
+		private long realEOF = 0;
+		
+		private long directoryEOF;
+		
+		private final FileChannel channel;
+		
+		private final File file;
+		
+		private final static int BLOCK_SIZE = 1024 * 2024;
+		
+		public EOFFileOutputStream(File file) throws FileNotFoundException {
+			super(file);
+			logger.info("created " + file.getAbsolutePath());
+			this.channel = super.getChannel();
+			this.file = file;
+		}
+		
+		private void insureEOF(int count) throws IOException {
+			long newEOF = this.realEOF + count;
+			
+			if (this.directoryEOF - newEOF < BLOCK_SIZE) {
+				long newDirectoryEOF = this.directoryEOF + BLOCK_SIZE;
+				long currentPosition = this.channel.position();
+				byte[] fill = new byte[(int)(newDirectoryEOF - currentPosition)];
+				
+				Arrays.fill(fill, (byte)0xFF);
+				
+				ByteBuffer buffer = ByteBuffer.wrap(fill);
+				int offset = 0;
+				
+				while (buffer.position() < buffer.limit()) {
+					offset += this.channel.write(buffer, currentPosition + offset);
+				}
+
+				this.channel.force(false);
+				
+				///logger.info("forced " + file.getAbsolutePath() + " to " + this.channel.position());
+				this.channel.position(currentPosition);		
+				
+				this.directoryEOF = newDirectoryEOF;
+			}
+			
+			this.realEOF = newEOF;
+		}
+
+		public void write(int b) throws IOException {
+			this.insureEOF(1);
+			super.write(b);
+		}
+		
+		public void write(byte[] b) throws IOException {
+			this.insureEOF(b.length);
+			//logger.info("writing to " + file.getAbsolutePath() + " count " + b.length + " at " + this.channel.position());
+			super.write(b);
+			//logger.info("after " + channel.position());
+		}
+		
+		public void write(byte[] b, int off, int len) throws IOException {
+			this.insureEOF(len);
+			//logger.info("writing to " + file.getAbsolutePath() + " count " + b.length + " at " + this.channel.position());
+			super.write(b, off, len);
+			//logger.info("after " + channel.position());
+		}
+	}
+	
 }

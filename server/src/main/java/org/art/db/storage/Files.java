@@ -6,9 +6,13 @@ import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 import org.art.db.common.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Files {
 		
+	private static final Logger logger = LoggerFactory.getLogger(Files.class);
+	
 	private final static String META_DATA = "%s/meta.dat";
 	
 	private final static String TABLE_LOG = "%s/%s.log";

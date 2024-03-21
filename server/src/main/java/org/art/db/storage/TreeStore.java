@@ -64,7 +64,7 @@ public class TreeStore implements Closeable, BlobStore {
 	private final AtomicLong writeCount = new AtomicLong();
 	private List<Long> freeBlocks = new ArrayList<>();
 	private Header header;
-	private boolean isClosed;
+	private volatile boolean isClosed;
 	
 	
 	private volatile ConcurrentMap<LogKey, byte[]> currentDelta = new ConcurrentHashMap<>();	

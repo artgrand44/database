@@ -2,6 +2,7 @@ package org.art.db.storage;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -54,12 +55,15 @@ public class TableManager implements Closeable{
 				
 		if (logs != null) {
 			List<File> list = Arrays.asList(logs);
+			
 			Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
 
 			for (File file : list) {
 				if (file.length() != 0) {
 					this.applySnapshot(new TypedInputStream(file), false);
-				}				
+				} else {
+					logger.info("empty log " + file.getAbsolutePath());
+				}
 			}
 		}
 		
@@ -177,17 +181,11 @@ public class TableManager implements Closeable{
 			if (this.checkConstraints) {
 				this.lockManager.writeLock(new Key("", primaryKey));
 				
-				/*Document old = this.table.get(primaryKey);
+				Document old = this.table.get(primaryKey);
 				
 				if (old != null) {
-					Key otherKey = this.buildKey(old, this.metadata.primaryKeyFields());
-					
-					logger.info("dup primary " + primaryKey + " old " + otherKey + " " + primaryKey.equals(otherKey));
-					Document x = this.table.get(primaryKey);
-					
-					logger.info("x " + x);
 					throw new DBRuntimeException("Duplicate primary key " + primaryKey);
-				}*/
+				}
 
 				for (int idx = 0; idx < this.indexInfo.size(); idx++) {
 					IndexInfo info = this.indexInfo.get(idx);

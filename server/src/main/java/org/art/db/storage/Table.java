@@ -92,7 +92,10 @@ public class Table implements Closeable {
 				this.writeLock.lock();
 			}
 			
-			this.save(this.currentSegment);
+			if (!this.currentSegment.isClosed()) {
+				this.save(this.currentSegment);
+			}
+			
 			this.switcher.cancel(false);
 		} catch (Exception exc) {
 			throw new IOException(exc);
@@ -113,7 +116,7 @@ public class Table implements Closeable {
 		Document result = cache.getIfPresent(id); 
 
 		if (result != null) {
-			//return result;
+			return result;
 		}
 
 		this.readLock.lock();
@@ -132,9 +135,9 @@ public class Table implements Closeable {
 					cache.put(id, result);
 					
 					return result;
-				} /*else if (key.isGUID() && key.getGUID().compareTo(segment.getHighGUID()) > 0) {
+				} else if (key.isGUID() && key.getGUID().compareTo(segment.getHighGUID()) > 0) {
 					return null;
-				} */
+				} 
 			}
 
 			return null;
