@@ -278,10 +278,10 @@ public class MemorySegment extends Segment {
 		this.getZombies().add(key);
 	}
 	
-	public Segment save(File file) throws Exception {
+	public DiskSegment save(File file) throws Exception {
 		SegmentBuilder.build(this, file, DISK_BLOCK_SIZE);
 		
-		return new Segment(file);
+		return new DiskSegment(file);
 	}
 
 	/**

@@ -51,7 +51,7 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 	}
 	
 	public DiskSegment(File file) throws Exception {
-		super(file.getName());
+		super(file);
 		logger.info("create disk");
 		
 		this.file = file;

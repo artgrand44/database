@@ -239,7 +239,7 @@ public class Table implements Closeable {
 			try {
 				File file  = Files.getDiskSegment(this.table, 1);
 
-				Segment saved = segment.save(file);
+				DiskSegment saved = segment.save(file);
 
 				this.writeLock.lock();
 
