@@ -101,7 +101,7 @@ public class MemorySegment extends Segment {
 	
 
 	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Configuration config) throws Exception {
-		super(table);
+		super();
 		
 		Interval interval;
 		
@@ -118,6 +118,8 @@ public class MemorySegment extends Segment {
 		this.logDelay = interval.toMillis();
 		this.timer = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::timer, 1,  1,  TimeUnit.SECONDS);
 		this.id = "Mem" + nextId.incrementAndGet();		
+		
+		this.setMetadata(Metadata.getMetadata(table));
 		
 	}
 	
@@ -160,7 +162,6 @@ public class MemorySegment extends Segment {
 	
 	public void crash() throws IOException {
 		logger.info("in crash " + this.logFile.getAbsolutePath() + " " + this.logFile.length());
-		super.close();
 		this.log.close();
 	}
 	

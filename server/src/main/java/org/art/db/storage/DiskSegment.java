@@ -79,6 +79,7 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 	
 	@Override
 	public void close() throws IOException {
+		this.tree.close();
 	}
 	
 	public Document get(Key key) throws Exception {

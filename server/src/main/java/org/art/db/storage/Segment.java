@@ -1,7 +1,6 @@
 package org.art.db.storage;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -21,8 +20,7 @@ public abstract class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeab
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Segment.class);
 	
-	private static final int BLOOM_SIZE = 2048;
-	
+	static final int BLOOM_SIZE = 2048;
 	static final int DISK_BLOCK_SIZE = 1024 * 1024;
 	
 	private Set<Key> zombies = new HashSet<>();
@@ -31,27 +29,13 @@ public abstract class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeab
 	private Metadata metadata;
 	private GUID highGUID;
 	
-	public Segment(String table) throws Exception {
-		
-		this.metadata = new Metadata("");
-		this.bloomFilter = new BitSet(BLOOM_SIZE);
-		this.highGUID = new GUID();
-		this.metadata = Metadata.getMetadata(table);
-
-	}
-	
 	public Segment() throws Exception {
-		logger.info("disk seg");
 		this.metadata = new Metadata("");
 		this.bloomFilter = new BitSet(BLOOM_SIZE);
 		this.highGUID = new GUID();
 	}
 	
 	public abstract Set<Document> getAll(Key key) throws Exception;
-	
-	@Override
-	public void close() throws IOException {
-	}
 	
 	public Document get(Key key) throws Exception {
 		 Set<Document> set = this.getAll(key);
