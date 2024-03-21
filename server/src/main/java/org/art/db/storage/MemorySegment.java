@@ -6,9 +6,11 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,6 +24,7 @@ import org.art.db.common.Blob;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
+import org.art.db.common.GUID;
 import org.art.db.common.Key;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
@@ -224,6 +227,18 @@ public class MemorySegment extends Segment {
 		}
 	}
 
+	public Set<Document> getAll(Key key) throws Exception {
+		Document doc;
+		
+		if (this.documents != null && (doc = this.documents.get(key)) != null) {
+			Set<Document> result = new HashSet<>();
+			
+			result.add(doc);
+			return result;
+		}
+		
+		return Collections.emptySet();
+	}
 
 	/**
 	 * Intercept puts to log the update
@@ -233,8 +248,19 @@ public class MemorySegment extends Segment {
 		this.log(Operation.INSERT,  key, doc, propagate);
 		
 		this.documents.put(key, doc);
+		this.getBloomFilter().set(this.getHash(key));
+		this.getZombies().remove(key);
 		
-		super.insert(key, doc, propagate);
+		GUID guid;
+		
+		if (key.isGUID() && (guid = key.getGUID()).compareTo(this.getHighGUID()) > 0) {
+			this.setHighGUID(guid);
+		}
+	}
+	
+	@Override
+	public Iterator<Entry<Key, Blob>> iterator() {
+		return new SortedIterator(this.documents);
 	}
 	
 	public boolean isClosed() {
@@ -249,8 +275,7 @@ public class MemorySegment extends Segment {
 		this.log(Operation.REMOVE, key, null, propagate);
 		
 		this.documents.remove(key);
-		
-		super.remove(key, propagate);
+		this.getZombies().add(key);
 	}
 	
 	public Segment save(File file) throws Exception {
@@ -266,9 +291,15 @@ public class MemorySegment extends Segment {
 	public void update(Key key, Document doc, boolean propagate) throws Exception {
 		this.log(Operation.UPDATE,  key, doc, propagate);
 		
-		super.insert(key, doc, propagate);
+		this.documents.put(key, doc);
+		this.getBloomFilter().set(this.getHash(key));
+		this.getZombies().remove(key);
 		
-		super.insert(key, doc, propagate);
+		GUID guid;
+		
+		if (key.isGUID() && (guid = key.getGUID()).compareTo(this.getHighGUID()) > 0) {
+			this.setHighGUID(guid);
+		}
 	}
 
 	@Override

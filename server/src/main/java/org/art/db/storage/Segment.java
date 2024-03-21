@@ -56,7 +56,7 @@ public class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 	}
 	
 	public Segment(File file) throws Exception {
-		
+		logger.info("disk seg");
 		this.file = file;
 		this.tree = new Tree<>(file, DISK_BLOCK_SIZE, false, Blob.class);
 		this.treeStore = tree.treeStore;
@@ -113,7 +113,7 @@ public class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 		 return set.isEmpty() ? null : set.iterator().next();
 	}
 	
-	private int getHash(Key key) {
+	protected int getHash(Key key) {
 		return Math.abs(key.hashCode() % BLOOM_SIZE);
 	}
 	
