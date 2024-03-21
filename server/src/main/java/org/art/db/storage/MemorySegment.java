@@ -243,7 +243,6 @@ public class MemorySegment extends Segment {
 	/**
 	 * Intercept puts to log the update
 	 */
-	@Override
 	public void insert(Key key, Document doc, boolean propagate) throws Exception {
 		this.log(Operation.INSERT,  key, doc, propagate);
 		
@@ -270,7 +269,6 @@ public class MemorySegment extends Segment {
 	/**
 	 * Intercept a remove to log the updates
 	 */
-	@Override
 	public void remove(Key key, boolean propagate) throws Exception {
 		this.log(Operation.REMOVE, key, null, propagate);
 		
@@ -284,10 +282,13 @@ public class MemorySegment extends Segment {
 		return new DiskSegment(file);
 	}
 
+	public long size() {
+		return this.documents.size();
+	}
+	
 	/**
 	 * Intercept puts to log the update
 	 */
-	@Override
 	public void update(Key key, Document doc, boolean propagate) throws Exception {
 		this.log(Operation.UPDATE,  key, doc, propagate);
 		

@@ -100,6 +100,7 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 		 return set.isEmpty() ? null : set.iterator().next();
 	}
 	
+	
 	public int getHash(Key key) {
 		return Math.abs(key.hashCode() % BLOOM_SIZE);
 	}
