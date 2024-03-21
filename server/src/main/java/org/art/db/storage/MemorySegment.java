@@ -3,13 +3,13 @@ package org.art.db.storage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -22,7 +22,6 @@ import org.art.db.common.Blob;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
-import org.art.db.common.GUID;
 import org.art.db.common.Key;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
@@ -38,10 +37,6 @@ import org.slf4j.LoggerFactory;
  */
 public class MemorySegment extends Segment {
 	private static final Logger logger = LoggerFactory.getLogger(MemorySegment.class);
-	
-	private static AtomicLong nextId = new AtomicLong();
-	
-	private static ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("MemSeg", 5);
 	
 	/**
 	 * The log file
@@ -64,21 +59,23 @@ public class MemorySegment extends Segment {
 	private volatile boolean closed = false;
 	
 	/**
+	 * The documents in this segment
+	 */
+	private final ConcurrentHashMap<Key, Document> documents = new ConcurrentHashMap<>(10000);
+	
+	/**
 	 * The rest client for sending snapshots
 	 */
 	private final RestClient restClient = new RestClient();
-		
-	private final String id;
 	
+	private static AtomicLong nextId = new AtomicLong();
+	
+	private final String id;
+		
 	/**
 	 * The batch for async broadcasts
 	 */
 	private List<LogEntry> broadcastBatch = new ArrayList<>();
-	
-	/**
-	 * The documents in this segment
-	 */
-	private final ConcurrentHashMap<Key, Document> documents = new ConcurrentHashMap<Key, Document>(10000);
 	
 	/**
 	 * The timer for async broadcasts
@@ -96,6 +93,8 @@ public class MemorySegment extends Segment {
 	private final DiscoveryHandler discoveryHandler;
 	
 	private final long logDelay;
+	
+	private static ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("MemSeg", 5);
 	
 
 	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Configuration config) throws Exception {
@@ -119,35 +118,23 @@ public class MemorySegment extends Segment {
 		
 	}
 	
-	private void broadcastSnapshot(List<LogEntry> batch) throws Exception {
-
-		this.lock.lock();
-
-		try {
-			Collection<URI> peers;
-
-			if (this.discoveryHandler == null || (peers = this.discoveryHandler.getLocalPeers()).isEmpty() || batch.size() == 0) {
-				return;
+	/**
+	 * Fire an async broadcast
+	 */
+	private void timer() {
+		if (this.broadcastBatch.size() != 0) {
+			try {
+				this.broadcastSnapshot(this.broadcastBatch);
+				this.broadcastBatch.clear();
+			} catch (Exception exc) {
+				exc.printStackTrace();
+				logger.info("Async broadcast failed " + exc.getMessage());
 			}
-
-			try (TypedOutputStream stream = new TypedOutputStream()) {
-				stream.writeUTF(this.table);
-
-				for (LogEntry entry : batch) {
-					if (entry.propagate()) {
-						this.log.write(entry, stream);
-					}
-				}
-
-				logger.info("bradcast from " + this.discoveryHandler.getLocalPort() + " to " + peers);
-				this.restClient.broadcast(peers, "/db/propagate", stream.toByteArray());
-
-			}
-		} finally {
-			this.lock.unlock();
 		}
 	}
-		
+	
+	
+	
 	public void close() throws IOException {
 		this.lock.lock();
 		
@@ -162,7 +149,6 @@ public class MemorySegment extends Segment {
 			
 			this.log.close();
 			this.logFile.delete();
-			super.close();
 		} finally {
 			this.closed = true;
 			this.lock.unlock();
@@ -175,39 +161,6 @@ public class MemorySegment extends Segment {
 		this.log.close();
 	}
 	
-
-	public Document get(Key key) throws Exception {
-		if (!this.documents.containsKey(key)) {
-			logger.info("no key in mem " + this.documents.get(key));
-		}
-		return this.documents.get(key);
-	}
-	
-	/**
-	 * Insert a document
-	 */
-	public void insert(Key key, Document doc, boolean propagate) throws Exception {
-		this.log(Operation.INSERT,  key, doc, propagate);
-			
-		this.documents.put(key, doc);
-		this.getBloomFilter().set(this.getHash(key));
-		this.getZombies().remove(key);
-				
-		GUID guid;
-		
-		if (key.isGUID() && (guid = key.getGUID()).compareTo(this.getHighGUID()) > 0) {
-			this.setHighGUID(guid);
-		}
-	}
-
-	public boolean isClosed() {
-		return this.closed;
-	}
-	
-	@Override
-	public Iterator<Entry<Key, Blob>> iterator() {
-		return new SortedIterator(this.documents);
-	}
 
 	/**
 	 * Log an update
@@ -242,64 +195,87 @@ public class MemorySegment extends Segment {
 	
 	}
 	
+	private void broadcastSnapshot(List<LogEntry> batch) throws Exception {
+
+		this.lock.lock();
+
+		try {
+			Collection<URI> peers;
+
+			if (this.discoveryHandler == null || (peers = this.discoveryHandler.getLocalPeers()).isEmpty() || batch.size() == 0) {
+				return;
+			}
+
+			try (TypedOutputStream stream = new TypedOutputStream()) {
+				stream.writeUTF(this.table);
+
+				for (LogEntry entry : batch) {
+					if (entry.propagate()) {
+						this.log.write(entry, stream);
+					}
+				}
+
+				logger.info("bradcast from " + this.discoveryHandler.getLocalPort() + " to " + peers);
+				this.restClient.broadcast(peers, "/db/propagate", stream.toByteArray());
+
+			}
+		} finally {
+			this.lock.unlock();
+		}
+	}
+
+
+	/**
+	 * Intercept puts to log the update
+	 */
+	@Override
+	public void insert(Key key, Document doc, boolean propagate) throws Exception {
+		this.log(Operation.INSERT,  key, doc, propagate);
+		
+		this.documents.put(key, doc);
+		
+		super.insert(key, doc, propagate);
+	}
+	
+	public boolean isClosed() {
+		return this.closed;
+	}
+	
 	/**
 	 * Intercept a remove to log the updates
 	 */
+	@Override
 	public void remove(Key key, boolean propagate) throws Exception {
 		this.log(Operation.REMOVE, key, null, propagate);
 		
 		this.documents.remove(key);
-		this.getZombies().add(key);;
+		
+		super.remove(key, propagate);
 	}
 	
-	public DiskSegment save(File file) throws Exception {
+	public Segment save(File file) throws Exception {
 		SegmentBuilder.build(this, file, DISK_BLOCK_SIZE);
 		
-		return new DiskSegment(file);
-	}
-	
-	@Override
-	public long size() {
-		return this.documents.size();
+		return new Segment(file);
 	}
 
 	/**
-	 * Fire an async broadcast
+	 * Intercept puts to log the update
 	 */
-	private void timer() {
-		if (this.broadcastBatch.size() != 0) {
-			try {
-				this.broadcastSnapshot(this.broadcastBatch);
-				this.broadcastBatch.clear();
-			} catch (Exception exc) {
-				exc.printStackTrace();
-				logger.info("Async broadcast failed " + exc.getMessage());
-			}
-		}
+	@Override
+	public void update(Key key, Document doc, boolean propagate) throws Exception {
+		this.log(Operation.UPDATE,  key, doc, propagate);
+		
+		super.insert(key, doc, propagate);
+		
+		super.insert(key, doc, propagate);
 	}
 
 	@Override
 	public String toString() {
 		return "MemorySegment [logFile=" + logFile.getName() + ", closed=" + closed + ", id=" + id +  "]";
 	}
-	
-	/**
-	 * Intercept puts to log the update
-	 */
-	public void update(Key key, Document doc, boolean propagate) throws Exception {
-		this.log(Operation.UPDATE,  key, doc, propagate);
-		
-		this.documents.put(key, doc);
-		this.getBloomFilter().set(this.getHash(key));
-		this.getZombies().remove(key);
-		
-		GUID guid;
-		
-		if (key.isGUID() && (guid = key.getGUID()).compareTo(this.getHighGUID()) > 0) {
-			this.setHighGUID(guid);;
-		}		
-	}
-	
+
 	class SortedIterator implements Iterator<Map.Entry<Key, Blob>> {
 		private final Map<Key, Document> map;
 		private final List<Key> sortedKeys;
@@ -334,6 +310,5 @@ public class MemorySegment extends Segment {
 		}
 		
 	}
-
 
 }
