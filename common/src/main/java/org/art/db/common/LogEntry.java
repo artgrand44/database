@@ -1,10 +1,8 @@
 package org.art.db.common;
 
-import java.io.EOFException;
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 
-public record LogEntry(Operation op, Key key, Document document, long timestamp, boolean propagate, CompletableFuture<Boolean> future) {
+public class LogEntry  extends Serializable<LogEntry>{
 	
 	public enum Operation {
 		INSERT,
@@ -12,29 +10,43 @@ public record LogEntry(Operation op, Key key, Document document, long timestamp,
 		UPDATE
 	}
 	
+	private Operation op;
+	
+	private Key key;
+	
+	private Document document;
+	
+	private long timestamp;
+	
+	private boolean propagate;
+	
+	public LogEntry() {
+		
+	}
 	public LogEntry(Operation op, Key key, Document document, long timestamp, boolean propagate) {
-		this(op, key, document, timestamp, propagate, new CompletableFuture<>());
+		this.op = op;
+		this.key = key;
+		this.document = document;
+		this.timestamp = timestamp;
+		this.propagate = propagate;
 	}
 	
-	static LogEntry read(TypedInputStream inputStream) throws IOException {
-		try {
-			Key key = (Key)inputStream.readObject();
-			long timestamp = inputStream.readLong();
-			Operation op = Enum.valueOf(Operation.class,inputStream.readUTF());
-			boolean propagate = inputStream.readBoolean();
-			Document doc = null;
-			
-			if (inputStream.readBoolean()) {
-				doc = (Document)inputStream.readObject();
-			} 
-			
-			return new LogEntry(op, key, doc, timestamp, propagate);
-		} catch (EOFException exc) {
-			return null;
-		}
+	@Override
+	public LogEntry deserialize(TypedInputStream stream) throws IOException {
+		this.key = (Key)stream.readObject();
+		this.timestamp = stream.readLong();
+		this.op = Enum.valueOf(Operation.class,stream.readUTF());
+		this.propagate = stream.readBoolean();
+		
+		if (stream.readBoolean()) {
+			this.document = (Document)stream.readObject();
+		} 
+
+		return this;
+
 	}
 	
-	void write(TypedOutputStream stream) throws IOException {
+	public void serialize(TypedOutputStream stream) throws IOException {
 		stream.writeObject(this.key);
 		stream.writeLong(this.timestamp);
 		stream.writeUTF(this.op.toString());
@@ -49,4 +61,28 @@ public record LogEntry(Operation op, Key key, Document document, long timestamp,
 		
 		stream.flush();
 	}
+
+	public Operation getOp() {
+		return op;
+	}
+
+	public Key getKey() {
+		return key;
+	}
+
+	public Document getDocument() {
+		return document;
+	}
+
+	public long getTimestamp() {
+		return timestamp;
+	}
+
+	public boolean isPropagate() {
+		return propagate;
+	}
+
+	
+
+	
 }

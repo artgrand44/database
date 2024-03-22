@@ -189,31 +189,38 @@ public class TreeStore implements Closeable, BlobStore {
 	private void flush(ConcurrentMap<LogKey, byte[]> delta)  {
 		this.flushLock.lock();
 		
-		try (DataOutputStream log = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(this.logFile)))){
+		try {
 			
-			if (this.isClosed) {
-				return;
-			}
+			// Write the log entries then close the log.  This is the fastest way 
+			// to guarantee that the end of file marker has been written to the
+			// operating system.
 			
-			this.writeCount.addAndGet(delta.size());
-			
-			log.writeInt(delta.size());
-			
-			for (Map.Entry<LogKey, byte[]> entry : delta.entrySet()) {
-				LogKey key = entry.getKey();
-				byte[] bytes = entry.getValue();
-				
-				log.writeLong(key.id);
-				log.writeUTF(key.op.toString());
-				
-				if (key.op == Operation.Update) {
-					log.writeInt(bytes.length);
-					log.write(bytes);
+			try (DataOutputStream log = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(this.logFile)))){
+
+				if (this.isClosed) {
+					return;
 				}
-			} 
-			
-			log.flush();
-			
+
+				this.writeCount.addAndGet(delta.size());
+
+				log.writeInt(delta.size());
+
+				for (Map.Entry<LogKey, byte[]> entry : delta.entrySet()) {
+					LogKey key = entry.getKey();
+					byte[] bytes = entry.getValue();
+
+					log.writeLong(key.id);
+					log.writeUTF(key.op.toString());
+
+					if (key.op == Operation.Update) {
+						log.writeInt(bytes.length);
+						log.write(bytes);
+					}
+				} 
+
+				log.flush();
+			}	
+						
 			for (Map.Entry<LogKey, byte[]> entry : delta.entrySet()) {
 				LogKey key = entry.getKey();
 				byte[] bytes = entry.getValue();

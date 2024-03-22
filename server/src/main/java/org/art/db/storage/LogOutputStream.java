@@ -1,7 +1,6 @@
 package org.art.db.storage;
 
 import java.io.Closeable;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -10,8 +9,15 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 
+import org.art.db.common.LogEntry;
 import org.art.db.common.TypedOutputStream;
 
+/**
+ * A stream for writing log entries.  It optimizes performance by increasing
+ * the length of the log in large chunks and filling the space at the end
+ * with -1's.  This guarantees that the stream that reads the log will
+ * detect an invalid object type and terminate the scan.
+ */
 public class LogOutputStream  implements Closeable{
 	
 	/**
@@ -28,7 +34,7 @@ public class LogOutputStream  implements Closeable{
 	/**
 	 * The underlying data stream
 	 */
-	private final DataOutputStream dataStream;
+	private final FileOutputStream fileStream;
 	
 	/**
 	 * The associated channel
@@ -41,9 +47,8 @@ public class LogOutputStream  implements Closeable{
 	private final static int BLOCK_SIZE = 1024 * 2024;
 	
 	public LogOutputStream(File file) throws FileNotFoundException {
-		FileOutputStream stream = new FileOutputStream(file);
-		this.dataStream = new DataOutputStream(stream);
-		this.channel = stream.getChannel();
+		this.fileStream = new FileOutputStream(file);
+		this.channel = this.fileStream.getChannel();
 	}
 	
 	private void insureEOF(int count) throws IOException {
@@ -54,7 +59,7 @@ public class LogOutputStream  implements Closeable{
 			long currentPosition = this.channel.position();
 			byte[] fill = new byte[(int)(newOsLength - currentPosition)];
 			
-			Arrays.fill(fill, (byte)0);
+			Arrays.fill(fill, (byte)-1);
 			
 			ByteBuffer buffer = ByteBuffer.wrap(fill);
 			int offset = 0;
@@ -75,32 +80,19 @@ public class LogOutputStream  implements Closeable{
 	
 	@Override
 	public void close() throws IOException {
-		this.dataStream.close();		
+		this.fileStream.close();		
 	}
 
-	public void writeObject(Object obj) throws Exception {
+	public void write(LogEntry entry) throws Exception {
 		try (TypedOutputStream stream = new TypedOutputStream()) {
-			stream.writeObject(obj);
+			stream.writeObject(entry);
 			
 			byte[] bytes = stream.toByteArray();
 			
 			this.insureEOF(bytes.length + 5);
 			
-			this.dataStream.writeByte(1);
-			this.dataStream.writeInt(bytes.length);
-			this.dataStream.write(bytes);
+			this.fileStream.write(bytes);
 		}
 	}
 
-	public static void writeObject(Object obj, DataOutputStream dstream) throws Exception {
-		try (TypedOutputStream stream = new TypedOutputStream()) {
-			stream.writeObject(obj);
-			
-			byte[] bytes = stream.toByteArray();
-			
-			dstream.writeByte(1);
-			dstream.writeInt(bytes.length);
-			dstream.write(bytes);
-		}
-	}
 }

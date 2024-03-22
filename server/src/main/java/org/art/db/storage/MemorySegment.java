@@ -180,7 +180,7 @@ public class MemorySegment extends Segment {
 			if (this.closed) {
 				logger.info("log after close " + this);
 			}
-			this.log.writeObject(entry);
+			this.log.write(entry);
 			
 			if (propagate) {
 				if (this.logDelay == 0) {
@@ -210,8 +210,8 @@ public class MemorySegment extends Segment {
 				stream.writeUTF(this.table);
 
 				for (LogEntry entry : batch) {
-					if (entry.propagate()) {
-						LogOutputStream.writeObject(entry, stream);
+					if (entry.isPropagate()) {
+						stream.writeObject(entry);
 					}
 				}
 

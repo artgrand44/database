@@ -132,7 +132,7 @@ public class TypedOutputStream extends DataOutputStream {
 			this.writeInt(bytes.length);
 			this.write(bytes);
 		} else if (clazz == LogEntry.class) {
-			((LogEntry)obj).write(this);
+			((LogEntry)obj).serialize(this);
 		} else if (List.class.isAssignableFrom(clazz)) {
 			List list = (List)obj;
 			
@@ -182,8 +182,8 @@ public class TypedOutputStream extends DataOutputStream {
 			return blob.getSize() + 5;
 		} else if (obj instanceof GUID guid) {
 			return guid.getSize() + 5;
-		} else if (obj instanceof LogEntry) {
-			return 0;
+		} else if (obj instanceof LogEntry entry) {
+			return entry.getSize() + 5;
 		} else {
 			return sizes.get(obj.getClass()) + 1;
 		}

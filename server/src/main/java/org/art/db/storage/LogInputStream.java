@@ -1,15 +1,19 @@
 package org.art.db.storage;
 
-import java.io.DataInputStream;
 import java.io.InputStream;
 
+import org.art.db.common.LogEntry;
 import org.art.db.common.TypedInputStream;
 
+/**
+ * A stream for reading log files. It assumes that any invalid field
+ * types detected by TypedInputStream indicate the end of the log.
+ */
 public class LogInputStream  implements AutoCloseable {
-	private DataInputStream stream;
+	private TypedInputStream stream;
 	
 	public LogInputStream(InputStream stream) {
-		this.stream = new DataInputStream(stream);
+		this.stream = new TypedInputStream(stream);
 	}
 	
 	@Override
@@ -17,24 +21,12 @@ public class LogInputStream  implements AutoCloseable {
 		this.stream.close();		
 	}
 	
-	public Object readObject() {
+	public LogEntry read() {
 		try {
-			if (this.stream.readByte() != 1) {
-				return null;
-			}
-			
-			byte[] bytes = new byte[this.stream.readInt()];
-			
-			this.stream.read(bytes);
-			
-			try (TypedInputStream astream = new TypedInputStream(bytes)) {
-				return astream.readObject();
-			}
+			return (LogEntry)this.stream.readObject();
 		} catch (Exception exc) {
 			return null;
 		}		
-	}
-
-	
+	}	
 	
 }

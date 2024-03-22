@@ -80,7 +80,7 @@ public class TypedInputStream extends DataInputStream {
 		} else if (clazz == Date.class) {
 			return new Date(this.readLong());
 		} else if (clazz == LogEntry.class) {
-			return LogEntry.read(this);
+			return new LogEntry().deserialize(this);
 		} else if (clazz == String.class) {
 			int length = this.readInt();
 			byte[] bytes = new byte[length];

@@ -73,10 +73,10 @@ public class TableManager implements Closeable{
 		try (LogInputStream log = new LogInputStream(stream)) {
 			LogEntry entry;
 			
-			while ((entry = (LogEntry)log.readObject()) != null) {
+			while ((entry = (LogEntry)log.read()) != null) {
 				if (checkTimestamps) {
-					Long localTimestamp = this.timestamps.getIfPresent(entry.key());
-					long remoteTimestamp = entry.timestamp();
+					Long localTimestamp = this.timestamps.getIfPresent(entry.getKey());
+					long remoteTimestamp = entry.getTimestamp();
 
 					if (localTimestamp != null && localTimestamp >= remoteTimestamp) {
 						continue;
@@ -84,15 +84,15 @@ public class TableManager implements Closeable{
 				}
 				
 				try {
-					switch (entry.op()) {
+					switch (entry.getOp()) {
 					case INSERT:
-						this.insert(entry.document(), false);
+						this.insert(entry.getDocument(), false);
 						break;
 					case REMOVE:
-						this.remove(this.table.get(entry.key()), false);
+						this.remove(this.table.get(entry.getKey()), false);
 						break;
 					case UPDATE:
-						this.update(this.table.get(entry.key()), entry.document(), false);
+						this.update(this.table.get(entry.getKey()), entry.getDocument(), false);
 						break;
 					default:
 						logger.info("bad op " + entry);
