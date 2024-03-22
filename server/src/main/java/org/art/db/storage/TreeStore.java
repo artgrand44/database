@@ -55,7 +55,6 @@ public class TreeStore implements Closeable, BlobStore {
 	private final BlockFile file;
 	private final File logFile;
 	private final int blockSize;
-	private final boolean inMemory;
 	
 	private final File rawFile;
 	private final AtomicLong getCount = new AtomicLong();
@@ -74,26 +73,25 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	
 	public TreeStore() throws IOException, Exception {
-		this(File.createTempFile("tree", ".dat"), true);
+		this(File.createTempFile("tree", ".dat"));
 	}
 	
 	
 	
-	public TreeStore(File file, boolean inMemory) throws Exception { 
-		this(file, 2048, inMemory);
+	public TreeStore(File file) throws Exception { 
+		this(file, 2048);
 	}
 	
 	
-	public TreeStore(File file, int blockSize, boolean inMemory) throws Exception {
+	public TreeStore(File file, int blockSize) throws Exception {
 		
 		this.blockSize = blockSize;
 		this.file = new BlockFile(file, blockSize);
 		this.logFile = new File(Files.getLogRoot(), file.getParentFile().getName() + "/" + file.getName().replace('.', '_') + ".log");
-		this.inMemory = inMemory;
 		this.rawFile = file;
 		this.logFile.getParentFile().mkdirs();
 				
-		if (this.file.isNew() || inMemory) {
+		if (this.file.isNew()) {
 			this.header = new Header();
 			this.file.setLength(this.blockSize);
 			this.writeHeader();
@@ -137,28 +135,25 @@ public class TreeStore implements Closeable, BlobStore {
 	}
 	
 	public void commit() {
-		if (this.inMemory) {
-			threadDeltas.get().clear();
-		} else {
-			this.lock.lock();
-			
-			this.updateCount.addAndGet(threadDeltas.get().size());
-			
-			try {
-				this.currentDelta.putAll(threadDeltas.get());
-				threadDeltas.get().clear();
-
-				if (this.prevDelta == null && this.currentDelta.size() > 10) {
-					this.prevDelta = this.currentDelta;
-					this.currentDelta = new ConcurrentHashMap<>();
-
-					Scheduler.DEFAULT.submit(() -> this.flushPrevious());
-				}
-			} finally {
-				this.lock.unlock();
-			}
-		}
 		
+		this.lock.lock();
+
+		this.updateCount.addAndGet(threadDeltas.get().size());
+
+		try {
+			this.currentDelta.putAll(threadDeltas.get());
+			threadDeltas.get().clear();
+
+			if (this.prevDelta == null && this.currentDelta.size() > 10) {
+				this.prevDelta = this.currentDelta;
+				this.currentDelta = new ConcurrentHashMap<>();
+
+				Scheduler.DEFAULT.submit(() -> this.flushPrevious());
+			}
+		} finally {
+			this.lock.unlock();
+		}
+
 	}
 	
 	public void crash() throws IOException {
@@ -443,7 +438,7 @@ public class TreeStore implements Closeable, BlobStore {
 
 			TreeNode node = new TreeNode(bytes);
 
-			cache.put(nodeId, this.inMemory ? node.serialize() : node);
+			cache.put(nodeId, node);
 
 			return node;
 		}
@@ -474,20 +469,16 @@ public class TreeStore implements Closeable, BlobStore {
 	public void saveNode(TreeNode node) throws Exception {
 		NodeId id = new NodeId(this, node.getId());
 		
-		
-		if (this.inMemory) {
-			cache.put(id, node.serialize());
-		} else {
-			cache.put(id, node);	
-			
-			byte[] bytes = node.serialize();
-			
-			if (bytes.length > this.blockSize) {
-				logger.info("node too big");
-			}
-			
-			threadDeltas.get().put(new LogKey(Operation.Update, node.getId()),  bytes);
+		cache.put(id, node);	
+
+		byte[] bytes = node.serialize();
+
+		if (bytes.length > this.blockSize) {
+			logger.info("node too big");
 		}
+
+		threadDeltas.get().put(new LogKey(Operation.Update, node.getId()),  bytes);
+
 		
 	}
 
@@ -521,17 +512,6 @@ public class TreeStore implements Closeable, BlobStore {
 		return this.header.resultCount;
 	}
 	
-	public void onRemoval(long id, Object obj) {
-		if (this.inMemory && !this.isClosed) {		
-			try {
-				this.writeCount.incrementAndGet();
-				
-				this.file.writeBlock((byte[])obj, id);
-			} catch (IOException exc) {
-				logger.info("Write error " + exc.getMessage());
-			} 
-		}
-	}
 	
 	@Override
 	public void releaseBlob(long firstBlock) throws Exception {
@@ -789,10 +769,6 @@ public class TreeStore implements Closeable, BlobStore {
 		
 		@Override
 		public void onRemoval(NodeId key, Object node, RemovalCause cause) {
-			TreeStore store = key.store;
-			long id = key.id;
-			
-			store.onRemoval(id, node);
 		}
 	}
 

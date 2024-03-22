@@ -534,30 +534,6 @@ public class TreeTest extends BaseTreeTest {
 		}
 	}
 
-	@Test
-	public void memoryTest() {
-		logger.info("memoryTest");
-
-		try {
-			doClose();
-			doDelete();
-			doOpenInMemory();
-
-			doInsert(10000);
-			
-			for (int idx = 0; idx < 10000; idx++) {
-				doSelect("search", 
-						new int[] { idx },
-						1,
-						Comparison.EQ, String.valueOf(idx));
-			}
-		} catch (AssertionFailedError err) {
-			throw err;
-		} catch(Exception exc) {
-			exc.printStackTrace();
-			Assertions.fail(exc.getMessage());
-		}
-	}
 
 	@Test
 	public void rangeTest() {

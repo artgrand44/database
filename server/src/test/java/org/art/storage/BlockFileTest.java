@@ -59,7 +59,7 @@ public class BlockFileTest {
 			
 			Set<Long> freeBlocks = new HashSet<>();
 			
-			try (TreeStore block = new TreeStore(file, false)) {
+			try (TreeStore block = new TreeStore(file)) {
 				for (int idx = 0; idx < 1000; idx++) {
 					long free = block.allocateNode();
 					

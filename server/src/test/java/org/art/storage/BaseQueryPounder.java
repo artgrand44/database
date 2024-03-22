@@ -96,8 +96,8 @@ public abstract class BaseQueryPounder extends BaseClientTest {
 	}
 	
 	
-	@Test
-	//@RepeatedTest(500)
+	//@Test
+	@RepeatedTest(500)
 	public void test() {
 		
 		try {

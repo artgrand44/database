@@ -13,7 +13,6 @@ import org.art.db.common.Configuration;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.storage.ColumnInfo;
-import org.art.db.storage.MemorySegment;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
 import org.assertj.core.api.Assertions;

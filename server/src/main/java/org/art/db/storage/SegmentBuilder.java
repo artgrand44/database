@@ -167,7 +167,7 @@ public class SegmentBuilder {
 		
 		// Write out the bloom filter and the zombies
 		
-		try (TreeStore store = new TreeStore(tempFile, diskBlockSize, false)) {
+		try (TreeStore store = new TreeStore(tempFile, diskBlockSize)) {
 			store.setBloomFilter(bloomFilter);
 			store.setZombies(zombies);
 			store.setMetadata(metadata);

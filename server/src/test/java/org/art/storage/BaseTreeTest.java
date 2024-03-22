@@ -107,6 +107,7 @@ public abstract class BaseTreeTest extends BaseTest {
 	
 	protected void doOpenInMemory() throws Exception {
 		this.tree = new Tree<>(String.class);
+		this.tree = new Tree<>(String.class);
 	}
 	
 	

@@ -104,6 +104,23 @@ public class SegmentLog implements Closeable {
 		}
 	}
 	
+	/**
+	 * A file output stream that uses a specialized mechanism for maintaining
+	 * the end of file.
+	 * 
+	 * The challenge is that FileOutputStream.flush() does not update the
+	 * end-of-file marker on disk, which means that the log file can be
+	 * unrecoverable after a crash.
+	 * 
+	 * One solution is to call FileChannel.force every time the file
+	 * stream is flushed.  But this is very expensive.  Instead, we
+	 * extend the file a megabyte at a time and fill the unused space
+	 * with 0xFF.
+	 * 
+	 * When the file is recovered, TypedInputString.readObject will choke
+	 * on the 0xFF, since is it not a valid object type, and the recovery
+	 * scan will end.
+	 */
 	class EOFFileOutputStream extends FileOutputStream {
 		private long realEOF = 0;
 		
@@ -111,15 +128,11 @@ public class SegmentLog implements Closeable {
 		
 		private final FileChannel channel;
 		
-		private final File file;
-		
 		private final static int BLOCK_SIZE = 1024 * 2024;
 		
 		public EOFFileOutputStream(File file) throws FileNotFoundException {
 			super(file);
-			logger.info("created " + file.getAbsolutePath());
 			this.channel = super.getChannel();
-			this.file = file;
 		}
 		
 		private void insureEOF(int count) throws IOException {

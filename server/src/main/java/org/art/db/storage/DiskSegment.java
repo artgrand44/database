@@ -35,7 +35,7 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 		super();
 		
 		this.file = file;
-		this.tree = new Tree<>(file, DISK_BLOCK_SIZE, false, Blob.class);
+		this.tree = new Tree<>(file, DISK_BLOCK_SIZE, Blob.class);
 		this.treeStore = tree.treeStore;
 		
 		this.setMetadata(this.treeStore.getMetadata());
