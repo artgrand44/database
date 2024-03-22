@@ -37,6 +37,7 @@ public class TypedInputStream extends DataInputStream {
 			Blob.class,
 			GUID.class,
 			Date.class,
+			LogEntry.class,
 	};
 	
 	public TypedInputStream(File file) throws FileNotFoundException {
@@ -78,6 +79,8 @@ public class TypedInputStream extends DataInputStream {
 			return this.readShort();
 		} else if (clazz == Date.class) {
 			return new Date(this.readLong());
+		} else if (clazz == LogEntry.class) {
+			return LogEntry.read(this);
 		} else if (clazz == String.class) {
 			int length = this.readInt();
 			byte[] bytes = new byte[length];

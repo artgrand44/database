@@ -37,6 +37,7 @@ public class TypedOutputStream extends DataOutputStream {
 			Blob.class,
 			GUID.class,
 			Date.class,
+			LogEntry.class,
 	};
 	
 	private static final Map<Object, Integer> sizes = Map.of(
@@ -130,6 +131,8 @@ public class TypedOutputStream extends DataOutputStream {
 			
 			this.writeInt(bytes.length);
 			this.write(bytes);
+		} else if (clazz == LogEntry.class) {
+			((LogEntry)obj).write(this);
 		} else if (List.class.isAssignableFrom(clazz)) {
 			List list = (List)obj;
 			
@@ -179,6 +182,8 @@ public class TypedOutputStream extends DataOutputStream {
 			return blob.getSize() + 5;
 		} else if (obj instanceof GUID guid) {
 			return guid.getSize() + 5;
+		} else if (obj instanceof LogEntry) {
+			return 0;
 		} else {
 			return sizes.get(obj.getClass()) + 1;
 		}

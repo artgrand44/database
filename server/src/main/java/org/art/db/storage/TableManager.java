@@ -2,7 +2,9 @@ package org.art.db.storage;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,8 +17,7 @@ import java.util.Set;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
-import org.art.db.common.TypedInputStream;
-import org.art.db.storage.SegmentLog.LogEntry;
+import org.art.db.common.LogEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,22 +60,20 @@ public class TableManager implements Closeable{
 
 			for (File file : list) {
 				if (file.length() != 0) {
-					this.applySnapshot(new TypedInputStream(file), false);
-				} else {
-					logger.info("empty log " + file.getAbsolutePath());
-				}
+					this.applySnapshot(new FileInputStream(file), false);
+				} 
 			}
 		}
 		
 		this.checkConstraints = true;
 	}
 	
-	public void applySnapshot(TypedInputStream stream, boolean checkTimestamps) {
+	public void applySnapshot(InputStream stream, boolean checkTimestamps) {
 		
-		try (SegmentLog log = new SegmentLog(stream)) {
+		try (LogInputStream log = new LogInputStream(stream)) {
 			LogEntry entry;
 			
-			while ((entry = log.read()) != null) {
+			while ((entry = (LogEntry)log.readObject()) != null) {
 				if (checkTimestamps) {
 					Long localTimestamp = this.timestamps.getIfPresent(entry.key());
 					long remoteTimestamp = entry.timestamp();

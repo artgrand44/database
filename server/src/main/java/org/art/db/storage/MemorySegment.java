@@ -24,11 +24,11 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.GUID;
 import org.art.db.common.Key;
+import org.art.db.common.LogEntry;
+import org.art.db.common.LogEntry.Operation;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
 import org.art.db.common.TypedOutputStream;
-import org.art.db.storage.SegmentLog.LogEntry;
-import org.art.db.storage.SegmentLog.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +47,7 @@ public class MemorySegment extends Segment {
 	/**
 	 * The log
 	 */
-	private final SegmentLog log;
+	private final LogOutputStream log;
 	
 	/**
 	 * The table name
@@ -110,7 +110,7 @@ public class MemorySegment extends Segment {
 		}
 		
 		this.logFile = Files.getTableLog(table);
-		this.log = new SegmentLog(this.logFile, true);
+		this.log = new LogOutputStream(this.logFile);
 		this.table = table;
 		this.discoveryHandler = discoveryHandler;
 		this.logDelay = interval.toMillis();
@@ -180,9 +180,8 @@ public class MemorySegment extends Segment {
 			if (this.closed) {
 				logger.info("log after close " + this);
 			}
-			this.log.write(entry);
-			this.log.flush();
-
+			this.log.writeObject(entry);
+			
 			if (propagate) {
 				if (this.logDelay == 0) {
 					this.broadcastSnapshot(Collections.singletonList(entry));
@@ -212,7 +211,7 @@ public class MemorySegment extends Segment {
 
 				for (LogEntry entry : batch) {
 					if (entry.propagate()) {
-						this.log.write(entry, stream);
+						LogOutputStream.writeObject(entry, stream);
 					}
 				}
 
