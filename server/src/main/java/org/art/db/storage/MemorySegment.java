@@ -3,17 +3,16 @@ package org.art.db.storage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -228,17 +227,9 @@ public class MemorySegment extends Segment {
 		}
 	}
 
-	public Set<Document> getAll(Key key) throws Exception {
-		Document doc;
-		
-		if ((doc = this.documents.get(key)) != null) {
-			Set<Document> result = new HashSet<>();
-			
-			result.add(doc);
-			return result;
-		}
-		
-		return Collections.emptySet();
+	@Override
+	public Document get(Key key) throws Exception {
+		return this.documents.get(key);
 	}
 
 	/**

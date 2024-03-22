@@ -3,7 +3,6 @@ package org.art.db.storage;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -57,33 +56,23 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 		this.setZombies(zombies);
 	}
 	
-	public Set<Document> getAll(Key key) throws Exception {
+	@Override
+	public Document get(Key key) throws Exception {
+		
 		if (this.getBloomFilter().get(this.getHash(key))) {
-			Set<Blob> blobs = this.tree.getAll(Comparison.EQ, key);
-			Set<Document> result = new HashSet<>();
+			Blob blob = this.tree.get(Comparison.EQ, key);
 			
-			for (Blob blob : blobs) {
-				Document doc = BlobConverter.toDocument(this.getMetadata(), blob);
-				
-				blob.setDocument(doc);
-				result.add(doc);
-			}
-			
-			return result;		
+			if (blob != null) {
+				return BlobConverter.toDocument(this.getMetadata(), blob);
+			}	
 		}
 		
-		return Collections.emptySet();
+		return null;
 	}
 	
 	@Override
 	public void close() throws IOException {
 		this.tree.close();
-	}
-	
-	public Document get(Key key) throws Exception {
-		 Set<Document> set = this.getAll(key);
-		 
-		 return set.isEmpty() ? null : set.iterator().next();
 	}
 	
 	

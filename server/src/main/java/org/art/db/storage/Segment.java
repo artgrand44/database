@@ -35,13 +35,7 @@ public abstract class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeab
 		this.highGUID = new GUID();
 	}
 	
-	public abstract Set<Document> getAll(Key key) throws Exception;
-	
-	public Document get(Key key) throws Exception {
-		 Set<Document> set = this.getAll(key);
-		 
-		 return set.isEmpty() ? null : set.iterator().next();
-	}
+	public abstract Document get(Key key) throws Exception;
 	
 	protected int getHash(Key key) {
 		return Math.abs(key.hashCode() % BLOOM_SIZE);
