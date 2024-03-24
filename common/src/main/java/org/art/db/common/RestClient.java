@@ -64,6 +64,8 @@ public class RestClient {
 			futures.add(callAsync("PUT", buildURI(base, path), body));
 		}
 			
+		Exception exception = null;
+		
 		for (Future<HttpResponse<byte[]>> future : futures) {
 			HttpResponse<byte[]> response = future.get();
 			
@@ -71,11 +73,13 @@ public class RestClient {
 				Optional<String> warning = response.headers().firstValue("Warning");
 				String warningText = warning.orElse("");
 				
-				logger.info("Got exception on uris " + baseUrls + " from " + InetAddress.getLocalHost());
-				throw new RestException(200, warningText);
+				exception = new RestException(200, warningText);
 			}
 		}
 			
+		if (exception != null) {
+			throw exception;
+		}
 	}
 			
 	public  URI buildURI(URI base, String fileTemplate, Object ... args) throws Exception {

@@ -7,11 +7,13 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +38,7 @@ import org.slf4j.LoggerFactory;
  * An in-memory DataTable that is restored to its previous
  * state after a crash
  */
+
 public class MemorySegment extends Segment {
 	private static final Logger logger = LoggerFactory.getLogger(MemorySegment.class);
 	
@@ -74,9 +77,15 @@ public class MemorySegment extends Segment {
 	private final String id;
 		
 	/**
-	 * The batch for async broadcasts
+	 * The batches that need to be broadcast
 	 */
-	private List<LogEntry> broadcastBatch = new ArrayList<>();
+	private final Deque<List<LogEntry>> broadcastQueue = new ConcurrentLinkedDeque<List<LogEntry>>();
+	
+	
+	/**
+	 * The current batch being build up
+	 */
+	private List<LogEntry> currentBroadcastBatch = new ArrayList<>();
 	
 	/**
 	 * The timer for async broadcasts
@@ -114,7 +123,7 @@ public class MemorySegment extends Segment {
 		this.table = table;
 		this.discoveryHandler = discoveryHandler;
 		this.logDelay = interval.toMillis();
-		this.timer = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::timer, 1,  1,  TimeUnit.SECONDS);
+		this.timer = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::broadcastTimer, 1,  1,  TimeUnit.SECONDS);
 		this.id = "Mem" + nextId.incrementAndGet();		
 		
 		this.setMetadata(Metadata.getMetadata(table));
@@ -124,16 +133,44 @@ public class MemorySegment extends Segment {
 	/**
 	 * Fire an async broadcast
 	 */
-	private void timer() {
-		if (this.broadcastBatch.size() != 0) {
-			try {
-				this.broadcastSnapshot(this.broadcastBatch);
-				this.broadcastBatch.clear();
-			} catch (Exception exc) {
-				exc.printStackTrace();
-				logger.info("Async broadcast failed " + exc.getMessage());
+	private void broadcastTimer() {
+
+		this.lock.lock();
+
+		try {
+			if (this.currentBroadcastBatch.size() != 0) {
+				this.broadcastQueue.add(new ArrayList<>(this.currentBroadcastBatch));
+				this.currentBroadcastBatch.clear();
+			}
+		} finally {
+			this.lock.unlock();
+		}
+		
+		Collection<URI> peers;
+		List<LogEntry> batch = this.broadcastQueue.pollFirst();
+
+		if (this.discoveryHandler == null || (peers = this.discoveryHandler.getLocalPeers()).isEmpty() || batch == null) {
+			return;
+		}
+
+		try {
+			try (TypedOutputStream stream = new TypedOutputStream()) {
+				stream.writeUTF(this.table);
+
+				for (LogEntry entry : batch) {
+					if (entry.isPropagate()) {
+						stream.writeObject(entry);
+					}
+				}
+
+			logger.info("broadcast from " + this.discoveryHandler.getLocalPort() + " to " + peers);
+			this.restClient.broadcast(peers, "/db/propagate", stream.toByteArray());			}
+		} catch (Exception exc) {
+			if (batch != null) {
+				this.broadcastQueue.addFirst(batch);
 			}
 		}
+				
 	}
 	
 	
@@ -146,10 +183,8 @@ public class MemorySegment extends Segment {
 		}
 		
 		try {
-			if (this.timer != null) {
-				this.timer.cancel(true);
-			}
-			
+			this.timer.cancel(true);
+			this.broadcastTimer();
 			this.log.close();
 			this.logFile.delete();
 		} finally {
@@ -183,11 +218,7 @@ public class MemorySegment extends Segment {
 			this.log.write(entry);
 			
 			if (propagate) {
-				if (this.logDelay == 0) {
-					this.broadcastSnapshot(Collections.singletonList(entry));
-				} else {
-					this.broadcastBatch.add(entry);
-				}	
+				this.currentBroadcastBatch.add(entry);
 			}
 		} finally {
 			this.lock.unlock();
@@ -195,35 +226,7 @@ public class MemorySegment extends Segment {
 	
 	}
 	
-	private void broadcastSnapshot(List<LogEntry> batch) throws Exception {
-
-		this.lock.lock();
-
-		try {
-			Collection<URI> peers;
-
-			if (this.discoveryHandler == null || (peers = this.discoveryHandler.getLocalPeers()).isEmpty() || batch.size() == 0) {
-				return;
-			}
-
-			try (TypedOutputStream stream = new TypedOutputStream()) {
-				stream.writeUTF(this.table);
-
-				for (LogEntry entry : batch) {
-					if (entry.isPropagate()) {
-						stream.writeObject(entry);
-					}
-				}
-
-				logger.info("bradcast from " + this.discoveryHandler.getLocalPort() + " to " + peers);
-				this.restClient.broadcast(peers, "/db/propagate", stream.toByteArray());
-
-			}
-		} finally {
-			this.lock.unlock();
-		}
-	}
-
+	
 	@Override
 	public Document get(Key key) throws Exception {
 		return this.documents.get(key);

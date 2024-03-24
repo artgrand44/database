@@ -60,7 +60,7 @@ public class ReplicationTest extends BaseClientTest {
 				
 				stopInternal();
 				
-				Thread.sleep(10 * 1000);
+				Thread.sleep(20 * 1000);
 				
 				logger.info("after sleep");
 				for (int idx = 2; idx < 20; idx++) {
