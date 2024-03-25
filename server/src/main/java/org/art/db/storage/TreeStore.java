@@ -401,12 +401,21 @@ public class TreeStore implements Closeable, BlobStore {
 		return BitSet.valueOf(this.file.getBytes(this.header.bloomOffset, this.header.bloomSize));
 	}
 	
+	public long getCreateTime() {
+		return this.header.createTime;
+	}
+	
+	
 	public GUID getHighGUID()throws IOException {
 		GUID guid = new GUID();
 		
 		guid.setValue(this.header.highGUID);
 		
 		return guid;
+	}
+	
+	public int getMergeLevel() {
+		return this.header.mergeLevel;
 	}
 	
 	public Metadata getMetadata() throws IOException {
@@ -537,6 +546,7 @@ public class TreeStore implements Closeable, BlobStore {
 		}
 		
 	}
+	
 	public void setBloomFilter(BitSet set) throws Exception {
 		byte[] bytes = set.toByteArray();
 		this.header.bloomOffset = this.file.append(bytes);
@@ -546,11 +556,23 @@ public class TreeStore implements Closeable, BlobStore {
 				
 	}
 	
+	public void setCreateTime(long createTime) throws Exception {
+		this.header.createTime = createTime;
+		
+		this.writeHeader();
+	}
+	
 	public void setHighGUID(GUID guid) throws Exception {
 		try (TypedOutputStream stream = new TypedOutputStream()) {
 			this.header.highGUID = guid.getValue();
 			this.writeHeader();
 		}
+	}
+	
+	public void setMergeLevel(int mergeLevel) throws Exception {
+		this.header.mergeLevel = mergeLevel;
+		
+		this.writeHeader();
 	}
 	
 	public void setMetadata(Metadata metadata) throws Exception {
@@ -700,6 +722,8 @@ public class TreeStore implements Closeable, BlobStore {
 		long searchCount;
 		long resultCount;
 		boolean flushed = false;
+		long createTime = 0;
+		int mergeLevel = 0;
 		
 		Header() {
 		}
@@ -718,6 +742,8 @@ public class TreeStore implements Closeable, BlobStore {
 			this.searchCount = stream.readLong();
 			this.resultCount = stream.readLong();
 			this.flushed = stream.readBoolean();
+			this.createTime = stream.readLong();
+			this.mergeLevel = stream.readInt();
 			
 			if (!this.magic.equals("MAGIC")) {
 				throw new Exception("Bad magic number");
@@ -739,6 +765,8 @@ public class TreeStore implements Closeable, BlobStore {
 				stream.writeLong(this.searchCount);
 				stream.writeLong(this.resultCount);
 				stream.writeBoolean(this.flushed);
+				stream.writeLong(this.createTime);
+				stream.writeInt(this.mergeLevel);
 				
 				return stream.toByteArray();
 			}			

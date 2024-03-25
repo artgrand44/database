@@ -3,6 +3,8 @@ package org.art.db.storage;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.art.db.common.Configuration;
@@ -91,8 +93,13 @@ public class Files {
 	public static File getIndex(String table, String index) {
 		return getFile(INDEX, table, index);
 	}
+	
 	public static File getDiskSegment(String table, int count) {
 		return getFile(DISK_SEGMENT, table, System.currentTimeMillis(), count);
+	}
+	
+	public static File getDiskSegment(String table, long time, int count) {
+		return getFile(DISK_SEGMENT, table, time, count);
 	}
 	
 	public static File getMemorySegment(String table) {
@@ -107,6 +114,20 @@ public class Files {
 		return getFile(SECURITY);
 	}
 	
+	public static List<String> listTables() {
+		List<String> result = new ArrayList<>();
+		File[] dirs = getRoot().listFiles((x, y) -> new File(x, y).isDirectory());
+		
+		if (dirs != null) {
+			for (File dir : dirs) {
+				if (new File(dir, "meta.dat").exists()) {
+					result.add(dir.getName());
+				}
+			}
+		}
+		
+		return result;
+	}
 	public static File[] listDiskSegments(String table) {
 		File tableDir = new File(getRoot(), table);
 		

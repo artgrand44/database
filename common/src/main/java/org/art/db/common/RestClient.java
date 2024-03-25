@@ -1,5 +1,6 @@
 package org.art.db.common;
 
+import java.io.File;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.URI;
@@ -10,6 +11,7 @@ import java.net.http.HttpRequest.BodyPublisher;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -175,6 +177,38 @@ public class RestClient {
 			return "";
 		}
 	}
+	
+	public void getFile(URI uri, File file) throws Exception {
+		try {
+			HttpRequest.Builder builder = HttpRequest.newBuilder()	
+					.uri(uri)
+					.GET()
+					.header("Content-Type", "application/json")
+					.header("accept", "application/json")
+					.header("Accept-Encoding", "gzip")
+					.header("Client", this.localHost)
+					.timeout(this.timeout)
+					.version(HttpClient.Version.HTTP_2);
+
+			String token = this.getAuthToken();
+
+			if (token != null) {
+				builder = builder.header("Authorization", token);
+			}
+
+
+			HttpRequest request = builder.build();
+			HttpResponse<Path> response = client.send(request, BodyHandlers.ofFile(file.toPath()));
+			int status = response.statusCode();
+
+			if (status != 200) {
+				throw new RestException(status, "There was a network errror");
+			}
+		} catch(Exception exc) {
+			throw new RestException(500, exc.getMessage());
+		}
+	}
+	
 	@PostConstruct
 	public void initialize() {
 	

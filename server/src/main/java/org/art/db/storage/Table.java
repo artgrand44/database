@@ -70,7 +70,6 @@ public class Table implements Closeable {
 			Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
 			
 			for (File file : list) {
-				logger.info("found file " + file.getAbsolutePath());
 				this.segments.add(new DiskSegment(file));
 			}
 		}
@@ -239,38 +238,37 @@ public class Table implements Closeable {
 	
 		
 	private void save(MemorySegment segment) {
+		try {
+			File file  = Files.getDiskSegment(this.table, 1);
+
+			DiskSegment saved = segment.save(file);
+
+			this.writeLock.lock();
+
 			try {
-				File file  = Files.getDiskSegment(this.table, 1);
+				boolean replaced = false;
 
-				DiskSegment saved = segment.save(file);
-
-				this.writeLock.lock();
-
-				try {
-					boolean replaced = false;
-
-					for (int idx = 0; idx < this.segments.size(); idx++) {
-						if (this.segments.get(idx).equals(segment)) {
-							this.segments.set(idx, saved);
-							replaced = true;
-							break;
-						}
+				for (int idx = 0; idx < this.segments.size(); idx++) {
+					if (this.segments.get(idx).equals(segment)) {
+						this.segments.set(idx, saved);
+						replaced = true;
+						break;
 					}
-
-					if (!replaced) {					
-						logger.info("***** failed to replace segment " + segment + "\n" + this.segments);
-					}
-
-					segment.close();
-					mergeQueue.add(new MergeQueueEntry(this, file));
-				} finally {
-					this.writeLock.unlock();
 				}
 
-			} catch (Exception exc) {
-				logger.info("Error merging files " + exc.getMessage());
+				if (!replaced) {					
+					logger.info("***** failed to replace segment " + segment + "\n" + this.segments);
+				}
+
+				segment.close();
+				mergeQueue.add(new MergeQueueEntry(this, file));
+			} finally {
+				this.writeLock.unlock();
 			}
-		
+
+		} catch (Exception exc) {
+			logger.info("Error merging files " + exc.getMessage());
+		}
 
 	}
 	

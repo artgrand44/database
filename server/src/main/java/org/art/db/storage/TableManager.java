@@ -210,7 +210,6 @@ public class TableManager implements Closeable{
 		
 	}
 	
-	
 	public void remove(Document doc, boolean propagate) throws Exception {
 		Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
 		

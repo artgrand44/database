@@ -165,12 +165,21 @@ public class SegmentBuilder {
 			blockFile.writeBlock(header.serialize(), 0);
 		}
 		
-		// Write out the bloom filter and the zombies
+		// Write out the bloom filter, zombies, etc
 		
 		try (TreeStore store = new TreeStore(tempFile, diskBlockSize)) {
 			store.setBloomFilter(bloomFilter);
 			store.setZombies(zombies);
 			store.setMetadata(metadata);
+			
+			String name = segment.getName();
+			int dash = name.indexOf('_');
+			int dot = name.indexOf('.');
+			long createTime = Long.parseLong(name.substring(0, dash));
+			int mergeLevel = Integer.parseInt(name.substring(dash + 1, dot));
+			
+			store.setCreateTime(createTime);
+			store.setMergeLevel(mergeLevel);
 			
 			if (highKey == null) {
 				logger.info("no high key " + count);
@@ -197,6 +206,7 @@ public class SegmentBuilder {
 		for (Segment segment : segments) {
 			segment.close();
 		}
+	
 		
 	}
 	private static void writeBlock(TypedOutputStream stream, byte[] bytes, int blockSize) throws IOException {

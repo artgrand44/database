@@ -3,6 +3,7 @@ package org.art.db.server;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.List;
@@ -30,7 +31,7 @@ public class Dispatcher {
 	private static final Logger logger = LoggerFactory.getLogger(Dispatcher.class);
 	
 	static interface Handler {
-		byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception;
+		void handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception;
 	}
 	
 	private static final Map<String, Handler> HANDLERS = 
@@ -41,15 +42,16 @@ public class Dispatcher {
 				   "/db/wait",         new WaitInstanceCountHandler(),
 				   "/db/fetch",        new FetchHandler(),
 				   "/db/log",          new LogHandler(),
-				   "/db/setproperty",  new SetPropertyHandler());
+				   "/db/setproperty",  new SetPropertyHandler(),
+				   "/db/getfile",      new GetFileHandler());
 	
-	public static byte[] handle(HttpServerExchange exchange, String url, Map<String, String> parameters, byte[] body) throws Exception {
+	public static void handle(HttpServerExchange exchange, String url, Map<String, String> parameters, byte[] body) throws Exception {
 		
 		if (url.startsWith("/db/resource")) {
 			String resource = url.substring("/db/resource".length() + 1);
 			
 			try (InputStream stream = Server.class.getClassLoader().getResourceAsStream(resource)) {
-				return IOUtils.toByteArray(stream);
+				exchange.getResponseSender().send(ByteBuffer.wrap(IOUtils.toByteArray(stream)));
 			} 
 		}
 		
@@ -57,10 +59,10 @@ public class Dispatcher {
 		
 		if (handler == null) {
 			logger.info("Can't find handler " + url + " in " + HANDLERS);
-			return new byte[0];
+			exchange.getResponseSender().send(ByteBuffer.wrap(new byte[0]));
 		}
 		
-		return handler.handle(exchange, parameters, body);
+		handler.handle(exchange, parameters, body);
 
 	}
 
@@ -69,7 +71,7 @@ public class Dispatcher {
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public void handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				String database = (String)stream.readObject();
 				String shard = (String)stream.readObject();
@@ -90,7 +92,7 @@ public class Dispatcher {
 					console.logClient(client, sql, System.currentTimeMillis() - start, 1, 1);
 				}
 			
-				return new byte[0];
+				exchange.getResponseSender().send(ByteBuffer.wrap(new byte[0]));
 			}
 		}
 		
@@ -100,7 +102,7 @@ public class Dispatcher {
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public void handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try (TypedInputStream inStream = new TypedInputStream(body)) {
 				String database = (String)inStream.readObject();
 				String shard = (String)inStream.readObject();
@@ -123,7 +125,7 @@ public class Dispatcher {
 			
 				try (TypedOutputStream stream = new TypedOutputStream()) {
 					stream.writeObject(set);
-					return stream.toByteArray();
+					exchange.getResponseSender().send(ByteBuffer.wrap(stream.toByteArray()));
 				}
 			} catch (Exception exc) {
 				exc.printStackTrace();
@@ -136,44 +138,55 @@ public class Dispatcher {
 	static class FetchHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public void handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String file = parameters.get("file");
 			int index = Integer.parseInt(parameters.get("index"));
 			int size = Integer.parseInt(parameters.get("size"));
 			
-			return DocumentSet.fetch(file, index, size);
+			exchange.getResponseSender().send(ByteBuffer.wrap(DocumentSet.fetch(file, index, size)));
 		}
 		
 	}
 
+	static class GetFileHandler implements Handler {
+
+		@Override
+		public void handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			String table = parameters.get("table");
+			long timestamp = Long.parseLong(parameters.get("timestamp"));
+			
+			exchange.getResponseSender().send(ByteBuffer.wrap(new byte[0]));
+		}
+		
+	}
 	static class LogHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public void handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			
 			
 			File file = new File("./serverlogs/serverlog.log");
 			
 			if (file.exists() && file.canRead()) {
 				try (FileInputStream stream = new FileInputStream(file)) {
-					return IOUtils.toByteArray(stream);
+					exchange.getResponseSender().send(ByteBuffer.wrap(IOUtils.toByteArray(stream)));
 				}		
 			}
 			
-			return new byte[0];
+			exchange.getResponseSender().send(ByteBuffer.wrap(new byte[0]));
 		}
 	}
 
 	static class PropagateHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public void handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				String table = stream.readUTF();
 				
 				StorageManager.getInstance().getTableManager(table).applySnapshot(stream, true);
 			
-				return new byte[0];
+				exchange.getResponseSender().send(ByteBuffer.wrap(new byte[0]));
 			}
 		}
 		
@@ -182,7 +195,7 @@ public class Dispatcher {
 	static class UIHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public void handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			HeaderValues authHeader = exchange.getRequestHeaders().get("Authorization");
 			String authToken = authHeader == null || authHeader.size() != 1 ? "" : authHeader.get(0);
 			
@@ -201,7 +214,7 @@ public class Dispatcher {
 			
 			String currentPage = parameters.get("currentPage");
 			
-			return UIConsole.getCurrent().buildHtml(currentPage == null ? "" : currentPage, true).getBytes();
+			exchange.getResponseSender().send(ByteBuffer.wrap(UIConsole.getCurrent().buildHtml(currentPage == null ? "" : currentPage, true).getBytes()));
 		}
 					
 	}
@@ -209,19 +222,19 @@ public class Dispatcher {
 	static class SetPropertyHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public void handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String[] params = new String(body).split("=");
 			
 			Configuration.getInstance().setProperty(params[0], params[1]);
 			
-			return new byte[0];
+			exchange.getResponseSender().send(ByteBuffer.wrap(new byte[0]));
 		}
 		
 	}
 	static class WaitInstanceCountHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public void handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 			int count = Integer.parseInt(parameters.get("count"));
 			
@@ -229,9 +242,8 @@ public class Dispatcher {
 				handler.waitInstanceCount(count, 60 * 1000);
 			}
 			
-			return new byte[0];
+			exchange.getResponseSender().send(ByteBuffer.wrap(new byte[0]));
 		}
 	}
-
 	
 }

@@ -1,11 +1,16 @@
 package org.art.db.server;
 
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.art.db.common.Configuration;
+import org.art.db.common.DiscoveryHandler;
+import org.art.db.common.RestException;
+import org.art.db.common.ZipUtils;
+import org.art.db.security.SecurityHandler;
+import org.art.db.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,12 +23,6 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderValues;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
-import org.art.db.common.Configuration;
-import org.art.db.common.DiscoveryHandler;
-import org.art.db.common.RestException;
-import org.art.db.common.ZipUtils;
-import org.art.db.security.SecurityHandler;
-import org.art.db.storage.StorageManager;
 
 public class Server implements HttpHandler, FullBytesCallback {
 	
@@ -90,9 +89,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 		}
 		
 		try {
-			byte[] response = Dispatcher.handle(exchange, exchange.getRequestURI(), params, message);
-			
-			exchange.getResponseSender().send(ByteBuffer.wrap(response));
+			Dispatcher.handle(exchange, exchange.getRequestURI(), params, message);
 		} catch (UnathorizedException exc) {
 			exchange.getResponseHeaders().put(Headers.WWW_AUTHENTICATE, "Basic realm=Cache");
 			exchange.setStatusCode(RestException.UNAUTHORIZED);
@@ -116,6 +113,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 			Configuration.getInstance().load(properties);
 			
 			logger.info("start with " + properties + " config = " + Configuration.getInstance());
+			
+			StorageManager.getInstance().recover();
 			
 			instance = new Server(new DiscoveryHandler(Configuration.getInstance(), true));
 		} catch (Exception exc) {

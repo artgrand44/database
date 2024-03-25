@@ -95,12 +95,22 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 		return zombies;
 	}
 
+	public long getCreateTime() {
+		return this.treeStore.getCreateTime();
+	}
 	
+
  	public File getFile() {
 		return file;
 	}
 
-	
+ 	public int getMergeLevel() {
+ 		return this.treeStore.getMergeLevel();
+ 	}
+ 	
+ 	public void setMergeLevel(int createLevel) throws Exception {
+ 		
+ 	}
 	@Override
 	public String toString() {
 		return "DiskSegment [" + file + "]";
