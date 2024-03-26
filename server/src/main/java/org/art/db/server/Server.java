@@ -70,6 +70,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 	
 	@Override
 	public void handleRequest(HttpServerExchange exchange) throws Exception {
+		exchange.startBlocking();
 		if (exchange.isInIoThread()) {
 			exchange.dispatch(this);
 		} else {		 
@@ -98,18 +99,16 @@ public class Server implements HttpHandler, FullBytesCallback {
 			Object response = Dispatcher.handle(exchange, exchange.getRequestURI(), params, message);
 			
 			if (response instanceof byte[] bytes) {
-				exchange.getResponseSender().send(ByteBuffer.wrap(bytes));
+				exchange.getOutputStream().write(bytes);
 			} else {
 				File file = (File)response;
 				
-				exchange.startBlocking();
-				
-				try (FileInputStream inputStream = new FileInputStream(file); OutputStream outputStream = exchange.getOutputStream()) {
-					IOUtils.copy(inputStream, outputStream);
+				try (FileInputStream inputStream = new FileInputStream(file)) {
+					IOUtils.copyLarge(inputStream, exchange.getOutputStream());
 				}
 			}
 		} catch (UnathorizedException exc) {
-			exchange.getResponseHeaders().put(Headers.WWW_AUTHENTICATE, "Basic realm=Cache");
+			exchange.getResponseHeaders().put(Headers.WWW_AUTHENTICATE, "Basic realm=Database");
 			exchange.setStatusCode(RestException.UNAUTHORIZED);
 		} catch (Exception exc) {
 			exchange.setStatusCode(RestException.TEA_POT);
