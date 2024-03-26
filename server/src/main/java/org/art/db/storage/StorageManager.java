@@ -151,6 +151,28 @@ public class StorageManager  {
 
 	}
 		
+	public File getOldestFile(String table, long timestamp) {
+		File[] files = Files.listDiskSegments(table);
+		
+		if (files == null) {
+			return null;
+		}
+		
+		List<File> list = Arrays.asList(files);
+		Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
+
+		for (File file : list) {
+			String name = file.getName();
+			int dash = name.indexOf('_');
+			long fileTimeStamp = Long.parseLong(name.substring(0, dash));
+			
+			if (fileTimeStamp > timestamp) {
+				return file;
+			}
+		}
+		
+		return null;
+	}
 	public void stop() {
 		for (TableManager manager : this.tableManagers.values()) {
 			try {

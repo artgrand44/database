@@ -1,16 +1,14 @@
 package org.art.db.server;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.art.db.common.Configuration;
-import org.art.db.common.DiscoveryHandler;
-import org.art.db.common.RestException;
-import org.art.db.common.ZipUtils;
-import org.art.db.security.SecurityHandler;
-import org.art.db.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +21,14 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderValues;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
+
+import org.apache.commons.io.IOUtils;
+import org.art.db.common.Configuration;
+import org.art.db.common.DiscoveryHandler;
+import org.art.db.common.RestException;
+import org.art.db.common.ZipUtils;
+import org.art.db.security.SecurityHandler;
+import org.art.db.storage.StorageManager;
 
 public class Server implements HttpHandler, FullBytesCallback {
 	
@@ -89,7 +95,19 @@ public class Server implements HttpHandler, FullBytesCallback {
 		}
 		
 		try {
-			Dispatcher.handle(exchange, exchange.getRequestURI(), params, message);
+			Object response = Dispatcher.handle(exchange, exchange.getRequestURI(), params, message);
+			
+			if (response instanceof byte[] bytes) {
+				exchange.getResponseSender().send(ByteBuffer.wrap(bytes));
+			} else {
+				File file = (File)response;
+				
+				exchange.startBlocking();
+				
+				try (FileInputStream inputStream = new FileInputStream(file); OutputStream outputStream = exchange.getOutputStream()) {
+					IOUtils.copy(inputStream, outputStream);
+				}
+			}
 		} catch (UnathorizedException exc) {
 			exchange.getResponseHeaders().put(Headers.WWW_AUTHENTICATE, "Basic realm=Cache");
 			exchange.setStatusCode(RestException.UNAUTHORIZED);
@@ -113,8 +131,6 @@ public class Server implements HttpHandler, FullBytesCallback {
 			Configuration.getInstance().load(properties);
 			
 			logger.info("start with " + properties + " config = " + Configuration.getInstance());
-			
-			StorageManager.getInstance().recover();
 			
 			instance = new Server(new DiscoveryHandler(Configuration.getInstance(), true));
 		} catch (Exception exc) {
