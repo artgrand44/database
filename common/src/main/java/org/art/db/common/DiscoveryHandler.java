@@ -36,6 +36,7 @@ public class DiscoveryHandler {
 	
 	private AtomicReference<Set<InetAddress>> hosts = new  AtomicReference<>(new HashSet<>());
 	
+	private ConcurrentHashMap<URI, URI> recoveringInstances = new ConcurrentHashMap<>();
 	
 	private String port;
 	
@@ -52,6 +53,7 @@ public class DiscoveryHandler {
 	protected AtomicReference<ShardFinder> shardFinder = new AtomicReference<>();
 	
 	private Map<String, AtomicLong> lastUsed = new ConcurrentHashMap<>();
+	
 	
 	private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 	
@@ -71,9 +73,20 @@ public class DiscoveryHandler {
 			serverInstance = this;
 		}
 		
-		this.initialize();
+		this.plugin.initialize(this.localInstance, this.cluster, this.localShard, this.isServer);
+		
+		Thread.sleep(300);
+		
+		this.loadEnvironment();
+		
+		this.poller = SCHEDULER.scheduleAtFixedRate(this::loadEnvironment, 1, 20, TimeUnit.SECONDS);
+			
 		this.waitInstanceCount(1,  300);
 		
+	}
+	
+	public void addRecoveringInstance(URI uri) {
+		this.recoveringInstances.put(uri,  uri);
 	}
 	
 	public static void clear() {
@@ -154,11 +167,12 @@ public class DiscoveryHandler {
 			logger.info("np instances for service " + this.localShard + " in " + instances);
 		}
 		
-		List<URI> peers = new ArrayList<>(instances.get(this.localShard));
+		Set<URI> peers = new HashSet<>(instances.get(this.localShard));
 		
 		peers.remove(localInstance);
+		peers.addAll(this.recoveringInstances.keySet());
 		
-		return peers;
+		return new ArrayList<>(peers);
 	
 	}
 	
@@ -219,12 +233,14 @@ public class DiscoveryHandler {
 				
 				instances.add(shard, uri);
 				hosts.add(InetAddress.getByName(uri.getHost()));
+				this.recoveringInstances.remove(uri);
 			}
 			
 			if (this.localInstance != null && !map.containsKey(this.localInstance)) {
 				instances.add(this.localShard, this.localInstance);
 				hosts.add(InetAddress.getByName(this.localInstance.getHost()));
 			}
+			
 		
 			ShardFinder finder = new ShardFinder(instances.keySet());
 			
@@ -247,13 +263,7 @@ public class DiscoveryHandler {
 	
 	}
 	
-	public void initialize() throws Exception {
-		this.plugin.initialize(this.localInstance, this.cluster, this.localShard, this.isServer);
-		this.loadEnvironment();
-		
-		this.poller = SCHEDULER.scheduleAtFixedRate(this::loadEnvironment, 1, 20, TimeUnit.SECONDS);
-				
-	}
+	
 	
 	/**
 	 * Tenporarily remove an instance until the next time we load the environment;

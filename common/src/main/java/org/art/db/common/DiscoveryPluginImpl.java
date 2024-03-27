@@ -33,6 +33,7 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 		this.listener = new HeartbeatListener(this.publisher, cluster, localInstance);
 		
 		this.listener.intialize();
+		this.listener.start();
 		
 		if (isServer) {
 			this.publisher = new HeartbeatPublisher(cluster, localShard, localInstance.getPort());
@@ -51,8 +52,6 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 		if (this.publisher != null) {
 			this.publisher.start();
 		}
-		
-		this.listener.start();
 	}
 	
 	
