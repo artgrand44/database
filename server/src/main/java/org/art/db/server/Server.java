@@ -2,13 +2,19 @@ package org.art.db.server;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
+import org.art.db.common.Configuration;
+import org.art.db.common.DiscoveryHandler;
+import org.art.db.common.RestException;
+import org.art.db.common.ZipUtils;
+import org.art.db.security.SecurityHandler;
+import org.art.db.storage.RecoveryManager;
+import org.art.db.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,14 +27,6 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderValues;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
-
-import org.apache.commons.io.IOUtils;
-import org.art.db.common.Configuration;
-import org.art.db.common.DiscoveryHandler;
-import org.art.db.common.RestException;
-import org.art.db.common.ZipUtils;
-import org.art.db.security.SecurityHandler;
-import org.art.db.storage.StorageManager;
 
 public class Server implements HttpHandler, FullBytesCallback {
 	
@@ -131,7 +129,11 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 			logger.info("start with " + properties + " config = " + Configuration.getInstance());
 			
-			instance = new Server(new DiscoveryHandler(Configuration.getInstance(), true));
+			DiscoveryHandler handler = new DiscoveryHandler(Configuration.getInstance(), true);
+			
+			RecoveryManager.getInstance().recover(handler);
+			
+			instance = new Server(handler);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}		

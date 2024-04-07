@@ -467,7 +467,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public byte[] getZombies() throws IOException {
 		if (this.header.zombieOffset == -1 || this.header.zombieSize == 0) {
-			throw new IllegalStateException("The bloom filter is missing");
+			throw new IllegalStateException("The zombies are missing");
 		}
 		
 		return this.file.getBytes(this.header.zombieOffset, this.header.zombieSize);

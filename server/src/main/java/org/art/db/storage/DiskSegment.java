@@ -33,27 +33,32 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 	
 	public DiskSegment(File file) throws Exception {
 		super();
-		
-		this.file = file;
-		this.tree = new Tree<>(file, DISK_BLOCK_SIZE, Blob.class);
-		this.treeStore = tree.treeStore;
-		
-		this.setMetadata(this.treeStore.getMetadata());
-		this.setHighGUID(this.treeStore.getHighGUID());
-		this.setBloomFilter(this.treeStore.getBloomFilter());
-		
-		byte[] bytes = this.treeStore.getZombies();
-		Set<Key> zombies = new HashSet<>();
-		
-		try (TypedInputStream stream = new TypedInputStream(bytes)) {
-			int count = stream.readInt();
-			
-			for (int idx = 0; idx < count; idx++) {
-				zombies.add(new Key().deserialize(stream));
+
+		try {
+			this.file = file;
+			this.tree = new Tree<>(file, DISK_BLOCK_SIZE, Blob.class);
+			this.treeStore = tree.treeStore;
+
+			this.setMetadata(this.treeStore.getMetadata());
+			this.setHighGUID(this.treeStore.getHighGUID());
+			this.setBloomFilter(this.treeStore.getBloomFilter());
+
+			byte[] bytes = this.treeStore.getZombies();
+			Set<Key> zombies = new HashSet<>();
+
+			try (TypedInputStream stream = new TypedInputStream(bytes)) {
+				int count = stream.readInt();
+
+				for (int idx = 0; idx < count; idx++) {
+					zombies.add(new Key().deserialize(stream));
+				}
 			}
+
+			this.setZombies(zombies);
+		} catch (Exception exc) {
+			logger.info("Got exception on file " + file.getAbsolutePath() + " " + exc.getMessage());
+			throw exc;
 		}
-		
-		this.setZombies(zombies);
 	}
 	
 	@Override

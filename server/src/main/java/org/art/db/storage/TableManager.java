@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.art.db.common.DBRuntimeException;
@@ -196,14 +197,7 @@ public class TableManager implements Closeable{
 			
 			this.timestamps.put(primaryKey, System.currentTimeMillis());
 			this.table.insert(primaryKey, doc, propagate);
-
-			for (int idx = 0; idx < this.indexInfo.size(); idx++) {
-				IndexInfo info = this.indexInfo.get(idx);
-				Index index = this.indices.get(info.name());
-				Key indexKey = this.buildKey(doc, info.fields());
-
-				index.put(indexKey, primaryKey);
-			}
+			this.updateIndices(null, doc, primaryKey);
 		} finally {
 			this.lockManager.unlockAll();
 		}
@@ -215,14 +209,7 @@ public class TableManager implements Closeable{
 		
 		this.timestamps.put(primaryKey, System.currentTimeMillis());
 		this.table.remove(primaryKey, propagate);
-				
-		for (int idx = 0; idx < this.indexInfo.size(); idx++) {
-			IndexInfo info = this.indexInfo.get(idx);
-			Index index = this.indices.get(info.name());
-			Key indexKey = this.buildKey(doc, info.fields());
-			
-			index.remove(indexKey, primaryKey);
-		}
+		this.updateIndices(doc, null, primaryKey);
 	}
 	
 	public void update(Document oldDoc, Document newDoc, boolean propagate) throws Exception {
@@ -243,21 +230,31 @@ public class TableManager implements Closeable{
 			
 			this.timestamps.put(primaryKey, System.currentTimeMillis());
 			this.table.update(primaryKey, newDoc, propagate);			
-			
-			for (int idx = 0; idx < this.indexInfo.size(); idx++) {
-				IndexInfo info = this.indexInfo.get(idx);
-				Index index = this.indices.get(info.name());
-				Key oldKey = this.buildKey(oldDoc, info.fields());
-				Key newKey = this.buildKey(newDoc, info.fields());
-
-				if (!newKey.equals(oldKey)) {
-					index.remove(oldKey, primaryKey);
-					index.put(newKey, primaryKey);
-				}
-			}
+			this.updateIndices(oldDoc, newDoc, primaryKey);
 		} finally {
 			this.lockManager.unlockAll();
 		}
+	}
+	
+	public void updateIndices(Document oldDoc, Document newDoc, Key primaryKey) throws Exception {
+
+		for (int idx = 0; idx < this.indexInfo.size(); idx++) {
+			IndexInfo info = this.indexInfo.get(idx);
+			Index index = this.indices.get(info.name());
+			Key oldKey = oldDoc == null ? null : this.buildKey(oldDoc, info.fields());
+			Key newKey = newDoc == null ? null : this.buildKey(newDoc, info.fields());
+
+			if (!Objects.equals(oldKey, newKey)) {
+				if (oldKey != null) {
+					index.remove(oldKey, primaryKey);
+				}
+				
+				if (newKey != null) {
+					index.put(newKey, primaryKey);
+				}
+			}
+		}
+
 	}
 	
 	public void setMetadata(Metadata info) throws Exception {

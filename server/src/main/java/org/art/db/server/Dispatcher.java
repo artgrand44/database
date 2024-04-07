@@ -3,6 +3,7 @@ package org.art.db.server;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
+import org.art.db.storage.RecoveryManager;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
@@ -41,7 +43,9 @@ public class Dispatcher {
 				   "/db/wait",         new WaitInstanceCountHandler(),
 				   "/db/fetch",        new FetchHandler(),
 				   "/db/log",          new LogHandler(),
-				   "/db/setproperty",  new SetPropertyHandler());
+				   "/db/setproperty",  new SetPropertyHandler(),
+				   "/db/getnextfile",  new GetNextFileHandler(),
+				   "db/recovering",    new StartRecoveryHandler());
 	
 	public static Object handle(HttpServerExchange exchange, String url, Map<String, String> parameters, byte[] body) throws Exception {
 		
@@ -146,13 +150,13 @@ public class Dispatcher {
 		
 	}
 	
-	static class GetFileHandler implements Handler {
+	static class GetNextFileHandler implements Handler {
 		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String table = parameters.get("table");
 			long timestamp = Long.parseLong(parameters.get("timestamp"));
-			File file = StorageManager.getInstance().getOldestFile(table, timestamp);
+			File file = RecoveryManager.getInstance().getNextFile(table, timestamp);
 
 			return file == null ? new byte[0] : file;
 		}
@@ -231,6 +235,26 @@ public class Dispatcher {
 		}
 		
 	}
+	
+	static class StartRecoveryHandler implements Handler {
+		
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			
+			logger.info("StartRecoveryHandler " + parameters.get("uri"));
+			
+			try {
+			DiscoveryHandler.getServerInstance().addRecoveringInstance(new URI(parameters.get("uri")));
+			
+			return new byte[0];
+			} catch (Exception exc) {
+				logger.info("exc " + exc.getMessage());
+				throw exc;
+			}
+		}
+
+	}
+	
 	static class WaitInstanceCountHandler implements Handler {
 
 		@Override

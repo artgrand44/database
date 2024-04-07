@@ -74,7 +74,7 @@ public class Table implements Closeable {
 			}
 		}
 		
-		this.switcher = Scheduler.DEFAULT.scheduleAtFixedRate(this::switchSegmentIfNeeded, 5, 5, TimeUnit.SECONDS);
+		this.switcher = Scheduler.DEFAULT.scheduleAtFixedRate(this::switchSegmentIfNeeded, 5, 10, TimeUnit.MILLISECONDS);
 
 	}
 	
@@ -91,7 +91,7 @@ public class Table implements Closeable {
 				this.writeLock.lock();
 			}
 			
-			if (!this.currentSegment.isClosed()) {
+			if (!this.currentSegment.isClosed() && this.currentSegment.size() != 0) {
 				this.save(this.currentSegment);
 			}
 			
@@ -277,6 +277,8 @@ public class Table implements Closeable {
 
 		try {
 			if (this.currentSegment.size() > this.maxSegmentSize && this.prevSegment == null && !this.closed) {
+				logger.info("***swap " + this.currentSegment.size());
+				
 				for (Index index : this.indices.values()) {
 					index.flush();
 				}
