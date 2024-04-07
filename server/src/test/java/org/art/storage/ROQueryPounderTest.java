@@ -1,7 +1,6 @@
 package org.art.storage;
 
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.client.Client;
 import org.art.db.common.DocumentSet;
@@ -16,10 +15,6 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 	private static int NITEMS = 10000;
 	private static int NLOOPS = 10000;
 	private static int NTHREADS = 50;
-	
-	private AtomicInteger nextId  = new AtomicInteger(NITEMS + 1);
-	
-	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);
 	
 	public ROQueryPounderTest() {
 		super("./application.properties", NITEMS, NTHREADS);
@@ -111,10 +106,4 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 		
 	}
 	
-	private void remove(Client client, int idx) throws Exception {
-		String delete = "delete from pounder where ID = ?";
-		
-		client.execute(delete, getId(idx));
-		
-	}
 }
