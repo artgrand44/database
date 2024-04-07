@@ -173,22 +173,21 @@ public abstract class BaseQueryPounder extends BaseClientTest {
 
 
 	private void stats() {
-		MemoryMXBean bean = ManagementFactory.getMemoryMXBean(); 
-		int oneMeg = 1024 * 1024;
-
+		
 		while (!stop) {
 			long end = System.currentTimeMillis();
 			long elapsed = end - this.startTime;
 			float timePerRead = ((float)elapsed) / (float)readCount.get();
+			long transactions = readCount.get() + writeCount.get() + deleteCount.get();
+			float tps = ((float)transactions / (float)elapsed) * 1000;
 
 			if (Float.isFinite(timePerRead)) {
-				String entry = this.getClass().getSimpleName() + " " + String.format("Per read = %f10 ms reads %s writes %s deletes %s heap %sMB Nonheap %sMB", 
+				String entry = this.getClass().getSimpleName() + " " + String.format("Per read = %f10 ms reads %s writes %s deletes %s tps %s", 
 						timePerRead,
 						readCount.get(),
 						writeCount.get(),
 						deleteCount.get(),
-						bean.getHeapMemoryUsage().getUsed() / oneMeg,
-						bean.getNonHeapMemoryUsage().getUsed() / oneMeg);
+						tps);
 
 				logger.info(entry);
 			}
