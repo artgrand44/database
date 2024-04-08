@@ -1,4 +1,4 @@
-package org.art.db.ui;
+package org.art.db.common;
 
 import static java.util.Objects.requireNonNull;
 
@@ -23,7 +23,7 @@ public class CPUMeter {
 			"com.sun.management.OperatingSystemMXBean" 
 	);
 
-	CPUMeter() {
+	public CPUMeter() {
 		this.operatingSystemBean = ManagementFactory.getOperatingSystemMXBean();
 		this.operatingSystemBeanClass = getFirstClassFound(OPERATING_SYSTEM_BEAN_CLASS_NAMES);
 		Method getCpuLoad = detectMethod("getCpuLoad");
@@ -65,7 +65,7 @@ public class CPUMeter {
 		}
 	}
 
-	double getCPU() {
+	public double getCPU() {
 		return  invoke(systemCpuUsage);
 	}
 }

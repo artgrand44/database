@@ -36,6 +36,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 	@Override
 	protected void pound(int index, int mainLoop) {	
 		try {
+			super.waitForAllStarted();
 			String nameQuery = "select * from pounder where FirstName = ?";
 			String idQuery = "select * from pounder where ID = ?";
 			Random random = new Random(index);

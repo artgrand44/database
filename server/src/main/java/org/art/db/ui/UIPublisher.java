@@ -15,6 +15,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
+import org.art.db.common.CPUMeter;
 import org.art.db.common.Configuration;
 import org.art.db.common.Scheduler;
 import org.checkerframework.checker.index.qual.NonNegative;
