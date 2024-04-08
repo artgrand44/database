@@ -41,7 +41,6 @@ public class RecoveryManager {
 			return;
 		}
 		
-		logger.info("********* recovering tables");
 		for (String table : Files.listTables()) {
 			try {
 				this.recover(peers.get(0), table, handler.getLocalInstance());
@@ -53,10 +52,9 @@ public class RecoveryManager {
 		StorageManager.getInstance().reset();
 	}
 	
-	public void recover(URI peer, String table, URI thisURI) throws Exception {
+	private void recover(URI peer, String table, URI thisURI) throws Exception {
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
-		logger.info("***** recover " + table + " from " + peer);
 		File[] files = Files.listDiskSegments(table);
 		long timestamp;
 		int mergeLevel;
@@ -74,8 +72,6 @@ public class RecoveryManager {
 			segment = new DiskSegment(list.get(0));
 			timestamp = segment.getCreateTime();
 			mergeLevel = segment.getMergeLevel();
-			
-			logger.info("Found segments " + list + " timestamp " + timestamp + " merge level " + mergeLevel);
 		}
 		
 		File file;
@@ -123,10 +119,11 @@ public class RecoveryManager {
 			segment.close();
 			
 			File renamed = Files.getDiskSegment(table, timestamp, mergeLevel);
+			logger.info("processed  " + renamed.getAbsolutePath());
+			
+			
 			
 			file.renameTo(renamed);
-			
-			logger.info("recovered " + renamed.getAbsolutePath());
 			
 		}		
 		

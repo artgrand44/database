@@ -43,6 +43,8 @@ public class RecoveryTest extends BaseClientTest {
 			Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
 			String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 			String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
+			String nameQuery = "select * from pounder where FirstName = ?";
+			String idQuery = "select * from pounder where ID = ?";
 			
 			client.execute(create);
 			client.execute(createIndex);
@@ -74,18 +76,16 @@ public class RecoveryTest extends BaseClientTest {
 					break;
 				}
 			}
-
+			
+			
 			// Copy the oldest segment to the external server
 			
 			if (files != null && files.length != 0) {
 				List<File> list = Arrays.asList(files);
 				Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
 
-				logger.info("Test found secgments " + list);
 				FileUtils.copyFile(list.get(0), new File(internalDir, list.get(0).getName()));
 
-				logger.info("Copied oldest " + new File(internalDir, list.get(0).getName()));
-				
 				File indexFile = new File(externalDir, "firstname.idx");
 				
 				FileUtils.copyFile(indexFile, new File(internalDir,  "firstname.idx"));
@@ -105,8 +105,7 @@ public class RecoveryTest extends BaseClientTest {
 			// Stop the internal server then verify that all of the documents and
 			// index entries are in the external server
 
-			String nameQuery = "select * from pounder where FirstName = ?";
-			String idQuery = "select * from pounder where ID = ?";
+			
 			
 			for (int idx = 0; idx < count; idx++) {
 				int id = this.getId(idx);
@@ -117,6 +116,9 @@ public class RecoveryTest extends BaseClientTest {
 				
 				if (ids.size() != 1) {
 					logger.info("Missing id " + id);
+					ids = primaryClient.executeQuery(idQuery, id);
+					ids = secondaryClient.executeQuery(idQuery, id);
+					
 				}
 				
 				Assertions.assertThat(ids.size() == 1).isTrue();

@@ -277,8 +277,6 @@ public class Table implements Closeable {
 
 		try {
 			if (this.currentSegment.size() > this.maxSegmentSize && this.prevSegment == null && !this.closed) {
-				logger.info("***swap " + this.currentSegment.size());
-				
 				for (Index index : this.indices.values()) {
 					index.flush();
 				}
