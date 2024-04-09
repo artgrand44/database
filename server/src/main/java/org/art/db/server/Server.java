@@ -67,6 +67,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 	public void handleRequest(HttpServerExchange exchange) throws Exception {
 		if (exchange.isInIoThread()) {
 			exchange.dispatch(this);
+		} else if (exchange.getRequestMethod().toString().equalsIgnoreCase("get")) {
+			this.handle(exchange, null);
 		} else {		 
 			exchange.getRequestReceiver().receiveFullBytes(this);
 		}

@@ -83,7 +83,7 @@ public class RestClient {
 	}
 			
 	public  URI buildURI(URI base, String fileTemplate, Object ... args) throws Exception {
-		return base.resolve(String.format(fileTemplate, args));
+		return args.length == 0 ? base.resolve(fileTemplate) : base.resolve(String.format(fileTemplate, args));
 	}
 	
 	public  byte[] call(String method, URI uri, Object body) throws Exception { 

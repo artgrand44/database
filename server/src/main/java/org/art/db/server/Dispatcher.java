@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -98,16 +99,20 @@ public class Dispatcher {
 	
 	static class ExecuteQueryHandler implements Handler {
 
-		@SuppressWarnings("unchecked")
 		@Override
 		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			try (TypedInputStream inStream = new TypedInputStream(body)) {
-				String database = (String)inStream.readObject();
-				String shard = (String)inStream.readObject();
-				String user = (String)inStream.readObject();
-				String password = (String)inStream.readObject();
-				String sql = (String)inStream.readObject();
-				List<Comparable<?>> parameterList = (List<Comparable<?>>)inStream.readObject();
+				String database = parameters.get("database");
+				String shard = parameters.get("shard");
+				String user = parameters.get("user");
+				String password = parameters.get("password");
+				String sql = parameters.get("sql");
+				int count = Integer.parseInt(parameters.get("count"));
+				List<Comparable<?>> parameterList = new ArrayList<>();
+				
+				for (int idx = 0; idx < count; idx++) {
+					parameterList.add(parameters.get("param" + idx));
+				}
+				
 				long start = System.currentTimeMillis();
 			
 				DocumentSet set = SQLHandler.getInstance().executeQuery(shard, database, user, password, sql, parameterList);
@@ -125,10 +130,7 @@ public class Dispatcher {
 					stream.writeObject(set);
 					return stream.toByteArray();
 				}
-			} catch (Exception exc) {
-				exc.printStackTrace();
-				throw exc;
-			}
+			
 		}
 		
 	}

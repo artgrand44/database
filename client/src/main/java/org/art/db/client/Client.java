@@ -3,9 +3,12 @@ package org.art.db.client;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -87,6 +90,16 @@ public class Client {
 		}
 	}
 	
+	private String buildURI(String template, Map<String, Object> params, Object ... args) {
+		List<String> pairs = new ArrayList<>();
+		
+		for (Map.Entry<String, Object> entry : params.entrySet()) {
+			pairs.add(entry.getKey() + "=" + URLEncoder.encode(entry.getValue().toString(), Charset.forName("UTF-8")));
+		}
+		
+		return String.format(template, args) + "?" + String.join("&", pairs);
+	}
+	
 	private void checkParameters(Object ...parameters) throws Exception {
 		for (int idx = 0; idx < parameters.length; idx++) {
 			Object param = parameters[idx];
@@ -99,15 +112,45 @@ public class Client {
 		}
 	}
 	
+	private byte[] doGet(String url, Map<String, Object> params) throws Exception {
+		params.put("database", this.database);
+		params.put("shard",this.shard);
+		params.put("user", this.user);
+		params.put("password", this.password);
+		
+		String uri = this.buildURI("/db/executeQuery", params);
+		
+		if (this.uri == null) {
+			return this.router.get(this.shard == null ? UUID.randomUUID().toString() : this.shard, uri);
+		} else {
+			return this.client.get(this.client.buildURI(this.uri, uri));
+		}
+		
+	}
+	
+	private byte[] doPut(String url, Map<String, String> parameters, byte[] body) throws Exception {
+		if (this.uri == null) {
+			return this.router.post(this.shard == null ? UUID.randomUUID().toString() : this.shard, url, body);
+		} else {
+			return this.client.post(this.client.buildURI(this.uri, url), body);
+		}
+	}
+	
 	public DocumentSet executeQuery(String statement, Object... parameters) throws Exception {
 		this.checkParameters(parameters);
 		
-		List<Object> list = new ArrayList<>(Arrays.asList(parameters));
-		byte[] body = this.buildBody(this.database, this.shard, this.user, this.password, statement, list);
+		Map<String, Object> params = new HashMap<>();
 		
-		byte[] result = this.handleRequest("/db/executeQuery", Collections.emptyMap(), body);
+		params.put("sql",  statement);
+		params.put("count", parameters.length);
 		
-		try (TypedInputStream stream = new TypedInputStream(result)) {
+		for (int idx = 0; idx < parameters.length; idx++) {
+			params.put("param" + idx, parameters[idx]);
+		}
+		
+		byte[] body = doGet("/db/executeQuery", params);
+		
+		try (TypedInputStream stream = new TypedInputStream(body)) {
 			return (DocumentSet)stream.readObject();
 		}
 		
@@ -119,7 +162,7 @@ public class Client {
 		List<Object> list = new ArrayList<>(Arrays.asList(parameters));
 		byte[] body = this.buildBody(this.database, this.shard, this.user, this.password, statement, list);
 		
-		this.handleRequest("/db/execute", Collections.emptyMap(), body);
+		this.doPut("/db/execute", Collections.emptyMap(), body);
 	}
 	
 	public <T> T getDAO(Class<T> iface) throws Exception {
@@ -130,13 +173,6 @@ public class Client {
 		return this.handler;
 	}
 	
- 	private byte[] handleRequest(String url, Map<String, String> parameters, byte[] body) throws Exception {
-		if (this.uri == null) {
-			return this.router.post(this.shard == null ? UUID.randomUUID().toString() : this.shard, url, body);
-		} else {
-			return this.client.post(this.client.buildURI(this.uri, url), body);
-		}
-	}
 	
 	public void use(String database) {
 		this.database = database;
