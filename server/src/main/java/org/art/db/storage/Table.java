@@ -111,9 +111,7 @@ public class Table implements Closeable {
 	}
 	
 	/**
-	 * Wait until a convenient time then flush the current segment.
-	 * This method is used to save the current fragment to that it 
-	 * can be used by another instance as part of a restore.
+	 * Flush the current segment. 
 	 */
 	public void flush() {
 		MemorySegment segment = this.currentSegment;
@@ -125,22 +123,12 @@ public class Table implements Closeable {
 			for (;;) {
 				if (this.closed) {
 					return;
-				} else if (saving && segment.isSaved()) {
-					logger.info("flush saved");
-					return;
 				} else if (this.prevSegment == null && !saving) {
-					for (Index index : this.indices.values()) {
-						index.flush();
-					}
-					
-					segment = this.prevSegment = this.currentSegment;
+					this.switchSegments(); 
 					saving = true;
-					Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null; });
-
-					
-					logger.info("flush saving");
-					this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config);
-					this.segments.addFirst(this.currentSegment);
+				} else if (segment.isSaved()) {
+					logger.info("flush saved");
+					return;				
 				} else {
 					this.writeLock.unlock();
 					Thread.sleep(1000);
@@ -317,23 +305,29 @@ public class Table implements Closeable {
 
 	}
 	
+	private void switchSegments() {
+		try {
+			for (Index index : this.indices.values()) {
+				index.flush();
+			}
+
+			this.prevSegment = this.currentSegment;
+			Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null; });
+
+			this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config);
+			this.segments.addFirst(this.currentSegment);
+		} catch (Exception exc) {
+			logger.info("Exception switching segments " + exc.getMessage());
+		}
+	}
+	
 	private void switchSegmentIfNeeded() {
 		this.writeLock.lock();
 
 		try {
 			if (this.currentSegment.size() > this.maxSegmentSize && this.prevSegment == null && !this.closed) {
-				for (Index index : this.indices.values()) {
-					index.flush();
-				}
-
-				this.prevSegment = this.currentSegment;
-				Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null; });
-								
-				this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config);
-				this.segments.addFirst(this.currentSegment);
+				switchSegments();
 			}
-		} catch (Exception exc) {
-			logger.info("There was an error creating the new segment " + exc.getMessage());
 		} finally {
 			this.writeLock.unlock();
 		}
