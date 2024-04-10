@@ -254,12 +254,15 @@ public class Dispatcher {
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			
-			logger.info("StartRecoveryHandler " + parameters.get("uri"));
 			
 			try {
-			DiscoveryHandler.getServerInstance().addRecoveringInstance(new URI(parameters.get("uri")));
+				String table = parameters.get("table");
+				String uri = parameters.get("uri");
+				
+				StorageManager.getInstance().getTableManager(table).flush();
+				DiscoveryHandler.getServerInstance().addRecoveringInstance(new URI(uri));
 			
-			return new byte[0];
+				return new byte[0];
 			} catch (Exception exc) {
 				logger.info("exc " + exc.getMessage());
 				throw exc;

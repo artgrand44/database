@@ -138,6 +138,10 @@ public class TableManager implements Closeable{
 		}
 	}
 	
+	public void flush() {
+		this.table.flush();
+	}
+	
 	public Document get(Key key) throws Exception {
 		return this.table.get(key);
 	}

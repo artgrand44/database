@@ -110,6 +110,51 @@ public class Table implements Closeable {
 		}
 	}
 	
+	/**
+	 * Wait until a convenient time then flush the current segment.
+	 * This method is used to save the current fragment to that it 
+	 * can be used by another instance as part of a restore.
+	 */
+	public void flush() {
+		MemorySegment segment = this.currentSegment;
+		boolean saving = false;
+		
+		this.writeLock.lock();
+		
+		try {
+			for (;;) {
+				if (this.closed) {
+					return;
+				} else if (saving && segment.isSaved()) {
+					logger.info("flush saved");
+					return;
+				} else if (this.prevSegment == null && !saving) {
+					for (Index index : this.indices.values()) {
+						index.flush();
+					}
+					
+					segment = this.prevSegment = this.currentSegment;
+					saving = true;
+					Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null; });
+
+					
+					logger.info("flush saving");
+					this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config);
+					this.segments.addFirst(this.currentSegment);
+				} else {
+					this.writeLock.unlock();
+					Thread.sleep(1000);
+					this.writeLock.lock();
+				}
+			}
+		} catch (Exception exc) {
+			logger.info("There was an error creating the new segment " + exc.getMessage());
+		} finally {
+			this.writeLock.unlock();
+		}
+	}
+		
+	
 	public Document get(Key key) throws Exception {
 		DocId id = new DocId(this, key);
 		Document result = cache.getIfPresent(id); 

@@ -60,8 +60,7 @@ public class RecoveryManager {
 		int mergeLevel;
 		DiskSegment segment;
 		
-		if (files == null || files.length == 0) {
-			
+		if (files == null || files.length == 0) {			
 			logger.info("No segments");
 			timestamp = 0;
 			mergeLevel = 1;
@@ -79,7 +78,7 @@ public class RecoveryManager {
 		File metadataFile = Files.getMetadata(table);
 		Metadata metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(table);
 		
-		this.restClient.get(restClient.buildURI(peer, "db/recovering?uri=%s", thisURI));
+		this.restClient.get(restClient.buildURI(peer, "db/recovering?uri=%s&table=%s", thisURI, table));
 				
 		for (;;) {
 			file = Files.getDiskSegment(table, 0);

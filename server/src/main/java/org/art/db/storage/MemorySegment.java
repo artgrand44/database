@@ -88,6 +88,11 @@ public class MemorySegment extends Segment {
 	private List<LogEntry> currentBroadcastBatch = new ArrayList<>();
 	
 	/**
+	 * Has the segment been saved
+	 */
+	private boolean isSaved = false;
+	
+	/**
 	 * The timer for async broadcasts
 	 */
 	private final ScheduledFuture<?> timer;
@@ -103,6 +108,7 @@ public class MemorySegment extends Segment {
 	private final DiscoveryHandler discoveryHandler;
 	
 	private final long logDelay;
+	
 	
 	private static ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("MemSeg", 5);
 	
@@ -274,6 +280,8 @@ public class MemorySegment extends Segment {
 	public DiskSegment save(File file) throws Exception {
 		SegmentBuilder.build(this, file, DISK_BLOCK_SIZE);
 		
+		this.isSaved = true;
+		
 		return new DiskSegment(file);
 		
 	}
@@ -302,6 +310,10 @@ public class MemorySegment extends Segment {
 	@Override
 	public String toString() {
 		return "MemorySegment [logFile=" + logFile.getName() + ", closed=" + closed + ", id=" + id +  "]";
+	}
+
+	public boolean isSaved() {
+		return isSaved;
 	}
 
 	class SortedIterator implements Iterator<Map.Entry<Key, Blob>> {
