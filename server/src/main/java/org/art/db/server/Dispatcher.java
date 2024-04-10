@@ -5,12 +5,12 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
@@ -68,22 +68,48 @@ public class Dispatcher {
 
 	}
 
+	private static String[] getAuthTokens(HttpServerExchange exchange) {
+		HeaderValues headers = exchange.getRequestHeaders().get("Authorization");
+		
+		if (headers == null || headers.size() != 1) {
+			return null;
+		}
+		
+		String authToken = headers.get(0);
+		String credentials = authToken.substring("Basic ".length()).trim();
+		byte[] bytes = Base64.getDecoder().decode(credentials);
+		String plainText = new String(bytes, Charset.defaultCharset());
+		String[] tokens = plainText.split(":");
+		
+		return tokens.length == 2 ? tokens : null;
+	}
+	
+	private static String getPassword(HttpServerExchange exchange) {
+		String tokens[] =  getAuthTokens(exchange);
+		
+		return tokens == null ? "" : tokens[1];		
+	}
+	
+	private static String getUser(HttpServerExchange exchange) {
+		String tokens[] =  getAuthTokens(exchange);
+		
+		return tokens == null ? "" : tokens[0];		
+	}
+	
 	
 	static class ExecuteHandler implements Handler {
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				String database = (String)stream.readObject();
 				String shard = (String)stream.readObject();
-				String user = (String)stream.readObject();
-				String password = (String)stream.readObject();
 				String sql = (String)stream.readObject();
 				List<Comparable<?>> parameterList = (List<Comparable<?>>)stream.readObject();
 				long start = System.currentTimeMillis();
 			
-				SQLHandler.getInstance().execute(shard, database, user, password, sql, parameterList);
+				SQLHandler.getInstance().execute(shard, database, getUser(exchange), getPassword(exchange), sql, parameterList);
 				
 				UIConsole console = UIConsole.getCurrent();
 				
@@ -102,19 +128,21 @@ public class Dispatcher {
 	
 	static class ExecuteQueryHandler implements Handler {
 
-		@SuppressWarnings("unchecked")
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			try (TypedInputStream inStream = new TypedInputStream(body)) {
-				String database = (String)inStream.readObject();
-				String shard = (String)inStream.readObject();
-				String user = (String)inStream.readObject();
-				String password = (String)inStream.readObject();
-				String sql = (String)inStream.readObject();
-				List<Comparable<?>> parameterList = (List<Comparable<?>>)inStream.readObject();
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+				String database = parameters.get("database");
+				String shard = parameters.get("shard");
+				String sql = parameters.get("sql");
+				int count = Integer.parseInt(parameters.get("count"));
+				List<Comparable<?>> parameterList = new ArrayList<>();
+				
+				for (int idx = 0; idx < count; idx++) {
+					parameterList.add(parameters.get("param" + idx));
+				}
+				
 				long start = System.currentTimeMillis();
 			
-				DocumentSet set = SQLHandler.getInstance().executeQuery(shard, database, user, password, sql, parameterList);
+				DocumentSet set = SQLHandler.getInstance().executeQuery(shard, database, getUser(exchange), getPassword(exchange), sql, parameterList);
 				
 				UIConsole console = UIConsole.getCurrent();
 				
@@ -129,10 +157,7 @@ public class Dispatcher {
 					stream.writeObject(set);
 					return stream.toByteArray();
 				}
-			} catch (Exception exc) {
-				exc.printStackTrace();
-				throw exc;
-			}
+			
 		}
 		
 	}
@@ -140,7 +165,7 @@ public class Dispatcher {
 	static class FetchHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String file = parameters.get("file");
 			int index = Integer.parseInt(parameters.get("index"));
 			int size = Integer.parseInt(parameters.get("size"));
@@ -166,7 +191,7 @@ public class Dispatcher {
 	static class LogHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			
 			
 			File file = new File("./serverlogs/serverlog.log");
@@ -184,7 +209,7 @@ public class Dispatcher {
 	static class PropagateHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				String table = stream.readUTF();
 				
@@ -199,20 +224,8 @@ public class Dispatcher {
 	static class UIHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			HeaderValues authHeader = exchange.getRequestHeaders().get("Authorization");
-			String authToken = authHeader == null || authHeader.size() != 1 ? "" : authHeader.get(0);
-			
-			if (StringUtils.isAllBlank(authToken)) {
-				throw new Server.UnathorizedException(404, "Not authorized");
-			}
-			
-			String credentials = authToken.substring("Basic ".length()).trim();
-			byte[] bytes = Base64.getDecoder().decode(credentials);
-			String plainText = new String(bytes, Charset.defaultCharset());
-			String[] tokens = plainText.split(":");
-			
-			if (!SecurityHandler.getInstance().isAdmin(tokens[0], tokens[1])) {
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			if (!SecurityHandler.getInstance().isAdmin(getUser(exchange), getPassword(exchange))) {
 				throw new Server.UnathorizedException(404, "Not authorized");
 			}
 			
@@ -226,7 +239,7 @@ public class Dispatcher {
 	static class SetPropertyHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String[] params = new String(body).split("=");
 			
 			Configuration.getInstance().setProperty(params[0], params[1]);
@@ -258,7 +271,7 @@ public class Dispatcher {
 	static class WaitInstanceCountHandler implements Handler {
 
 		@Override
-		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 			int count = Integer.parseInt(parameters.get("count"));
 			

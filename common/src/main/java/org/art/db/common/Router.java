@@ -68,6 +68,7 @@ public class Router {
 		
 		
 	}	
+	
 	public String getShard(String key) {
 		return this.discoveryHandler.getShard(key);
 	}

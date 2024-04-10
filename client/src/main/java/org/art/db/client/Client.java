@@ -3,9 +3,12 @@ package org.art.db.client;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,8 +38,6 @@ public class Client {
 	private final URI uri;
 	private String database = "";
 	private final String shard;
-	private final String user;
-	private final String password;
 	
 	public static final String WILDCARD = "*";
 	
@@ -45,11 +46,9 @@ public class Client {
 	private Client()  {
 		this.router = null;
 		this.handler = null;
-		this.client = new RestClient();
+		this.client = new RestClient("", "");
 		this.uri = null;
-		this.shard = WILDCARD;
-		this.user = "";
-		this.password = "";
+		this.shard = WILDCARD; 
 	}
 	
 	public Client(Configuration config) throws Exception {
@@ -58,22 +57,18 @@ public class Client {
 	
 	public Client(DiscoveryHandler handler, String shard, String user, String password) throws Exception {
 		this.handler = handler;
-		this.router = new Router(handler, "", "");
+		this.router = new Router(handler, user, password);
 		this.client = new RestClient();
 		this.uri = null;
 		this.shard = shard;
-		this.user = user;
-		this.password = password;
 	}
 	
 	public Client(URI uri, String shard, String user, String password) throws Exception {
 		this.handler = null;
 		this.router = null;
-		this.client = new RestClient();
+		this.client = new RestClient(user, password);
 		this.uri = uri;
 		this.shard = shard;
-		this.user = user;
-		this.password = password;
 	}
 	
 	private byte[] buildBody(Object ... args) throws IOException {
@@ -85,6 +80,16 @@ public class Client {
 			
 			return stream.toByteArray();
 		}
+	}
+	
+	private String buildURI(String template, Map<String, Object> params, Object ... args) {
+		List<String> pairs = new ArrayList<>();
+		
+		for (Map.Entry<String, Object> entry : params.entrySet()) {
+			pairs.add(entry.getKey() + "=" + URLEncoder.encode(entry.getValue().toString(), Charset.forName("UTF-8")));
+		}
+		
+		return String.format(template, args) + "?" + String.join("&", pairs);
 	}
 	
 	private void checkParameters(Object ...parameters) throws Exception {
@@ -99,15 +104,43 @@ public class Client {
 		}
 	}
 	
+	private byte[] doGet(String url, Map<String, Object> params) throws Exception {
+		params.put("database", this.database);
+		params.put("shard",this.shard);
+		
+		String uri = this.buildURI("/db/executeQuery", params);
+		
+		if (this.uri == null) {
+			return this.router.get(this.shard == null ? UUID.randomUUID().toString() : this.shard, uri);
+		} else {
+			return this.client.get(this.client.buildURI(this.uri, uri));
+		}
+		
+	}
+	
+	private byte[] doPost(String url, Map<String, String> parameters, byte[] body) throws Exception {
+		if (this.uri == null) {
+			return this.router.post(this.shard == null ? UUID.randomUUID().toString() : this.shard, url, body);
+		} else {
+			return this.client.post(this.client.buildURI(this.uri, url), body);
+		}
+	}
+	
 	public DocumentSet executeQuery(String statement, Object... parameters) throws Exception {
 		this.checkParameters(parameters);
 		
-		List<Object> list = new ArrayList<>(Arrays.asList(parameters));
-		byte[] body = this.buildBody(this.database, this.shard, this.user, this.password, statement, list);
+		Map<String, Object> params = new HashMap<>();
 		
-		byte[] result = this.handleRequest("/db/executeQuery", Collections.emptyMap(), body);
+		params.put("sql",  statement);
+		params.put("count", parameters.length);
 		
-		try (TypedInputStream stream = new TypedInputStream(result)) {
+		for (int idx = 0; idx < parameters.length; idx++) {
+			params.put("param" + idx, parameters[idx]);
+		}
+		
+		byte[] body = doGet("/db/executeQuery", params);
+		
+		try (TypedInputStream stream = new TypedInputStream(body)) {
 			return (DocumentSet)stream.readObject();
 		}
 		
@@ -117,9 +150,9 @@ public class Client {
 		this.checkParameters(parameters);
 		
 		List<Object> list = new ArrayList<>(Arrays.asList(parameters));
-		byte[] body = this.buildBody(this.database, this.shard, this.user, this.password, statement, list);
+		byte[] body = this.buildBody(this.database, this.shard, statement, list);
 		
-		this.handleRequest("/db/execute", Collections.emptyMap(), body);
+		this.doPost("/db/execute", Collections.emptyMap(), body);
 	}
 	
 	public <T> T getDAO(Class<T> iface) throws Exception {
@@ -130,13 +163,6 @@ public class Client {
 		return this.handler;
 	}
 	
- 	private byte[] handleRequest(String url, Map<String, String> parameters, byte[] body) throws Exception {
-		if (this.uri == null) {
-			return this.router.post(this.shard == null ? UUID.randomUUID().toString() : this.shard, url, body);
-		} else {
-			return this.client.post(this.client.buildURI(this.uri, url), body);
-		}
-	}
 	
 	public void use(String database) {
 		this.database = database;

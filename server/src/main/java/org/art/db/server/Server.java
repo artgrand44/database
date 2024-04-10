@@ -71,6 +71,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 		exchange.startBlocking();
 		if (exchange.isInIoThread()) {
 			exchange.dispatch(this);
+		} else if (exchange.getRequestMethod().toString().equalsIgnoreCase("get")) {
+			this.handle(exchange, null);
 		} else {		 
 			exchange.getRequestReceiver().receiveFullBytes(this);
 		}
