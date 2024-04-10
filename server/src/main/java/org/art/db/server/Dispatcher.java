@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
@@ -65,6 +64,34 @@ public class Dispatcher {
 
 	}
 
+	private static String[] getAuthTokens(HttpServerExchange exchange) {
+		HeaderValues headers = exchange.getRequestHeaders().get("Authorization");
+		
+		if (headers == null || headers.size() != 1) {
+			return null;
+		}
+		
+		String authToken = headers.get(0);
+		String credentials = authToken.substring("Basic ".length()).trim();
+		byte[] bytes = Base64.getDecoder().decode(credentials);
+		String plainText = new String(bytes, Charset.defaultCharset());
+		String[] tokens = plainText.split(":");
+		
+		return tokens.length == 2 ? tokens : null;
+	}
+	
+	private static String getPassword(HttpServerExchange exchange) {
+		String tokens[] =  getAuthTokens(exchange);
+		
+		return tokens == null ? "" : tokens[1];		
+	}
+	
+	private static String getUser(HttpServerExchange exchange) {
+		String tokens[] =  getAuthTokens(exchange);
+		
+		return tokens == null ? "" : tokens[0];		
+	}
+	
 	
 	static class ExecuteHandler implements Handler {
 
@@ -74,13 +101,11 @@ public class Dispatcher {
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				String database = (String)stream.readObject();
 				String shard = (String)stream.readObject();
-				String user = (String)stream.readObject();
-				String password = (String)stream.readObject();
 				String sql = (String)stream.readObject();
 				List<Comparable<?>> parameterList = (List<Comparable<?>>)stream.readObject();
 				long start = System.currentTimeMillis();
 			
-				SQLHandler.getInstance().execute(shard, database, user, password, sql, parameterList);
+				SQLHandler.getInstance().execute(shard, database, getUser(exchange), getPassword(exchange), sql, parameterList);
 				
 				UIConsole console = UIConsole.getCurrent();
 				
@@ -103,8 +128,6 @@ public class Dispatcher {
 		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 				String database = parameters.get("database");
 				String shard = parameters.get("shard");
-				String user = parameters.get("user");
-				String password = parameters.get("password");
 				String sql = parameters.get("sql");
 				int count = Integer.parseInt(parameters.get("count"));
 				List<Comparable<?>> parameterList = new ArrayList<>();
@@ -115,7 +138,7 @@ public class Dispatcher {
 				
 				long start = System.currentTimeMillis();
 			
-				DocumentSet set = SQLHandler.getInstance().executeQuery(shard, database, user, password, sql, parameterList);
+				DocumentSet set = SQLHandler.getInstance().executeQuery(shard, database, getUser(exchange), getPassword(exchange), sql, parameterList);
 				
 				UIConsole console = UIConsole.getCurrent();
 				
@@ -185,19 +208,7 @@ public class Dispatcher {
 
 		@Override
 		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			HeaderValues authHeader = exchange.getRequestHeaders().get("Authorization");
-			String authToken = authHeader == null || authHeader.size() != 1 ? "" : authHeader.get(0);
-			
-			if (StringUtils.isAllBlank(authToken)) {
-				throw new Server.UnathorizedException(404, "Not authorized");
-			}
-			
-			String credentials = authToken.substring("Basic ".length()).trim();
-			byte[] bytes = Base64.getDecoder().decode(credentials);
-			String plainText = new String(bytes, Charset.defaultCharset());
-			String[] tokens = plainText.split(":");
-			
-			if (!SecurityHandler.getInstance().isAdmin(tokens[0], tokens[1])) {
+			if (!SecurityHandler.getInstance().isAdmin(getUser(exchange), getPassword(exchange))) {
 				throw new Server.UnathorizedException(404, "Not authorized");
 			}
 			

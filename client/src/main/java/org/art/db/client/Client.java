@@ -38,8 +38,6 @@ public class Client {
 	private final URI uri;
 	private String database = "";
 	private final String shard;
-	private final String user;
-	private final String password;
 	
 	public static final String WILDCARD = "*";
 	
@@ -48,11 +46,9 @@ public class Client {
 	private Client()  {
 		this.router = null;
 		this.handler = null;
-		this.client = new RestClient();
+		this.client = new RestClient("", "");
 		this.uri = null;
-		this.shard = WILDCARD;
-		this.user = "";
-		this.password = "";
+		this.shard = WILDCARD; 
 	}
 	
 	public Client(Configuration config) throws Exception {
@@ -61,22 +57,18 @@ public class Client {
 	
 	public Client(DiscoveryHandler handler, String shard, String user, String password) throws Exception {
 		this.handler = handler;
-		this.router = new Router(handler, "", "");
+		this.router = new Router(handler, user, password);
 		this.client = new RestClient();
 		this.uri = null;
 		this.shard = shard;
-		this.user = user;
-		this.password = password;
 	}
 	
 	public Client(URI uri, String shard, String user, String password) throws Exception {
 		this.handler = null;
 		this.router = null;
-		this.client = new RestClient();
+		this.client = new RestClient(user, password);
 		this.uri = uri;
 		this.shard = shard;
-		this.user = user;
-		this.password = password;
 	}
 	
 	private byte[] buildBody(Object ... args) throws IOException {
@@ -115,8 +107,6 @@ public class Client {
 	private byte[] doGet(String url, Map<String, Object> params) throws Exception {
 		params.put("database", this.database);
 		params.put("shard",this.shard);
-		params.put("user", this.user);
-		params.put("password", this.password);
 		
 		String uri = this.buildURI("/db/executeQuery", params);
 		
@@ -128,7 +118,7 @@ public class Client {
 		
 	}
 	
-	private byte[] doPut(String url, Map<String, String> parameters, byte[] body) throws Exception {
+	private byte[] doPost(String url, Map<String, String> parameters, byte[] body) throws Exception {
 		if (this.uri == null) {
 			return this.router.post(this.shard == null ? UUID.randomUUID().toString() : this.shard, url, body);
 		} else {
@@ -160,9 +150,9 @@ public class Client {
 		this.checkParameters(parameters);
 		
 		List<Object> list = new ArrayList<>(Arrays.asList(parameters));
-		byte[] body = this.buildBody(this.database, this.shard, this.user, this.password, statement, list);
+		byte[] body = this.buildBody(this.database, this.shard, statement, list);
 		
-		this.doPut("/db/execute", Collections.emptyMap(), body);
+		this.doPost("/db/execute", Collections.emptyMap(), body);
 	}
 	
 	public <T> T getDAO(Class<T> iface) throws Exception {
