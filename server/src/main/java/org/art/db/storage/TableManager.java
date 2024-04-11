@@ -235,9 +235,6 @@ public class TableManager implements Closeable{
 		
 		File file;
 		
-		File metadataFile = Files.getMetadata(tableName);
-		Metadata metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(tableName);
-		
 		this.restClient.get(restClient.buildURI(peer, "db/recovering?uri=%s&table=%s", thisURI, tableName));
 				
 		for (;;) {
@@ -267,7 +264,7 @@ public class TableManager implements Closeable{
 			while (iterator.hasNext()) {
 				Map.Entry<Key, Blob> entry = iterator.next();
 				Document oldDoc = this.get(entry.getKey());
-				Document newDoc = BlobConverter.toDocument(metadata, entry.getValue());
+				Document newDoc = BlobConverter.toDocument(this.metadata, entry.getValue());
 				
 				this.updateIndices(oldDoc, newDoc, entry.getKey());
 			}
