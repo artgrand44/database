@@ -117,13 +117,15 @@ public class TreeStore implements Closeable, BlobStore {
 		
 		try {
 			if (!this.isClosed) {
-				this.flushAll();
+				this.flushAll();			
 				this.currentDelta.clear();
 
 				this.isClosed = true;
 				this.file.close();
 				this.logFile.delete();		
 			}
+		} catch (Exception exc) {
+			logger.info(exc.getMessage());
 		} finally {
 			this.lock.unlock();
 		}
@@ -141,7 +143,24 @@ public class TreeStore implements Closeable, BlobStore {
 		this.updateCount.addAndGet(threadDeltas.get().size());
 
 		try {
+			if (threadDeltas.get().keySet().stream().anyMatch(x -> x.op == Operation.SetRoot)
+				&& this.currentDelta.keySet().stream().anyMatch(x -> x.op == Operation.SetRoot)) {
+				while (this.prevDelta != null) {
+					this.lock.unlock();
+					Thread.sleep(10);
+					this.lock.lock();
+				}
+				
+				this.prevDelta = this.currentDelta;
+				this.currentDelta = new ConcurrentHashMap<>();
+
+				Scheduler.DEFAULT.submit(() -> this.flushPrevious());
+				
+			}
+			
 			this.currentDelta.putAll(threadDeltas.get());
+			
+			
 			threadDeltas.get().clear();
 
 			if (this.prevDelta == null && this.currentDelta.size() > 10) {
@@ -150,6 +169,8 @@ public class TreeStore implements Closeable, BlobStore {
 
 				Scheduler.DEFAULT.submit(() -> this.flushPrevious());
 			}
+		} catch (InterruptedException exc) {
+			
 		} finally {
 			this.lock.unlock();
 		}

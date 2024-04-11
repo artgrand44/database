@@ -7,6 +7,7 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,17 +35,21 @@ public class Dispatcher {
 		Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception;
 	}
 	
-	private static final Map<String, Handler> HANDLERS = 
-			Map.of("/db/execute",      new ExecuteHandler(),
-				   "/db/executeQuery", new ExecuteQueryHandler(),
-				   "/db/propagate",    new PropagateHandler(),
-				   "/db/ui",           new UIHandler(),
-				   "/db/wait",         new WaitInstanceCountHandler(),
-				   "/db/fetch",        new FetchHandler(),
-				   "/db/log",          new LogHandler(),
-				   "/db/setproperty",  new SetPropertyHandler(),
-				   "/db/getnextfile",  new GetNextFileHandler(),
-				   "db/recovering",    new StartRecoveryHandler());
+	private static final Map<String, Handler> HANDLERS = new HashMap<>();
+	
+	static {
+		HANDLERS.put("/db/execute",         new ExecuteHandler());
+		   HANDLERS.put("/db/executeQuery", new ExecuteQueryHandler());
+		   HANDLERS.put("/db/propagate",    new PropagateHandler());
+		   HANDLERS.put("/db/ui",           new UIHandler());
+		   HANDLERS.put("/db/wait",         new WaitInstanceCountHandler());
+		   HANDLERS.put("/db/fetch",        new FetchHandler());
+		   HANDLERS.put("/db/log",          new LogHandler());
+		   HANDLERS.put("/db/setproperty",  new SetPropertyHandler());
+		   HANDLERS.put("/db/getnextfile",  new GetNextFileHandler());
+		   HANDLERS.put("/db/recovering",   new StartRecoveryHandler());
+		   HANDLERS.put("/db/close",        new CloseHandler());
+	}
 	
 	public static Object handle(HttpServerExchange exchange, String url, Map<String, String> parameters, byte[] body) throws Exception {
 		
@@ -59,7 +64,7 @@ public class Dispatcher {
 		Handler handler = HANDLERS.get(url);
 		
 		if (handler == null) {
-			logger.info("Can't find handler " + url + " in " + HANDLERS);
+			logger.info("Can't find handler " + url + " in " + HANDLERS.keySet());
 			return new byte[0];
 		}
 		
@@ -95,6 +100,16 @@ public class Dispatcher {
 		return tokens == null ? "" : tokens[0];		
 	}
 	
+	
+	static class CloseHandler implements Handler {
+
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) {
+			logger.info("Closing tables");
+			StorageManager.getInstance().closeAll();
+			return new byte[0];
+		}		
+	}
 	
 	static class ExecuteHandler implements Handler {
 

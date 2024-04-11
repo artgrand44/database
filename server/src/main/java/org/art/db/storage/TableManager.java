@@ -253,7 +253,7 @@ public class TableManager implements Closeable{
 		// instance.  The peer will continue sending the broadcasts until this instance is up
 		// and running.
 		
-		this.restClient.get(restClient.buildURI(peer, "db/recovering?uri=%s&table=%s", thisURI, this.tableName));
+		this.restClient.get(restClient.buildURI(peer, "/db/recovering?uri=%s&table=%s", thisURI, this.tableName));
 				
 		// Process the missing segments from oldest to newest.  Continue until we get an empty file.
 		// The empty file acts as a "no more segments" indicator.

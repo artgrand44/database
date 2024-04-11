@@ -1,6 +1,7 @@
 package org.art.storage;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.art.db.client.Client;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.RestClient;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
@@ -77,9 +79,18 @@ public class RecoveryTest extends BaseClientTest {
 				}
 			}
 			
+			// Flush the external server then copy the index and the oldest segment.
+			// This is the only way to insure that the index is flushed.
 			
-			// Copy the oldest segment to the external server
+			logger.info("Flushing external");
 			
+			URI external = this.getLocalURI("8081");
+			RestClient restClient = new RestClient();
+			
+			restClient.get(restClient.buildURI(external, "/db/close"));
+			
+			logger.info("Flushing external");
+						
 			if (files != null && files.length != 0) {
 				List<File> list = Arrays.asList(files);
 				Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
@@ -88,9 +99,10 @@ public class RecoveryTest extends BaseClientTest {
 
 				File indexFile = new File(externalDir, "firstname.idx");
 				
-				FileUtils.copyFile(indexFile, new File(internalDir,  "firstname.idx"));
-				
+				FileUtils.copyFile(indexFile, new File(internalDir,  "firstname.idx"));				
 			}
+			
+			
 			
 			// Restart the internal server and wait until the recovery is complete
 			
