@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SegmentMergeTest extends BaseIntegrationTest {
-	@SuppressWarnings("unused")
+	
 	private static final Logger logger = LoggerFactory.getLogger(BigSetTest.class);
 	
 	

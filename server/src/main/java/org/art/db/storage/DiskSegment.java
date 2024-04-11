@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob>>, Closeable {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(DiskSegment.class);
 	
 	private static final int BLOOM_SIZE = 2048;
