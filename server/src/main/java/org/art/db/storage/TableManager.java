@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
 import org.art.db.common.DBRuntimeException;
@@ -23,6 +24,7 @@ import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry;
 import org.art.db.common.RestClient;
+import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -215,12 +217,24 @@ public class TableManager implements Closeable{
 		
 	}
 	
+	/**
+	 * Recover the table after a restore.  The recovery process
+	 * copies the missing segments from another instance and then
+	 * updates the indices to reflect the missing segments.
+	 * 
+	 * @param peer The peer to copy the segments from
+	 * @param thisURI The URI of this instance
+	 * @throws Exception
+	 */
 	public void recover(URI peer, URI thisURI) throws Exception {
 		
 		File[] files = Files.listDiskSegments(this.tableName);
 		long timestamp;
 		int mergeLevel;
 		DiskSegment segment;
+		
+		// Find the timestamp and merge level for the newest segment on this
+		// server
 		
 		if (files == null || files.length == 0) {			
 			logger.info("No segments");
@@ -235,10 +249,17 @@ public class TableManager implements Closeable{
 			mergeLevel = segment.getMergeLevel();
 		}
 		
-		File file;
+		// Tell the peer to flush its current segment and to begin sending broadcasts to this
+		// instance.  The peer will continue sending the broadcasts until this instance is up
+		// and running.
 		
 		this.restClient.get(restClient.buildURI(peer, "db/recovering?uri=%s&table=%s", thisURI, this.tableName));
 				
+		// Process the missing segments from oldest to newest.  Continue until we get an empty file.
+		// The empty file acts as a "no more segments" indicator.
+		
+		File file;
+		
 		for (;;) {
 			file = Files.getDiskSegment(this.tableName, 0);
 			
@@ -249,6 +270,8 @@ public class TableManager implements Closeable{
 				file.delete();
 				return;
 			}
+			
+			// Load the segment and process the zombies
 			
 			segment = new DiskSegment(file);
 			
@@ -261,14 +284,24 @@ public class TableManager implements Closeable{
 				}
 			}
 			
+			// Iterate over the segments and update the index entries for each
+			// document.  This process is i/o intensive, so we process several
+			// documents in parallel.
+			
 			Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
+			AtomicInteger inProgress = new AtomicInteger();
 			
 			while (iterator.hasNext()) {
 				Map.Entry<Key, Blob> entry = iterator.next();
-				Document oldDoc = this.get(entry.getKey());
-				Document newDoc = BlobConverter.toDocument(this.metadata, entry.getValue());
+				Key key = entry.getKey();
+				Blob blob = entry.getValue();
 				
-				this.updateIndices(oldDoc, newDoc, entry.getKey());
+				inProgress.incrementAndGet();
+				Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(key, blob, inProgress));
+			}
+			
+			while (inProgress.get() != 0) {
+				Thread.sleep(10);
 			}
 			
 			mergeLevel = segment.getMergeLevel();
@@ -276,15 +309,35 @@ public class TableManager implements Closeable{
 			
 			segment.close();
 			
+			// Rename the segment to match the name on the peer
+			
 			File renamed = Files.getDiskSegment(this.tableName, timestamp, mergeLevel);
-			logger.info("processed  " + renamed.getAbsolutePath());
-			
-			
 			
 			file.renameTo(renamed);
 			
+			logger.info("processed  " + renamed.getAbsolutePath());
+			
 		}		
 		
+	}
+	
+	/**
+	 * Update the index entries for a recovered document
+	 * @param key
+	 * @param blob
+	 * @param inProgress
+	 */
+	void recoverIndexEntries(Key key, Blob blob, AtomicInteger inProgress) {
+		try {
+			Document oldDoc = this.get(key);
+			Document newDoc = BlobConverter.toDocument(this.metadata, blob);
+		
+			this.updateIndices(oldDoc, newDoc, key);
+		} catch (Exception exc) {
+			logger.info("Error recovering index entries " + key + " " + exc.getMessage());
+		} finally {
+			inProgress.decrementAndGet();
+		}
 	}
 	
 	public void remove(Document doc, boolean propagate) throws Exception {
