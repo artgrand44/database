@@ -55,7 +55,7 @@ public class RecoveryManager {
 	private void recover(URI peer, String tableName, URI thisURI) throws Exception {
 		TableManager manager = StorageManager.getInstance().getTableManager(tableName);
 		
-		manager.recover(peer, tableName, thisURI);	
+		manager.recover(peer, thisURI);	
 	}
 			
 	public File getNextFile(String table, long timestamp) {

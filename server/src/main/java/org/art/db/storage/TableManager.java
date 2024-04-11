@@ -33,6 +33,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 public class TableManager implements Closeable{
 	private static final Logger logger = LoggerFactory.getLogger(TableManager.class);
 	
+	private final String tableName;
 	private final Table table;
 	private final File metadataFile;
 	private final List<IndexInfo> indexInfo;
@@ -44,20 +45,21 @@ public class TableManager implements Closeable{
 	
 	private final Cache<Key, Long> timestamps = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(Duration.ofMinutes(10)).build();
 	
-	public TableManager(String table) throws Exception {
-		this.metadataFile = Files.getMetadata(table);
-		this.metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(table);
+	public TableManager(String tableName) throws Exception {
+		this.tableName = tableName;
+		this.metadataFile = Files.getMetadata(tableName);
+		this.metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(tableName);
 		this.indexInfo = metadata.indices();
 		
 		for (IndexInfo info : this.indexInfo) {
 			String name = info.name();
-			File indexFile = Files.getIndex(table, name);
+			File indexFile = Files.getIndex(tableName, name);
 			
 			this.indices.put(name, new Index(indexFile, info.unique()));
 		}
 		
-		File[] logs =  Files.listTableLogs(table);
-		this.table = new Table(table, this.indices);
+		File[] logs =  Files.listTableLogs(tableName);
+		this.table = new Table(tableName, this.indices);
 				
 		if (logs != null) {
 			List<File> list = Arrays.asList(logs);
@@ -213,9 +215,9 @@ public class TableManager implements Closeable{
 		
 	}
 	
-	public void recover(URI peer, String tableName, URI thisURI) throws Exception {
+	public void recover(URI peer, URI thisURI) throws Exception {
 		
-		File[] files = Files.listDiskSegments(tableName);
+		File[] files = Files.listDiskSegments(this.tableName);
 		long timestamp;
 		int mergeLevel;
 		DiskSegment segment;
@@ -235,12 +237,12 @@ public class TableManager implements Closeable{
 		
 		File file;
 		
-		this.restClient.get(restClient.buildURI(peer, "db/recovering?uri=%s&table=%s", thisURI, tableName));
+		this.restClient.get(restClient.buildURI(peer, "db/recovering?uri=%s&table=%s", thisURI, this.tableName));
 				
 		for (;;) {
-			file = Files.getDiskSegment(tableName, 0);
+			file = Files.getDiskSegment(this.tableName, 0);
 			
-			this.restClient.getFile(restClient.buildURI(peer, "/db/getnextfile?table=%s&timestamp=%s", tableName, timestamp), file);
+			this.restClient.getFile(restClient.buildURI(peer, "/db/getnextfile?table=%s&timestamp=%s", this.tableName, timestamp), file);
 			
 			if (file.length() == 0) {
 				logger.info("Empty file");
@@ -274,7 +276,7 @@ public class TableManager implements Closeable{
 			
 			segment.close();
 			
-			File renamed = Files.getDiskSegment(tableName, timestamp, mergeLevel);
+			File renamed = Files.getDiskSegment(this.tableName, timestamp, mergeLevel);
 			logger.info("processed  " + renamed.getAbsolutePath());
 			
 			
