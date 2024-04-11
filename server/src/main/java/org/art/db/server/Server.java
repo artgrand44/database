@@ -13,7 +13,6 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
-import org.art.db.storage.RecoveryManager;
 import org.art.db.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,7 +132,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 			DiscoveryHandler handler = new DiscoveryHandler(Configuration.getInstance(), true);
 			
-			RecoveryManager.getInstance().recover(handler);
+			StorageManager.getInstance().recover(handler);
 			
 			instance = new Server(handler);
 		} catch (Exception exc) {

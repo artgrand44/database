@@ -1,10 +1,17 @@
 package org.art.db.storage;
 
+import java.io.File;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.DiscoveryHandler;
+import org.art.db.common.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,10 +53,54 @@ public class StorageManager  {
 		}
 	}
 	
+	public File getNextFile(String table, long timestamp) {
+		File[] files = Files.listDiskSegments(table);
+		
+		if (files == null) {
+			return null;
+		}
+		
+		List<File> list = Arrays.asList(files);
+		Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
+
+		for (File file : list) {
+			String name = file.getName();
+			int dash = name.indexOf('_');
+			long fileTimeStamp = Long.parseLong(name.substring(0, dash));
+			
+			if (fileTimeStamp > timestamp) {
+				return file;
+			}
+		}
+		
+		return null;
+	}
+
+
 	public TableManager getTableManager(String table) throws Exception {
 		return  this.tableManagers.computeIfAbsent(table, x -> this.createTableManager(x));
 	}
 
+	public void recover(DiscoveryHandler handler) {
+		RestClient.touch();
+		List<URI> peers = handler.getLocalPeers();
+			
+		if (peers.isEmpty()) {
+			logger.info("No peers");
+			return;
+		}
+		
+		for (String table : Files.listTables()) {
+			try {
+				this.getTableManager(table).recover(peers.get(0), handler.getLocalInstance());
+			} catch (Exception exc) {
+				logger.info("There was an error recoverting " + table + " " + exc.getMessage());
+			}
+		}
+			
+		this.reset();
+	}
+	
 	public void reset() {
 		for (TableManager manager : this.tableManagers.values()) {
 			try {

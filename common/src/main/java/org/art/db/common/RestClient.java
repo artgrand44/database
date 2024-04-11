@@ -48,6 +48,9 @@ public class RestClient {
 		}		
 	}
 	
+	public static void touch() {
+		
+	}
 	public RestClient(String user, String password) {
 		this.user = user;
 		this.password = password;

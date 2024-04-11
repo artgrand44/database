@@ -18,7 +18,6 @@ import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
-import org.art.db.storage.RecoveryManager;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
@@ -181,7 +180,7 @@ public class Dispatcher {
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String table = parameters.get("table");
 			long timestamp = Long.parseLong(parameters.get("timestamp"));
-			File file = RecoveryManager.getInstance().getNextFile(table, timestamp);
+			File file = StorageManager.getInstance().getNextFile(table, timestamp);
 
 			return file == null ? new byte[0] : file;
 		}
