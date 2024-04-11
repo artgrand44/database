@@ -52,80 +52,10 @@ public class RecoveryManager {
 		StorageManager.getInstance().reset();
 	}
 	
-	private void recover(URI peer, String table, URI thisURI) throws Exception {
-		TableManager manager = StorageManager.getInstance().getTableManager(table);
+	private void recover(URI peer, String tableName, URI thisURI) throws Exception {
+		TableManager manager = StorageManager.getInstance().getTableManager(tableName);
 		
-		File[] files = Files.listDiskSegments(table);
-		long timestamp;
-		int mergeLevel;
-		DiskSegment segment;
-		
-		if (files == null || files.length == 0) {			
-			logger.info("No segments");
-			timestamp = 0;
-			mergeLevel = 1;
-		} else {
-			List<File> list = Arrays.asList(files);
-			Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
-			
-			segment = new DiskSegment(list.get(0));
-			timestamp = segment.getCreateTime();
-			mergeLevel = segment.getMergeLevel();
-		}
-		
-		File file;
-		
-		File metadataFile = Files.getMetadata(table);
-		Metadata metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(table);
-		
-		this.restClient.get(restClient.buildURI(peer, "db/recovering?uri=%s&table=%s", thisURI, table));
-				
-		for (;;) {
-			file = Files.getDiskSegment(table, 0);
-			
-			this.restClient.getFile(restClient.buildURI(peer, "/db/getnextfile?table=%s&timestamp=%s", table, timestamp), file);
-			
-			if (file.length() == 0) {
-				logger.info("Empty file");
-				file.delete();
-				return;
-			}
-			
-			segment = new DiskSegment(file);
-			
-			for (Key key : segment.getZombies()) {
-				Document doc = manager.get(key);
-				
-				if (doc != null) {
-					logger.info("Remove " + key);
-					manager.remove(doc, false);
-				}
-			}
-			
-			Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
-			
-			while (iterator.hasNext()) {
-				Map.Entry<Key, Blob> entry = iterator.next();
-				Document oldDoc = manager.get(entry.getKey());
-				Document newDoc = BlobConverter.toDocument(metadata, entry.getValue());
-				
-				manager.updateIndices(oldDoc, newDoc, entry.getKey());
-			}
-			
-			mergeLevel = segment.getMergeLevel();
-			timestamp = segment.getCreateTime();
-			
-			segment.close();
-			
-			File renamed = Files.getDiskSegment(table, timestamp, mergeLevel);
-			logger.info("processed  " + renamed.getAbsolutePath());
-			
-			
-			
-			file.renameTo(renamed);
-			
-		}		
-		
+		manager.recover(peer, tableName, thisURI);	
 	}
 			
 	public File getNextFile(String table, long timestamp) {

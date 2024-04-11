@@ -5,20 +5,24 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.art.db.common.Blob;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry;
+import org.art.db.common.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +39,7 @@ public class TableManager implements Closeable{
 	private final Map<String, Index> indices = new HashMap<>();
 	private final LockManager<Key> lockManager = new LockManager<>();
 	private final boolean checkConstraints;
+	private final RestClient restClient = new RestClient();
 	private Metadata metadata;
 	
 	private final Cache<Key, Long> timestamps = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(Duration.ofMinutes(10)).build();
@@ -205,6 +210,82 @@ public class TableManager implements Closeable{
 		} finally {
 			this.lockManager.unlockAll();
 		}
+		
+	}
+	
+	public void recover(URI peer, String tableName, URI thisURI) throws Exception {
+		TableManager manager = StorageManager.getInstance().getTableManager(tableName);
+		
+		File[] files = Files.listDiskSegments(tableName);
+		long timestamp;
+		int mergeLevel;
+		DiskSegment segment;
+		
+		if (files == null || files.length == 0) {			
+			logger.info("No segments");
+			timestamp = 0;
+			mergeLevel = 1;
+		} else {
+			List<File> list = Arrays.asList(files);
+			Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
+			
+			segment = new DiskSegment(list.get(0));
+			timestamp = segment.getCreateTime();
+			mergeLevel = segment.getMergeLevel();
+		}
+		
+		File file;
+		
+		File metadataFile = Files.getMetadata(tableName);
+		Metadata metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(tableName);
+		
+		this.restClient.get(restClient.buildURI(peer, "db/recovering?uri=%s&table=%s", thisURI, tableName));
+				
+		for (;;) {
+			file = Files.getDiskSegment(tableName, 0);
+			
+			this.restClient.getFile(restClient.buildURI(peer, "/db/getnextfile?table=%s&timestamp=%s", tableName, timestamp), file);
+			
+			if (file.length() == 0) {
+				logger.info("Empty file");
+				file.delete();
+				return;
+			}
+			
+			segment = new DiskSegment(file);
+			
+			for (Key key : segment.getZombies()) {
+				Document doc = manager.get(key);
+				
+				if (doc != null) {
+					logger.info("Remove " + key);
+					manager.remove(doc, false);
+				}
+			}
+			
+			Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
+			
+			while (iterator.hasNext()) {
+				Map.Entry<Key, Blob> entry = iterator.next();
+				Document oldDoc = manager.get(entry.getKey());
+				Document newDoc = BlobConverter.toDocument(metadata, entry.getValue());
+				
+				manager.updateIndices(oldDoc, newDoc, entry.getKey());
+			}
+			
+			mergeLevel = segment.getMergeLevel();
+			timestamp = segment.getCreateTime();
+			
+			segment.close();
+			
+			File renamed = Files.getDiskSegment(tableName, timestamp, mergeLevel);
+			logger.info("processed  " + renamed.getAbsolutePath());
+			
+			
+			
+			file.renameTo(renamed);
+			
+		}		
 		
 	}
 	
