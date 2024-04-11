@@ -143,27 +143,29 @@ public class TreeStore implements Closeable, BlobStore {
 		this.updateCount.addAndGet(threadDeltas.get().size());
 
 		try {
-			if (threadDeltas.get().keySet().stream().anyMatch(x -> x.op == Operation.SetRoot)
-				&& this.currentDelta.keySet().stream().anyMatch(x -> x.op == Operation.SetRoot)) {
+			
+			// Merge the changes for this thread into the current batch
+			
+			this.currentDelta.putAll(threadDeltas.get());
+			threadDeltas.get().clear();
+
+			// If the batch is full or the batch contains a change to header.root
+			// then flush it.  Header.root changes need to be flushed immediately
+			// since the changes within a batch aren't ordered.  If we create a batch
+			// with two changes to the route, they might be applied in the wrong order.
+			
+			if (this.prevDelta == null && this.currentDelta.size() > 10) {
+				this.prevDelta = this.currentDelta;
+				this.currentDelta = new ConcurrentHashMap<>();
+
+				Scheduler.DEFAULT.submit(() -> this.flushPrevious());
+			} else if (this.currentDelta.keySet().stream().anyMatch(x -> x.op == Operation.SetRoot)) {
 				while (this.prevDelta != null) {
 					this.lock.unlock();
 					Thread.sleep(10);
 					this.lock.lock();
 				}
 				
-				this.prevDelta = this.currentDelta;
-				this.currentDelta = new ConcurrentHashMap<>();
-
-				Scheduler.DEFAULT.submit(() -> this.flushPrevious());
-				
-			}
-			
-			this.currentDelta.putAll(threadDeltas.get());
-			
-			
-			threadDeltas.get().clear();
-
-			if (this.prevDelta == null && this.currentDelta.size() > 10) {
 				this.prevDelta = this.currentDelta;
 				this.currentDelta = new ConcurrentHashMap<>();
 
