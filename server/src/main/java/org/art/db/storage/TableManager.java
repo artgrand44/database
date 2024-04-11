@@ -214,7 +214,6 @@ public class TableManager implements Closeable{
 	}
 	
 	public void recover(URI peer, String tableName, URI thisURI) throws Exception {
-		TableManager manager = StorageManager.getInstance().getTableManager(tableName);
 		
 		File[] files = Files.listDiskSegments(tableName);
 		long timestamp;
@@ -255,11 +254,11 @@ public class TableManager implements Closeable{
 			segment = new DiskSegment(file);
 			
 			for (Key key : segment.getZombies()) {
-				Document doc = manager.get(key);
+				Document doc = this.get(key);
 				
 				if (doc != null) {
 					logger.info("Remove " + key);
-					manager.remove(doc, false);
+					this.remove(doc, false);
 				}
 			}
 			
@@ -267,10 +266,10 @@ public class TableManager implements Closeable{
 			
 			while (iterator.hasNext()) {
 				Map.Entry<Key, Blob> entry = iterator.next();
-				Document oldDoc = manager.get(entry.getKey());
+				Document oldDoc = this.get(entry.getKey());
 				Document newDoc = BlobConverter.toDocument(metadata, entry.getValue());
 				
-				manager.updateIndices(oldDoc, newDoc, entry.getKey());
+				this.updateIndices(oldDoc, newDoc, entry.getKey());
 			}
 			
 			mergeLevel = segment.getMergeLevel();
