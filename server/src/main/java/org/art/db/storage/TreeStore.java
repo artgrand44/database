@@ -160,6 +160,7 @@ public class TreeStore implements Closeable, BlobStore {
 
 				Scheduler.DEFAULT.submit(() -> this.flushPrevious());
 			} else if (this.currentDelta.keySet().stream().anyMatch(x -> x.op == Operation.SetRoot)) {
+				
 				while (this.prevDelta != null) {
 					this.lock.unlock();
 					Thread.sleep(10);

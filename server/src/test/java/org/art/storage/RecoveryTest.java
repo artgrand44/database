@@ -100,9 +100,7 @@ public class RecoveryTest extends BaseClientTest {
 				File indexFile = new File(externalDir, "firstname.idx");
 				
 				FileUtils.copyFile(indexFile, new File(internalDir,  "firstname.idx"));				
-			}
-			
-			
+			}		
 			
 			// Restart the internal server and wait until the recovery is complete
 			
