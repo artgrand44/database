@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.checkerframework.common.returnsreceiver.qual.This;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -174,6 +175,18 @@ public class DiscoveryHandler {
 		
 		return new ArrayList<>(peers);
 	
+	}
+	
+	public URI getRandomPeer() {
+		List<URI> peers = this.getLocalPeers();
+		
+		if (peers.isEmpty()) {
+			return null;
+		}
+			
+		AtomicLong counter = this.lastUsed.get(this.getlocalShard());
+		int index = (int) Math.abs(counter.incrementAndGet() % peers.size());
+		return peers.get(index);
 	}
 	
 	public URI getServiceAddressForKey(String key) {

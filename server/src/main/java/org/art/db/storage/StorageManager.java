@@ -1,7 +1,6 @@
 package org.art.db.storage;
 
 import java.io.File;
-import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -80,16 +79,9 @@ public class StorageManager  {
 	}
 
 	public void recover(DiscoveryHandler handler) {
-		List<URI> peers = handler.getLocalPeers();
-			
-		if (peers.isEmpty()) {
-			logger.info("No peers");
-			return;
-		}
-		
 		for (String table : Files.listTables()) {
 			try {
-				this.getTableManager(table).recover(peers.get(0), handler.getLocalInstance());
+				this.getTableManager(table).recover(handler);
 			} catch (Exception exc) {
 				logger.info("There was an error recoverting " + table + " " + exc.getMessage());
 			}

@@ -20,10 +20,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry;
 import org.art.db.common.RestClient;
+import org.art.db.common.RestException;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -226,7 +228,8 @@ public class TableManager implements Closeable{
 	 * @param thisURI The URI of this instance
 	 * @throws Exception
 	 */
-	public void recover(URI peer, URI thisURI) throws Exception {
+	public void recover(DiscoveryHandler handler) throws Exception {
+		
 		
 		File[] files = Files.listDiskSegments(this.tableName);
 		long timestamp;
@@ -249,74 +252,106 @@ public class TableManager implements Closeable{
 			mergeLevel = segment.getMergeLevel();
 		}
 		
-		// Tell the peer to flush its current segment and to begin sending broadcasts to this
-		// instance.  The peer will continue sending the broadcasts until this instance is up
-		// and running.
 		
-		this.restClient.get(restClient.buildURI(peer, "/db/recovering?uri=%s&table=%s", thisURI, this.tableName));
-				
-		// Process the missing segments from oldest to newest.  Continue until we get an empty file.
-		// The empty file acts as a "no more segments" indicator.
+		// Pick a random instance in this shard and try to copy its segments.
+		// We try up to 10 instances before giving up.  If an instance goes
+		// down in the middle of a recovery, we delete all the newly recovered 
+		// segments and try again.
 		
-		File file;
+		List<File> filesCreated = new ArrayList<>();
+		File downloadFile = Files.getDiskSegment(this.tableName, 0);
 		
-		for (;;) {
-			file = Files.getDiskSegment(this.tableName, 0);
-			
-			this.restClient.getFile(restClient.buildURI(peer, "/db/getnextfile?table=%s&timestamp=%s", this.tableName, timestamp), file);
-			
-			if (file.length() == 0) {
-				logger.info("Empty file");
-				file.delete();
+		for (int idx = 0; idx < 10; idx++) {
+			URI peer = handler.getRandomPeer();
+
+			if (peer == null) {
+				logger.info("no peers");
 				return;
 			}
 			
-			// Load the segment and process the zombies
-			
-			segment = new DiskSegment(file);
-			
-			for (Key key : segment.getZombies()) {
-				Document doc = this.get(key);
+			try {
 				
-				if (doc != null) {
-					logger.info("Remove " + key);
-					this.remove(doc, false);
+				// Tell the peer to flush its current segment and to begin sending broadcasts to this
+				// instance.  The peer will continue sending the broadcasts until this instance is up
+				// and running.
+
+				this.restClient.get(restClient.buildURI(peer, "/db/recovering?uri=%s&table=%s", handler.getLocalInstance(), this.tableName));
+
+				// Process the missing segments from oldest to newest.  Continue until we get an empty file.
+				// The empty file acts as a "no more segments" indicator.
+			
+
+				for (;;) {
+					this.restClient.getFile(restClient.buildURI(peer, "/db/getnextfile?table=%s&timestamp=%s", this.tableName, timestamp), downloadFile);
+
+					if (downloadFile.length() == 0) {
+						logger.info("Empty file");
+						downloadFile.delete();
+						return;
+					}
+
+					// Load the segment and process the zombies
+
+					segment = new DiskSegment(downloadFile);
+
+					for (Key key : segment.getZombies()) {
+						Document doc = this.get(key);
+
+						if (doc != null) {
+							logger.info("Remove " + key);
+							this.remove(doc, false);
+						}
+					}
+
+					// Iterate over the segments and update the index entries for each
+					// document.  This process is i/o intensive, so we process several
+					// documents in parallel.
+
+					Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
+					AtomicInteger inProgress = new AtomicInteger();
+
+					while (iterator.hasNext()) {
+						Map.Entry<Key, Blob> entry = iterator.next();
+						Key key = entry.getKey();
+						Blob blob = entry.getValue();
+
+						inProgress.incrementAndGet();
+						Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(key, blob, inProgress));
+					}
+
+					while (inProgress.get() != 0) {
+						Thread.sleep(10);
+					}
+
+					mergeLevel = segment.getMergeLevel();
+					timestamp = segment.getCreateTime();
+
+					segment.close();
+
+					// Rename the segment to match the name on the peer
+
+					File renamed = Files.getDiskSegment(this.tableName, timestamp, mergeLevel);
+
+					downloadFile.renameTo(renamed);
+					filesCreated.add(renamed);
+
+					logger.info("processed  " + renamed.getAbsolutePath());
+				}				
+			} catch (RestException exc) {
+				for (File file : filesCreated) {
+					file.delete();
 				}
-			}
-			
-			// Iterate over the segments and update the index entries for each
-			// document.  This process is i/o intensive, so we process several
-			// documents in parallel.
-			
-			Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
-			AtomicInteger inProgress = new AtomicInteger();
-			
-			while (iterator.hasNext()) {
-				Map.Entry<Key, Blob> entry = iterator.next();
-				Key key = entry.getKey();
-				Blob blob = entry.getValue();
 				
-				inProgress.incrementAndGet();
-				Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(key, blob, inProgress));
+				if (exc.getStatus() == RestException.NO_CONNECTION || exc.getStatus() == RestException.SERVER_DOWN) {
+					logger.info("doCall got fail on " + peer);
+					handler.removeInstance(peer);
+				} else {
+					throw exc;
+				}
+			} finally {
+				downloadFile.delete();
 			}
-			
-			while (inProgress.get() != 0) {
-				Thread.sleep(10);
-			}
-			
-			mergeLevel = segment.getMergeLevel();
-			timestamp = segment.getCreateTime();
-			
-			segment.close();
-			
-			// Rename the segment to match the name on the peer
-			
-			File renamed = Files.getDiskSegment(this.tableName, timestamp, mergeLevel);
-			
-			file.renameTo(renamed);
-			
-			logger.info("processed  " + renamed.getAbsolutePath());
-			
+
 		}		
 		
 	}
