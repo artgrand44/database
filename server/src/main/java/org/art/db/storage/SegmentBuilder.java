@@ -37,8 +37,7 @@ public class SegmentBuilder {
 	 * @throws Exception
 	 */
 	static void build(Segment segment, File toFile, int diskBlockSize) throws Exception {
-		logger.info("build " + toFile.getAbsolutePath());
-;		build(toFile, segment.iterator(), segment.getMetadata(), segment.getBloomFilter(), segment.getZombies(), diskBlockSize);
+		build(toFile, segment.iterator(), segment.getMetadata(), segment.getBloomFilter(), segment.getZombies(), diskBlockSize);
 	}
 	
 	
