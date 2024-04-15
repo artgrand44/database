@@ -26,6 +26,18 @@
     		<version>4.7</version>
 	</dependency>
 	<!-- https://mvnrepository.com/artifact/org.thymeleaf/thymeleaf -->
+	<!-- https://mvnrepository.com/artifact/io.micrometer/micrometer-core -->
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-core</artifactId>
+    <version>1.12.5</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-prometheus -->
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-registry-prometheus</artifactId>
+    <version>1.12.5</version>
+</dependency>
 <dependency>
     <groupId>org.thymeleaf</groupId>
     <artifactId>thymeleaf</artifactId>
