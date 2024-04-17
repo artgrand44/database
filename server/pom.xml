@@ -22,7 +22,19 @@
   			<artifactId>client</artifactId>
   			<version>0.0.1-SNAPSHOT</version>
 	  </dependency>
-	  <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
+	  <dependency>
+    	<groupId>io.micrometer</groupId>
+    	<artifactId>micrometer-core</artifactId>
+    	<version>1.12.5</version>
+	  </dependency>
+		<!-- https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-prometheus -->
+	  <dependency>
+   		<groupId>io.micrometer</groupId>
+    	<artifactId>micrometer-registry-prometheus</artifactId>
+    	<version>1.12.5</version>
+	</dependency>
+
+	  	  <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
 		<!-- https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>
