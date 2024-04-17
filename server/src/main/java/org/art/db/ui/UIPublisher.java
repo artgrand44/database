@@ -34,17 +34,19 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 
-	private final DatagramSocket sendSocket;
-	private final InetAddress group;
-	private ScheduledFuture<?> publisher;
-	
 	private static final ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("StandAloneDiscovery", 3);
+	private static final long ONE_MEG = 1024 * 1024;
+	private final DatagramSocket sendSocket;
 	
+	private final InetAddress group;
+	
+	private ScheduledFuture<?> publisher;
 	private final RollingAverage gets  = new RollingAverage("gets");
 	private final RollingAverage inserts  = new RollingAverage("inserts");
 	private final RollingAverage updates  = new RollingAverage("updates");
 	private final RollingAverage deletes  = new RollingAverage("deletes");
 	private final RollingAverage hits  = new RollingAverage("hits");
+	
 	private final RollingAverage selects = new RollingAverage("selects");
 	
 	private Cache<String, Query> queryCache = Caffeine.newBuilder()
@@ -64,13 +66,13 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
                                                       .weigher(this::weighQueue)
                                                       .expireAfterWrite(30, TimeUnit.MINUTES)
                                                       .build();
-	
+
 	private Cache<String, Client> clientCache = Caffeine.newBuilder()
                                                       .maximumWeight(Long.MAX_VALUE)
                                                       .weigher(this::weighClient)
                                                       .expireAfterWrite(30, TimeUnit.MINUTES)
                                                       .build();
-
+	
 	private final Configuration config;
 	
 	private final MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
@@ -78,8 +80,6 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 	private final String server;
 	
 	private CPUMeter cpuMeter = new CPUMeter();
-	
-	private static final long ONE_MEG = 1024 * 1024;
 	
 	public UIPublisher(Configuration config) {
 		this.config = config;
@@ -176,7 +176,66 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 		
 	}
 	
-	private synchronized void publish() {
+	public void logAlert(String message) {
+		this.alertCache.get(message, x -> new Alert()).calls.logEvent();;		
+	}
+	
+	public void logClient(String clientName, String sql, long time, long calls, long matches) {
+		
+    	BiFunction<String, Client, Client> function = (key, client) -> {
+			if (client == null) {
+				client = new Client();
+	    	}
+	    	
+			client.time.logEvent(time);
+			client.calls.logEvent(calls);
+			client.matches.logEvent(matches);
+			
+	    	return client;
+		};
+		
+		this.clientCache.asMap().compute(clientName + "|" + sql, function);
+	}
+
+	public void logDelete() {
+    	this.deletes.logEvent();
+    }
+	
+	public void logGet() {
+		this.gets.logEvent();
+	}
+
+	public void logInsert() {
+    	this.inserts.logEvent();
+    }
+	
+    public void logSelect(String queryString, long time, int matches) {
+		this.selects.logEvent();
+		this.gets.logEvent();
+		
+		BiFunction<String, Query, Query> function = (key, query) -> {
+			if (query == null) {
+				query = new Query();
+	    	}
+	    	
+			query.calls.logEvent(1);
+			query.time.logEvent(time);
+			query.matches.logEvent(matches);
+			
+	    	return query;
+		};
+		
+		this.queryCache.asMap().compute(queryString, function);
+		
+	}
+	
+    public void logUpdate() {
+    	this.updates.logEvent();
+    }
+	
+    
+	
+    private synchronized void publish() {
 		try {
 			long cpu = (long)(this.cpuMeter.getCPU() * 100);
 			long memory = (long) (memoryBean.getHeapMemoryUsage().getUsed() / ONE_MEG);
@@ -216,13 +275,14 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 		}
 		
 	}
-	
-	void publish(Stats stats) throws Exception  {
+    
+    void publish(Stats stats) throws Exception  {
 		byte[] buf = MAPPER.writeValueAsBytes(stats);
 		DatagramPacket packet = new DatagramPacket(buf, buf.length, group, UIController.PORT);
 		
 		this.sendSocket.send(packet);
 	}
+     
 
 	public void start() {
 		this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
@@ -235,66 +295,6 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 		
 		this.sendSocket.close();
 	}
-
-	public void logAlert(String message) {
-		this.alertCache.get(message, x -> new Alert()).calls.logEvent();;		
-	}
-	
-    public void logGet() {
-		this.gets.logEvent();
-	}
-	
-    public void logClient(String clientName, String sql, long time, long calls, long matches) {
-		
-    	BiFunction<String, Client, Client> function = (key, client) -> {
-			if (client == null) {
-				client = new Client();
-	    	}
-	    	
-			client.time.logEvent(time);
-			client.calls.logEvent(calls);
-			client.matches.logEvent(matches);
-			
-	    	return client;
-		};
-		
-		this.clientCache.asMap().compute(clientName + "|" + sql, function);
-	}
-	
-    
-	
-    public void logDelete() {
-    	this.deletes.logEvent();
-    }
-    
-    public void logInsert() {
-    	this.inserts.logEvent();
-    }
-     
-
-	public void logSelect(String queryString, long time, int matches) {
-		this.selects.logEvent();
-		this.gets.logEvent();
-		
-		BiFunction<String, Query, Query> function = (key, query) -> {
-			if (query == null) {
-				query = new Query();
-	    	}
-	    	
-			query.calls.logEvent(1);
-			query.time.logEvent(time);
-			query.matches.logEvent(matches);
-			
-	    	return query;
-		};
-		
-		this.queryCache.asMap().compute(queryString, function);
-		
-	}
-	
-	public void logUpdate() {
-    	this.updates.logEvent();
-    }
      
 	
 	@Override

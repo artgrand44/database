@@ -23,34 +23,11 @@ public class UIController {
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
+	static final int PORT = 4446;
+	
 	private final UIPoller poller;
 	
 	private final TemplateEngine templateEngine;
-	
-	static final int PORT = 4446;
-	
-	public UIController(UIPoller poller) {
-		this.poller = poller;
-		ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
-		StandardCacheManager manager = new StandardCacheManager();
-		
-        resolver.setTemplateMode(TemplateMode.HTML);
-        resolver.setCharacterEncoding("UTF-8");
-        resolver.setPrefix("/templates/");
-        resolver.setSuffix(".html");
-        
-        this.templateEngine = new TemplateEngine();
-        this.templateEngine.setTemplateResolver(resolver);
-        this.templateEngine.setCacheManager(manager);
-        
-        Scheduler.DEFAULT.submit(() -> this.buildHtml("", false));
-
-	}
-	
-	static record PropertyDescriptor(String property, String name, String pattern, String error) {
-		
-	}
-	
 	
 	private PropertyDescriptor[] DESCRIPTORS = new PropertyDescriptor[] {
 			new PropertyDescriptor("org.art.db.logDelay",       
@@ -76,6 +53,23 @@ public class UIController {
 			
 	};
 	
+	public UIController(UIPoller poller) {
+		this.poller = poller;
+		ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
+		StandardCacheManager manager = new StandardCacheManager();
+		
+        resolver.setTemplateMode(TemplateMode.HTML);
+        resolver.setCharacterEncoding("UTF-8");
+        resolver.setPrefix("/templates/");
+        resolver.setSuffix(".html");
+        
+        this.templateEngine = new TemplateEngine();
+        this.templateEngine.setTemplateResolver(resolver);
+        this.templateEngine.setCacheManager(manager);
+        
+        Scheduler.DEFAULT.submit(() -> this.buildHtml("", false));
+
+	}
 	
 	
 	public String buildHtml(String currentPage, boolean isAdmin) throws Exception {
@@ -103,6 +97,8 @@ public class UIController {
         return templateEngine.process("monitor", context);
         
 	}
+	
+	
 	
 	private String getSettings() throws Exception  {
 		Configuration config = Configuration.getInstance();
@@ -132,6 +128,10 @@ public class UIController {
 	
 	<T extends Stats> String getStatsAsString(Class<T> clazz, Function<T, String> getKey) throws Exception {
 		return MAPPER.writeValueAsString(this.poller.getStats(clazz, getKey));
+	}
+	
+	static record PropertyDescriptor(String property, String name, String pattern, String error) {
+		
 	}
 	
 	

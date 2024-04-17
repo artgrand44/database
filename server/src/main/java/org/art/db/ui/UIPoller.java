@@ -139,19 +139,19 @@ public class UIPoller implements Weigher<String, Stats> {
 		logger.info("poller existing");
 	}
 	
-	@Override
-	public int weigh(String key, Stats value) {
-		return 1;
-	}
-
 	public void start() {		
 		this.poller = new Thread(this::poll);
 		this.poller.setName("Poller" + System.currentTimeMillis());
 		this.poller.setDaemon(true);
 		this.poller.start();
 	}
-	
+
 	public void stop() {
 		this.stopping = true;
+	}
+	
+	@Override
+	public int weigh(String key, Stats value) {
+		return 1;
 	}
 }
