@@ -25,7 +25,10 @@ public class UIConsole {
 		return instance;
 	}
 	
-
+	public void logAlert(String alert) {
+		this.publisher.logAlert(alert);
+	}
+	
 	public void logDelete() {
 		this.publisher.logDelete();
 	}

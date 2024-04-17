@@ -86,6 +86,7 @@ public class UIController {
         String shards = this.getStatsAsString(ServerStats.class, x -> x.getShard());
         String clients = this.getStatsAsString(ClientStats.class, x -> x.getClient() + "|" + x.getSql());
         String queries = this.getStatsAsString(QueryStats.class);
+        String alerts = this.getStatsAsString(AlertStats.class);
         String settings = this.getSettings();
         String nextPage = StringUtils.isAllBlank(currentPage) ? "Clusters" : currentPage;
         
@@ -94,6 +95,7 @@ public class UIController {
         context.setVariable("currentPage",  nextPage);
         context.setVariable("serversData",  services);
         context.setVariable("clustersData", shards);
+        context.setVariable("alertData",    alerts);
         context.setVariable("queriesData",  queries);
         context.setVariable("settingsData", settings);
         context.setVariable("clientsData",  clients);

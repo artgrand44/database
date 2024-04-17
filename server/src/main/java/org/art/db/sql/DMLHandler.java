@@ -287,6 +287,7 @@ public class DMLHandler {
 		}
 		
 		UIConsole.getInstance().logSelect(plainSelect.toString(), System.currentTimeMillis() - start, set.size());
+		UIConsole.getInstance().logAlert("hi there");
 		
 		return set;
 		

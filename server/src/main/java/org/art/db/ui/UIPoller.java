@@ -119,6 +119,8 @@ public class UIPoller implements Weigher<String, Stats> {
 					
 					if (stats instanceof ServerStats serverStats) {
 						key = stats.getServer();
+					} else if (stats instanceof AlertStats alertStats) {
+						key = alertStats.getShard() + "|" + alertStats.getServer() + "|" + alertStats.getAlert();
 					} else if (stats instanceof ClientStats clientStats) {
 						key = clientStats.getShard() + "|" + clientStats.getServer() + "|" + clientStats.getSql();
 					} else {

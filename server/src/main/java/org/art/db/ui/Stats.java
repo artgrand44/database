@@ -13,7 +13,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 		@JsonSubTypes({ 
 		  @Type(value = QueryStats.class, name = "query"), 
 		  @Type(value = ServerStats.class, name = "server"),
-		  @Type(value = ClientStats.class, name = "client") 
+		  @Type(value = ClientStats.class, name = "client"),
+		  @Type(value = AlertStats.class, name = "alerts")
 		})
 public abstract class Stats implements Comparable<Stats> {
 	private String cacheName;

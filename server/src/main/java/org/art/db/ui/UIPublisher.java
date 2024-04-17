@@ -53,6 +53,12 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
                                                       .expireAfterWrite(30, TimeUnit.MINUTES)
                                                       .build();
 	
+	private Cache<String, Alert> alertCache = Caffeine.newBuilder()
+                                                       .maximumWeight(Long.MAX_VALUE)
+                                                       .weigher((x, y) -> 1)
+                                                       .expireAfterWrite(30, TimeUnit.MINUTES)
+                                                       .build();
+	
 	private Cache<String, Queue> queueCache = Caffeine.newBuilder()
                                                       .maximumWeight(Long.MAX_VALUE)
                                                       .weigher(this::weighQueue)
@@ -91,8 +97,31 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 		this.gets.clear();
 		this.hits.clear();
 		this.selects.clear();
+		this.alertCache.invalidateAll();
 		this.queryCache.invalidateAll();
 		this.queueCache.invalidateAll();
+	}
+	
+	@SuppressWarnings("deprecation")
+	private List<AlertStats> getAlertStats() {
+		List<AlertStats> result = new ArrayList<>();
+		
+		for (Map.Entry<String, Alert> entry : this.alertCache.asMap().entrySet()) {
+			String message = entry.getKey();
+			Alert alert = entry.getValue();
+			
+			AlertStats stats = new AlertStats(this.config.getCluster(), 
+					                          this.config.getShard(), 
+					                          this.server,
+					                          escapeHtml4(message), 
+					                          alert.calls.getAverage());
+			result.add(stats);			
+		}
+		
+		Collections.sort(result);
+		
+		return result;
+		
 	}
 	
 	private List<ClientStats> getClientStats() {
@@ -172,6 +201,9 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 			
 			this.publish(stats);
 			
+			for (AlertStats astats : this.getAlertStats()) {
+				this.publish(astats);
+			}
 			for (QueryStats qstats : this.getQueriesStats()) {
 				this.publish(qstats);
 			}
@@ -204,6 +236,10 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 		this.sendSocket.close();
 	}
 
+	public void logAlert(String message) {
+		this.alertCache.get(message, x -> new Alert()).calls.logEvent();;		
+	}
+	
     public void logGet() {
 		this.gets.logEvent();
 	}
@@ -272,6 +308,10 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 	
 	public int weighQueue(String key, Queue value) {
 		return 1;
+	}
+	
+	class Alert {
+		RollingAverage calls = new RollingAverage("alertcalls");
 	}
 	
 	class Client {
