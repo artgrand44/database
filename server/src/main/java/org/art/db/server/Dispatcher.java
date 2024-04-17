@@ -125,15 +125,11 @@ public class Dispatcher {
 			
 				SQLHandler.getInstance().execute(shard, database, getUser(exchange), getPassword(exchange), sql, parameterList);
 				
-				UIConsole console = UIConsole.getCurrent();
-				
-				if (console != null) {
-					HeaderValues values = exchange.getRequestHeaders().get("Client");
-					String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
+				HeaderValues values = exchange.getRequestHeaders().get("Client");
+				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
 					
-					console.logClient(client, sql, System.currentTimeMillis() - start, 1, 1);
-				}
-			
+				UIConsole.getInstance().logClient(client, sql, System.currentTimeMillis() - start, 1, 1);
+				
 				return new byte[0];
 			}
 		}
@@ -158,14 +154,11 @@ public class Dispatcher {
 			
 				DocumentSet set = SQLHandler.getInstance().executeQuery(shard, database, getUser(exchange), getPassword(exchange), sql, parameterList);
 				
-				UIConsole console = UIConsole.getCurrent();
-				
-				if (console != null) {
-					HeaderValues values = exchange.getRequestHeaders().get("Client");
-					String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
+				HeaderValues values = exchange.getRequestHeaders().get("Client");
+				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
 					
-					console.logClient(client, sql, System.currentTimeMillis() - start, 1, set.size());
-				}
+				UIConsole.getInstance().logClient(client, sql, System.currentTimeMillis() - start, 1, set.size());
+				
 			
 				try (TypedOutputStream stream = new TypedOutputStream()) {
 					stream.writeObject(set);
@@ -245,7 +238,7 @@ public class Dispatcher {
 			
 			String currentPage = parameters.get("currentPage");
 			
-			return UIConsole.getCurrent().buildHtml(currentPage == null ? "" : currentPage, true).getBytes();
+			return UIConsole.getInstance().buildHtml(currentPage == null ? "" : currentPage, true).getBytes();
 		}
 					
 	}

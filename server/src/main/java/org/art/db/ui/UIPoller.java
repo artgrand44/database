@@ -29,7 +29,7 @@ public class UIPoller implements Weigher<String, Stats> {
 	
 	private final MulticastSocket recieveSocket;
 	private final InetAddress group;
-	private final Thread poller;
+	private Thread poller;
 	private final String cluster;
 	private volatile boolean stopping;
 	
@@ -50,13 +50,6 @@ public class UIPoller implements Weigher<String, Stats> {
 			NetworkInterface netInterface = NetworkInterface.getByInetAddress(this.group);
 			
 			this.recieveSocket.joinGroup(address, netInterface);
-			
-			this.poller = new Thread(this::poll);
-			this.poller.setName("Poller" + System.currentTimeMillis());
-			this.poller.setDaemon(true);
-			
-			this.poller.start();
-			
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}
@@ -149,6 +142,12 @@ public class UIPoller implements Weigher<String, Stats> {
 		return 1;
 	}
 
+	public void start() {		
+		this.poller = new Thread(this::poll);
+		this.poller.setName("Poller" + System.currentTimeMillis());
+		this.poller.setDaemon(true);
+		this.poller.start();
+	}
 	
 	public void stop() {
 		this.stopping = true;

@@ -36,7 +36,7 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 
 	private final DatagramSocket sendSocket;
 	private final InetAddress group;
-	private final ScheduledFuture<?> publisher;
+	private ScheduledFuture<?> publisher;
 	
 	private static final ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("StandAloneDiscovery", 3);
 	
@@ -82,8 +82,6 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 			this.server = InetAddress.getLocalHost().getHostAddress() + ":" + this.config.getPort();
 			this.sendSocket = new DatagramSocket();
 			this.group = InetAddress.getByName("230.0.0.0");
-			
-			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}
@@ -194,6 +192,10 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 		this.sendSocket.send(packet);
 	}
 
+	public void start() {
+		this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
+	}
+	
 	public void stop() {
 		if (this.publisher != null) {
 			this.publisher.cancel(true);			

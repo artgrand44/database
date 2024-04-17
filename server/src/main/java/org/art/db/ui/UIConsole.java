@@ -21,13 +21,13 @@ public class UIConsole {
 		return this.controller.buildHtml(currentPage, isAdmin);
 	}
 	
-	public static UIConsole getCurrent() {
+	public static UIConsole getInstance() {
 		return instance;
 	}
 	
 
 	public void logDelete() {
-		this.publisher.logDelete();;
+		this.publisher.logDelete();
 	}
 
 	
@@ -47,6 +47,11 @@ public class UIConsole {
 		this.publisher.logSelect(queryString, time, matches);
 	}
 
+	public void start() {
+		this.publisher.start();
+		this.poller.start();
+	}
+	
 	public void stop() {
 		this.publisher.stop();
 		this.poller.stop();

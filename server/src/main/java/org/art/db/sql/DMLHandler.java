@@ -118,14 +118,9 @@ public class DMLHandler {
 				QueryManager.getInstance().remove(table, doc);
 			}
 			
-			UIConsole console = UIConsole.getCurrent();
+			UIConsole.getInstance().logDelete();
+			UIConsole.getInstance().logSelect(delete.toString(), System.currentTimeMillis() - start, 1);
 			
-			if (console != null) {
-				console.logDelete();
-				
-				long end = System.currentTimeMillis();
-				console.logSelect(delete.toString(), end - start, 1);
-			}
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -201,14 +196,8 @@ public class DMLHandler {
 			
 			QueryManager.getInstance().insert(table, doc);	
 			
-			UIConsole console = UIConsole.getCurrent();
-			
-			if (console != null) {
-				console.logInsert();
-				
-				long end = System.currentTimeMillis();
-				console.logSelect(insert.toString(), end - start, 1);
-			}
+			UIConsole.getInstance().logInsert();
+			UIConsole.getInstance().logSelect(insert.toString(), System.currentTimeMillis() - start, 1);
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -297,12 +286,7 @@ public class DMLHandler {
 			}
 		}
 		
-		UIConsole console = UIConsole.getCurrent();
-		
-		if (console != null) {
-			long end = System.currentTimeMillis();
-			console.logSelect(plainSelect.toString(), end - start, set.size());
-		} 
+		UIConsole.getInstance().logSelect(plainSelect.toString(), System.currentTimeMillis() - start, set.size());
 		
 		return set;
 		
@@ -393,14 +377,8 @@ public class DMLHandler {
 				QueryManager.getInstance().update(table, oldDoc, newDoc);
 			}
 			
-			UIConsole console = UIConsole.getCurrent();
-			
-			if (console != null) {
-				console.logUpdate();
-				
-				long end = System.currentTimeMillis();
-				console.logSelect(update.toString(), end - start, 1);
-			}
+			UIConsole.getInstance().logUpdate();
+			UIConsole.getInstance().logSelect(update.toString(), System.currentTimeMillis() - start, 1);
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {

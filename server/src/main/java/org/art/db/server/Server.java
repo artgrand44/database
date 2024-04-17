@@ -14,6 +14,7 @@ import org.art.db.common.RestException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
 import org.art.db.storage.StorageManager;
+import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);
+			UIConsole.getInstance().start();
 			
 			this.handler.start();
 			
