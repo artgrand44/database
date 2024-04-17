@@ -13,7 +13,6 @@ import org.art.db.common.Blob;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.TypedInputStream;
-import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +55,7 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 
 			this.setZombies(zombies);
 		} catch (Exception exc) {
-			UIConsole.getInstance().logAlert("There was an error opening the database");
+			Metrics.getInstance().logAlert("There was an error opening the database");
 			logger.info("Got exception on file " + file.getAbsolutePath() + " " + exc.getMessage());
 			throw exc;
 		}

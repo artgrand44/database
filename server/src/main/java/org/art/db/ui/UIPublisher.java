@@ -18,6 +18,8 @@ import java.util.function.BiFunction;
 import org.art.db.common.CPUMeter;
 import org.art.db.common.Configuration;
 import org.art.db.common.Scheduler;
+import org.art.db.storage.Metrics;
+import org.art.db.storage.MetricsPublisher;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +30,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
-public class UIPublisher implements Weigher<String, UIPublisher.Query> {
+public class UIPublisher implements MetricsPublisher, Weigher<String, UIPublisher.Query> {
 	private static final Logger logger = LoggerFactory.getLogger(UIPublisher.class);
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -286,6 +288,7 @@ public class UIPublisher implements Weigher<String, UIPublisher.Query> {
 
 	public void start() {
 		this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
+		Metrics.getInstance().addPublisher(this);
 	}
 	
 	public void stop() {

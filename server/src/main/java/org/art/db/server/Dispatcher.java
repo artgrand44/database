@@ -19,6 +19,8 @@ import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
+import org.art.db.storage.Metrics;
+import org.art.db.storage.PrometheusPublisher;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
@@ -38,17 +40,18 @@ public class Dispatcher {
 	private static final Map<String, Handler> HANDLERS = new HashMap<>();
 	
 	static {
-		HANDLERS.put("/db/execute",         new ExecuteHandler());
-		   HANDLERS.put("/db/executeQuery", new ExecuteQueryHandler());
-		   HANDLERS.put("/db/propagate",    new PropagateHandler());
-		   HANDLERS.put("/db/ui",           new UIHandler());
-		   HANDLERS.put("/db/wait",         new WaitInstanceCountHandler());
-		   HANDLERS.put("/db/fetch",        new FetchHandler());
-		   HANDLERS.put("/db/log",          new LogHandler());
-		   HANDLERS.put("/db/setproperty",  new SetPropertyHandler());
-		   HANDLERS.put("/db/getnextfile",  new GetNextFileHandler());
-		   HANDLERS.put("/db/recovering",   new StartRecoveryHandler());
-		   HANDLERS.put("/db/close",        new CloseHandler());
+		HANDLERS.put("/db/execute",             new ExecuteHandler());
+		   HANDLERS.put("/db/executeQuery",     new ExecuteQueryHandler());
+		   HANDLERS.put("/db/propagate",        new PropagateHandler());
+		   HANDLERS.put("/db/ui",               new UIHandler());
+		   HANDLERS.put("/db/wait",             new WaitInstanceCountHandler());
+		   HANDLERS.put("/db/fetch",            new FetchHandler());
+		   HANDLERS.put("/db/log",              new LogHandler());
+		   HANDLERS.put("/db/setproperty",      new SetPropertyHandler());
+		   HANDLERS.put("/db/getnextfile",      new GetNextFileHandler());
+		   HANDLERS.put("/db/recovering",       new StartRecoveryHandler());
+		   HANDLERS.put("/db/close",            new CloseHandler());
+		   HANDLERS.put("/actuator/prometheus", new ScrapeHandler());
 	}
 	
 	public static Object handle(HttpServerExchange exchange, String url, Map<String, String> parameters, byte[] body) throws Exception {
@@ -128,7 +131,7 @@ public class Dispatcher {
 				HeaderValues values = exchange.getRequestHeaders().get("Client");
 				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
 					
-				UIConsole.getInstance().logClient(client, sql, System.currentTimeMillis() - start, 1, 1);
+				Metrics.getInstance().logClient(client, sql, System.currentTimeMillis() - start, 1, 1);
 				
 				return new byte[0];
 			}
@@ -157,7 +160,7 @@ public class Dispatcher {
 				HeaderValues values = exchange.getRequestHeaders().get("Client");
 				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
 					
-				UIConsole.getInstance().logClient(client, sql, System.currentTimeMillis() - start, 1, set.size());
+				Metrics.getInstance().logClient(client, sql, System.currentTimeMillis() - start, 1, set.size());
 				
 			
 				try (TypedOutputStream stream = new TypedOutputStream()) {
@@ -228,6 +231,14 @@ public class Dispatcher {
 		
 	}
 	
+	static class ScrapeHandler implements Handler {
+
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) {
+			return PrometheusPublisher.getInstance().scrape().getBytes();
+		}		
+	}
+	
 	static class UIHandler implements Handler {
 
 		@Override
@@ -271,7 +282,7 @@ public class Dispatcher {
 			
 				return new byte[0];
 			} catch (Exception exc) {
-				UIConsole.getInstance().logAlert("There was an error flushing the database");
+				Metrics.getInstance().logAlert("There was an error flushing the database");
 				logger.info("exc " + exc.getMessage());
 				throw exc;
 			}

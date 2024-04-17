@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
-import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +28,7 @@ public class StorageManager  {
 			try {
 				entry.getValue().close();
 			} catch (Exception exc) {
-				UIConsole.getInstance().logAlert("There was an error closing the database");
+				Metrics.getInstance().logAlert("There was an error closing the database");
 				logger.info("There was an error closing " + entry.getKey() + " " + exc.getMessage());
 			}
 		}
@@ -85,7 +84,7 @@ public class StorageManager  {
 			try {
 				this.getTableManager(table).recover(handler);
 			} catch (Exception exc) {
-				UIConsole.getInstance().logAlert("There was an error recovering the database");
+				Metrics.getInstance().logAlert("There was an error recovering the database");
 				logger.info("There was an error recoverting " + table + " " + exc.getMessage());
 			}
 		}

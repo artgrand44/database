@@ -13,6 +13,7 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
+import org.art.db.storage.PrometheusPublisher;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
@@ -48,6 +49,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 		try {
 			SecurityHandler.getInstance().setEnabled(true);
 			UIConsole.getInstance().start();
+			PrometheusPublisher.getInstance().start();
 			
 			this.handler.start();
 			

@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.art.db.client.Client;
 import org.art.db.common.Converter;
+import org.art.db.common.DBNull;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.query.OrderBy;
@@ -14,10 +16,8 @@ import org.art.db.query.QueryManager;
 import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
 import org.art.db.storage.ColumnInfo;
-import org.art.db.common.DBNull;
-import org.art.db.common.DBRuntimeException;
 import org.art.db.storage.Metadata;
-import org.art.db.ui.UIConsole;
+import org.art.db.storage.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,8 +118,8 @@ public class DMLHandler {
 				QueryManager.getInstance().remove(table, doc);
 			}
 			
-			UIConsole.getInstance().logDelete();
-			UIConsole.getInstance().logSelect(delete.toString(), System.currentTimeMillis() - start, 1);
+			Metrics.getInstance().logDelete();
+			Metrics.getInstance().logSelect(delete.toString(), System.currentTimeMillis() - start, 1);
 			
 		} catch (DBRuntimeException exc) {
 			throw exc;
@@ -196,8 +196,8 @@ public class DMLHandler {
 			
 			QueryManager.getInstance().insert(table, doc);	
 			
-			UIConsole.getInstance().logInsert();
-			UIConsole.getInstance().logSelect(insert.toString(), System.currentTimeMillis() - start, 1);
+			Metrics.getInstance().logInsert();
+			Metrics.getInstance().logSelect(insert.toString(), System.currentTimeMillis() - start, 1);
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -286,8 +286,8 @@ public class DMLHandler {
 			}
 		}
 		
-		UIConsole.getInstance().logSelect(plainSelect.toString(), System.currentTimeMillis() - start, set.size());
-		UIConsole.getInstance().logAlert("hi there");
+		Metrics.getInstance().logSelect(plainSelect.toString(), System.currentTimeMillis() - start, set.size());
+		Metrics.getInstance().logAlert("hi there");
 		
 		return set;
 		
@@ -378,8 +378,8 @@ public class DMLHandler {
 				QueryManager.getInstance().update(table, oldDoc, newDoc);
 			}
 			
-			UIConsole.getInstance().logUpdate();
-			UIConsole.getInstance().logSelect(update.toString(), System.currentTimeMillis() - start, 1);
+			Metrics.getInstance().logUpdate();
+			Metrics.getInstance().logSelect(update.toString(), System.currentTimeMillis() - start, 1);
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {

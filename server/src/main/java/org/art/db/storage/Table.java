@@ -21,7 +21,6 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.Scheduler;
-import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,7 +138,7 @@ public class Table implements Closeable {
 				}
 			}
 		} catch (Exception exc) {
-			UIConsole.getInstance().logAlert("There was an error creating a database segment");
+			Metrics.getInstance().logAlert("There was an error creating a database segment");
 			logger.info("There was an error creating the new segment " + exc.getMessage());
 		} finally {
 			this.writeLock.unlock();
@@ -221,7 +220,7 @@ public class Table implements Closeable {
 				mergeQueue.add(new MergeQueueEntry(this, file));
 			}	
 		} catch (Exception exc) {
-			UIConsole.getInstance().logAlert("There was an error merging database segments");
+			Metrics.getInstance().logAlert("There was an error merging database segments");
 			logger.info("Error merging files " + exc.getMessage());
 		}
 	}
@@ -305,7 +304,7 @@ public class Table implements Closeable {
 			}
 
 		} catch (Exception exc) {
-			UIConsole.getInstance().logAlert("There was an error merging database segments");
+			Metrics.getInstance().logAlert("There was an error merging database segments");
 			logger.info("Error merging files " + exc.getMessage());
 		}
 
@@ -323,7 +322,7 @@ public class Table implements Closeable {
 			this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config);
 			this.segments.addFirst(this.currentSegment);
 		} catch (Exception exc) {
-			UIConsole.getInstance().logAlert("There was an error switching database segments");
+			Metrics.getInstance().logAlert("There was an error switching database segments");
 			logger.info("Exception switching segments " + exc.getMessage());
 		}
 	}

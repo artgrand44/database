@@ -26,7 +26,6 @@ import org.art.db.common.Key;
 import org.art.db.common.Scheduler;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
-import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -266,7 +265,7 @@ public class TreeStore implements Closeable, BlobStore {
 			
 			this.logFile.delete();
 		} catch (IOException exc) {
-			UIConsole.getInstance().logAlert("There was an error flushing the database");
+			Metrics.getInstance().logAlert("There was an error flushing the database");
 			logger.info("Flush failed " + exc.getMessage());
 		} finally {
 			this.flushLock.unlock();
@@ -352,7 +351,7 @@ public class TreeStore implements Closeable, BlobStore {
 				}
 			}
 		} catch (Exception exc) {
-			UIConsole.getInstance().logAlert("There was an error recovering database");
+			Metrics.getInstance().logAlert("There was an error recovering database");
 			logger.info("Recovery failed " + exc.getMessage());
 		}
 	}
