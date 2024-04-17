@@ -279,6 +279,14 @@
 		}
 
 		$(document).ready( function () {
+			let alertColumns = [
+  				{ data: 'shard',    render:  renderText },
+        		{ data: 'server',   render : renderText },
+  				{ data: 'alert',    render:  renderText },
+  				{ data: 'calls',    render:  renderRate }
+  				
+			];
+			
             let clusterColumns = [
           		{ data: 'shard',  render : renderText },
           		{ data: 'cpu',      render:  renderPercent },
@@ -331,6 +339,7 @@
             createGrid('#QueriesTable',  queryColumns,    JSON.parse($('#queriesData').val()));
             createGrid('#SettingsTable', settingsColumns, JSON.parse($('#settingsData').val()));
             createGrid('#ClientTable',   clientColumns,   JSON.parse($('#clientsData').val()));
+            createGrid('#AlertTable',    alertColumns,    JSON.parse($('#alertData').val()));
             
 			$('#SettingsTable').on('click', 'td', startEdit);
 			
@@ -440,6 +449,7 @@ th, td {
 		<li class="nav-item" role="presentation"><button id="ServersButton" class="nav-link" href="#Servers" data-bs-toggle="tab" data-bs-target="#Servers" onclick="return false;">Servers</button></li>
 		<li class="nav-item" role="presentation"><button id="ClientsButton" class="nav-link" href="#Clients" data-bs-toggle="tab" data-bs-target="#Clients" onclick="return false;">Clients</button></li>
 		<li class="nav-item" role="presentation"><button id="QueriesButton" class="nav-link" href="#Queries" data-bs-toggle="tab" data-bs-target="#Queries" onclick="return false;">Queries</button></li>
+		<li class="nav-item" role="presentation"><button id="AlertsButton" class="nav-link" href="#Alerts" data-bs-toggle="tab" data-bs-target="#Alerts" onclick="return false;">Alerts</button></li>
 		<li class="nav-item" role="presentation"><button id="SettingsButton" class="nav-link" href="Settings" data-bs-toggle="tab" data-bs-target="#Settings" onclick="return false;">Settings</button></li>
 	</ul>
 	
@@ -462,6 +472,19 @@ th, td {
 		
 	</div>
 
+	<div id="Alerts" class="tab-pane">
+		<table id="AlertTable" class="table-striped" style="width:100%">
+			<thead>
+				<tr>
+					<th class="text-column-left">Shard</th>
+					<th class="text-column-left">Server</th>
+					<th class="text-column-left">Alert</th>
+					<th class="text-column-left">Count</th>
+				</tr>
+			</thead>
+		</table>
+		
+	</div>
 	<div id="Servers" style="width:100%; height: 100%" class="tab-pane">
 
 		<table id="ServersTable" class="table-striped">
@@ -583,6 +606,7 @@ th, td {
 	<input type="hidden" id="queriesData" name="queriesData" th:value="${queriesData}">
 	<input type="hidden" id="settingsData" name="settingsData" th:value="${settingsData}">
 	<input type="hidden" id="clientsData" name="clienstData" th:value="${clientsData}">
+	<input type="hidden" id="alertData" name="alertData" th:value="${alertData}">
 	<input type="hidden" id="currentPage" name="currentPage" th:value="${currentPage}">
    	<input type="hidden" id="admin" name="admin" th:value=${admin}>
    
