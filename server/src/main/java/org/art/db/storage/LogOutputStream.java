@@ -11,6 +11,7 @@ import java.util.Arrays;
 
 import org.art.db.common.LogEntry;
 import org.art.db.common.TypedOutputStream;
+import org.art.db.ui.UIConsole;
 
 /**
  * A stream for writing log entries.  It optimizes performance by increasing
@@ -92,6 +93,9 @@ public class LogOutputStream  implements Closeable{
 			this.insureEOF(bytes.length + 5);
 			
 			this.fileStream.write(bytes);
+		} catch (Exception exc) {
+			UIConsole.getInstance().logAlert("There was an error writing to the log");
+			throw exc;
 		}
 	}
 

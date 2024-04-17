@@ -27,6 +27,7 @@ import org.art.db.common.LogEntry;
 import org.art.db.common.RestClient;
 import org.art.db.common.RestException;
 import org.art.db.common.Scheduler;
+import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,10 +113,12 @@ public class TableManager implements Closeable{
 
 					}
 				} catch (Exception exc) {
+					UIConsole.getInstance().logAlert("There was an error recovering a log entry");
 					logger.info("There was an exception recovering a log entry " + exc.getMessage() + " " + entry + " check " + checkTimestamps);
 				}
 			}
 		} catch (Exception exc) {
+			UIConsole.getInstance().logAlert("There was an error recovering the log");
 			logger.info("There was an exception recovering the log " + exc.getMessage());
 		}
 		
@@ -369,6 +372,7 @@ public class TableManager implements Closeable{
 		
 			this.updateIndices(oldDoc, newDoc, key);
 		} catch (Exception exc) {
+			UIConsole.getInstance().logAlert("There was an error recovering the indices");
 			logger.info("Error recovering index entries " + key + " " + exc.getMessage());
 		} finally {
 			inProgress.decrementAndGet();

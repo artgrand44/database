@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.art.db.common.TypedInputStream;
+import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,29 +108,35 @@ public class BlockFile implements Closeable {
 	}
 	
 	public byte[] readBlock(long block) throws IOException {
-		ByteBuffer buffer = this.getBuffer();
-		long offset = this.getOffset(block);
-		
-		while (buffer.position() < this.blockSize) {
-			int nread = this.channel.read(buffer, offset);
-			
-			if (nread < 0) {
-				throw new IOException("Attempt to read past end of file");
-			} else {
-				offset += nread;
-			}			
+
+		try {
+			ByteBuffer buffer = this.getBuffer();
+			long offset = this.getOffset(block);
+
+			while (buffer.position() < this.blockSize) {
+				int nread = this.channel.read(buffer, offset);
+
+				if (nread < 0) {
+					throw new IOException("Attempt to read past end of file");
+				} else {
+					offset += nread;
+				}			
+			}
+
+			byte[] bytes = new byte[this.blockSize];
+
+			buffer.flip();
+			buffer.get(bytes);
+
+			this.freeBuffer(buffer);
+			this.readCount.incrementAndGet();
+			return bytes;
+		} catch (Exception exc) {
+			UIConsole.getInstance().logAlert("There was an error reading from the database");
+			throw exc;
 		}
-		
-		byte[] bytes = new byte[this.blockSize];
-		
-		buffer.flip();
-		buffer.get(bytes);
-		
-		this.freeBuffer(buffer);
-		this.readCount.incrementAndGet();
-		return bytes;
 	}
-	
+
 	
 	public TypedInputStream readBlockAsStream(long block) throws IOException {
 		return new TypedInputStream(this.readBlock(block));
@@ -172,8 +179,8 @@ public class BlockFile implements Closeable {
 			this.freeBuffer(buffer);
 			this.writeCount.incrementAndGet();
 		} catch (Exception exc) {
-			exc.printStackTrace();
-			logger.info("exception " + exc.getClass().getName() + " for " + rawFile.getAbsolutePath());
+			UIConsole.getInstance().logAlert("There was an error writing to the database");
+			throw exc;
 		}
 	}
 	

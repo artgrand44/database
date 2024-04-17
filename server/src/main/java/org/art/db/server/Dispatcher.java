@@ -271,6 +271,7 @@ public class Dispatcher {
 			
 				return new byte[0];
 			} catch (Exception exc) {
+				UIConsole.getInstance().logAlert("There was an error flushing the database");
 				logger.info("exc " + exc.getMessage());
 				throw exc;
 			}
