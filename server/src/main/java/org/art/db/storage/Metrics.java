@@ -26,7 +26,7 @@ public class Metrics implements MetricsPublisher {
 	}
 
 	@Override
-	public void logClient(String clientName, String sql, long time, long calls, long matches) {
+	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		for (MetricsPublisher publisher : this.publishers) {
 			publisher.logClient(clientName, sql, time, calls, matches);
 		}			

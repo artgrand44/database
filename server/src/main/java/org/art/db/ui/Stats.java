@@ -32,6 +32,9 @@ public abstract class Stats implements Comparable<Stats> {
 		this.server = server;
 	}
 
+	public void computeAverages() {
+		
+	}
 	public String getCacheName() {
 		return cacheName;
 	}

@@ -34,7 +34,7 @@ public class UIConsole {
 	}
 
 	
-	public void logClient(String clientName, String sql, long time, long calls, long matches) {
+	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		this.publisher.logClient(clientName, sql, time, calls, matches);
 	}	
 

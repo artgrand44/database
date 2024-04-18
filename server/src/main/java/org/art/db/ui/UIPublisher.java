@@ -9,28 +9,26 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 
 import org.art.db.common.CPUMeter;
 import org.art.db.common.Configuration;
 import org.art.db.common.Scheduler;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.MetricsPublisher;
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Weigher;
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
-public class UIPublisher implements MetricsPublisher, Weigher<String, UIPublisher.Query> {
+
+
+public class UIPublisher implements MetricsPublisher {
 	private static final Logger logger = LoggerFactory.getLogger(UIPublisher.class);
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -51,23 +49,11 @@ public class UIPublisher implements MetricsPublisher, Weigher<String, UIPublishe
 	
 	private final RollingAverage selects = new RollingAverage("selects");
 	
-	private Cache<String, Query> queryCache = Caffeine.newBuilder()
-                                                      .maximumWeight(Long.MAX_VALUE)
-                                                      .weigher(this)
-                                                      .expireAfterWrite(30, TimeUnit.MINUTES)
-                                                      .build();
+	private Cache<String, QueryStats> queryCache = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).build();
 	
-	private Cache<String, Alert> alertCache = Caffeine.newBuilder()
-                                                       .maximumWeight(Long.MAX_VALUE)
-                                                       .weigher((x, y) -> 1)
-                                                       .expireAfterWrite(30, TimeUnit.MINUTES)
-                                                       .build();
+	private Cache<String, AlertStats> alertCache = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).build();
 	
-	private Cache<String, Client> clientCache = Caffeine.newBuilder()
-                                                      .maximumWeight(Long.MAX_VALUE)
-                                                      .weigher(this::weighClient)
-                                                      .expireAfterWrite(30, TimeUnit.MINUTES)
-                                                      .build();
+	private Cache<String, ClientStats> clientCache = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).build();
 	
 	private final Configuration config;
 	
@@ -97,99 +83,54 @@ public class UIPublisher implements MetricsPublisher, Weigher<String, UIPublishe
 		this.queryCache.invalidateAll();
 	}
 	
-	@SuppressWarnings("deprecation")
 	private List<AlertStats> getAlertStats() {
-		List<AlertStats> result = new ArrayList<>();
-		
-		for (Map.Entry<String, Alert> entry : this.alertCache.asMap().entrySet()) {
-			String message = entry.getKey();
-			Alert alert = entry.getValue();
-			
-			AlertStats stats = new AlertStats(this.config.getCluster(), 
-					                          this.config.getShard(), 
-					                          this.server,
-					                          escapeHtml4(message), 
-					                          alert.calls.getAverage());
-			result.add(stats);			
-		}
+		List<AlertStats> result = new ArrayList<>(this.alertCache.asMap().values());
 		
 		Collections.sort(result);
+		result.forEach(x -> x.computeAverages());
 		
 		return result;
 		
 	}
 	
 	private List<ClientStats> getClientStats() {
-		List<ClientStats> result = new ArrayList<>();
-				
-		for (Map.Entry<String, Client> entry : this.clientCache.asMap().entrySet()) {
-			String key = entry.getKey();
-			String tokens[] = key.split("\\|");
-			Client client = entry.getValue();
-			
-			ClientStats stats = new ClientStats(this.config.getCluster(), 
-					                          this.config.getShard(), 
-					                          this.server,
-					                          tokens[0],
-					                          tokens[1],
-					                          client.time.getAverage(),
-					                          client.calls.getAverage(),
-					                          client.matches.getAverage());
-					                          		
-			
-			result.add(stats);			
-		}
+		List<ClientStats> result = new ArrayList<>(this.clientCache.asMap().values());
 		
 		Collections.sort(result);
+		result.forEach(x -> x.computeAverages());
 		
 		return result;
 	}
-	
-	
+		
+	private List<QueryStats> getQueriesStats() {
+		List<QueryStats> result = new ArrayList<>(this.queryCache.asMap().values());
+		
+		Collections.sort(result);
+		result.forEach(x -> x.computeAverages());
+		
+		return result;
+		
+	}
 	
 	@SuppressWarnings("deprecation")
-	private List<QueryStats> getQueriesStats() {
-		List<QueryStats> result = new ArrayList<>();
-		
-		for (Map.Entry<String, Query> entry : this.queryCache.asMap().entrySet()) {
-			String queryString = entry.getKey();
-			Query query = entry.getValue();
-			
-			QueryStats stats = new QueryStats(this.config.getCluster(), 
-					                          this.config.getShard(), 
-					                          this.server,
-					                          escapeHtml4(queryString), 
-					                          query.calls.getAverage(), 
-					                          query.time.getAverage(), 
-					                          query.matches.getAverage());
-			result.add(stats);			
-		}
-		
-		Collections.sort(result);
-		
-		return result;
-		
-	}
-	
 	public void logAlert(String message) {
-		this.alertCache.get(message, x -> new Alert()).calls.logEvent();;		
+		this.alertCache.get(escapeHtml4(message), x -> new AlertStats( this.config.getCluster(), 
+				this.config.getShard(),
+				this.server,
+				x)).log(1);		
 	}
 	
-	public void logClient(String clientName, String sql, long time, long calls, long matches) {
-		
-    	BiFunction<String, Client, Client> function = (key, client) -> {
-			if (client == null) {
-				client = new Client();
-	    	}
-	    	
-			client.time.logEvent(time);
-			client.calls.logEvent(calls);
-			client.matches.logEvent(matches);
-			
-	    	return client;
-		};
-		
-		this.clientCache.asMap().compute(clientName + "|" + sql, function);
+	@SuppressWarnings("deprecation")
+	public void logClient(String clientName, String sql, long time, long calls, int matches) {
+		ClientStats stats = this.clientCache.get(clientName + "|" + escapeHtml4(sql), x -> new ClientStats(
+			    this.config.getCluster(), 
+				this.config.getShard(),
+				this.server, 
+				clientName,
+				sql));
+	
+		stats.log(time, calls, matches);
+	
 	}
 
 	public void logDelete() {
@@ -204,24 +145,18 @@ public class UIPublisher implements MetricsPublisher, Weigher<String, UIPublishe
     	this.inserts.logEvent();
     }
 	
-    public void logSelect(String queryString, long time, int matches) {
+    @SuppressWarnings("deprecation")
+	public void logSelect(String queryString, long time, int matches) {
 		this.selects.logEvent();
 		this.gets.logEvent();
 		
-		BiFunction<String, Query, Query> function = (key, query) -> {
-			if (query == null) {
-				query = new Query();
-	    	}
-	    	
-			query.calls.logEvent(1);
-			query.time.logEvent(time);
-			query.matches.logEvent(matches);
-			
-	    	return query;
-		};
+		QueryStats stats = this.queryCache.get(queryString, x -> new QueryStats(
+				    this.config.getCluster(), 
+					this.config.getShard(),
+					this.server, 
+					escapeHtml4(x)));
 		
-		this.queryCache.asMap().compute(queryString, function);
-		
+		stats.log(1, time, matches);		
 	}
 	
     public void logUpdate() {
@@ -290,32 +225,6 @@ public class UIPublisher implements MetricsPublisher, Weigher<String, UIPublishe
 		}
 		
 		this.sendSocket.close();
-	}
-     
-	
-	@Override
-	public @NonNegative int weigh(String key, Query value) {
-		return 1;
-	}
-	
-	public int weighClient(String key, Client value) {
-		return 1;
-	}
-	
-	class Alert {
-		RollingAverage calls = new RollingAverage("alertcalls");
-	}
-	
-	class Client {
-		RollingAverage time = new RollingAverage("clienttime");
-		RollingAverage calls = new RollingAverage("clientqueries");
-		RollingAverage matches = new RollingAverage("clientmatches");
-	}
-	
-	class Query {
-		RollingAverage calls = new RollingAverage("calls");
-		RollingAverage time = new RollingAverage("comparisons");
-		RollingAverage matches = new RollingAverage("matches");
 	}
 	
 }

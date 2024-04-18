@@ -9,8 +9,24 @@ public class ClientStats extends Stats {
 	private String client;
 	private String sql;
 	
+	RollingAverage timeAverage = new RollingAverage("clienttime");
+	RollingAverage callAverage = new RollingAverage("clientqueries");
+	RollingAverage matchesAverage = new RollingAverage("clientmatches");
+	
 	public ClientStats() {
 		
+	}
+	
+	public ClientStats(String cacheName, 
+            		   String shard, 
+                       String server,
+                       String client,
+                       String sql) {
+		
+		super(cacheName, shard, server);
+		
+		this.client = client;
+		this.sql = sql;
 	}
 	
 	public ClientStats(String cacheName, 
@@ -26,7 +42,7 @@ public class ClientStats extends Stats {
 		
 		this.client = client;
 		this.sql = sql;
-		this.setTime(time);
+		this.time = time;
 		this.calls = calls;
 		this.matches = matches;
 		
@@ -58,6 +74,19 @@ public class ClientStats extends Stats {
 		
 	}
 
+	@Override
+	public void computeAverages() {
+		this.calls = this.callAverage.getAverage();
+		this.time = this.timeAverage.getAverage();
+		this.matches = this.matchesAverage.getAverage();	
+	}
+	
+	public void log(long calls, long time, int matches) {
+		this.callAverage.logEvent(calls);
+		this.timeAverage.logEvent(time);
+		this.matchesAverage.logEvent(matches);
+	}
+	
 	public long getCalls() {
 		return calls;
 	}

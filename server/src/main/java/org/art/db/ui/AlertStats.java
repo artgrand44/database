@@ -6,11 +6,21 @@ public class AlertStats extends Stats {
 	
 	private String alert;
 	private long calls;
-
+	RollingAverage callAverage = new RollingAverage("alertcalls");
+	
 	public AlertStats() {
 
 	}
 
+	public AlertStats(String cacheName, 
+            String shard, 
+            String server, 
+            String alert) {
+	
+		super(cacheName, shard, server);
+		this.alert = alert;
+		
+	}
 	public AlertStats(String cacheName, 
 		              String shard, 
 		              String server, 
@@ -40,6 +50,15 @@ public class AlertStats extends Stats {
 				               calls / list.size());
 		
 
+	}
+	
+	@Override
+	public void computeAverages() {
+		this.calls = this.callAverage.getAverage();	
+	}
+	
+	public void log(long calls) {
+		this.callAverage.logEvent(calls);
 	}
 
 	@Override

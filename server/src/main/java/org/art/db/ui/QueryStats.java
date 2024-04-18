@@ -8,8 +8,17 @@ public class QueryStats extends Stats{
 	private long time;
 	private long matches;
 	
+	RollingAverage callAverage = new RollingAverage("calls");
+	RollingAverage timeAverage = new RollingAverage("comparisons");
+	RollingAverage matchesAverage = new RollingAverage("matches");
+	
 	public QueryStats() {
 		
+	}
+	
+	public QueryStats(String cacheName, String shard, String server, String query) {
+		super(cacheName, shard, server);
+		this.query = query;
 	}
 	
 	public QueryStats(String cacheName, String shard, String server, String query, long calls, long time, long matches) {
@@ -21,6 +30,48 @@ public class QueryStats extends Stats{
 		this.matches = matches;
 	}
 
+	@Override
+	public <T extends Stats> Stats average(String cache, String shard, List<T> list) {
+		long size = list.size();
+		long calls = 0;
+		long time = 0;
+		long matches = 0;
+		String query = "";
+		
+		for (Stats stats :list) {
+			QueryStats queryStats = (QueryStats)stats;
+					
+			calls += queryStats.getCalls();
+			time += queryStats.getTime();
+			matches += queryStats.getMatches();
+			query = queryStats.getQuery();
+			
+		}
+		
+		return new QueryStats(cache,
+				              shard, 
+				              "",
+				              query,
+				              calls / size,
+				              time / size,
+				              matches / size);
+		
+
+	}
+	
+	@Override
+	public void computeAverages() {
+		this.calls = this.callAverage.getAverage();
+		this.time = this.timeAverage.getAverage();
+		this.matches = this.matchesAverage.getAverage();	
+	}
+	
+	public void log(long calls, long time, int matches) {
+		this.callAverage.logEvent(calls);
+		this.timeAverage.logEvent(time);
+		this.matchesAverage.logEvent(matches);
+	}
+	
 	public String getQuery() {
 		return query;
 	}
@@ -53,37 +104,7 @@ public class QueryStats extends Stats{
 		this.matches = results;
 	}
 	
-	@Override
-	public <T extends Stats> Stats average(String cache, String shard, List<T> list) {
-		long size = list.size();
-		long calls = 0;
-		long time = 0;
-		long matches = 0;
-		String query = "";
-		
-		for (Stats stats :list) {
-			QueryStats queryStats = (QueryStats)stats;
-					
-			calls += queryStats.getCalls();
-			time += queryStats.getTime();
-			matches += queryStats.getMatches();
-			query = queryStats.getQuery();
-			
-		}
-		
-		return new QueryStats(cache,
-				              shard, 
-				              "",
-				              query,
-				              calls / size,
-				              time / size,
-				              matches / size);
-		
-
-	}
 	
-
-
 	@Override
 	public String toString() {
 		return "QueryStats [query=" + query + ", calls=" + calls + ", comparisons=" + time + ", results="

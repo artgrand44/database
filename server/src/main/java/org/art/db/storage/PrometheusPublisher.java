@@ -60,7 +60,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 	}
 
 	@Override
-	public void logClient(String clientName, String sql, long time, long calls, long matches) {
+	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		CounterGroup group = groups.get(clientName, x -> new CounterGroup(clientName + "|" + sql, "time", "calls", "matches"));
 		
 		group.increment("calls");
