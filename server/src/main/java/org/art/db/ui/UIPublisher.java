@@ -41,13 +41,6 @@ public class UIPublisher implements MetricsPublisher {
 	private final InetAddress group;
 	
 	private ScheduledFuture<?> publisher;
-	private final RollingAverage gets  = new RollingAverage("gets");
-	private final RollingAverage inserts  = new RollingAverage("inserts");
-	private final RollingAverage updates  = new RollingAverage("updates");
-	private final RollingAverage deletes  = new RollingAverage("deletes");
-	private final RollingAverage hits  = new RollingAverage("hits");
-	
-	private final RollingAverage selects = new RollingAverage("selects");
 	
 	private Cache<String, QueryStats> queryCache = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).build();
 	
@@ -55,13 +48,12 @@ public class UIPublisher implements MetricsPublisher {
 	
 	private Cache<String, ClientStats> clientCache = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).build();
 	
-	private final Configuration config;
+	private final ServerStats serverStats;
 	
-	private final MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+	private final Configuration config;
 	
 	private final String server;
 	
-	private CPUMeter cpuMeter = new CPUMeter();
 	
 	public UIPublisher(Configuration config) {
 		this.config = config;
@@ -70,15 +62,14 @@ public class UIPublisher implements MetricsPublisher {
 			this.server = InetAddress.getLocalHost().getHostAddress() + ":" + this.config.getPort();
 			this.sendSocket = new DatagramSocket();
 			this.group = InetAddress.getByName("230.0.0.0");
+			this.serverStats = new ServerStats(this.config.getCluster(), this.config.getShard(), this.server);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}
 	}
 
 	public void clear() {
-		this.gets.clear();
-		this.hits.clear();
-		this.selects.clear();
+		this.serverStats.clear();
 		this.alertCache.invalidateAll();
 		this.queryCache.invalidateAll();
 	}
@@ -134,21 +125,21 @@ public class UIPublisher implements MetricsPublisher {
 	}
 
 	public void logDelete() {
-    	this.deletes.logEvent();
+    	this.serverStats.logDelete();
     }
 	
 	public void logGet() {
-		this.gets.logEvent();
+		this.serverStats.logGet();
 	}
 
 	public void logInsert() {
-    	this.inserts.logEvent();
+    	this.serverStats.logInsert();;
     }
 	
     @SuppressWarnings("deprecation")
 	public void logSelect(String queryString, long time, int matches) {
-		this.selects.logEvent();
-		this.gets.logEvent();
+		this.serverStats.logSelect();
+		this.serverStats.logGet();
 		
 		QueryStats stats = this.queryCache.get(queryString, x -> new QueryStats(
 				    this.config.getCluster(), 
@@ -160,35 +151,15 @@ public class UIPublisher implements MetricsPublisher {
 	}
 	
     public void logUpdate() {
-    	this.updates.logEvent();
+    	this.serverStats.logUpdate();
     }
 	
     
 	
     private synchronized void publish() {
 		try {
-			long cpu = (long)(this.cpuMeter.getCPU() * 100);
-			long memory = (long) (memoryBean.getHeapMemoryUsage().getUsed() / ONE_MEG);
-			long maxMemory = (long) (memoryBean.getHeapMemoryUsage().getMax() / ONE_MEG);
-			long redMemory = (long) (.7 * maxMemory);
-			
-
-			ServerStats stats = new ServerStats(this.config.getCluster(), 
-					  							this.config.getShard(),
-					  							this.server,
-					                            this.config.getPort(),
-					                            cpu,
-					                            memory,
-					                            maxMemory,
-					                            redMemory,
-					                            this.gets.getAverage(),
-					                            this.inserts.getAverage(),
-					                            this.deletes.getAverage(),
-					                            this.selects.getAverage(),
-					                            this.hits.getAverage(),
-					                            this.updates.getAverage());
-			
-			this.publish(stats);
+			this.serverStats.computeAverages();			
+			this.publish(this.serverStats);
 			
 			for (AlertStats astats : this.getAlertStats()) {
 				this.publish(astats);

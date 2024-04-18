@@ -1,6 +1,10 @@
 package org.art.db.ui;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 import java.util.List;
+
+import org.art.db.common.CPUMeter;
 
 public class ServerStats extends Stats {
 	
@@ -15,11 +19,29 @@ public class ServerStats extends Stats {
 	private long maxMemory;
 	private long redMemory;
 	private String port = "";
-
+	
+	private final RollingAverage getsAverage  = new RollingAverage("gets");
+	private final RollingAverage insertsAverage  = new RollingAverage("inserts");
+	private final RollingAverage updatesAverage  = new RollingAverage("updates");
+	private final RollingAverage removesAverage  = new RollingAverage("deletes");
+	private final RollingAverage hitsAverage  = new RollingAverage("hits");
+	private final RollingAverage selectsAverage = new RollingAverage("selects");
+	
+	private CPUMeter cpuMeter = new CPUMeter();
+	private final MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+	
+	private static final long ONE_MEG = 1024 * 1024;
+	
 	public ServerStats() {
 
 	}
 
+	public ServerStats(String cacheName, 
+            String shard, 
+            String server) {
+		super(cacheName, shard, server);
+	}
+	
 	public ServerStats(String cacheName, 
 		                    String shard, 
 		                    String server, 
@@ -50,6 +72,50 @@ public class ServerStats extends Stats {
 		this.updates = updates;
 	}
 
+	public void clear() {
+		this.insertsAverage.clear();
+		this.removesAverage.clear();
+		this.getsAverage.clear();
+		this.selectsAverage.clear();
+		this.hitsAverage.clear();
+		this.updatesAverage.clear();
+	}
+	
+	@Override
+	public void computeAverages() {
+		this.inserts = this.insertsAverage.getAverage();
+		this.removes = this.removesAverage.getAverage();
+		this.gets = this.getsAverage.getAverage();
+		this.selects = this.selectsAverage.getAverage();
+		this.hits = this.hitsAverage.getAverage();
+		this.updates = this.updatesAverage.getAverage();
+		
+		this.cpu = (long)(this.cpuMeter.getCPU() * 100);
+		this.memory = (long) (memoryBean.getHeapMemoryUsage().getUsed() / ONE_MEG);
+		this.maxMemory = (long) (memoryBean.getHeapMemoryUsage().getMax() / ONE_MEG);
+		this.redMemory = (long) (.7 * maxMemory);
+	}
+	
+	public void logInsert() {
+		this.insertsAverage.logEvent();
+	}
+
+	public void logDelete() {
+		this.removesAverage.logEvent();
+	}
+	
+	public void logGet() {
+		this.getsAverage.logEvent();
+	}
+	
+	public void logSelect() {
+		this.selectsAverage.logEvent();
+	}
+	
+	public void logUpdate() {
+		this.updatesAverage.logEvent();
+	}
+	
 	public long getCpu() {
 		return cpu;
 	}
