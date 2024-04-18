@@ -63,12 +63,6 @@ public class UIPublisher implements MetricsPublisher, Weigher<String, UIPublishe
                                                        .expireAfterWrite(30, TimeUnit.MINUTES)
                                                        .build();
 	
-	private Cache<String, Queue> queueCache = Caffeine.newBuilder()
-                                                      .maximumWeight(Long.MAX_VALUE)
-                                                      .weigher(this::weighQueue)
-                                                      .expireAfterWrite(30, TimeUnit.MINUTES)
-                                                      .build();
-
 	private Cache<String, Client> clientCache = Caffeine.newBuilder()
                                                       .maximumWeight(Long.MAX_VALUE)
                                                       .weigher(this::weighClient)
@@ -101,7 +95,6 @@ public class UIPublisher implements MetricsPublisher, Weigher<String, UIPublishe
 		this.selects.clear();
 		this.alertCache.invalidateAll();
 		this.queryCache.invalidateAll();
-		this.queueCache.invalidateAll();
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -309,10 +302,6 @@ public class UIPublisher implements MetricsPublisher, Weigher<String, UIPublishe
 		return 1;
 	}
 	
-	public int weighQueue(String key, Queue value) {
-		return 1;
-	}
-	
 	class Alert {
 		RollingAverage calls = new RollingAverage("alertcalls");
 	}
@@ -329,9 +318,4 @@ public class UIPublisher implements MetricsPublisher, Weigher<String, UIPublishe
 		RollingAverage matches = new RollingAverage("matches");
 	}
 	
-	class Queue {
-		RollingAverage enqueues = new RollingAverage("enqueues");
-		RollingAverage dequeues = new RollingAverage("dequeues");
-		RollingAverage length = new RollingAverage("length");
-	}
 }

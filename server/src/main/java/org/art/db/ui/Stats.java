@@ -16,9 +16,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 		  @Type(value = ClientStats.class, name = "client"),
 		  @Type(value = AlertStats.class, name = "alerts")
 		})
+
 public abstract class Stats implements Comparable<Stats> {
 	private String cacheName;
-	private String chard; 
+	private String shard; 
 	private String server; 
 	
 	public Stats() {
@@ -27,7 +28,7 @@ public abstract class Stats implements Comparable<Stats> {
 	
 	public Stats(String cacheName, String chard, String server) {
 		this.cacheName = cacheName;
-		this.chard = chard;
+		this.shard = chard;
 		this.server = server;
 	}
 
@@ -40,11 +41,11 @@ public abstract class Stats implements Comparable<Stats> {
 	}
 	
 	public String getShard() {
-		return chard;
+		return shard;
 	}
 
 	public void setShard(String shard) {
-		this.chard = shard;
+		this.shard = shard;
 	}
 
 	public String getServer() {
@@ -59,7 +60,7 @@ public abstract class Stats implements Comparable<Stats> {
 	
 	@Override
 	public int compareTo(Stats that) {
-		int result = this.chard.compareTo(that.chard);
+		int result = this.shard.compareTo(that.shard);
 		
 		if (result != 0) {
 			return result;
