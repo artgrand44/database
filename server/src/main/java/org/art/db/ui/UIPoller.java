@@ -19,9 +19,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Weigher;
 
-public class UIPoller implements Weigher<String, Stats> {
+public class UIPoller {
 	
 	private static final Logger logger = LoggerFactory.getLogger(UIPoller.class);
 	
@@ -34,8 +33,7 @@ public class UIPoller implements Weigher<String, Stats> {
 	private volatile boolean stopping;
 	
 	private Cache<String,Stats> statsCache = Caffeine.newBuilder()
-			                                    .weigher(this)
-			                                    .maximumWeight(Long.MAX_VALUE)
+			                                    .maximumSize(1000)
 			                                    .expireAfterWrite(30, TimeUnit.MINUTES)
 			                                    .build();
 	
@@ -136,6 +134,7 @@ public class UIPoller implements Weigher<String, Stats> {
 		}
 		
 		this.recieveSocket.close();
+		this.statsCache.invalidateAll();
 		logger.info("poller existing");
 	}
 	
@@ -150,8 +149,4 @@ public class UIPoller implements Weigher<String, Stats> {
 		this.stopping = true;
 	}
 	
-	@Override
-	public int weigh(String key, Stats value) {
-		return 1;
-	}
 }

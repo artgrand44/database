@@ -30,13 +30,13 @@ public class UIPublisher implements MetricsPublisher {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 
-	private static final ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("StandAloneDiscovery", 3);
+	private static final ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("UI", 3);
 	private final DatagramSocket sendSocket;
 	
 	private final InetAddress group;
 	
 	private ScheduledFuture<?> publisher;
-	private Cache<String, Stats> statsCache = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).build();
+	private Cache<String, Stats> statsCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(30, TimeUnit.MINUTES).build();
 	private final ServerStats serverStats;
 	
 	private final Configuration config;
@@ -150,6 +150,8 @@ public class UIPublisher implements MetricsPublisher {
 			this.publisher.cancel(true);			
 		}
 		
+		this.statsCache.invalidateAll();
+		Metrics.getInstance().removePublisher(this);
 		this.sendSocket.close();
 	}
 	

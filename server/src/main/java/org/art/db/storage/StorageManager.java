@@ -82,6 +82,7 @@ public class StorageManager  {
 	public void recover(DiscoveryHandler handler) {
 		for (String table : Files.listTables()) {
 			try {
+				logger.info("Recovering " + table);
 				this.getTableManager(table).recover(handler);
 			} catch (Exception exc) {
 				Metrics.getInstance().logAlert("There was an error recovering the database");

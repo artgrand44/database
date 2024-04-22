@@ -129,6 +129,10 @@ public class HeartbeatListener {
 						}
 					}
 					
+					if (!message.started) {
+						continue;
+					}
+					
 					String serviceName = message.shard;
 					URI uri;
 					

@@ -42,14 +42,18 @@ public class Server implements HttpHandler, FullBytesCallback {
 	
 	private static Server instance;
 	
-	public Server(DiscoveryHandler handler) {
-		this.port = Integer.valueOf(Configuration.getInstance().getPort());
-		this.handler = handler;
+	public Server() throws Exception {
+		Configuration config = Configuration.getInstance();
+		
+		this.port = Integer.valueOf(config.getPort());
+		this.handler =  new DiscoveryHandler(config, true);
 		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);
 			UIConsole.getInstance().start();
 			PrometheusPublisher.getInstance().start();
+			
+			StorageManager.getInstance().recover(handler);
 			
 			this.handler.start();
 			
@@ -134,11 +138,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 			logger.info("start with " + properties + " config = " + Configuration.getInstance());
 			
-			DiscoveryHandler handler = new DiscoveryHandler(Configuration.getInstance(), true);
-			
-			StorageManager.getInstance().recover(handler);
-			
-			instance = new Server(handler);
+			instance = new Server();
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}		
@@ -149,7 +149,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 			instance.server.stop();
 			instance.handler.stop();
 			DiscoveryHandler.clear();
-			StorageManager.getInstance().closeAll();		
+			StorageManager.getInstance().closeAll();
+			UIConsole.getInstance().stop();	
 		}
 	}
 	

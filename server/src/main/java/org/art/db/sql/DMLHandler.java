@@ -287,7 +287,6 @@ public class DMLHandler {
 		}
 		
 		Metrics.getInstance().logSelect(plainSelect.toString(), System.currentTimeMillis() - start, set.size());
-		Metrics.getInstance().logAlert("hi there");
 		
 		return set;
 		
