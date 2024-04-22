@@ -13,6 +13,7 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
+import org.art.db.storage.Metrics;
 import org.art.db.storage.PrometheusPublisher;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
@@ -50,6 +51,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);
+			Metrics.getInstance().logStatus("Starting");
 			UIConsole.getInstance().start();
 			PrometheusPublisher.getInstance().start();
 			
@@ -67,6 +69,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 								.build();
 			
 			this.server.start();
+			Metrics.getInstance().logStatus("Running");
 			logger.info("Started WebServer on port " + port);
 		} catch (Throwable exc) {
 			logger.error(exc.getClass().getName() + exc.getMessage());
@@ -146,6 +149,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 	
 	public static void stop() {		
 		if (instance != null) {
+			Metrics.getInstance().logStatus("Stopping");
 			instance.server.stop();
 			instance.handler.stop();
 			DiscoveryHandler.clear();

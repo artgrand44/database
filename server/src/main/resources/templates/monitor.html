@@ -299,8 +299,9 @@
 			];
 
     		let serverColumns = [
-  				{ data: 'shard',  render:  renderText },
+  				{ data: 'shard',    render:  renderText },
         		{ data: 'server',   render : renderText },
+        		{ data: 'status',   render : renderText },
   				{ data: 'cpu',      render:  renderPercent },
   				{ data: 'memory',   render:  renderMemory },
   				{ data: 'removes',  render:  renderRate },
@@ -492,6 +493,7 @@ th, td {
 				<tr>
 					<th class="text-column-left">Shard</th>
 					<th class="text-column-left">Server</th>
+					<th class="text-column-left">Status</th>
 					<th class="text-column-left">CPU</th>
 					<th class="text-column-left">Memory</th>
 					<th class="text-column-left">Deletes</th>

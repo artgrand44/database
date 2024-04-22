@@ -112,6 +112,11 @@ public class UIPublisher implements MetricsPublisher {
 		stats.log(1, time, matches);		
 	}
 	
+    @Override
+	public void logStatus(String status) {
+		this.serverStats.setStatus(status);
+    }
+    
     public void logUpdate() {
     	this.serverStats.logUpdate();
     }

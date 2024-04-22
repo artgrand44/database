@@ -8,5 +8,6 @@ public interface MetricsPublisher {
 	public void logInsert();
 	public void logSelect(String queryString, long time, int matches);
 	public void logUpdate();
+	public void logStatus(String status);
 
 }

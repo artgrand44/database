@@ -88,6 +88,12 @@ public class PrometheusPublisher implements MetricsPublisher {
 		counters.get("selects", x -> createCounter(x)).increment();	
 		
 	}
+	
+	@Override
+	public void logStatus(String status) {
+	
+	}
+		
 
 	@Override
 	public void logUpdate() {

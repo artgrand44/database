@@ -19,6 +19,7 @@ public class ServerStats extends Stats {
 	private long maxMemory;
 	private long redMemory;
 	private String port = "";
+	private String status = "";
 	
 	private final RollingAverage getsAverage  = new RollingAverage("gets");
 	private final RollingAverage insertsAverage  = new RollingAverage("inserts");
@@ -70,6 +71,7 @@ public class ServerStats extends Stats {
 		this.selects = selects;
 		this.hits = hits;
 		this.updates = updates;
+		this.setStatus("");
 	}
 
 	public void clear() {
@@ -259,6 +261,14 @@ public class ServerStats extends Stats {
 
 	public void setUpdates(long updates) {
 		this.updates = updates;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
 	}
 	
 }

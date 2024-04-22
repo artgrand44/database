@@ -59,6 +59,13 @@ public class Metrics implements MetricsPublisher {
 			publisher.logSelect(queryString, time, matches);
 		}
 	}
+	
+	@Override
+	public void logStatus(String status) {
+		for (MetricsPublisher publisher : this.publishers) {
+			publisher.logStatus(status);
+		}
+	}
 
 	@Override
 	public void logUpdate() {
