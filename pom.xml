@@ -8,11 +8,14 @@
 	<properties>
 		<java.version>18</java.version>
 		<spring-cloud.version>2021.0.2</spring-cloud.version>
+		<maven.compiler.source>18</maven.compiler.source>
+    <maven.compiler.target>18</maven.compiler.target>
 	</properties>
 		<modules>
 		<module>./server</module>
 		<module>./client</module>
 		<module>./common</module>
 		<module>./dist</module>
+		<module>utility</module>
 	</modules>
 </project>

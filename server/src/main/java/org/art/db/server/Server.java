@@ -131,7 +131,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 	}
 	
 	public static void main(String[] args) {
-        start(args.length == 0 ? ".application.properties" : args[0]);
+        start(args.length == 0 ? "application.properties" : args[0]);
     }
 	
 	
