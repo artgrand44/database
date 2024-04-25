@@ -35,7 +35,7 @@ public class UtilTest {
 		try  {
 			startInternal("./application.properties");
 			File commands = new File("./target/test-classes/commands.txt");
-			String[] args = new String[] { "application.properties", "-file", commands.getAbsolutePath() } ;
+			String[] args = new String[] { "application.properties", "-file", commands.getAbsolutePath(), "-verbose" } ;
 			
 			System.out.println("file is " + commands.getAbsolutePath());
 			Sql.main(args);

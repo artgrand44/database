@@ -21,26 +21,51 @@ import org.art.db.client.Client;
 import org.art.db.common.Configuration;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Sql {
-	private static final Logger logger = LoggerFactory.getLogger(Sql.class);
-			
 	private static BufferedReader reader;
 	private static PrintWriter writer;
 	private static Console console;
 	
 	public static void main(String[] args) {
-		String propertyPath = args.length == 0 ? "application.properties" : args[0];
 		Client client = null;
+		boolean verbose = false;
+		String fileName = null;
+		String commandLine = "sql [-file file] [-verbose]";
+		String prompt = "";
 		
 		try {
+			writer = new PrintWriter(new OutputStreamWriter(System.out));
+			
+			// Parse the command line
+			
+			String propertyPath = args.length == 0 ? "application.properties" : args[0];
+			
+			for (int idx = 1; idx  < args.length; idx++) {
+				if (args[idx].equals("-file")) {
+					if (idx == args.length) {
+						writer.println(commandLine);
+						return;
+					}
+					
+					fileName = args[++idx];
+				} else if (args[idx].equals("-verbose")) {
+					verbose = true;
+				} else {
+					writer.println(commandLine);
+					return;
+				}
+			}
+			
+			// Create the configuration and the client
+			
 			Configuration.getInstance().load(propertyPath);
 			client = new Client(Configuration.getInstance());
+					
+			// Open the input stream
 			
-			if (args.length == 3 && args[1].equals("-file")) {
-				File file = new File(args[2]);
+			if (fileName != null) {
+				File file = new File(fileName);
 				
 				if (!file.exists()) {
 					writer.println("File " + file.getAbsolutePath() + " does not exist.");
@@ -49,52 +74,88 @@ public class Sql {
 				
 				reader = new BufferedReader(new FileReader(file));
 				console = null;
+				prompt = "";
 			} else {
 				reader = new BufferedReader(new InputStreamReader(System.in));
 				console = System.console();
 			}
-			
-			writer = new PrintWriter(new OutputStreamWriter(System.out));
+						
 		} catch (Exception exc) {
-			System.out.print("There was an error getting the client " + exc.getMessage());
+			writer.println("There was an error getting the client " + exc.getMessage());
+			return;
 		}
 		
 		for (;;) {
 			String command = "";
+			
 			try {
-				command = getCommand().trim();
-
-				System.out.println("command " + command);
-				if (command.equalsIgnoreCase("quit")) {
-					break;
-				} else if (command.startsWith("use ")) {
-					client.use(command.substring("use ".length()).trim());
-				} else if (command.toLowerCase().startsWith("select ")) {
-					printDocuments(client.executeQuery(command));
-				} else {
-					client.execute(command);
+				command = getCommand(prompt).trim();
+				
+				if (command.isBlank()) {
+					continue;
 				}
+				
+				String[] tokens = command.toLowerCase().split(" ");
+				String verb = tokens[0].substring(0, 1).toUpperCase() + tokens[0].substring(1);
+				boolean success = false;
+
+				switch (verb) {
+				case "Alter":
+				case "Create":
+				case "Delete":
+				case "Drop":
+				case "Grant":
+				case "Insert":
+				case "Update":
+					client.execute(command);
+					success = true;
+					break;
+				case "Use":
+					client.use(command.substring("use ".length()).trim());
+					success = true;
+					break;
+				case "Quit":
+					if (verbose || fileName == null) {
+						writer.println("Exiting...");
+						writer.flush();
+					}
+					
+					return;
+				case "Select":
+					printDocuments(client.executeQuery(command));
+					success = true;
+					break;
+				default:
+					writer.println(verb + " is not a valid statement");
+				}
+				
+				if (success && (verbose || fileName == null)) {
+					writer.println(verb + " successful");
+				}
+				
+				writer.flush();
 			} catch (Exception exc) {
 				writer.println("The commmand failed " + exc.getMessage());
 				writer.println(command);
+				writer.flush();
 			}
 
 		}
 	}
 	
-	private static String getCommand() throws IOException {
+	private static String getCommand(String prompt) throws IOException {
 		String command = "";
 		
 		
 		if (console == null) {
-			System.out.print("sql>");
+			System.out.print(prompt);
 			
 			while (!command.endsWith(";")) {
 				command += reader.readLine();
 			}
 		} else {
 			while (!command.endsWith(";")) {
-				command += System.console().readLine("sql>");
+				command += System.console().readLine(prompt);
 			}
 		}
 		
