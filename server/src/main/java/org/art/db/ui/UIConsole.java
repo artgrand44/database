@@ -10,7 +10,7 @@ public class UIConsole {
 	
 	private final static UIConsole instance = new UIConsole();
 	
-	public UIConsole() {
+	private UIConsole() {
 		Configuration config = Configuration.getInstance();
 		this.publisher = new UIPublisher(config);
 		this.poller = new UIPoller(config);

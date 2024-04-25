@@ -9,6 +9,24 @@
   			<artifactId>client</artifactId>
   			<version>0.0.1-SNAPSHOT</version>
 	  </dependency>
+	  <dependency>
+			<groupId>org.art.org.art.database</groupId>
+  			<artifactId>server</artifactId>
+  			<version>0.0.1-SNAPSHOT</version>
+  			<scope>test</scope>
+	  </dependency>
+	  <dependency>
+    	<groupId>org.assertj</groupId>
+    	<artifactId>assertj-core</artifactId>
+   	 	<version>3.24.2</version>
+    	<scope>test</scope>
+	</dependency>
+	<dependency>
+    	<groupId>org.junit.jupiter</groupId>
+    	<artifactId>junit-jupiter-api</artifactId>
+    	<version>5.10.1</version>
+    	<scope>test</scope>
+	</dependency>
 	  <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-shade-plugin -->
 	<dependency>
     	<groupId>org.apache.maven.plugins</groupId>

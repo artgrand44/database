@@ -1,0 +1,6 @@
+CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int);
+CREATE INDEX firstname ON pounder(FirstName);
+insert into pounder (ID, FirstName, LastName, Age) values (1, 'Name1', 'grand', '1');
+insert into pounder (ID, FirstName, LastName, Age) values (2, 'Name1', 'grand', '2');
+select * from pounder where FirstName = 'Name1';
+quit;

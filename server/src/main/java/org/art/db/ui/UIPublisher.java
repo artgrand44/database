@@ -157,7 +157,7 @@ public class UIPublisher implements MetricsPublisher {
 		
 		this.statsCache.invalidateAll();
 		Metrics.getInstance().removePublisher(this);
-		this.sendSocket.close();
+		//this.sendSocket.close();
 	}
 	
 }

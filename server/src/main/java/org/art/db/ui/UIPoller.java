@@ -133,7 +133,7 @@ public class UIPoller {
 			}
 		}
 		
-		this.recieveSocket.close();
+		//this.recieveSocket.close();
 		this.statsCache.invalidateAll();
 		logger.info("poller existing");
 	}
