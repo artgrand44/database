@@ -33,6 +33,7 @@ public class Sql {
 		String fileName = null;
 		String commandLine = "sql [-file file] [-verbose]";
 		String prompt = "";
+		String verb = "";
 		
 		try {
 			writer = new PrintWriter(new OutputStreamWriter(System.out));
@@ -96,9 +97,10 @@ public class Sql {
 				}
 				
 				String[] tokens = command.toLowerCase().split(" ");
-				String verb = tokens[0].substring(0, 1).toUpperCase() + tokens[0].substring(1);
 				boolean success = false;
 
+				verb = tokens[0].substring(0, 1).toUpperCase() + tokens[0].substring(1);
+				
 				switch (verb) {
 				case "Alter":
 				case "Create":
@@ -135,8 +137,7 @@ public class Sql {
 				
 				writer.flush();
 			} catch (Exception exc) {
-				writer.println("The commmand failed " + exc.getMessage());
-				writer.println(command);
+				writer.println("The " + verb.toLowerCase() + " failed. " + exc.getMessage());
 				writer.flush();
 			}
 
@@ -151,11 +152,19 @@ public class Sql {
 			System.out.print(prompt);
 			
 			while (!command.endsWith(";")) {
-				command += reader.readLine();
+				String line = reader.readLine();
+				
+				if (!line.trim().startsWith("//")) {
+					command += line;
+				}
 			}
 		} else {
 			while (!command.endsWith(";")) {
-				command += System.console().readLine(prompt);
+				String line = console.readLine(prompt);
+				
+				if (!line.trim().startsWith("//")) {
+					command += line;
+				}
 			}
 		}
 		

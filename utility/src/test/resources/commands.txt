@@ -3,4 +3,7 @@ CREATE INDEX firstname ON pounder(FirstName);
 insert into pounder (ID, FirstName, LastName, Age) values (1, 'Name1', 'grand', '1');
 insert into pounder (ID, FirstName, LastName, Age) values (2, 'Name1', 'grand', '2');
 select * from pounder where FirstName = 'Name1';
+mumble;
+insert into bad (ID, FirstName, LastName, Age) values (2, 'Name1', 'grand', '2');
+//comment
 quit;
