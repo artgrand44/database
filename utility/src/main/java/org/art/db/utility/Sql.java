@@ -48,7 +48,6 @@ public class Sql {
 	private static String getCommand(String prompt) throws IOException {
 		String command = "";
 		
-		
 		if (console == null) {
 			System.out.print(prompt);
 			
@@ -124,8 +123,8 @@ public class Sql {
 			} else {
 				reader = new BufferedReader(new InputStreamReader(System.in));
 				console = System.console();
-			}
-						
+				prompt = "sql>";
+			}						
 		} catch (Exception exc) {
 			writer.println("There was an error getting the client " + exc.getMessage());
 			return;
@@ -196,6 +195,8 @@ public class Sql {
 			return;
 		}
 		
+		writer.println();
+		
 		List<Map<String, String>> values = new ArrayList<>();
 		Map<String, Integer> widths = new HashMap<>();
 		Set<String> fields = new HashSet<>();
@@ -249,6 +250,7 @@ public class Sql {
 		}
 		
 		writer.println(StringUtils.rightPad("", totalWidth, '_'));
+		writer.println();
 		writer.flush();
 	}
 	
