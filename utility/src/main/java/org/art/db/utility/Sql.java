@@ -27,6 +27,51 @@ public class Sql {
 	private static PrintWriter writer;
 	private static Console console;
 	
+	private static Map<String, String> flatten(Document doc, String prefix) {
+		Map<String, String> result = new HashMap<>();
+		
+		for (Map.Entry<String, Object> entry : doc) {
+			String name = entry.getKey();
+			Object value = entry.getValue();
+			String fullName =  prefix.isEmpty() ? name : prefix + "." + name;
+			
+			if (value instanceof Document subdoc) {
+				result.putAll(flatten(subdoc,  fullName));
+			} else {
+				result.put(fullName, value.toString().replaceAll("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t"));
+			}
+		}
+		
+		return result;
+	}
+	
+	private static String getCommand(String prompt) throws IOException {
+		String command = "";
+		
+		
+		if (console == null) {
+			System.out.print(prompt);
+			
+			while (!command.endsWith(";")) {
+				String line = reader.readLine();
+				
+				if (!line.trim().startsWith("//")) {
+					command += line;
+				}
+			}
+		} else {
+			while (!command.endsWith(";")) {
+				String line = console.readLine(prompt);
+				
+				if (!line.trim().startsWith("//")) {
+					command += line;
+				}
+			}
+		}
+		
+		return command.substring(0, command.length() - 1);
+	}
+
 	public static void main(String[] args) {
 		Client client = null;
 		boolean verbose = false;
@@ -144,51 +189,6 @@ public class Sql {
 		}
 	}
 	
-	private static String getCommand(String prompt) throws IOException {
-		String command = "";
-		
-		
-		if (console == null) {
-			System.out.print(prompt);
-			
-			while (!command.endsWith(";")) {
-				String line = reader.readLine();
-				
-				if (!line.trim().startsWith("//")) {
-					command += line;
-				}
-			}
-		} else {
-			while (!command.endsWith(";")) {
-				String line = console.readLine(prompt);
-				
-				if (!line.trim().startsWith("//")) {
-					command += line;
-				}
-			}
-		}
-		
-		return command.substring(0, command.length() - 1);
-	}
-
-	private static Map<String, Object> flatten(Document doc, String prefix) {
-		Map<String, Object> result = new HashMap<>();
-		
-		for (Map.Entry<String, Object> entry : doc) {
-			String name = entry.getKey();
-			Object value = entry.getValue();
-			String fullName =  prefix.isEmpty() ? name : prefix + "." + name;
-			
-			if (value instanceof Document subdoc) {
-				result.putAll(flatten(subdoc,  fullName));
-			} else {
-				result.put(fullName, value);
-			}
-		}
-		
-		return result;
-	}
-	
 	private static void printDocuments(DocumentSet set) {
 		
 		if (set.isEmpty()) {
@@ -196,19 +196,19 @@ public class Sql {
 			return;
 		}
 		
-		List<Map<String, Object>> values = new ArrayList<>();
+		List<Map<String, String>> values = new ArrayList<>();
 		Map<String, Integer> widths = new HashMap<>();
 		Set<String> fields = new HashSet<>();
 		
 		for (Document doc : set) {
-			Map<String, Object> flattened = flatten(doc, "");
+			Map<String, String> flattened = flatten(doc, "");
 			
 			values.add(flattened);
 			fields.addAll(flattened.keySet());
 			
-			for (Map.Entry<String, Object> entry : flattened.entrySet()) {
+			for (Map.Entry<String, String> entry : flattened.entrySet()) {
 				String name = entry.getKey();
-				int width = entry.getValue().toString().length();
+				int width = entry.getValue().length();
 				
 				if (widths.containsKey(name)) {
 					widths.put(name, Math.max(widths.get(name), width));					
@@ -243,7 +243,7 @@ public class Sql {
 		
 		// Write the document values
 		
-		for (Map<String, Object> entry : values) {
+		for (Map<String, String> entry : values) {
 			sorted.forEach(x -> writeColumn(entry.get(x), widths.get(x)));
 			writer.println("|");
 		}
@@ -252,7 +252,7 @@ public class Sql {
 		writer.flush();
 	}
 	
-	private static void writeColumn(Object value, int width) {
+	private static void writeColumn(String value, int width) {
 		writer.print("| " + StringUtils.rightPad(value.toString(), width + 1, ' '));
 	}
 	
