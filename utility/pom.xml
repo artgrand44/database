@@ -15,7 +15,6 @@
    	 	<artifactId>maven-shade-plugin</artifactId>
     	<version>3.5.2</version>
 	</dependency>
-
   </dependencies>
 
 </project>

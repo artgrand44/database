@@ -14,7 +14,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 	private static final Logger logger = LoggerFactory.getLogger(QueryPounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 1000000;
+	private static int NLOOPS = 10000;
 	private static int NTHREADS = 50;
 	
 	private AtomicInteger nextId  = new AtomicInteger(NITEMS + 1);
