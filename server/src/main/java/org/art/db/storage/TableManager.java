@@ -278,6 +278,10 @@ public class TableManager implements Closeable{
 				// and running.
 
 				this.restClient.get(restClient.buildURI(peer, "/db/recovering?uri=%s&table=%s", handler.getLocalInstance(), this.tableName));
+				
+				// Get the latest version of the metadata
+
+				this.restClient.getFile(restClient.buildURI(peer, "/db/getmetadata?table=%s", this.tableName, timestamp), Files.getMetadata(this.tableName));
 
 				// Process the missing segments from oldest to newest.  Continue until we get an empty file.
 				// The empty file acts as a "no more segments" indicator.

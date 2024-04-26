@@ -4,10 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.art.db.common.Document;
-import org.art.db.common.Key;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.Key;
 import org.art.db.storage.Comparison;
-import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,12 +18,10 @@ public abstract class Plan  {
 	
 	protected final List<Filter> filters;
 	protected final String table;
-	protected final Metadata metadata;
 	
 	protected Plan(String table, List<Filter> filters) throws Exception {
 		this.filters = filters;
-		this.table = table;
-		this.metadata = Metadata.getMetadata(table);
+		this.table = table;;
 	}
 	
 	public abstract DocumentSet execute(TableManager engine) throws Exception;

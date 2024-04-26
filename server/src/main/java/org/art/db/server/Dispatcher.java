@@ -20,12 +20,15 @@ import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
+import org.art.db.storage.Files;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.PrometheusPublisher;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderValues;
@@ -37,6 +40,8 @@ public class Dispatcher {
 	static interface Handler {
 		Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception;
 	}
+	
+	private static ObjectMapper MAPPER = new ObjectMapper();
 	
 	private static final Map<String, Handler> HANDLERS = new HashMap<>();
 	
@@ -52,6 +57,8 @@ public class Dispatcher {
 		   HANDLERS.put("/db/getnextfile",      new GetNextFileHandler());
 		   HANDLERS.put("/db/recovering",       new StartRecoveryHandler());
 		   HANDLERS.put("/db/close",            new CloseHandler());
+		   HANDLERS.put("/db/getmetadata",      new GetMetadataHandler());
+		   HANDLERS.put("/db/getproperties",    new GetPropertiesHandler());
 		   HANDLERS.put("/actuator/prometheus", new ScrapeHandler());
 	}
 	
@@ -208,6 +215,20 @@ public class Dispatcher {
 		
 	}
 	
+	static class GetMetadataHandler implements Handler {
+		
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			checkServer(exchange);
+			
+			String table = parameters.get("table");
+			File file = Files.getMetadata(table);
+
+			return file == null ? new byte[0] : file;
+		}
+
+	}
+	
 	static class GetNextFileHandler implements Handler {
 		
 		@Override
@@ -219,6 +240,15 @@ public class Dispatcher {
 			File file = StorageManager.getInstance().getNextFile(table, timestamp);
 
 			return file == null ? new byte[0] : file;
+		}
+
+	}
+	
+	static class GetPropertiesHandler implements Handler {
+		
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			return MAPPER.writeValueAsBytes(Configuration.getInstance().getDynamicProperties());
 		}
 
 	}

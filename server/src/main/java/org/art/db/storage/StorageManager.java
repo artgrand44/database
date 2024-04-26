@@ -1,6 +1,7 @@
 package org.art.db.storage;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -8,10 +9,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.art.db.common.Configuration;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
+import org.art.db.common.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class StorageManager  {
 	private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
@@ -79,7 +84,32 @@ public class StorageManager  {
 		return  this.tableManagers.computeIfAbsent(table, x -> this.createTableManager(x));
 	}
 
+	@SuppressWarnings("unchecked")
 	public void recover(DiscoveryHandler handler) {
+		
+		// If there is a peer then recover the settings for the configuration
+		URI peer = handler.getRandomPeer();
+		
+		
+		if (peer != null) {
+			try {
+				logger.info("Recovering configuration properties");
+				RestClient client = new RestClient();
+				byte[] bytes = client.get(client.buildURI(peer, "/db/getproperties"));
+				
+				Map<String, String> properties = (Map<String, String>)new ObjectMapper().readValue(bytes, Map.class);
+				
+				for (Map.Entry<String, String> entry : properties.entrySet()) {
+					Configuration.getInstance().setProperty(entry.getKey(), entry.getValue());
+				}
+			} catch (Exception exc) {
+				Metrics.getInstance().logAlert("There was an error synchronizing the configuration.");
+				logger.info("There was an error synchronizing the configuration " + exc.getMessage());
+			}
+		}
+		
+		// Recovery the tables
+		
 		for (String table : Files.listTables()) {
 			try {
 				logger.info("Recovering " + table);

@@ -25,10 +25,11 @@ public class Configuration {
 	private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 	
 	private final static Map<String, String> defaults = 
-			Map.of("org.art.db.logDelay",        "1s",
-					"org.art.db.documentCache",  "1M",
-					"org.art.db.maxSegmentSize", "100000",
-					"org.art.db.nodeCache",      "10M");
+			Map.of("org.art.db.logDelay",       "1s",
+				   "org.art.db.documentCache",  "1M",
+				   "org.art.db.maxSegmentSize", "100000",
+				   "org.art.db.nodeCache",      "10M");
+	
 	
 	private static Configuration instance;
 	
@@ -82,6 +83,18 @@ public class Configuration {
 		
     }
 	
+	public Map<String, String> getDynamicProperties() {
+		Map<String, String> result = new HashMap<>();
+		
+		for (Map.Entry<String, String> entry : defaults.entrySet()) {
+			String name = entry.getKey();
+			String value = this.properties.containsKey(name) ? this.properties.get(name) : defaults.get(name);
+			
+			result.put(name, value);
+		}
+		
+		return result;
+	}
 	
 	public static Configuration getInstance() {
 		return instance;

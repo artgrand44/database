@@ -43,9 +43,6 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 			String key = stream.readUTF();
 			Object value = stream.readObject();
 			
-			if (value instanceof String str && str.contains("org.art.db.storage.DBNull@")) {
-				logger.info("oops");
-			}
 			this.map.put(key, value);
 		}
 		
