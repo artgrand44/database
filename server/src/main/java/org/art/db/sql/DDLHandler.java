@@ -1,5 +1,6 @@
 package org.art.db.sql;
 
+import java.io.File;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -140,11 +141,18 @@ public class DDLHandler {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
 		
+		
 		Index index = createIndex.getIndex();
 		String indexName = index.getName();
 		boolean unique = "unique".equalsIgnoreCase(index.getType());
 		List<String> fields = new ArrayList<>();
 
+		File file = Files.getIndex(SQLUtils.getFQN(table, database), indexName);
+		
+		if (file.exists()) {
+			throw new DBRuntimeException("Index " + indexName + " already exists");
+		}
+		
 		for (ColumnParams param : index.getColumns()) {
 			fields.add(param.getColumnName());
 		}
@@ -181,6 +189,12 @@ public class DDLHandler {
 		}
 			
 		Table table = createTable.getTable();
+		File file = Files.getMetadata(SQLUtils.getFQN(table, database));
+		
+		if (file.exists()) {
+			throw new DBRuntimeException("Table " + table + " already exists");
+		}
+		
 		SortedMap<String, ColumnInfo> columns = new TreeMap<>();
 		List<IndexInfo> indices = new ArrayList<>();
 		List<String> primaryKeyFields = new ArrayList<>();
