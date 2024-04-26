@@ -177,10 +177,10 @@ public class Server implements HttpHandler, FullBytesCallback {
 				
 				int status = process.waitFor();
 				
-				logger.info("Subprocess " + process.pid() + " exited with " + status);
+				logger.info("Subprocess " + process.pid() + " exited with " + status + " exit value " + process.exitValue());
 				
-				if (status != 0) {
-					System.exit(status);
+				if (status == 0) {
+					System.exit(0);
 				}
 				
 			} catch (Exception exc) {

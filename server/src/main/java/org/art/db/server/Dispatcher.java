@@ -297,13 +297,14 @@ public class Dispatcher {
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String target = parameters.get("target");
-			URI targetURI = new URI("http://" + target);
+			URI localUri = DiscoveryHandler.getServerInstance().getLocalInstance();
 			
-			if (targetURI.equals(DiscoveryHandler.getServerInstance().getLocalInstance())) {
-				Scheduler.DEFAULT.schedule(() -> { Server.stop(); System.exit(-2);}, 2, TimeUnit.SECONDS);
+			if (target.equals(localUri.getHost() + ":" + localUri.getPort())) {
+				logger.info("restart restaring " + target);
+				Scheduler.DEFAULT.schedule(() -> { Server.stop(); System.exit(100);}, 2, TimeUnit.SECONDS);
 			} else {
 				RestClient client = new RestClient();
-				URI uri = client.buildURI(targetURI, "/db/restart?target=" + target);
+				URI uri = client.buildURI(new URI("http://" + target), "/db/restart?target=" + target);
 				
 				client.get(uri);				
 			}
@@ -374,10 +375,21 @@ public class Dispatcher {
 	static class StopHandler implements Handler {
 
 		@Override
-		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) {
-			logger.info("Stop handler");
-			Scheduler.DEFAULT.schedule(() -> { Server.stop(); System.exit(0); }, 2, TimeUnit.SECONDS);
-			return new byte[0];
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			String target = parameters.get("target");
+			URI localUri = DiscoveryHandler.getServerInstance().getLocalInstance();
+			
+			if (target.equals(localUri.getHost() + ":" + localUri.getPort())) {
+				logger.info("stopping " + target);
+				Scheduler.DEFAULT.schedule(() -> { Server.stop(); System.exit(0); }, 2, TimeUnit.SECONDS);
+			} else {
+				RestClient client = new RestClient();
+				URI uri = client.buildURI(new URI("http://" + target), "/db/stop?target=" + target);
+				
+				client.get(uri);				
+			}
+			
+			return new byte[0];		
 		}		
 	}
 	
