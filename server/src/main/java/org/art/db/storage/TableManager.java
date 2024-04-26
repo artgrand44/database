@@ -5,7 +5,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.URI;
+import java.nio.channels.FileLock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,6 +47,7 @@ public class TableManager implements Closeable{
 	private final LockManager<Key> lockManager = new LockManager<>();
 	private final boolean checkConstraints;
 	private final RestClient restClient = new RestClient();
+	private final FileLock lock;
 	private Metadata metadata;
 	
 	private final Cache<Key, Long> timestamps = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(Duration.ofMinutes(10)).build();
@@ -54,6 +57,14 @@ public class TableManager implements Closeable{
 		this.metadataFile = Files.getMetadata(tableName);
 		this.metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(tableName);
 		this.indexInfo = metadata.indices();
+		
+		RandomAccessFile lockFile = new RandomAccessFile(Files.getLockFile(this.tableName), "rw");
+		
+		this.lock = lockFile.getChannel().tryLock(0, Long.MAX_VALUE, false);
+		
+		if (this.lock == null) {
+			throw new DBRuntimeException(tableName + " is locked by another serve");
+		}
 		
 		for (IndexInfo info : this.indexInfo) {
 			String name = info.name();
@@ -431,6 +442,10 @@ public class TableManager implements Closeable{
 					index.put(newKey, primaryKey);
 				}
 			}
+		}
+		
+		if (this.lock != null) {
+			this.lock.release();
 		}
 
 	}

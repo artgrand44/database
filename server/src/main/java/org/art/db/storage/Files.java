@@ -30,6 +30,8 @@ public class Files {
 	
 	private final static String SECURITY = "security.sec";
 	
+	private final static String TABLE_LOCK = "%s/lock.dat";
+	
 	public static File createTempFile(String table, String prefix, String suffix) throws IOException {
 		File dir = new File(getRoot(), table);
 		File tempFile = File.createTempFile(prefix, suffix, dir);
@@ -80,8 +82,14 @@ public class Files {
 		
 		return file;
 	}
+	
 	public static File getMetadata(String table) {
 		return getFile(META_DATA, table);
+	}
+	
+	
+	public static File getLockFile(String table) {
+		return getFile(TABLE_LOCK, table);
 	}
 	
 	
@@ -89,7 +97,6 @@ public class Files {
 		return getLogFile(TABLE_LOG, table, System.currentTimeMillis());
 	}
 	
-
 	public static File getIndex(String table, String index) {
 		return getFile(INDEX, table, index);
 	}
