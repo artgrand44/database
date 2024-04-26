@@ -13,6 +13,7 @@ import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.common.Configuration;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.TypedInputStream;
@@ -75,6 +76,28 @@ public class Dispatcher {
 
 	}
 
+	/**
+	 * Check that an endpoint is being called by a server
+	 * @param exchange
+	 * @throws Exception
+	 */
+	private static void checkServer(HttpServerExchange exchange) throws Exception {
+		HeaderValues values = exchange.getRequestHeaders().get("Client");
+		
+		if (values == null || values.size() != 1) {
+			throw new DBRuntimeException(exchange.getRequestURI() + " can only be invoked from database servers");
+		}
+		
+		String client = values.get(0);
+		List<URI> peers = DiscoveryHandler.getServerInstance().getAllPeers();
+		List<String> hosts = peers.stream().map(x -> x.getHost()).toList();
+		
+		if (!hosts.contains(client)) {
+			logger.info("error client = " + client + " hosts " + hosts);
+			throw new DBRuntimeException(exchange.getRequestURI() + " can only be invoked from database servers");
+		}	
+	}
+	
 	private static String[] getAuthTokens(HttpServerExchange exchange) {
 		HeaderValues headers = exchange.getRequestHeaders().get("Authorization");
 		
@@ -189,6 +212,8 @@ public class Dispatcher {
 		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			checkServer(exchange);
+			
 			String table = parameters.get("table");
 			long timestamp = Long.parseLong(parameters.get("timestamp"));
 			File file = StorageManager.getInstance().getNextFile(table, timestamp);
@@ -220,6 +245,8 @@ public class Dispatcher {
 
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			checkServer(exchange);
+			
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				String table = stream.readUTF();
 				
@@ -227,8 +254,7 @@ public class Dispatcher {
 			
 				return new byte[0];
 			}
-		}
-		
+		}		
 	}
 	
 	static class ScrapeHandler implements Handler {
@@ -270,8 +296,8 @@ public class Dispatcher {
 	static class StartRecoveryHandler implements Handler {
 		
 		@Override
-		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {			
+			checkServer(exchange);
 			
 			try {
 				String table = parameters.get("table");
