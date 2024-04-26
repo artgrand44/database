@@ -10,12 +10,15 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.common.Configuration;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.RestClient;
+import org.art.db.common.Scheduler;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 import org.art.db.security.SecurityHandler;
@@ -59,6 +62,8 @@ public class Dispatcher {
 		   HANDLERS.put("/db/close",            new CloseHandler());
 		   HANDLERS.put("/db/getmetadata",      new GetMetadataHandler());
 		   HANDLERS.put("/db/getproperties",    new GetPropertiesHandler());
+		   HANDLERS.put("/db/stop" ,            new StopHandler());
+		   HANDLERS.put("/db/restart",          new RestartHandler());
 		   HANDLERS.put("/actuator/prometheus", new ScrapeHandler());
 	}
 	
@@ -287,6 +292,27 @@ public class Dispatcher {
 		}		
 	}
 	
+	static class RestartHandler implements Handler {
+
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			String target = parameters.get("target");
+			URI targetURI = new URI("http://" + target);
+			
+			if (targetURI.equals(DiscoveryHandler.getServerInstance().getLocalInstance())) {
+				Scheduler.DEFAULT.schedule(() -> { Server.stop(); System.exit(-2);}, 2, TimeUnit.SECONDS);
+			} else {
+				RestClient client = new RestClient();
+				URI uri = client.buildURI(targetURI, "/db/restart?target=" + target);
+				
+				client.get(uri);				
+			}
+			
+			return new byte[0];
+		}		
+	}
+	
+
 	static class ScrapeHandler implements Handler {
 
 		@Override
@@ -327,8 +353,6 @@ public class Dispatcher {
 		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {			
-			checkServer(exchange);
-			
 			try {
 				String table = parameters.get("table");
 				String uri = parameters.get("uri");
@@ -339,13 +363,25 @@ public class Dispatcher {
 				return new byte[0];
 			} catch (Exception exc) {
 				Metrics.getInstance().logAlert("There was an error flushing the database");
-				logger.info("exc " + exc.getMessage());
+				logger.info("port = " + DiscoveryHandler.getServerInstance().getLocalPort() + "  exc " + exc.getMessage());
+				exc.printStackTrace();
 				throw exc;
 			}
 		}
 
 	}
 	
+	static class StopHandler implements Handler {
+
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) {
+			logger.info("Stop handler");
+			Scheduler.DEFAULT.schedule(() -> { Server.stop(); System.exit(0); }, 2, TimeUnit.SECONDS);
+			return new byte[0];
+		}		
+	}
+	
+		
 	static class WaitInstanceCountHandler implements Handler {
 
 		@Override

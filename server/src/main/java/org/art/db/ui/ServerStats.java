@@ -255,6 +255,22 @@ public class ServerStats extends Stats {
 		this.port = port;
 	}
 
+	public String getPort1() {
+		return port;
+	}
+
+	public void setPort1(String port) {
+		this.port = port;
+	}
+
+	public String getPort2() {
+		return port;
+	}
+
+	public void setPort2(String port) {
+		this.port = port;
+	}
+
 	public long getUpdates() {
 		return updates;
 	}

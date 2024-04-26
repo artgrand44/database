@@ -2,7 +2,9 @@ package org.art.db.server;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.lang.ProcessBuilder.Redirect;
 import java.net.InetAddress;
+import java.security.CodeSource;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
@@ -131,10 +133,63 @@ public class Server implements HttpHandler, FullBytesCallback {
 	}
 	
 	public static void main(String[] args) {
-        start(args.length == 0 ? "application.properties" : args[0]);
+		String properties = args.length == 0 ? "application.properties" : args[0];
+		boolean monitor;
+		
+		if (args.length == 0) {
+			properties = "application.properties";
+			monitor = false;
+		} else {
+			properties = args[0];
+			monitor = args.length == 2 && args[1].equals("-monitor");
+		}
+		
+		if (monitor) {
+			monitor(properties);
+		} else {
+			start(properties);
+		}
     }
 	
-	
+	private static void monitor(String properties) {
+		for (;;) {
+			String java = System.getProperty("java.home") + "/bin/java";
+			CodeSource source = Server.class.getProtectionDomain().getCodeSource();
+			File sourceFile = new File(source.getLocation().getFile());
+			ProcessBuilder pb;
+			
+			logger.info("In monitor");
+			
+			if (sourceFile.isDirectory()) {
+				String classpath = System.getProperty("java.class.path");
+				pb = new ProcessBuilder(java, "-cp", classpath, Server.class.getName(), properties);
+			} else {
+				pb = new ProcessBuilder(java, "-jar", sourceFile.getAbsolutePath(), Server.class.getName(), properties);
+			}
+			
+			pb.directory(new File("."));
+			pb.inheritIO();
+			
+			try {
+				Process process = pb.start();
+				
+				logger.info("Monitor started process " + process.pid());
+				
+				int status = process.waitFor();
+				
+				logger.info("Subprocess " + process.pid() + " exited with " + status);
+				
+				if (status != 0) {
+					System.exit(status);
+				}
+				
+			} catch (Exception exc) {
+				logger.error("There was an exception starting the child " + exc.getMessage());
+			}
+			
+		}
+	}
+		
 	public static void start(String properties) {
 		try {
 			Configuration.getInstance().load(properties);

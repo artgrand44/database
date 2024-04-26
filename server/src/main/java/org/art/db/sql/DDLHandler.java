@@ -192,7 +192,7 @@ public class DDLHandler {
 		File file = Files.getMetadata(SQLUtils.getFQN(table, database));
 		
 		if (file.exists()) {
-			throw new DBRuntimeException("Table " + table + " already exists");
+			throw new DBRuntimeException("Table " + table + " already exists " + file.getAbsolutePath());
 		}
 		
 		SortedMap<String, ColumnInfo> columns = new TreeMap<>();
