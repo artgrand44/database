@@ -17,7 +17,7 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	
 	private Process externalServer;
 	
-	private final String java = "/Users/artgrand/.p2/pool/plugins/org.eclipse.justj.openjdk.hotspot.jre.full.macosx.aarch64_18.0.2.v20221005-1040/jre/bin/java";
+	private final String java = System.getProperty("java.home") + "/bin/java";
 	
 	@AfterEach
 	public void afterEach() {

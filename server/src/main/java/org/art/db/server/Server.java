@@ -224,10 +224,9 @@ public class Server implements HttpHandler, FullBytesCallback {
 		
 	public static void start(String properties) {
 		try {
+			logger.info("start with " + System.getProperty("java.home"));
+			
 			Configuration.getInstance().load(properties);
-			
-			logger.info("start with " + properties + " config = " + Configuration.getInstance());
-			
 			instance = new Server();
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
