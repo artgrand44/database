@@ -151,13 +151,15 @@ public class UIPublisher implements MetricsPublisher {
 	}
 	
 	public void stop() {
+		
 		if (this.publisher != null) {
 			this.publisher.cancel(true);			
 		}
 		
+		this.logStatus("Stopped");
+		this.publish();
 		this.statsCache.invalidateAll();
 		Metrics.getInstance().removePublisher(this);
-		//this.sendSocket.close();
 	}
 	
 }

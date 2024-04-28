@@ -300,7 +300,6 @@ public class Dispatcher {
 			URI localUri = DiscoveryHandler.getServerInstance().getLocalInstance();
 			
 			if (target.equals(localUri.getHost() + ":" + localUri.getPort())) {
-				logger.info("restart restaring " + target);
 				Scheduler.DEFAULT.schedule(() -> Server.exit(true), 2, TimeUnit.SECONDS);
 			} else {
 				RestClient client = new RestClient();
@@ -380,7 +379,6 @@ public class Dispatcher {
 			URI localUri = DiscoveryHandler.getServerInstance().getLocalInstance();
 			
 			if (target.equals(localUri.getHost() + ":" + localUri.getPort())) {
-				logger.info("stopping " + target);
 				Scheduler.DEFAULT.schedule(() -> Server.exit(false), 2, TimeUnit.SECONDS);
 			} else {
 				RestClient client = new RestClient();

@@ -2,13 +2,11 @@ package org.art.db.server;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.lang.ProcessBuilder.Redirect;
 import java.net.InetAddress;
 import java.security.CodeSource;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -80,25 +78,27 @@ public class Server implements HttpHandler, FullBytesCallback {
 		}		
 	}
 	
+	/**
+	 * Stop the server and exit.  This method should only be called as
+	 * part of the console's exit/restart commands. 
+	 * 
+	 * The exit() method leaves a file in the home directory that tells the parent process
+	 * whether to restart the server. We can't rely on the status code of the child process
+	 * (i.e. the process calling exit() since the Underflow stop method calls System.exit(0)/
+	 * @param restart
+	 */
 	public static void exit(boolean restart) {
-		logger.info("**** exit before stop " + restart);
-		
-		logger.info("**** exit after stop " + restart);
 		ProcessHandle handle = ProcessHandle.current();
-		File file  = new File("./" + handle.pid() + "dat");
-		
-		logger.info("existing file = " + file.getAbsolutePath());
+		File file  = new File("./" + handle.pid() + ".dat");
 		
 		if (restart) {
 			try {
 				FileUtils.touch(file);
-				logger.info("**** exit after touch " + file.exists());
 			} catch (Exception exc) {
 				logger.info("Exception in exit " + exc.getMessage());
 			}
 		} else {
 			file.delete();
-			logger.info("**** exit after delete " + file.exists());
 		}
 		
 		stop();
@@ -179,15 +179,19 @@ public class Server implements HttpHandler, FullBytesCallback {
 		}
     }
 	
+	/**
+	 * This method starts the server in an subprocess and waits for the subprocess
+	 * to complete.  If the subprocess leaves a <pid>.dat file in the home directory
+	 * then monitor() restarts the subprocess.  See exit() for more details on the 
+	 *  <pid>.dat file.
+	 * @param properties
+	 */
 	private static void monitor(String properties) {
 		for (;;) {
 			String java = System.getProperty("java.home") + "/bin/java";
 			CodeSource source = Server.class.getProtectionDomain().getCodeSource();
 			File sourceFile = new File(source.getLocation().getFile());
 			ProcessBuilder pb;
-			
-			logger.info("home " + System.getProperty("java.home"));
-			logger.info("In monitor");
 			
 			if (sourceFile.isDirectory()) {
 				String classpath = System.getProperty("java.class.path");
@@ -206,9 +210,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 				
 				 process.waitFor();
 				 
-				 File file  = new File("./" + process.pid() + "dat");
-				
-				logger.info("Monitor checking file " + file.getAbsolutePath() + " " + file.exists());
+				 File file  = new File("./" + process.pid() + ".dat");
 				
 				if (!file.exists()) {
 					System.exit(0);
@@ -216,8 +218,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 				
 			} catch (Exception exc) {
 				logger.error("There was an exception starting the child " + exc.getMessage());
-			}
-			
+			}			
 		}
 	}
 		
