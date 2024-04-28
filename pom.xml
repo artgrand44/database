@@ -15,7 +15,6 @@
 		<module>./server</module>
 		<module>./client</module>
 		<module>./common</module>
-		<module>./dist</module>
 		<module>utility</module>
 	</modules>
 </project>
