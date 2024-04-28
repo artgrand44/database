@@ -301,7 +301,7 @@ public class Dispatcher {
 			
 			if (target.equals(localUri.getHost() + ":" + localUri.getPort())) {
 				logger.info("restart restaring " + target);
-				Scheduler.DEFAULT.schedule(() -> { Server.stop(); System.exit(100);}, 2, TimeUnit.SECONDS);
+				Scheduler.DEFAULT.schedule(() -> Server.exit(true), 2, TimeUnit.SECONDS);
 			} else {
 				RestClient client = new RestClient();
 				URI uri = client.buildURI(new URI("http://" + target), "/db/restart?target=" + target);
@@ -381,7 +381,7 @@ public class Dispatcher {
 			
 			if (target.equals(localUri.getHost() + ":" + localUri.getPort())) {
 				logger.info("stopping " + target);
-				Scheduler.DEFAULT.schedule(() -> { Server.stop(); System.exit(0); }, 2, TimeUnit.SECONDS);
+				Scheduler.DEFAULT.schedule(() -> Server.exit(false), 2, TimeUnit.SECONDS);
 			} else {
 				RestClient client = new RestClient();
 				URI uri = client.buildURI(new URI("http://" + target), "/db/stop?target=" + target);

@@ -8,7 +8,9 @@ import java.security.CodeSource;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
@@ -76,6 +78,32 @@ public class Server implements HttpHandler, FullBytesCallback {
 		} catch (Throwable exc) {
 			logger.error(exc.getClass().getName() + exc.getMessage());
 		}		
+	}
+	
+	public static void exit(boolean restart) {
+		logger.info("**** exit before stop " + restart);
+		
+		logger.info("**** exit after stop " + restart);
+		ProcessHandle handle = ProcessHandle.current();
+		File file  = new File("./" + handle.pid() + "dat");
+		
+		logger.info("existing file = " + file.getAbsolutePath());
+		
+		if (restart) {
+			try {
+				FileUtils.touch(file);
+				logger.info("**** exit after touch " + file.exists());
+			} catch (Exception exc) {
+				logger.info("Exception in exit " + exc.getMessage());
+			}
+		} else {
+			file.delete();
+			logger.info("**** exit after delete " + file.exists());
+		}
+		
+		stop();
+		System.exit(0);
+		
 	}
 	
 	@Override
@@ -158,6 +186,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			File sourceFile = new File(source.getLocation().getFile());
 			ProcessBuilder pb;
 			
+			logger.info("home " + System.getProperty("java.home"));
 			logger.info("In monitor");
 			
 			if (sourceFile.isDirectory()) {
@@ -175,11 +204,13 @@ public class Server implements HttpHandler, FullBytesCallback {
 				
 				logger.info("Monitor started process " + process.pid());
 				
-				int status = process.waitFor();
+				 process.waitFor();
+				 
+				 File file  = new File("./" + process.pid() + "dat");
 				
-				logger.info("Subprocess " + process.pid() + " exited with " + status + " exit value " + process.exitValue());
+				logger.info("Monitor checking file " + file.getAbsolutePath() + " " + file.exists());
 				
-				if (status == 0) {
+				if (!file.exists()) {
 					System.exit(0);
 				}
 				
