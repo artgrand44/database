@@ -155,11 +155,11 @@
 		}
 
 		function renderStop(data, type, row) {
-			return type === 'display' ? `<a onclick="send('/db/stop?target=${row.server}'); return false;"><img src="/db/resource/stop.png"></a>` : data;
+			return type === 'display' ? `<a onclick="send('/db/stop?target=${row.server}'); return false;" style="cursor: pointer"><img src="/db/resource/stop.png"></a>` : data;
 		}
 		
 		function renderRestart(data, type, row) {
-			return type === 'display' ? `<a onclick="send('/db/restart?target=${row.server}'); return false;"><img src="/db/resource/restart.png"></a>` : data;
+			return type === 'display' ? `<a onclick="send('/db/restart?target=${row.server}'); return false;" style="cursor: pointer"><img src="/db/resource/restart.png"></a>` : data;
 		}
 		function renderMemory(data, type) {
 			return type === 'display' ? renderText(data + "M", type) : data;
