@@ -300,7 +300,7 @@ public class Dispatcher {
 			URI localUri = DiscoveryHandler.getServerInstance().getLocalInstance();
 			
 			if (target.equals(localUri.getHost() + ":" + localUri.getPort())) {
-				Scheduler.DEFAULT.schedule(() -> Server.exit(true), 2, TimeUnit.SECONDS);
+				Scheduler.DEFAULT.schedule(() -> Server.exit(-1), 2, TimeUnit.SECONDS);
 			} else {
 				RestClient client = new RestClient();
 				URI uri = client.buildURI(new URI("http://" + target), "/db/restart?target=" + target);
@@ -379,7 +379,7 @@ public class Dispatcher {
 			URI localUri = DiscoveryHandler.getServerInstance().getLocalInstance();
 			
 			if (target.equals(localUri.getHost() + ":" + localUri.getPort())) {
-				Scheduler.DEFAULT.schedule(() -> Server.exit(false), 2, TimeUnit.SECONDS);
+				Scheduler.DEFAULT.schedule(() -> Server.exit(0), 2, TimeUnit.SECONDS);
 			} else {
 				RestClient client = new RestClient();
 				URI uri = client.buildURI(new URI("http://" + target), "/db/stop?target=" + target);

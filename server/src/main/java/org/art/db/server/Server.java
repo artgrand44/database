@@ -79,30 +79,17 @@ public class Server implements HttpHandler, FullBytesCallback {
 	}
 	
 	/**
-	 * Stop the server and exit.  This method should only be called as
-	 * part of the console's exit/restart commands. 
-	 * 
-	 * The exit() method leaves a file in the home directory that tells the parent process
-	 * whether to restart the server. We can't rely on the status code of the child process
-	 * (i.e. the process calling exit() since the Underflow stop method calls System.exit(0)/
-	 * @param restart
+	 * Stop the server and exit.  This method does minimal cleanup, since the cleanup for
+	 * one of the third parties (Undertow??) does a System.exit(0).  This would prevent
+	 * the desired status code from getting to the parent.
 	 */
-	public static void exit(boolean restart) {
-		ProcessHandle handle = ProcessHandle.current();
-		File file  = new File("./" + handle.pid() + ".dat");
+	public static void exit(int status) {
 		
-		if (restart) {
-			try {
-				FileUtils.touch(file);
-			} catch (Exception exc) {
-				logger.info("Exception in exit " + exc.getMessage());
-			}
-		} else {
-			file.delete();
+		if (instance != null) {
+			StorageManager.getInstance().closeAll();
 		}
 		
-		stop();
-		System.exit(0);
+		System.exit(status);
 		
 	}
 	
@@ -205,17 +192,11 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 			try {
 				Process process = pb.start();
-				
-				logger.info("Monitor started process " + process.pid());
-				
-				 process.waitFor();
-				 
-				 File file  = new File("./" + process.pid() + ".dat");
-				
-				if (!file.exists()) {
+
+				if (process.waitFor() == 0) {
+					logger.info("Monitor existing...");
 					System.exit(0);
 				}
-				
 			} catch (Exception exc) {
 				logger.error("There was an exception starting the child " + exc.getMessage());
 			}			
