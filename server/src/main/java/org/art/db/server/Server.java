@@ -7,6 +7,9 @@ import java.security.CodeSource;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.common.Configuration;
@@ -41,6 +44,10 @@ public class Server implements HttpHandler, FullBytesCallback {
 	private final int port;
 	
 	private final DiscoveryHandler handler;
+	
+	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+	private final ReadLock readLock = lock.readLock();
+	private final WriteLock writeLock = lock.writeLock();
 	
 	private static Server instance;
 	
@@ -85,7 +92,9 @@ public class Server implements HttpHandler, FullBytesCallback {
 	public static void exit(int status) {
 		
 		if (instance != null) {
+			instance.writeLock.lock();
 			StorageManager.getInstance().closeAll();
+			instance.writeLock.unlock();
 		}
 		
 		System.exit(status);
@@ -121,6 +130,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 			message = ZipUtils.decompress(message);
 		}
 		
+		this.readLock.lock();
+		
 		try {
 			Object response = Dispatcher.handle(exchange, exchange.getRequestURI(), params, message);
 			
@@ -142,6 +153,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 			String warning = String.format("Warning: 199 - %s", exc.getMessage());
 				
 			exchange.getResponseHeaders().add(new HttpString("warning"), warning);	
+		} finally {
+			this.readLock.unlock();
 		}
 		
 	}
