@@ -91,6 +91,13 @@ public class Configuration {
 		this(host, port, cluster, shard, new HashMap<>());
 	}
 	
+	public Configuration(String host, String port, String shard, String cluster, String dbRoot, String user, String password) {
+		this(host, port, cluster, shard, new HashMap<>());
+		
+		this.properties.put("org.art.db.dbroot", "./dbroot");
+		this.properties.put("org.art.db.user", user);
+		this.properties.put("org.art.db.password", password);
+	}
 	
 	public void addPropertyChangeListener(PropertyChangeListener listener) {
 		this.pcs.addPropertyChangeListener(listener);

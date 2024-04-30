@@ -60,6 +60,10 @@ public class Client {
 		this(DiscoveryHandler.getHandler(config), WILDCARD, config.getProperty("org.art.db.user"), config.getProperty("org.art.db.password"));
 	}
 	
+	public Client(URI uri, String shard, String user, String password) throws Exception {
+		this(new Configuration(uri.getHost(), String.valueOf(uri.getPort()), shard, "cluster", ".dbroot", user, password));
+	}
+	
 	public Client(DiscoveryHandler handler, String shard, String user, String password) throws Exception {
 		this.handler = handler;
 		this.router = Router.getRouter(handler, user, password);
@@ -67,14 +71,7 @@ public class Client {
 		this.uri = null;
 		this.shard = shard;
 	}
-	
-	public Client(URI uri, String shard, String user, String password) throws Exception {
-		this(new Configuration(uri.getHost(), String.valueOf(uri.getPort()), shard, "cluster")
-				.withProperty("org.art.db.dbroot", "./dbroot")
-				.withProperty("org.art.db.user", user)
-				.withProperty("org.art.db.password", password));
-	}
-	
+		
 	private byte[] buildBody(Object ... args) throws IOException {
 		
 		try (TypedOutputStream stream = new TypedOutputStream()) {
