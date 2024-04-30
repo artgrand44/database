@@ -2,13 +2,13 @@ package org.art.db.client;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,14 +41,19 @@ public class Client {
 	
 	public static final String WILDCARD = "*";
 	
-	public static final Client DUMMY = new Client();
+	public static final Client DUMMY;
 	
-	private Client()  {
-		this.router = null;
-		this.handler = null;
-		this.client = new RestClient("", "");
-		this.uri = null;
-		this.shard = WILDCARD; 
+	static {
+		try {
+			DUMMY = new Client();
+		} catch (Exception exc) {
+			throw new IllegalStateException(exc);
+		}
+		
+	}
+	
+	private Client() throws Exception {
+		this(new URI(String.format("http://%s:%s", InetAddress.getLocalHost().getHostAddress(), "8080")), "*", "", "");
 	}
 	
 	public Client(Configuration config) throws Exception {
@@ -57,18 +62,17 @@ public class Client {
 	
 	public Client(DiscoveryHandler handler, String shard, String user, String password) throws Exception {
 		this.handler = handler;
-		this.router = new Router(handler, user, password);
+		this.router = Router.getRouter(handler, user, password);
 		this.client = new RestClient();
 		this.uri = null;
 		this.shard = shard;
 	}
 	
 	public Client(URI uri, String shard, String user, String password) throws Exception {
-		this.handler = null;
-		this.router = null;
-		this.client = new RestClient(user, password);
-		this.uri = uri;
-		this.shard = shard;
+		this(new Configuration(uri.getHost(), String.valueOf(uri.getPort()), shard, "cluster")
+				.withProperty("org.art.db.dbroot", "./dbroot")
+				.withProperty("org.art.db.user", user)
+				.withProperty("org.art.db.password", password));
 	}
 	
 	private byte[] buildBody(Object ... args) throws IOException {
@@ -104,6 +108,7 @@ public class Client {
 		}
 	}
 	
+	@SuppressWarnings("unused")
 	private byte[] doGet(String url, Map<String, Object> params) throws Exception {
 		params.put("database", this.database);
 		params.put("shard",this.shard);
@@ -126,26 +131,6 @@ public class Client {
 		}
 	}
 	
-	public DocumentSet executeQuery(String statement, Object... parameters) throws Exception {
-		this.checkParameters(parameters);
-		
-		Map<String, Object> params = new HashMap<>();
-		
-		params.put("sql",  statement);
-		params.put("count", parameters.length);
-		
-		for (int idx = 0; idx < parameters.length; idx++) {
-			params.put("param" + idx, parameters[idx]);
-		}
-		
-		byte[] body = doGet("/db/executeQuery", params);
-		
-		try (TypedInputStream stream = new TypedInputStream(body)) {
-			return (DocumentSet)stream.readObject();
-		}
-		
-	}
-	
 	public void execute(String statement, Object ... parameters) throws Exception {
 		this.checkParameters(parameters);
 		
@@ -155,6 +140,20 @@ public class Client {
 		this.doPost("/db/execute", Collections.emptyMap(), body);
 	}
 	
+	public DocumentSet executeQuery(String statement, Object... parameters) throws Exception {
+		this.checkParameters(parameters);
+		
+		List<Object> list = new ArrayList<>(Arrays.asList(parameters));
+		byte[] body = this.buildBody(this.database, this.shard, statement, list);
+		
+		byte[] result = this.doBatch("/db/executeQuery", Collections.emptyMap(), body);
+		
+		try (TypedInputStream stream = new TypedInputStream(result)) {
+			return (DocumentSet)stream.readObject();
+		}	
+	}
+	
+	
 	public <T> T getDAO(Class<T> iface) throws Exception {
 		return DAOCompiler.getInstance().getDAO(this, iface);
 	}
@@ -163,6 +162,10 @@ public class Client {
 		return this.handler;
 	}
 	
+
+ 	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
+		return this.router.batch(this.shard == null ? UUID.randomUUID().toString() : this.shard, this.uri, url, body);
+	}
 	
 	public void use(String database) {
 		this.database = database;

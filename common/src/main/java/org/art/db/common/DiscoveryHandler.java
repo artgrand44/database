@@ -97,6 +97,7 @@ public class DiscoveryHandler {
 	public static DiscoveryHandler getHandler(Configuration config) {
 		return handlers.computeIfAbsent(config, name -> {
 			try {
+				logger.info("create handler");
 				return  new DiscoveryHandler(config, false);
 			} catch (Exception exc) {
 				throw new IllegalStateException(exc);

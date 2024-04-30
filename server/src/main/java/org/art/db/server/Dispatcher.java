@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -54,6 +53,7 @@ public class Dispatcher {
 		   HANDLERS.put("/db/propagate",        new PropagateHandler());
 		   HANDLERS.put("/db/ui",               new UIHandler());
 		   HANDLERS.put("/db/wait",             new WaitInstanceCountHandler());
+		   HANDLERS.put("/db/batch",            new BatchHandler());
 		   HANDLERS.put("/db/fetch",            new FetchHandler());
 		   HANDLERS.put("/db/log",              new LogHandler());
 		   HANDLERS.put("/db/setproperty",      new SetPropertyHandler());
@@ -108,6 +108,33 @@ public class Dispatcher {
 			logger.info("error client = " + client + " hosts " + hosts);
 			throw new DBRuntimeException(exchange.getRequestURI() + " can only be invoked from database servers");
 		}	
+	}
+	public static class BatchHandler implements Handler {
+
+		@Override
+		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			try (TypedInputStream input = new TypedInputStream(body); TypedOutputStream output = new TypedOutputStream()) {
+				String uri = input.readUTF();
+				int count = input.readInt();
+				
+				Handler handler = HANDLERS.get(uri);
+				
+				for (int idx = 0; idx < count; idx++) {
+					byte[] request = new byte[input.readInt()];
+					byte[] response;
+					
+					input.read(request);
+					
+					response = (byte[])handler.handle(exchange, parameters, request);
+					
+					output.writeInt(response.length);
+					output.write(response);
+				}
+				
+				return output.toByteArray();
+			}
+		}
+		
 	}
 	
 	private static String[] getAuthTokens(HttpServerExchange exchange) {
@@ -176,18 +203,14 @@ public class Dispatcher {
 	
 	static class ExecuteQueryHandler implements Handler {
 
+		@SuppressWarnings("unchecked")
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-				String database = parameters.get("database");
-				String shard = parameters.get("shard");
-				String sql = parameters.get("sql");
-				int count = Integer.parseInt(parameters.get("count"));
-				List<Comparable<?>> parameterList = new ArrayList<>();
-				
-				for (int idx = 0; idx < count; idx++) {
-					parameterList.add(parameters.get("param" + idx));
-				}
-				
+			try (TypedInputStream inStream = new TypedInputStream(body)) {
+				String database = (String)inStream.readObject();
+				String shard = (String)inStream.readObject();
+				String sql = (String)inStream.readObject();
+				List<Comparable<?>> parameterList = (List<Comparable<?>>)inStream.readObject();
 				long start = System.currentTimeMillis();
 			
 				DocumentSet set = SQLHandler.getInstance().executeQuery(shard, database, getUser(exchange), getPassword(exchange), sql, parameterList);
@@ -202,7 +225,10 @@ public class Dispatcher {
 					stream.writeObject(set);
 					return stream.toByteArray();
 				}
-			
+			} catch (Exception exc) {
+				exc.printStackTrace();
+				throw exc;
+			}			
 		}
 		
 	}

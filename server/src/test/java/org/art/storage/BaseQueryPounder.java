@@ -40,6 +40,7 @@ public abstract class BaseQueryPounder extends BaseClientTest {
 
 	private final int nitems;
 	private final int nthreads;
+	private int started = 0;
 	
 	Thread timer = null;
 
@@ -245,8 +246,19 @@ public abstract class BaseQueryPounder extends BaseClientTest {
 	
 	protected abstract void loadDabase() throws Exception;
 	
-	protected void waitForAllStarted() {
-		this.lock.readLock().lock();
+	protected synchronized void  waitForAllStarted() {
+		if (started == nthreads - 1) {
+			logger.info("notify");
+			this.notifyAll();
+		} else {
+			started++;
+			
+			try {
+				this.wait();
+			} catch (InterruptedException exc) {
+				logger.info("interrupted");
+			}
+		}
 	}
 
 

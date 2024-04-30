@@ -8,6 +8,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -15,6 +16,26 @@ import org.slf4j.LoggerFactory;
 
 public class Configuration {
 	
+	@Override
+	public int hashCode() {
+		return Objects.hash(cluster, host, port, properties, shard);
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Configuration other = (Configuration) obj;
+		return Objects.equals(cluster, other.cluster) && Objects.equals(host, other.host)
+				&& Objects.equals(port, other.port) && Objects.equals(properties, other.properties)
+				&& Objects.equals(shard, other.shard);
+	}
+
 	private static final Logger logger = LoggerFactory.getLogger(Configuration.class);
 	
 	private String host; 

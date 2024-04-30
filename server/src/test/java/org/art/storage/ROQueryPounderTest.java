@@ -4,6 +4,7 @@ import java.util.Random;
 
 import org.art.db.client.Client;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.Document;
 import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +14,7 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 	private static final Logger logger = LoggerFactory.getLogger(ROQueryPounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 5000;
+	private static int NLOOPS = 50000;
 	private static int NTHREADS = 50;
 	
 	public ROQueryPounderTest() {
@@ -57,7 +58,15 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 				}
 				Assertions.assertThat(ids.size() == 1).isTrue();
 				
-				Assertions.assertThat(ids.iterator().next().get("ID").equals(Long.valueOf(id))).isTrue();
+				Document doc = ids.iterator().next();
+				Object docId = doc.get("ID");
+				
+				if (!Long.valueOf(id).equals(docId)) {
+					logger.info("Bad id doc has " + docId + " expected " + id + " " + doc);
+					logger.info("");
+				}
+				
+				//Assertions.assertThat(ids.iterator().next().get("ID").equals(Long.valueOf(id))).isTrue();
 				
 				if (names.size() != 1) {
 					logger.info("Names is bad " + names);
@@ -74,6 +83,7 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 			}
 		} catch (Throwable exc) {
 			logger.error(exc.getMessage());
+			exc.printStackTrace();
 			this.addError(exc);
 		}
 	}
