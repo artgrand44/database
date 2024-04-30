@@ -29,6 +29,8 @@ public class Router {
 	
 	private final ConcurrentMap<String, Batch> batches = new ConcurrentHashMap<>();
 	
+	private final ReentrantLock batchLock = new ReentrantLock();
+	
 	private static final int MAX_SIZE = 10;
 	
 	private static final long TIMEOUT = 100;
@@ -48,23 +50,30 @@ public class Router {
 	}
 	
 	public byte[] batch(String shardKey, URI uri, String template, byte[] body) throws Exception {
+		this.batchLock.lock();
+		
 		Batch batch = null;
 		int index = -1;
 			
-		String shard = this.discoveryHandler.getShard(shardKey);
-		String key = this.getBatchKey(uri, shard, template);
+		try {
+			String shard = this.discoveryHandler.getShard(shardKey);
+			String key = this.getBatchKey(uri, shard, template);
 
-		batch = this.batches.computeIfAbsent(key, x -> new Batch(shard, template, uri));
-		index = batch.add(body);
+			batch = this.batches.computeIfAbsent(key, x -> new Batch(shard, template, uri));
+			index = batch.add(body);
 
-		final Batch abatch = batch;
+			final Batch abatch = batch;
 
-		if (batch.size() >= MAX_SIZE) {
-			SCHEDULER.submit(() -> processBatch(abatch));
-		} else if (batch.size() == 1) {
-			SCHEDULER.schedule(() -> processBatch(abatch), TIMEOUT, TimeUnit.MILLISECONDS);
-		}			
-	
+			if (batch.size() >= MAX_SIZE) {
+				SCHEDULER.submit(() -> processBatch(abatch));
+			} else if (batch.size() == 1) {
+				SCHEDULER.schedule(() -> processBatch(abatch), TIMEOUT, TimeUnit.MILLISECONDS);
+			}			
+
+		} finally {
+			this.batchLock.unlock();
+		}
+		
 		try {
 			return batch.future.get().get(index);
 		} catch (ExecutionException exc) {
@@ -151,13 +160,16 @@ public class Router {
 	
 	private void processBatch(Batch batch) {
 		String key = this.getBatchKey(batch);
+		boolean found;
 		
-		if (this.batches.remove(key, batch)) {
+		this.batchLock.lock();
+		found = this.batches.remove(key, batch);
+		this.batchLock.unlock();
+		
+		if (found) {
 			try (TypedOutputStream stream = new TypedOutputStream()) {
 				stream.writeUTF(batch.template);
 				stream.writeInt(batch.size());
-				
-				logger.info("remove got " + batch.size());
 				
 				for (byte[] body : batch.bodies) {
 					stream.writeInt(body.length);
@@ -181,7 +193,6 @@ public class Router {
 				List<byte[]> results = new ArrayList<>();
 				
 				try (TypedInputStream result = new TypedInputStream(response)) {
-					logger.info("results " + batch.size());
 					for (int idx = 0; idx < batch.size(); idx ++) {
 						try {
 							byte[] buffer = new byte[result.readInt()];
@@ -216,7 +227,7 @@ public class Router {
 			this.uri = uri;
 		}
 		
-		synchronized int add(byte[] body) {
+		int add(byte[] body) {
 			this.bodies.add(body);
 			return this.bodies.size() - 1;
 		}
