@@ -5,13 +5,15 @@ import org.art.db.common.DBNull;
 import org.art.db.common.Document;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
+import org.art.db.common.ZipUtils;
 
 public class BlobConverter {
 	
 	static Document toDocument(Metadata metadata, Blob blob) throws Exception {
 		Document doc = new Document();
-		
-		try (TypedInputStream stream = new TypedInputStream(blob.getBytes())) {
+		byte[] bytes = ZipUtils.decompress(blob.getBytes());
+				
+		try (TypedInputStream stream = new TypedInputStream(bytes)) {
 			for (String column : metadata.columns().keySet()) {
 				try {
 					doc.put(column, stream.readObject());
@@ -33,7 +35,7 @@ public class BlobConverter {
 				stream.writeObject(value == null ? DBNull.NULL : value);
 			}
 
-			return new Blob(stream.toByteArray());
+			return new Blob(ZipUtils.compress(stream.toByteArray()));
 		}
 	}
 	
