@@ -189,7 +189,6 @@ public class DDLHandler {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
 			
-		logger.info("create table on " + DiscoveryHandler.getServerInstance().getLocalPort() + " for target shard " + targetShard);
 		Table table = createTable.getTable();
 		File file = Files.getMetadata(SQLUtils.getFQN(table, database));
 		
@@ -236,7 +235,6 @@ public class DDLHandler {
 			Metadata.setMetadata(metadata);
 			
 			if (targetShard.equals(Client.WILDCARD)) {
-				logger.info("Bradcast create from " + DiscoveryHandler.getServerInstance().getLocalPort() );
 				SQLUtils.broadcastAll(database, createTable.toString(), user, password);
 			}
 		} catch (DBRuntimeException exc) {

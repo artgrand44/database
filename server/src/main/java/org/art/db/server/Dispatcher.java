@@ -248,7 +248,6 @@ public class Dispatcher {
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			checkServer(exchange);
 			
-			logger.info("getting metadata from " + DiscoveryHandler.getServerInstance().getLocalPort());
 			String table = parameters.get("table");
 			File file = Files.getMetadata(table);
 
@@ -386,8 +385,6 @@ public class Dispatcher {
 				return new byte[0];
 			} catch (Exception exc) {
 				Metrics.getInstance().logAlert("There was an error flushing the database");
-				logger.info("port = " + DiscoveryHandler.getServerInstance().getLocalPort() + "  exc " + exc.getMessage());
-				exc.printStackTrace();
 				throw exc;
 			}
 		}

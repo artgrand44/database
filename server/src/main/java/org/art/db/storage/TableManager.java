@@ -288,7 +288,6 @@ public class TableManager implements Closeable{
 				// instance.  The peer will continue sending the broadcasts until this instance is up
 				// and running.
 
-				logger.info("getting metadata to " + DiscoveryHandler.getServerInstance().getLocalPort());
 				this.restClient.get(restClient.buildURI(peer, "/db/recovering?uri=%s&table=%s", handler.getLocalInstance(), this.tableName));
 				
 				// Get the latest version of the metadata
