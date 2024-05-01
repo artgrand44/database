@@ -97,6 +97,8 @@ public class Configuration {
 		this.properties.put("org.art.db.dbroot", "./dbroot");
 		this.properties.put("org.art.db.user", user);
 		this.properties.put("org.art.db.password", password);
+		
+		logger.info("build config for shard " + shard + " set this" + this.shard);
 	}
 	
 	public void addPropertyChangeListener(PropertyChangeListener listener) {

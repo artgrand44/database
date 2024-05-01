@@ -30,7 +30,7 @@ public class PlanTest {
 	
 	private static final Logger logger = LoggerFactory.getLogger(PlanTest.class);
 	
-	private File dbDir = new File("./dbtest");
+	private File dbDir = new File("./dbroot");
 	
 	private static String[] colors = new String[] {"red", "blue", "green", "white", "black" };
 	

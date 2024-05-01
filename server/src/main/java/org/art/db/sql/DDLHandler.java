@@ -19,6 +19,7 @@ import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.storage.Files;
 import org.art.db.storage.IndexInfo;
 import org.art.db.storage.Metadata;
@@ -188,6 +189,7 @@ public class DDLHandler {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
 			
+		logger.info("create table on " + DiscoveryHandler.getServerInstance().getLocalPort() + " for target shard " + targetShard);
 		Table table = createTable.getTable();
 		File file = Files.getMetadata(SQLUtils.getFQN(table, database));
 		
@@ -234,6 +236,7 @@ public class DDLHandler {
 			Metadata.setMetadata(metadata);
 			
 			if (targetShard.equals(Client.WILDCARD)) {
+				logger.info("Bradcast create from " + DiscoveryHandler.getServerInstance().getLocalPort() );
 				SQLUtils.broadcastAll(database, createTable.toString(), user, password);
 			}
 		} catch (DBRuntimeException exc) {

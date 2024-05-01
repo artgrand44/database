@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
+import org.art.db.client.ClientArgs;
 import org.art.db.common.Configuration;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
@@ -182,18 +183,16 @@ public class Dispatcher {
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try (TypedInputStream stream = new TypedInputStream(body)) {
-				String database = (String)stream.readObject();
-				String shard = (String)stream.readObject();
-				String sql = (String)stream.readObject();
-				List<Comparable<?>> parameterList = (List<Comparable<?>>)stream.readObject();
+				ClientArgs args = new ClientArgs().deserialize(stream);
+				List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
 				long start = System.currentTimeMillis();
 			
-				SQLHandler.getInstance().execute(shard, database, getUser(exchange), getPassword(exchange), sql, parameterList);
+				SQLHandler.getInstance().execute(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
 				
 				HeaderValues values = exchange.getRequestHeaders().get("Client");
 				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
 					
-				Metrics.getInstance().logClient(client, sql, System.currentTimeMillis() - start, 1, 1);
+				Metrics.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, 1);
 				
 				return new byte[0];
 			}
@@ -207,20 +206,17 @@ public class Dispatcher {
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try (TypedInputStream inStream = new TypedInputStream(body)) {
-				String database = (String)inStream.readObject();
-				String shard = (String)inStream.readObject();
-				String sql = (String)inStream.readObject();
-				List<Comparable<?>> parameterList = (List<Comparable<?>>)inStream.readObject();
+				ClientArgs args = new ClientArgs().deserialize(inStream);
+				List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
 				long start = System.currentTimeMillis();
 			
-				DocumentSet set = SQLHandler.getInstance().executeQuery(shard, database, getUser(exchange), getPassword(exchange), sql, parameterList);
+				DocumentSet set = SQLHandler.getInstance().executeQuery(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
 				
 				HeaderValues values = exchange.getRequestHeaders().get("Client");
 				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
 					
-				Metrics.getInstance().logClient(client, sql, System.currentTimeMillis() - start, 1, set.size());
-				
-			
+				Metrics.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, set.size());
+							
 				try (TypedOutputStream stream = new TypedOutputStream()) {
 					stream.writeObject(set);
 					return stream.toByteArray();
@@ -252,6 +248,7 @@ public class Dispatcher {
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			checkServer(exchange);
 			
+			logger.info("getting metadata from " + DiscoveryHandler.getServerInstance().getLocalPort());
 			String table = parameters.get("table");
 			File file = Files.getMetadata(table);
 

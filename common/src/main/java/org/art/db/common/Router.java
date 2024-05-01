@@ -46,7 +46,6 @@ public class Router {
 	private Router(DiscoveryHandler discoveryHandler, String user, String password) {
 		this.discoveryHandler = discoveryHandler;
 		this.restClient = new RestClient(user, password);
-		logger.info("create");
 	}
 	
 	public byte[] batch(String shardKey, URI uri, String template, byte[] body) throws Exception {

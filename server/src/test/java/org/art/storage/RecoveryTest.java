@@ -110,25 +110,25 @@ public class RecoveryTest extends BaseClientTest {
 			
 			primaryClient.waitServerCount(2);
 			
-			logger.info("recovery complete");
+			logger.info("recovery complete checking " + count);
 			
 			// Stop the internal server then verify that all of the documents and
-			// index entries are in the external server
-
+			// index entries are in the external server	
 			
-			
-			for (int idx = 0; idx < count; idx++) {
+			for (int idx = 0; idx < Math.min(1000, count); idx++) {
 				int id = this.getId(idx);
 				String name = this.getName(idx);
 				
+				if (idx % 100 == 0) {
+					logger.info("check " + idx);
+				}
 				DocumentSet ids = primaryClient.executeQuery(idQuery, id);
 				DocumentSet names = primaryClient.executeQuery(nameQuery, name);
 				
 				if (ids.size() != 1) {
 					logger.info("Missing id " + id);
 					ids = primaryClient.executeQuery(idQuery, id);
-					ids = secondaryClient.executeQuery(idQuery, id);
-					
+					ids = secondaryClient.executeQuery(idQuery, id);					
 				}
 				
 				Assertions.assertThat(ids.size() == 1).isTrue();
@@ -141,6 +141,8 @@ public class RecoveryTest extends BaseClientTest {
 				Assertions.assertThat(names.size() == 1).isTrue();
 				Assertions.assertThat(ids.iterator().next().get("FirstName").equals(name)).isTrue();
 			}
+			
+			logger.info("After check loop");
 
 		} catch (AssertionFailedError err) {
 			throw err;

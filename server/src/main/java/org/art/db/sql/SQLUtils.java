@@ -48,6 +48,7 @@ public class SQLUtils {
 
 				for (URI uri : entry.getValue()) {
 					if (!uri.equals(local)) {
+						logger.info("boardcast from " + handler.getLocalPort() + " to " + uri + " shard " + shard);
 						Client client = new Client(uri, shard, user, password);
 						
 						client.execute(statement);

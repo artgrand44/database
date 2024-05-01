@@ -16,7 +16,7 @@ import org.art.db.storage.Metadata;
 import org.junit.jupiter.api.BeforeEach;
 
 public abstract class BaseSQLTest extends BaseTest {
-	private File dbDir = new File("./dbtest");
+	private File dbDir = new File("./dbroot");
 	
 	
 	@BeforeEach

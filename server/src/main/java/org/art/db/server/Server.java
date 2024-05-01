@@ -17,6 +17,7 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
+import org.art.db.storage.Files;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.PrometheusPublisher;
 import org.art.db.storage.StorageManager;
@@ -56,6 +57,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 		
 		this.port = Integer.valueOf(config.getPort());
 		this.handler =  new DiscoveryHandler(config, true);
+		
+		logger.info("start server on " + port + " dir " + Files.getRoot());
 		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);
@@ -219,6 +222,9 @@ public class Server implements HttpHandler, FullBytesCallback {
 		try {
 			logger.info("start with " + System.getProperty("java.home"));
 			
+			File file = new File(properties);
+			
+			logger.info("starting server with " + file.getAbsolutePath());
 			Configuration.getInstance().load(properties);
 			instance = new Server();
 		} catch (Exception exc) {
