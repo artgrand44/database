@@ -37,7 +37,7 @@ public class UITest extends BaseClientTest {
 				
 				startInternal("./application.properties");
 				
-				Client primaryClient = new Client(primary.toURI(), "*", "admin", "admin");
+				Client primaryClient = new Client("cluster", "admin", "admin");
 				
 				this.load(primaryClient);
 				
@@ -54,7 +54,7 @@ public class UITest extends BaseClientTest {
 				
 				
 				for (int idx = 2; idx < 20; idx++) {
-					String query= String.format(queryTemplate, idx);
+					String query = String.format(queryTemplate, idx);
 					
 					DocumentSet set = primaryClient.executeQuery(query);
 					
