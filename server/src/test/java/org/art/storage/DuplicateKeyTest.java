@@ -24,7 +24,7 @@ public class DuplicateKeyTest extends BaseClientTest {
 		try {
 			startInternal("./tinysegments.properties");
 			
-			Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+			Client client = new Client("cluster", "admin", "admin");
 			
 			String create = "CREATE TABLE duptest (id GUID NOT NULL PRIMARY KEY, name varchar(255), color varchar(255))";
 			String createNameIndex = "CREATE UNIQUE INDEX name ON duptest(name)";

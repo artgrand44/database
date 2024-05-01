@@ -55,18 +55,40 @@ public class Client {
 		this(new URI(String.format("http://%s:%s", InetAddress.getLocalHost().getHostAddress(), "8080")), "*", "", "");
 	}
 	
+	/**
+	 * Main constructor for applications
+	 * @param config
+	 * @throws Exception
+	 */
 	public Client(Configuration config) throws Exception {
 		this(DiscoveryHandler.getHandler(config), WILDCARD, config.getProperty("org.art.db.user"), config.getProperty("org.art.db.password"));
 	}
 	
-	/*public Client(URI uri, String shard, String user, String password) throws Exception {
-		this(new Configuration(uri.getHost(), String.valueOf(uri.getPort()), shard, "cluster", "./dbroot", user, password));
-		
-		this.uri = uri;
-		logger.info("in cons shard = " + shard + " this.shard = " + this.shard);
-		
-	}*/
+	/**
+	 * Simplified constructor for applications
+	 * @param cluster
+	 * @param user
+	 * @param password
+	 * @throws Exception
+	 */
+	public Client(String cluster, String user, String password) throws Exception { 
+		Configuration config = new Configuration(cluster).withProperty("org.art.db.user", user).withProperty("org.art.db.password", password);
+		this.handler = DiscoveryHandler.getHandler(config);
+		this.router = Router.getRouter(handler, user, password);
+		this.client = new RestClient(user, password);
+		this.uri = null;
+		this.shard = "*";
+	}
 	
+	/**
+	 * Used internally by SQLUtils to forward a specific instance in the same shard.
+	 * Also used tests that need to talk to a particular instance.
+	 * @param uri
+	 * @param shard
+	 * @param user
+	 * @param password
+	 * @throws Exception
+	 */
 	public Client(URI uri, String shard, String user, String password) throws Exception {
 		Configuration config = new Configuration(uri.getHost(), String.valueOf(uri.getPort()), shard, "cluster", "./dbroot", user, password);
 		
@@ -74,30 +96,25 @@ public class Client {
 		this.router = Router.getRouter(handler, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = uri;
-		this.shard = shard;
-		
-		logger.info("in cons shard = " + shard + " this.shard = " + this.shard);
-		
-		/*this(new Configuration(uri.getHost(), String.valueOf(uri.getPort()), shard, "cluster", "./dbroot", user, password));
-		
-		this.uri = uri;
-		logger.info("in cons shard = " + shard + " this.shard = " + this.shard);*/
-		
+		this.shard = shard;	
 	}
 	
+	
+	/**
+	 * Used internally by SQLUtils to forward requests to a random instance in some other shard. 
+	 * 
+	 * Used by SQLUtils
+	 * @param handler
+	 * @param shard
+	 * @param user
+	 * @param password
+	 * @throws Exception
+	 */
 	public Client(DiscoveryHandler handler, String shard, String user, String password) throws Exception {
 		this.handler = handler;
 		this.router = Router.getRouter(handler, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = null;
-		this.shard = shard;
-	}
-		
-	public Client(URI uri, DiscoveryHandler handler, String shard, String user, String password) throws Exception {
-		this.handler = handler;
-		this.router = Router.getRouter(handler, user, password);
-		this.client = new RestClient(user, password);
-		this.uri = uri;
 		this.shard = shard;
 	}
 	

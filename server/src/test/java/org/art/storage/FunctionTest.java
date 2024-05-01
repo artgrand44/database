@@ -26,7 +26,7 @@ public class FunctionTest extends BaseClientTest {
 			try  {
 				startInternal("./application.properties");
 				
-				Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+				Client client = new Client("cluster", "admin", "admin");
 				
 				String create = "CREATE TABLE func (id int NOT NULL PRIMARY KEY, str varchar(255), date Date, list LIST, count int)";
 				

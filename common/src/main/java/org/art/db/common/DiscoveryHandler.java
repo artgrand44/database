@@ -85,6 +85,7 @@ public class DiscoveryHandler {
 		
 	}
 	
+
 	public void addRecoveringInstance(URI uri) {
 		this.recoveringInstances.put(uri,  uri);
 	}

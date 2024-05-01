@@ -70,7 +70,7 @@ public class Configuration {
 		this.shard = shard;
 		this.properties = properties;
 		
-		if (this.host.contains("localhost")) {
+		if (this.host != null && this.host.contains("localhost")) {
 			try {
 				this.host = InetAddress.getLocalHost().getHostAddress();
 			} catch (Exception exc) {
@@ -97,8 +97,10 @@ public class Configuration {
 		this.properties.put("org.art.db.dbroot", "./dbroot");
 		this.properties.put("org.art.db.user", user);
 		this.properties.put("org.art.db.password", password);
-		
-		logger.info("build config for shard " + shard + " set this" + this.shard);
+	}
+	
+	public Configuration(String cluster) {
+		this(null, null, cluster, "*", new HashMap<>());
 	}
 	
 	public void addPropertyChangeListener(PropertyChangeListener listener) {
@@ -197,6 +199,11 @@ public class Configuration {
 	}
 	
 	public URI toURI() {
+		
+		if (this.host == null || this.port == null) {
+			return null;
+		}
+		
 		try {
 			return new URI(String.format("http://%s:%s", this.host, this.port));
 		} catch (Exception exc) {

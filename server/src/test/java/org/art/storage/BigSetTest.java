@@ -21,7 +21,7 @@ public class BigSetTest extends BaseClientTest {
 			try  {
 				startInternal("./application.properties");
 				
-				Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+				Client client = new Client("cluster", "admin", "admin");
 				
 				String create = "CREATE TABLE bigset (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255), count int)";
 				String insert = "insert into bigset (id, first, last, count ) values (?, 'art', ?, ?)";
