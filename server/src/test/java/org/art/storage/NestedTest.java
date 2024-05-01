@@ -23,7 +23,7 @@ public class NestedTest extends BaseIntegrationTest {
 			try  {
 				startInternal("./application.properties");
 				
-				Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+				Client client = new Client("cluster", "admin", "admin");
 				
 				String create = "CREATE TABLE nested (id int NOT NULL PRIMARY KEY, doc Document)";
 				String insert = "insert into nested (id, doc ) values ('1', ?)";

@@ -24,7 +24,7 @@ public class NullTest extends BaseClientTest {
 			try  {
 				startInternal("./application.properties");
 				
-				Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+				Client client = new Client("cluster", "admin", "admin");
 				
 				String create = "CREATE TABLE nulls (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255))";
 				String createIndex = "CREATE INDEX nulls ON nulls(first)";

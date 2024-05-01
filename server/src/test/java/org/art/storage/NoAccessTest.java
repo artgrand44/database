@@ -27,7 +27,7 @@ public class NoAccessTest extends BaseClientTest {
 				String createUser = "create user foo password bar";
 				String grant = "GRANT select, insert ON privtest TO foo";
 				
-				Client userClient = new Client(getLocalURI("8080"), "*", "foo", "bar");
+				Client userClient = new Client("cluster", "foo", "bar");
 				
 				try {
 					userClient.execute(create);
@@ -57,7 +57,7 @@ public class NoAccessTest extends BaseClientTest {
 					
 					
 				}
-				Client adminClient = new Client(getLocalURI("8080"), "*", "admin", "admin");
+				Client adminClient = new Client("cluster", "admin", "admin");
 				
 				adminClient.execute(create);
 				adminClient.execute(createIndex);
