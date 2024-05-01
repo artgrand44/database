@@ -44,32 +44,6 @@ public class Sql {
 		return result;
 	}
 	
-	private static String getCommand(String prompt) throws IOException {
-		String command = "";
-		
-		if (console == null) {
-			System.out.print(prompt);
-			
-			while (!command.endsWith(";")) {
-				String line = reader.readLine();
-				
-				if (!line.trim().startsWith("//")) {
-					command += line;
-				}
-			}
-		} else {
-			while (!command.endsWith(";")) {
-				String line = console.readLine(prompt);
-				
-				if (!line.trim().startsWith("//")) {
-					command += line;
-				}
-			}
-		}
-		
-		return command.substring(0, command.length() - 1);
-	}
-
 	public static void main(String[] args) {
 		Client client = null;
 		boolean verbose = false;
@@ -100,6 +74,14 @@ public class Sql {
 					writer.println(commandLine);
 					return;
 				}
+			}
+			
+			while (user == null && fileName != null) {
+				user = readLine("User name: ");
+			}
+			
+			while (password == null && fileName != null) {
+				password = readPassword("Password: ");
 			}
 			
 			if (user == null || password == null) {
@@ -136,7 +118,7 @@ public class Sql {
 			String command = "";
 			
 			try {
-				command = getCommand(prompt).trim();
+				command = readCommand(prompt).trim();
 				
 				if (command.isBlank()) {
 					continue;
@@ -254,6 +236,36 @@ public class Sql {
 		writer.println(StringUtils.rightPad("", totalWidth, '_'));
 		writer.println();
 		writer.flush();
+	}
+	
+	private static String readCommand(String prompt) throws IOException {
+		String command = "";
+		
+		while (!command.endsWith(";")) {
+			String line = reader.readLine();
+			
+			if (!line.trim().startsWith("//")) {
+				command += line;
+			}
+		}
+		
+		return command.substring(0, command.length() - 1);
+	}
+
+	private static String readLine(String prompt)  throws IOException {
+		if (console == null) {
+			if (!prompt.isEmpty()) {
+				System.out.print(prompt);
+			}
+			
+			return reader.readLine();
+		}
+		
+		return console.readLine(prompt);
+	}
+	
+	private static String readPassword(String prompt) throws IOException  {
+		return console == null ? readLine(prompt) : new String(console.readPassword(prompt));
 	}
 	
 	private static void writeColumn(String value, int width) {
