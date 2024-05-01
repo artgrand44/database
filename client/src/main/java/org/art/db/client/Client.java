@@ -199,8 +199,6 @@ public class Client {
  		if (this.uri == null) {
  			return this.router.batch(this.shard == null ? UUID.randomUUID().toString() : this.shard, this.uri, url, body);
  		} else {
- 			logger.info("query doing post");
- 			new Exception().printStackTrace();
  			return doPost(url, parameters, body);
  		}
 	}

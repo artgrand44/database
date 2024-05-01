@@ -15,7 +15,7 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 	
 	private static int NITEMS = 10000;
 	private static int NLOOPS = 50000;
-	private static int NTHREADS = 50;
+	private static int NTHREADS = 100;
 	
 	public ROQueryPounderTest() {
 		super("./bigcache.properties", NITEMS, NTHREADS);
