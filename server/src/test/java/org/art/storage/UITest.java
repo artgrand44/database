@@ -13,7 +13,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UITest extends BaseClientTest {
+public class UITest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(ReplicationTest.class);
 	
 	private void load(Client client) throws Exception {

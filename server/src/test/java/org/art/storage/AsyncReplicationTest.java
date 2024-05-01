@@ -12,7 +12,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AsyncReplicationTest extends BaseClientTest {
+public class AsyncReplicationTest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(AsyncReplicationTest.class);
 	
 	private void load(Client client) throws Exception {

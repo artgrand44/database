@@ -8,7 +8,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExpressionTest extends BaseClientTest {
+public class ExpressionTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(ExpressionTest.class);

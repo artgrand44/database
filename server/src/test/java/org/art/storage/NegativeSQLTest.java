@@ -8,7 +8,7 @@ import org.art.db.common.DBRuntimeException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class NegativeSQLTest extends BaseClientTest {
+public class NegativeSQLTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(NegativeSQLTest.class);

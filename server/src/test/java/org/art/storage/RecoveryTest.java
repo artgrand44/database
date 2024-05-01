@@ -16,7 +16,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RecoveryTest extends BaseClientTest {
+public class RecoveryTest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(RecoveryTest.class);
 	
 
@@ -68,10 +68,6 @@ public class RecoveryTest extends BaseClientTest {
 				
 				count++;
 								
-				if (idx % 1000 == 0) {
-					//logger.info("Inserted " + idx);
-				}
-				
 				files = externalDir.listFiles((dir, name) -> name.endsWith(".seg"));
 				
 				if (files != null && files.length > 3) {
@@ -115,7 +111,7 @@ public class RecoveryTest extends BaseClientTest {
 			// Stop the internal server then verify that all of the documents and
 			// index entries are in the external server	
 			
-			for (int idx = 0; idx < Math.min(1000, count); idx++) {
+			for (int idx = 0; idx < count; idx += 500) {
 				int id = this.getId(idx);
 				String name = this.getName(idx);
 				

@@ -18,7 +18,6 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.art.db.client.Client;
-import org.art.db.common.Configuration;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 
@@ -75,25 +74,26 @@ public class Sql {
 		Client client = null;
 		boolean verbose = false;
 		String fileName = null;
-		String commandLine = "sql [-file file] [-verbose]";
+		String commandLine = "sql [-file file] [-verbose] [-u user] [-p password]";
 		String prompt = "";
 		String verb = "";
+		String user = null;
+		String password = null;
 		
 		try {
 			writer = new PrintWriter(new OutputStreamWriter(System.out));
 			
 			// Parse the command line
 			
-			String propertyPath = args.length == 0 ? "application.properties" : args[0];
+			String cluster = args.length == 0 ? "cluster" : args[0];
 			
 			for (int idx = 1; idx  < args.length; idx++) {
-				if (args[idx].equals("-file")) {
-					if (idx == args.length) {
-						writer.println(commandLine);
-						return;
-					}
-					
+				if (args[idx].equals("-file") && idx < args.length - 1) {
 					fileName = args[++idx];
+				} else if (args[idx].equals("-u") && idx < args.length - 1) {
+					user = args[++idx];
+				} else if (args[idx].equals("-p") && idx < args.length - 1) {
+					password = args[++idx];
 				} else if (args[idx].equals("-verbose")) {
 					verbose = true;
 				} else {
@@ -102,10 +102,12 @@ public class Sql {
 				}
 			}
 			
-			// Create the configuration and the client
+			if (user == null || password == null) {
+				writer.println(commandLine);
+				return;
+			}
 			
-			Configuration.getInstance().load(propertyPath);
-			client = new Client(Configuration.getInstance());
+			client = new Client(cluster, user, password);
 					
 			// Open the input stream
 			

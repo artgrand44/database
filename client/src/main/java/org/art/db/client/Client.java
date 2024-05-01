@@ -55,17 +55,9 @@ public class Client {
 		this(new URI(String.format("http://%s:%s", InetAddress.getLocalHost().getHostAddress(), "8080")), "*", "", "");
 	}
 	
-	/**
-	 * Main constructor for applications
-	 * @param config
-	 * @throws Exception
-	 */
-	public Client(Configuration config) throws Exception {
-		this(DiscoveryHandler.getHandler(config), WILDCARD, config.getProperty("org.art.db.user"), config.getProperty("org.art.db.password"));
-	}
 	
 	/**
-	 * Simplified constructor for applications
+	 * Main constructor for applications
 	 * @param cluster
 	 * @param user
 	 * @param password
@@ -188,7 +180,7 @@ public class Client {
 			byte[] result = this.doBatch("/db/executeQuery", Collections.emptyMap(), body);
 		
 			try (TypedInputStream istream = new TypedInputStream(result)) {
-			return (DocumentSet)istream.readObject();
+				return (DocumentSet)istream.readObject();
 			}
 		}
 	}
@@ -204,7 +196,13 @@ public class Client {
 	
 
  	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
-		return this.router.batch(this.shard == null ? UUID.randomUUID().toString() : this.shard, this.uri, url, body);
+ 		if (this.uri == null) {
+ 			return this.router.batch(this.shard == null ? UUID.randomUUID().toString() : this.shard, this.uri, url, body);
+ 		} else {
+ 			logger.info("query doing post");
+ 			new Exception().printStackTrace();
+ 			return doPost(url, parameters, body);
+ 		}
 	}
 	
 	public void use(String database) {

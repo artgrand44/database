@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class NoAccessTest extends BaseClientTest {
+public class NoAccessTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(NoAccessTest.class);

@@ -14,7 +14,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ShardTest extends BaseClientTest {
+public class ShardTest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(ShardTest.class);
 	
 	private void load(Client client) throws Exception {
@@ -43,7 +43,7 @@ public class ShardTest extends BaseClientTest {
 				
 				Client averlongshardnameClient = new Client(getLocalURI("8080"), "averlongshardname", "admin", "admin");
 				Client shard2Client = new Client(getLocalURI("8081"), "shard2", "admin", "admin");
-				Client clusterClient = new Client(shard1);
+				Client clusterClient = new Client("cluster", "admin", "admin");
 				
 				averlongshardnameClient.waitServerCount(2);
 				shard2Client.waitServerCount(2);

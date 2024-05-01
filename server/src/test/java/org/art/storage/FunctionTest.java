@@ -14,7 +14,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FunctionTest extends BaseClientTest {
+public class FunctionTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(FunctionTest.class);

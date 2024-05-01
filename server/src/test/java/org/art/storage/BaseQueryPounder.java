@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class BaseQueryPounder extends BaseClientTest {
+public abstract class BaseQueryPounder extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(BaseQueryPounder.class);
 
 	private Deque<Throwable> errors = new ConcurrentLinkedDeque<Throwable>(); 
