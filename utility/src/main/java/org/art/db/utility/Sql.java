@@ -44,14 +44,6 @@ public class Sql {
 	}
 	
 	public static void main(String[] args) {
-		try {
-			 main1(args);
-			 System.out.println("after main1");
-		} catch (Throwable thr) {
-			thr.printStackTrace();
-		}
-	}
-	public static void main1(String[] args) {
 		Client client = null;
 		boolean verbose = false;
 		String fileName = null;
