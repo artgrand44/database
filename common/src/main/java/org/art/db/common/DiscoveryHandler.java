@@ -333,7 +333,7 @@ public class DiscoveryHandler {
 				throw new Exception("Unable to find services on " + this.port + " timeout " + timeout);
 			}
 			
-			sleep(1000);
+			sleep(Math.min(timeout, 1000));
 			this.loadEnvironment();
 		}
 	
