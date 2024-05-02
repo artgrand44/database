@@ -23,7 +23,6 @@ import org.art.db.common.DocumentSet;
 
 public class Sql {
 	private static BufferedReader reader;
-	private static PrintWriter writer;
 	private static Console console;
 	
 	private static Map<String, String> flatten(Document doc, String prefix) {
@@ -45,6 +44,14 @@ public class Sql {
 	}
 	
 	public static void main(String[] args) {
+		try {
+			 main1(args);
+			 System.out.println("after main1");
+		} catch (Throwable thr) {
+			thr.printStackTrace();
+		}
+	}
+	public static void main1(String[] args) {
 		Client client = null;
 		boolean verbose = false;
 		String fileName = null;
@@ -53,13 +60,13 @@ public class Sql {
 		String verb = "";
 		String user = null;
 		String password = null;
+		String cluster = null;
 		
 		try {
-			writer = new PrintWriter(new OutputStreamWriter(System.out));
-			
+	
 			// Parse the command line
 			
-			String cluster = args.length == 0 ? "cluster" : args[0];
+			cluster = args.length == 0 ? "cluster" : args[0];
 			
 			for (int idx = 1; idx  < args.length; idx++) {
 				if (args[idx].equals("-file") && idx < args.length - 1) {
@@ -71,33 +78,18 @@ public class Sql {
 				} else if (args[idx].equals("-verbose")) {
 					verbose = true;
 				} else {
-					writer.println(commandLine);
+					System.out.println(commandLine);
 					return;
 				}
 			}
 			
-			while (user == null && fileName != null) {
-				user = readLine("User name: ");
-			}
-			
-			while (password == null && fileName != null) {
-				password = readPassword("Password: ");
-			}
-			
-			if (user == null || password == null) {
-				writer.println(commandLine);
-				return;
-			}
-			
-			client = new Client(cluster, user, password);
-					
 			// Open the input stream
 			
 			if (fileName != null) {
 				File file = new File(fileName);
 				
 				if (!file.exists()) {
-					writer.println("File " + file.getAbsolutePath() + " does not exist.");
+					System.out.println("File " + file.getAbsolutePath() + " does not exist.");
 					return;
 				}
 				
@@ -108,12 +100,32 @@ public class Sql {
 				reader = new BufferedReader(new InputStreamReader(System.in));
 				console = System.console();
 				prompt = "sql>";
-			}						
+			}					
+			
+			while (user == null && fileName == null) {
+				user = readLine("User name: ");
+			}
+			
+			while (password == null && fileName == null) {
+				password = readPassword("Password: ");
+			}
+			
+			if (user == null || password == null) {
+				System.out.println(commandLine);
+				return;
+			}
+			
+			try {
+				client = new Client(cluster, user, password);
+			} catch (Exception exc) {
+				throw new Exception("There was an error connecting to the database.");
+			}
 		} catch (Exception exc) {
-			writer.println("There was an error getting the client " + exc.getMessage());
+			exc.printStackTrace();
+			System.out.println("There was an error getting the client " + exc.getMessage());
 			return;
 		}
-		
+					
 		for (;;) {
 			String command = "";
 			
@@ -146,8 +158,8 @@ public class Sql {
 					break;
 				case "Quit":
 					if (verbose || fileName == null) {
-						writer.println("Exiting...");
-						writer.flush();
+						System.out.println("Exiting...");
+						System.out.flush();
 					}
 					
 					return;
@@ -156,17 +168,17 @@ public class Sql {
 					success = true;
 					break;
 				default:
-					writer.println(verb + " is not a valid statement");
+					System.out.println(verb + " is not a valid statement");
 				}
 				
 				if (success && (verbose || fileName == null)) {
-					writer.println(verb + " successful");
+					System.out.println(verb + " successful");
 				}
 				
-				writer.flush();
+				System.out.flush();
 			} catch (Exception exc) {
-				writer.println("The " + verb.toLowerCase() + " failed. " + exc.getMessage());
-				writer.flush();
+				System.out.println("The " + verb.toLowerCase() + " failed. " + exc.getMessage());
+				System.out.flush();
 			}
 
 		}
@@ -175,11 +187,11 @@ public class Sql {
 	private static void printDocuments(DocumentSet set) {
 		
 		if (set.isEmpty()) {
-			writer.println("No documents were retrieved");
+			System.out.println("No documents were retrieved");
 			return;
 		}
 		
-		writer.println();
+		System.out.println();
 		
 		List<Map<String, String>> values = new ArrayList<>();
 		Map<String, Integer> widths = new HashMap<>();
@@ -204,7 +216,7 @@ public class Sql {
 		}
 		
 		if (widths.isEmpty()) {
-			writer.println("No columns were retrieved");
+			System.out.println("No columns were retrieved");
 			return;
 		}
 		
@@ -220,22 +232,22 @@ public class Sql {
 		
 		// Write the column names
 		
-		writer.println(StringUtils.rightPad("", totalWidth, '_'));
+		System.out.println(StringUtils.rightPad("", totalWidth, '_'));
 		sorted.forEach(x -> writeColumn(x, widths.get(x)));
-		writer.println("|");
-		writer.println(StringUtils.rightPad("", totalWidth, '_'));
+		System.out.println("|");
+		System.out.println(StringUtils.rightPad("", totalWidth, '_'));
 		
 		
 		// Write the document values
 		
 		for (Map<String, String> entry : values) {
 			sorted.forEach(x -> writeColumn(entry.get(x), widths.get(x)));
-			writer.println("|");
+			System.out.println("|");
 		}
 		
-		writer.println(StringUtils.rightPad("", totalWidth, '_'));
-		writer.println();
-		writer.flush();
+		System.out.println(StringUtils.rightPad("", totalWidth, '_'));
+		System.out.println();
+		System.out.flush();
 	}
 	
 	private static String readCommand(String prompt) throws IOException {
@@ -258,7 +270,14 @@ public class Sql {
 				System.out.print(prompt);
 			}
 			
-			return reader.readLine();
+			try {
+			String line = reader.readLine();
+			System.out.println("got line " + line);
+			return line;
+			} catch (Throwable thr) {
+				thr.printStackTrace();
+				return "";
+			}
 		}
 		
 		return console.readLine(prompt);
@@ -269,7 +288,7 @@ public class Sql {
 	}
 	
 	private static void writeColumn(String value, int width) {
-		writer.print("| " + StringUtils.rightPad(value.toString(), width + 1, ' '));
+		System.out.print("| " + StringUtils.rightPad(value.toString(), width + 1, ' '));
 	}
 	
 }
