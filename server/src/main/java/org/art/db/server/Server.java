@@ -58,7 +58,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 		this.port = Integer.valueOf(config.getPort());
 		this.handler =  new DiscoveryHandler(config, true);
 		
-		logger.info("start server on " + port + " dir " + Files.getRoot());
+		logger.info("start server on " + port + " process " + ProcessHandle.current().pid());
 		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);

@@ -239,7 +239,7 @@ public class DDLHandler {
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
-			throw new DBRuntimeException("Create Table failed ", exc);
+			throw new DBRuntimeException("Create Table failed " + exc.getMessage(), exc);
 		}
 	}
 	
