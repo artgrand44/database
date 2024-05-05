@@ -17,7 +17,6 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
-import org.art.db.storage.Files;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.PrometheusPublisher;
 import org.art.db.storage.StorageManager;

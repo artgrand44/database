@@ -197,7 +197,7 @@ public class Client {
 
  	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
  		if (this.uri == null) {
- 			return this.router.batch(this.shard == null ? UUID.randomUUID().toString() : this.shard, this.uri, url, body);
+ 			return this.router.batch("/db/batch", url, body);
  		} else {
  			return doPost(url, parameters, body);
  		}

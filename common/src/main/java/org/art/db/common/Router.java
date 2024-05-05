@@ -3,13 +3,14 @@ package org.art.db.common;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,23 +24,26 @@ import org.slf4j.LoggerFactory;
 public class Router {
 	private static final Logger logger = LoggerFactory.getLogger(Router.class);
 	
-	private DiscoveryHandler discoveryHandler;
+	static record RouterKey(DiscoveryHandler discoveryHandler, String user, String password) {	
+		
+	}
 	
-	private static final ScheduledExecutorService SCHEDULER =  Scheduler.createScheduler("Rest", 10);
-	
-	private final ConcurrentMap<String, Batch> batches = new ConcurrentHashMap<>();
-	
-	private final ReentrantLock batchLock = new ReentrantLock();
-	
-	private static final int MAX_SIZE = 10;
-	
-	private static final long TIMEOUT = 100;
+	private record BatchEntry(byte[] body, CompletableFuture<byte[]> future) {
+		
+	}
 	
 	private RestClient restClient;
 	
-	static record RouterKey(DiscoveryHandler discoveryHandler, String user, String password) {
-		
-	}
+	private final DiscoveryHandler discoveryHandler;
+	
+	private final  LinkedBlockingQueue<BatchEntry> batchEntries = new  LinkedBlockingQueue<>();
+	
+	
+	private static final ScheduledExecutorService SCHEDULER =  Scheduler.createScheduler("Rest", 10);
+
+	private static final int MAX_SIZE = 10;
+	
+	private static final long TIMEOUT = 100;
 	
 	private static ConcurrentMap<RouterKey, Router> routers = new ConcurrentHashMap<>();
 	
@@ -48,43 +52,22 @@ public class Router {
 		this.restClient = new RestClient(user, password);
 	}
 	
-	public byte[] batch(String shardKey, URI uri, String template, byte[] body) throws Exception {
-		this.batchLock.lock();
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public byte[] batch(String batchURI, String template, byte[] body) throws Exception {
+		BatchEntry entry = new BatchEntry(body, (CompletableFuture<byte[]>)new CompletableFuture());
 		
-		Batch batch = null;
-		int index = -1;
-			
-		try {
-			String shard = this.discoveryHandler.getShard(shardKey);
-			String key = this.getBatchKey(uri, shard, template);
+		this.batchEntries.add(entry);
 
-			batch = this.batches.computeIfAbsent(key, x -> new Batch(shard, template, uri));
-			index = batch.add(body);
-
-			final Batch abatch = batch;
-
-			if (batch.size() >= MAX_SIZE) {
-				SCHEDULER.submit(() -> processBatch(abatch));
-			} else if (batch.size() == 1) {
-				SCHEDULER.schedule(() -> processBatch(abatch), TIMEOUT, TimeUnit.MILLISECONDS);
-			}			
-
-		} finally {
-			this.batchLock.unlock();
-		}
+		if (this.batchEntries.size() >= MAX_SIZE) {
+			SCHEDULER.submit(() -> processBatch(batchURI, template));
+		} else if (this.batchEntries.size() == 1) {
+			SCHEDULER.schedule(() -> processBatch(batchURI, template), TIMEOUT, TimeUnit.MILLISECONDS);
+		}			
 		
 		try {
-			return batch.future.get().get(index);
+			return entry.future.get();
 		} catch (ExecutionException exc) {
-			Throwable cause = exc.getCause();
-			
-			if (cause == null) {
-				logger.info("no cause");
-			} else {
-				logger.info("cause");
-				cause.printStackTrace();
-			}
-			throw cause instanceof DBRuntimeException runtime ? runtime : new DBRuntimeException("Error processing batch", cause); 
+			throw exc.getCause() instanceof DBRuntimeException runtime ? runtime : new DBRuntimeException("Error processing batch", exc.getCause()); 
 		}
 	}
 	
@@ -128,14 +111,6 @@ public class Router {
 		
 	}	
 	
-	private String getBatchKey(Batch batch) {
-		return this.getBatchKey(batch.uri, batch.shard, batch.template);
-	}
-
-	private String getBatchKey(URI uri, String shard, String template) {
-		return uri == null ? shard + "|" + template : uri + "|" + shard + "|" + template;
-	}
-	
 	public static Router getRouter(DiscoveryHandler discoveryHandler, String user, String password) {
 		RouterKey key = new RouterKey(discoveryHandler, user, password);
 		
@@ -157,84 +132,45 @@ public class Router {
 		return doCall("PUT", shardKey, template, body, args);
 	}
 	
-	private void processBatch(Batch batch) {
-		String key = this.getBatchKey(batch);
-		boolean found;
+	private void processBatch(String batchURI, String template) {
+		List<BatchEntry> list = new ArrayList<>();
 		
-		this.batchLock.lock();
-		found = this.batches.remove(key, batch);
-		this.batchLock.unlock();
+		this.batchEntries.drainTo(list);
 		
-		if (found) {
+		if (!list.isEmpty()) {
 			try (TypedOutputStream stream = new TypedOutputStream()) {
-				stream.writeUTF(batch.template);
-				stream.writeInt(batch.size());
 				
-				for (byte[] body : batch.bodies) {
-					stream.writeInt(body.length);
-					stream.write(body);
+				stream.writeUTF(template);
+				stream.writeInt(list.size());
+				
+				for (BatchEntry entry : list) {
+					stream.writeInt(entry.body.length);
+					stream.write(entry.body);
 				}
 				
 				byte[] body = stream.toByteArray();
-				byte[] response;
-				
-				if (batch.uri == null) {
-					response = this.post(batch.shard, "/db/batch", body);
-				} else {
-					URI uri = this.restClient.buildURI(batch.uri, "/db/batch");
-					response = this.restClient.post(uri, body);
-				}
+				String shard = this.discoveryHandler.getShard((UUID.randomUUID().toString()));
+				byte[] response = this.post(shard, batchURI, body);
 				
 				if (response == null || response.length == 0) {
-					logger.info("bad response " + batch.template);
+					logger.info("bad response " + template);
 				} 
 				
-				List<byte[]> results = new ArrayList<>();
-				
 				try (TypedInputStream result = new TypedInputStream(response)) {
-					for (int idx = 0; idx < batch.size(); idx ++) {
+					for (BatchEntry entry : list) {
 						try {
 							byte[] buffer = new byte[result.readInt()];
 						
 							result.read(buffer);
-							results.add(buffer);
+							entry.future.complete(buffer);
 						} catch (Exception exc) {
-							logger.info("Got exception on " + idx);
+							logger.info("Got exception on " + exc.getMessage());
 						}
 					}
 				}
-				
-				batch.future.complete(results);
-				
 			} catch (Exception exc) {
-				logger.info("Batch error on " + batch.template + " uri " + batch.uri);
-				batch.future.completeExceptionally(exc);
+				logger.info("Batch error on " + template);
 			}
 		} 
 	}
-
-	private static class Batch {
-		final String shard;
-		final URI uri;
-		final String template;
-		final CompletableFuture<List<byte[]>> future = new CompletableFuture<>();
-		final List<byte[]> bodies = new ArrayList<>();
-		
-		Batch(String shard, String template, URI uri) {
-			this.shard = shard;
-			this.template = template;
-			this.uri = uri;
-		}
-		
-		int add(byte[] body) {
-			this.bodies.add(body);
-			return this.bodies.size() - 1;
-		}
-		
-		int size() {
-			return this.bodies.size();
-		}
-	}
-
-
 }
