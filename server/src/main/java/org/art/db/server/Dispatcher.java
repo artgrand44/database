@@ -115,18 +115,18 @@ public class Dispatcher {
 		@Override
 		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try (TypedInputStream input = new TypedInputStream(body); TypedOutputStream output = new TypedOutputStream()) {
-				String uri = input.readUTF();
+				
 				int count = input.readInt();
 				
-				Handler handler = HANDLERS.get(uri);
-				
 				for (int idx = 0; idx < count; idx++) {
+					String uri = input.readUTF();
 					byte[] request = new byte[input.readInt()];
-					byte[] response;
+					
 					
 					input.read(request);
 					
-					response = (byte[])handler.handle(exchange, parameters, request);
+					Handler handler = HANDLERS.get(uri);
+					byte[] response = (byte[])handler.handle(exchange, parameters, request);
 					
 					output.writeInt(response.length);
 					output.write(response);

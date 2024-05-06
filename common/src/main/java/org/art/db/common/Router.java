@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ public class Router {
 		
 	}
 	
-	private record BatchEntry(byte[] body, CompletableFuture<byte[]> future) {
+	private record BatchEntry(String uri, byte[] body, CompletableFuture<byte[]> future) {
 		
 	}
 	
@@ -36,7 +37,7 @@ public class Router {
 	
 	private final DiscoveryHandler discoveryHandler;
 	
-	private final  LinkedBlockingQueue<BatchEntry> batchEntries = new  LinkedBlockingQueue<>();
+	private final  LinkedBlockingQueue<BatchEntry> batchQueue = new  LinkedBlockingQueue<>();
 	
 	
 	private static final ScheduledExecutorService SCHEDULER =  Scheduler.createScheduler("Rest", 10);
@@ -53,19 +54,27 @@ public class Router {
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public byte[] batch(String batchURI, String template, byte[] body) throws Exception {
-		BatchEntry entry = new BatchEntry(body, (CompletableFuture<byte[]>)new CompletableFuture());
+	public byte[] batch(String batchURI, String uri, byte[] body) throws Exception {
 		
-		this.batchEntries.add(entry);
+		// Add the request to the batch queue.  If the queue is large enough, process all of the
+		// queue entries.
+		
+		BatchEntry entry = new BatchEntry(uri, body, (CompletableFuture<byte[]>)new CompletableFuture());
+		
+		this.batchQueue.add(entry);
 
-		if (this.batchEntries.size() >= MAX_SIZE) {
-			SCHEDULER.submit(() -> processBatch(batchURI, template));
-		} else if (this.batchEntries.size() == 1) {
-			SCHEDULER.schedule(() -> processBatch(batchURI, template), TIMEOUT, TimeUnit.MILLISECONDS);
-		}			
+		if (this.batchQueue.size() >= MAX_SIZE) {
+			SCHEDULER.submit(() -> processBatchQueue(batchURI));
+		} 		
+		
+		// Wait for the queue entry to be processed.  If it times out, assume
+		// that the queue never got big enough to start a batch, and process the
+		// request manually.
 		
 		try {
-			return entry.future.get();
+			return entry.future.get(1, TimeUnit.SECONDS);
+		} catch (TimeoutException exc) {
+			return this.post(null, uri, body);
 		} catch (ExecutionException exc) {
 			throw exc.getCause() instanceof DBRuntimeException runtime ? runtime : new DBRuntimeException("Error processing batch", exc.getCause()); 
 		}
@@ -76,7 +85,7 @@ public class Router {
 		
 		for (;;) {
 			try {			
-				server = this.discoveryHandler.getServiceAddressForKey(shardKey);
+				server = this.discoveryHandler.getServiceAddressForKey(shardKey == null ? UUID.randomUUID().toString() : shardKey);
 				URI uri = this.restClient.buildURI(server, template, args);
 
 				return this.restClient.call(method, uri, body);
@@ -132,29 +141,28 @@ public class Router {
 		return doCall("PUT", shardKey, template, body, args);
 	}
 	
-	private void processBatch(String batchURI, String template) {
+	/**
+	 * Process all of the entrees on the batch queue.
+	 * @param batchURI
+	 */
+	private void processBatchQueue(String batchURI) {
 		List<BatchEntry> list = new ArrayList<>();
 		
-		this.batchEntries.drainTo(list);
+		this.batchQueue.drainTo(list);
 		
 		if (!list.isEmpty()) {
 			try (TypedOutputStream stream = new TypedOutputStream()) {
 				
-				stream.writeUTF(template);
 				stream.writeInt(list.size());
 				
 				for (BatchEntry entry : list) {
+					stream.writeUTF(entry.uri);
 					stream.writeInt(entry.body.length);
 					stream.write(entry.body);
 				}
 				
 				byte[] body = stream.toByteArray();
-				String shard = this.discoveryHandler.getShard((UUID.randomUUID().toString()));
-				byte[] response = this.post(shard, batchURI, body);
-				
-				if (response == null || response.length == 0) {
-					logger.info("bad response " + template);
-				} 
+				byte[] response = this.post(null, batchURI, body);
 				
 				try (TypedInputStream result = new TypedInputStream(response)) {
 					for (BatchEntry entry : list) {
@@ -169,7 +177,7 @@ public class Router {
 					}
 				}
 			} catch (Exception exc) {
-				logger.info("Batch error on " + template);
+				logger.info("Batch error on " + exc.getMessage());
 			}
 		} 
 	}
