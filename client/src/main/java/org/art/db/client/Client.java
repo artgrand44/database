@@ -40,21 +40,6 @@ public class Client {
 	
 	public static final String WILDCARD = "*";
 	
-	public static final Client DUMMY;
-	
-	static {
-		try {
-			DUMMY = new Client();
-		} catch (Exception exc) {
-			throw new IllegalStateException(exc);
-		}
-		
-	}
-	
-	private Client() throws Exception {
-		this(new URI(String.format("http://%s:%s", InetAddress.getLocalHost().getHostAddress(), "8080")), "*", "", "");
-	}
-	
 	
 	/**
 	 * Main constructor for applications
