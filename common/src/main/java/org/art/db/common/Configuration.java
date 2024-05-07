@@ -16,42 +16,15 @@ import org.slf4j.LoggerFactory;
 
 public class Configuration {
 	
-	@Override
-	public int hashCode() {
-		return Objects.hash(cluster, host, port, properties, shard);
-	}
-
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Configuration other = (Configuration) obj;
-		return Objects.equals(cluster, other.cluster) && Objects.equals(host, other.host)
-				&& Objects.equals(port, other.port) && Objects.equals(properties, other.properties)
-				&& Objects.equals(shard, other.shard);
-	}
-
 	private static final Logger logger = LoggerFactory.getLogger(Configuration.class);
-	
-	private String host; 
-	private String port = "8080";
-	private String cluster = "cluster"; 
-	private String shard = "shard";
-	private final Map<String, String> properties;
-	private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
-	
+
+
 	private final static Map<String, String> defaults = 
 			Map.of("org.art.db.logDelay",       "1s",
 				   "org.art.db.documentCache",  "1M",
 				   "org.art.db.maxSegmentSize", "100000",
 				   "org.art.db.nodeCache",      "10M");
-	
-	
+
 	private static Configuration instance;
 	
 	static {
@@ -60,6 +33,22 @@ public class Configuration {
 		} catch (Exception exc) {
 			logger.info("Error getting local host " + exc.getMessage());
 		}
+	} 
+	private String host;
+	private String port = "8080"; 
+	private String cluster = "cluster";
+	private String shard = "shard";
+	private final Map<String, String> properties;
+	
+	private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
+	
+	
+	public Configuration(String cluster) {
+		this(null, null, cluster, "*", new HashMap<>());
+	}
+	
+	public Configuration(String host, String port, String shard, String cluster) {
+		this(host, port, cluster, shard, new HashMap<>());
 	}
 	
 
@@ -87,20 +76,12 @@ public class Configuration {
 	}
 	
 	
-	public Configuration(String host, String port, String shard, String cluster) {
-		this(host, port, cluster, shard, new HashMap<>());
-	}
-	
 	public Configuration(String host, String port, String shard, String cluster, String dbRoot, String user, String password) {
 		this(host, port, cluster, shard, new HashMap<>());
 		
 		this.properties.put("org.art.db.dbroot", "./dbroot");
 		this.properties.put("org.art.db.user", user);
 		this.properties.put("org.art.db.password", password);
-	}
-	
-	public Configuration(String cluster) {
-		this(null, null, cluster, "*", new HashMap<>());
 	}
 	
 	public void addPropertyChangeListener(PropertyChangeListener listener) {
@@ -115,6 +96,28 @@ public class Configuration {
 		
     }
 	
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Configuration other = (Configuration) obj;
+		return Objects.equals(cluster, other.cluster) && Objects.equals(host, other.host)
+				&& Objects.equals(port, other.port) && Objects.equals(properties, other.properties)
+				&& Objects.equals(shard, other.shard);
+	}
+	
+	public String getCluster() {
+		return cluster;
+	}
+	
+	public String getDefault(String key) {
+		return defaults.get(key);
+	}
+	
 	public Map<String, String> getDynamicProperties() {
 		Map<String, String> result = new HashMap<>();
 		
@@ -128,12 +131,12 @@ public class Configuration {
 		return result;
 	}
 	
-	public static Configuration getInstance() {
-		return instance;
+	public String getHost() {
+		return host;
 	}
 	
-	public String getDefault(String key) {
-		return defaults.get(key);
+	public String getPort() {
+		return port;
 	}
 	
 	public String getProperty(String key) {
@@ -144,6 +147,15 @@ public class Configuration {
 		String value = properties.get(key);
 		
 		return value == null ? dflt : value;
+	}
+	
+	public String getShard() {
+		return shard;
+	}
+	
+	@Override
+	public int hashCode() {
+		return Objects.hash(cluster, host, port, properties, shard);
 	}
 	
 	public void load(String propertyPath) throws Exception {
@@ -186,18 +198,13 @@ public class Configuration {
 	public synchronized void removePropertyChangeListener(PropertyChangeListener listener) {
 		this.pcs.removePropertyChangeListener(listener);
     }
-	
+
 	public void setProperty(String name, String value) {
 		String oldValue = this.properties.put(name, value);
 		
 		this.pcs.firePropertyChange(name, oldValue, value);
 	}
-	
-	public Configuration withProperty(String name, String value) {
-		this.properties.put(name, value);
-		return this;
-	}
-	
+
 	public URI toURI() {
 		
 		if (this.host == null || this.port == null) {
@@ -211,19 +218,12 @@ public class Configuration {
 		}
 	}
 
-	public String getCluster() {
-		return cluster;
+	public Configuration withProperty(String name, String value) {
+		this.properties.put(name, value);
+		return this;
 	}
 
-	public String getShard() {
-		return shard;
-	}
-
-	public String getHost() {
-		return host;
-	}
-
-	public String getPort() {
-		return port;
+	public static Configuration getInstance() {
+		return instance;
 	}
 }
