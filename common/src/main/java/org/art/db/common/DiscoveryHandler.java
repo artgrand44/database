@@ -312,7 +312,7 @@ public class DiscoveryHandler {
 	
 	@Override
 	public String toString() {
-		return "DiscoveryHandler [port=" + port + ", instances="
+		return "DiscoveryHandler [port=" + port +", localShard=" +localShard + ", instances="
 				+ instances + ", shardMap=" + shardFinder + "]";
 	}
 	

@@ -48,7 +48,7 @@ public class SQLUtils {
 
 				for (URI uri : entry.getValue()) {
 					if (!uri.equals(local)) {
-						Client client = new Client(uri, shard, user, password);
+						Client client = new Client(handler, uri, shard, user, password);
 						
 						client.execute(statement);
 					}
@@ -64,7 +64,11 @@ public class SQLUtils {
 		if (handler != null) {
 			for (String shard : handler.getInstances().keySet()) {
 				if (!shard.equals(handler.getlocalShard())) {
-					set.addAll(forwardExecuteQuery(database, shard, statement, user, password, parameters));
+					try {
+						set.addAll(forwardExecuteQuery(database, shard, statement, user, password, parameters));
+					} catch (Exception exc) {
+						logger.info("  forward on handler.getLocalPort() got exception " + exc.getMessage()); 
+					}
 				}
 			}
 		}

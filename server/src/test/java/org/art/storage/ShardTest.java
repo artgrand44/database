@@ -9,6 +9,7 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
@@ -26,7 +27,9 @@ public class ShardTest extends BaseIntegrationTest {
 		client.execute(createIndex);
 		
 	}
+	
 	@Test
+	//@RepeatedTest(20)
 	public void test() {
 		
 			try  {
@@ -83,12 +86,23 @@ public class ShardTest extends BaseIntegrationTest {
 				
 				DocumentSet set = clusterClient.executeQuery("select * from sharded where color = 'red'");
 				
+				if (set.size() != 10) {
+					logger.info("**** size is " + set.size());
+					
+					for (Document doc : set) {
+						logger.info("doc = " + doc);
+					}
+				}
 				Assertions.assertThat(set.size() == 10).isTrue();
 				
 				
 				clusterClient.execute("update sharded set color = 'blue' where color = 'red'");
 				
 				set = clusterClient.executeQuery("select * from sharded where color = 'blue'");
+				
+				if (set.size() != 10) {
+					logger.info("******after update " + set.size());
+				}
 				
 				Assertions.assertThat(set.size() == 10).isTrue();
 				

@@ -73,8 +73,7 @@ public class Client {
 	}
 	
 	/**
-	 * Used internally by SQLUtils to forward a specific instance in the same shard.
-	 * Also used tests that need to talk to a particular instance.
+	 * Used by tests that need to talk to a particular instance.
 	 * @param uri
 	 * @param shard
 	 * @param user
@@ -91,6 +90,21 @@ public class Client {
 		this.shard = shard;	
 	}
 	
+	/**
+	 * Used internally by SQLUtils to forward a specific instance in the same shard.
+	 * @param uri
+	 * @param shard
+	 * @param user
+	 * @param password
+	 * @throws Exception
+	 */
+	public Client(DiscoveryHandler handler, URI uri, String shard, String user, String password) throws Exception {
+		this.handler = handler;
+		this.router = Router.getRouter(handler, user, password);
+		this.client = new RestClient(user, password);
+		this.uri = uri;
+		this.shard = shard;	
+	}
 	
 	/**
 	 * Used internally by SQLUtils to forward requests to a random instance in some other shard. 
@@ -196,8 +210,8 @@ public class Client {
 	
 
  	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
- 		if (this.uri == null) {
- 			return this.router.batch("/db/batch", url, body);
+ 		if (this.uri == null && (this.shard == null || this.shard.equals("*"))) {
+ 			return this.router.batch("/db/batch", url, body); 
  		} else {
  			return doPost(url, parameters, body);
  		}

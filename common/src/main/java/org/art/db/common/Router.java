@@ -44,8 +44,6 @@ public class Router {
 
 	private static final int MAX_SIZE = 10;
 	
-	private static final long TIMEOUT = 100;
-	
 	private static ConcurrentMap<RouterKey, Router> routers = new ConcurrentHashMap<>();
 	
 	private Router(DiscoveryHandler discoveryHandler, String user, String password) {
