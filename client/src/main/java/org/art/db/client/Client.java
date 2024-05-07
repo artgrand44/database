@@ -1,10 +1,7 @@
 package org.art.db.client;
 
 import java.net.ConnectException;
-import java.net.InetAddress;
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,6 +46,10 @@ public class Client {
 	 * @throws Exception
 	 */
 	public Client(String cluster, String user, String password) throws Exception { 
+		Objects.requireNonNull(cluster, "You must supply a cluster name,");
+		Objects.requireNonNull(user, "You must supply a user name");
+		Objects.requireNonNull(password, "You must supply a password");
+		
 		Configuration config = new Configuration(cluster).withProperty("org.art.db.user", user).withProperty("org.art.db.password", password);
 		this.handler = DiscoveryHandler.getHandler(config);
 		this.router = Router.getRouter(handler, user, password);
@@ -109,16 +110,6 @@ public class Client {
 		this.shard = shard;
 	}
 	
-	private String buildURI(String template, Map<String, Object> params, Object ... args) {
-		List<String> pairs = new ArrayList<>();
-		
-		for (Map.Entry<String, Object> entry : params.entrySet()) {
-			pairs.add(entry.getKey() + "=" + URLEncoder.encode(entry.getValue().toString(), Charset.forName("UTF-8")));
-		}
-		
-		return String.format(template, args) + "?" + String.join("&", pairs);
-	}
-	
 	private void checkParameters(Object ...parameters) throws Exception {
 		for (int idx = 0; idx < parameters.length; idx++) {
 			Object param = parameters[idx];
@@ -131,19 +122,12 @@ public class Client {
 		}
 	}
 	
-	@SuppressWarnings("unused")
-	private byte[] doGet(String url, Map<String, Object> params) throws Exception {
-		params.put("database", this.database);
-		params.put("shard",this.shard);
-		
-		String uri = this.buildURI("/db/executeQuery", params);
-		
-		if (this.uri == null) {
-			return this.router.get(this.shard == null ? UUID.randomUUID().toString() : this.shard, uri);
-		} else {
-			return this.client.get(this.client.buildURI(this.uri, uri));
-		}
-		
+	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
+ 		if (this.uri == null && this.shard.equals("*")) {
+ 			return this.router.batch("/db/batch", url, body); 
+ 		} else {
+ 			return doPost(url, parameters, body);
+ 		}
 	}
 	
 	private byte[] doPost(String url, Map<String, String> parameters, byte[] body) throws Exception {
@@ -194,13 +178,7 @@ public class Client {
 	}
 	
 
- 	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
- 		if (this.uri == null && (this.shard == null || this.shard.equals("*"))) {
- 			return this.router.batch("/db/batch", url, body); 
- 		} else {
- 			return doPost(url, parameters, body);
- 		}
-	}
+ 	
 	
 	public void use(String database) {
 		this.database = database;

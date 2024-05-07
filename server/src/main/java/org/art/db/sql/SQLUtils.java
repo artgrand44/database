@@ -22,7 +22,6 @@ import net.sf.jsqlparser.schema.Table;
 
 public class SQLUtils {
 
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(SQLUtils.class);
 	
 	static void broadcastExecute(String database, String statement, String user, String password, List<Comparable<?>> parameters) throws Exception {

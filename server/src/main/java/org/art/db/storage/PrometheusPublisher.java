@@ -1,7 +1,6 @@
 package org.art.db.storage;
 
 import java.util.HashMap;
-import java.util.concurrent.TimeUnit;
 
 import org.art.db.common.DiscoveryHandler;
 import org.slf4j.Logger;
@@ -26,12 +25,11 @@ public class PrometheusPublisher implements MetricsPublisher {
 	private final Cache<String, CounterGroup> groups = Caffeine.newBuilder()
 			                                                   .evictionListener((x, y, z) -> ((CounterGroup)y).free())
 			                                                   .maximumSize(1000)
-			                                                   .expireAfterAccess(1, TimeUnit.HOURS).build();
+			                                                   .build();
 
 	private final Cache<String, Counter> counters =   Caffeine.newBuilder()
 			                                                    .evictionListener((x, y, z) -> freeCounter((Counter)y))
 			                                                    .maximumSize(1000)
-			                                                    .expireAfterAccess(1, TimeUnit.HOURS)
 			                                                    .build();
 
 	private final static PrometheusPublisher instance = new PrometheusPublisher();

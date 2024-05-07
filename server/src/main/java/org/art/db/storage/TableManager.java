@@ -8,7 +8,6 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.URI;
 import java.nio.channels.FileLock;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,7 +49,7 @@ public class TableManager implements Closeable{
 	private final FileLock lock;
 	private Metadata metadata;
 	
-	private final Cache<Key, Long> timestamps = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(Duration.ofMinutes(10)).build();
+	private final Cache<Key, Long> timestamps = Caffeine.newBuilder().maximumSize(1000).build();
 	
 	public TableManager(String tableName) throws Exception {
 		this.tableName = tableName;
