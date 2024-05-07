@@ -140,7 +140,7 @@ public class UIPoller {
 	
 	public void start() {		
 		this.poller = new Thread(this::poll);
-		this.poller.setName("Poller" + System.currentTimeMillis());
+		this.poller.setName("UIPoller" + System.currentTimeMillis());
 		this.poller.setDaemon(true);
 		this.poller.start();
 	}
