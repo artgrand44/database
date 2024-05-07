@@ -5,13 +5,17 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.art.db.common.Configuration;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.MultiValueMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,10 +36,7 @@ public class UIPoller {
 	private final String cluster;
 	private volatile boolean stopping;
 	
-	private Cache<String,Stats> statsCache = Caffeine.newBuilder()
-			                                    .maximumSize(1000)
-			                                    .expireAfterWrite(30, TimeUnit.MINUTES)
-			                                    .build();
+	private Cache<String,Stats> statsCache = Caffeine.newBuilder().maximumSize(1000).build();
 	
 	public UIPoller(Configuration config) {
 		this.cluster = config.getCluster();
@@ -53,12 +54,24 @@ public class UIPoller {
 		}
 	}
 	
+	private Set<String> getLiveInstances() {
+		Set<String> result = new HashSet<>();
+		
+		for (List<URI> list : DiscoveryHandler.getServerInstance().getInstances().values()) {
+			for (URI uri : list) {
+				result.add(uri.getHost() + ":" + uri.getPort());
+			}
+		}
+		
+		return result;
+	}
 	@SuppressWarnings("unchecked")
 	<T extends Stats> List<T> getStats(Class<T> clazz) {
 		List<T> result = new ArrayList<>();
+		Set<String> instances = this.getLiveInstances();
 		
 		for (Stats stats : statsCache.asMap().values()) {
-			if (clazz.isAssignableFrom(stats.getClass())) {
+			if (clazz.isAssignableFrom(stats.getClass()) && instances.contains(stats.getServer())) {
 				result.add((T)stats);
 			}
 		}

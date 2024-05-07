@@ -36,7 +36,7 @@ public class UIPublisher implements MetricsPublisher {
 	private final InetAddress group;
 	
 	private ScheduledFuture<?> publisher;
-	private Cache<String, Stats> statsCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(30, TimeUnit.MINUTES).build();
+	private Cache<String, Stats> statsCache = Caffeine.newBuilder().maximumSize(1000).build();
 	private final ServerStats serverStats;
 	
 	private final Configuration config;
