@@ -54,15 +54,15 @@ public class SQLHandler {
 			} else if (statement instanceof CreateIndex create) {
 				DDLHandler.createIndex(create, shard, database, user, password);
 			} else if (statement instanceof Delete delete) {
-				DMLHandler.delete(delete, shard, database, user, password, parameters);
+				DMLHandler.delete(delete, sql, shard, database, user, password, parameters);
 			} else if (statement instanceof Drop drop) {
 				DDLHandler.drop(drop, shard, database, user, password);
 			} else if (statement instanceof Grant grant) {
 				DDLHandler.grant(grant, shard, database, user, password);
 			} else if (statement instanceof Insert insert) {
-				DMLHandler.insert(insert, shard, database, user, password, parameters);
+				DMLHandler.insert(insert, sql, shard, database, user, password, parameters);
 			} else if (statement instanceof Update update) {
-				DMLHandler.update(update, shard, database, user, password, parameters);
+				DMLHandler.update(update, sql, shard, database, user, password, parameters);
 			} else if (statement instanceof Select) {
 				throw new DBRuntimeException("Select statements must be called via Client.executeQuery.");
 			}
@@ -79,7 +79,7 @@ public class SQLHandler {
 			Statement statement = this.parse(sql);
 		
 			if (statement instanceof Select select) {
-				return DMLHandler.select(select, shard, database, user, password, parameters);
+				return DMLHandler.select(select, sql, shard, database, user, password, parameters);
 			} else {
 				throw new DBRuntimeException("Client.executeQuery can only be used for select statements.");
 			}

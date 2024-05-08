@@ -74,7 +74,7 @@ public class DMLHandler {
 	}
 	
 	
-	static void delete(Delete delete,  String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+	static void delete(Delete delete, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		
 		String table = SQLUtils.getFQN(delete.getTable(), database);
 		
@@ -87,19 +87,19 @@ public class DMLHandler {
 		String shard = SQLUtils.getShard(table, where, parameters);
 		
 		if (!SQLUtils.isShardLocal(shard)) {
-			SQLUtils.forwardExecute(database, shard, delete.toString(), user, password, parameters);
+			SQLUtils.forwardExecute(database, shard, sqlString, user, password, parameters);
 			return;
 		}
 		
 		if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
-			SQLUtils.broadcastExecute(database, delete.toString(), user, password, parameters);
+			SQLUtils.broadcastExecute(database, sqlString, user, password, parameters);
 		}
 		
-		deleteLocal(delete, database, user, password, parameters);
+		deleteLocal(delete, sqlString, database, user, password, parameters);
 		
 	}
 	
-	private static void deleteLocal(Delete delete, String database, String user, String password, List<Comparable<?>> parameters) {
+	private static void deleteLocal(Delete delete, String sqlString, String database, String user, String password, List<Comparable<?>> parameters) {
 		try {
 			String table = SQLUtils.getFQN(delete.getTable(), database);
 			Expression where = delete.getWhere();
@@ -119,7 +119,7 @@ public class DMLHandler {
 			}
 			
 			Metrics.getInstance().logDelete();
-			Metrics.getInstance().logSelect(delete.toString(), System.currentTimeMillis() - start, 1);
+			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 			
 		} catch (DBRuntimeException exc) {
 			throw exc;
@@ -129,7 +129,7 @@ public class DMLHandler {
 				
 	}
 	
-	static void insert(Insert insert, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) {
+	static void insert(Insert insert, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) {
 		try {
 			String table = SQLUtils.getFQN(insert.getTable(), database);
 			Metadata metadata = Metadata.getMetadata(table);
@@ -190,14 +190,14 @@ public class DMLHandler {
 			String shard = SQLUtils.getShard(table, doc);
 			
 			if (!SQLUtils.isShardLocal(shard)) {
-				SQLUtils.forwardExecute(database, shard, insert.toString(), user, password, parameters);
+				SQLUtils.forwardExecute(database, shard, sqlString, user, password, parameters);
 				return;
 			}
 			
 			QueryManager.getInstance().insert(table, doc);	
 			
 			Metrics.getInstance().logInsert();
-			Metrics.getInstance().logSelect(insert.toString(), System.currentTimeMillis() - start, 1);
+			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -207,7 +207,7 @@ public class DMLHandler {
 		
 	}
 	
-	static DocumentSet select(Select select, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+	static DocumentSet select(Select select, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		
 		if (select instanceof PlainSelect plainSelect && plainSelect.getFromItem() instanceof Table fromTable) {
 			String table = SQLUtils.getFQN(fromTable, database);
@@ -220,13 +220,13 @@ public class DMLHandler {
 			String shard = SQLUtils.getShard(table, where, parameters);
 			
 			if (!SQLUtils.isShardLocal(shard)) {
-				return SQLUtils.forwardExecuteQuery(database, shard, select.toString(), user, password, parameters);
+				return SQLUtils.forwardExecuteQuery(database, shard, sqlString, user, password, parameters);
 			}
 			
-			DocumentSet set = selectLocal(plainSelect, fromTable, database, user, password, parameters);
+			DocumentSet set = selectLocal(plainSelect, sqlString, fromTable, database, user, password, parameters);
 
 			if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
-				set.addAll(SQLUtils.broadcastExecuteQuery(database, select.toString(), user, password, parameters));
+				set.addAll(SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters));
 			}
 			
 			return set;
@@ -235,7 +235,7 @@ public class DMLHandler {
 		throw new UnsupportedOperationException("Syntax not supported.");
 	}
 	
-	private static DocumentSet selectLocal(PlainSelect plainSelect, Table fromTable, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+	private static DocumentSet selectLocal(PlainSelect plainSelect, String sqlString, Table fromTable, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		String table = SQLUtils.getFQN(fromTable, database);
 		long start = System.currentTimeMillis();
 		
@@ -286,13 +286,13 @@ public class DMLHandler {
 			}
 		}
 		
-		Metrics.getInstance().logSelect(plainSelect.toString(), System.currentTimeMillis() - start, set.size());
+		Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, set.size());
 		
 		return set;
 		
 	}
 
-	static void update(Update update,  String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+	static void update(Update update, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		String table = SQLUtils.getFQN(update.getTable(), database);
 		
 		if (!SecurityHandler.getInstance().isInRole(user, password, table, User.UPDATE)) {
@@ -308,19 +308,19 @@ public class DMLHandler {
 		String shard = SQLUtils.getShard(table, where, parameters);
 		
 		if (!SQLUtils.isShardLocal(shard)) {
-			SQLUtils.forwardExecute(database, shard, update.toString(), user, password, parameters);
+			SQLUtils.forwardExecute(database, shard, sqlString, user, password, parameters);
 			return;
 		}
 		
 		if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
-			SQLUtils.broadcastExecute(database, update.toString(), user, password, parameters);
+			SQLUtils.broadcastExecute(database, sqlString, user, password, parameters);
 		}
 		
-		updateLocal(update, database, user, password, parameters);
+		updateLocal(update, sqlString, database, user, password, parameters);
 		
 	}
 	
-	static void updateLocal(Update update,  String database, String user, String password, List<Comparable<?>> parameters) {
+	static void updateLocal(Update update, String sqlString, String database, String user, String password, List<Comparable<?>> parameters) {
 		try {
 			String table = SQLUtils.getFQN(update.getTable(), database);
 			Metadata metadata = Metadata.getMetadata(table);
@@ -378,7 +378,7 @@ public class DMLHandler {
 			}
 			
 			Metrics.getInstance().logUpdate();
-			Metrics.getInstance().logSelect(update.toString(), System.currentTimeMillis() - start, 1);
+			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {

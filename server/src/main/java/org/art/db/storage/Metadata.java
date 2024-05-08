@@ -19,7 +19,7 @@ public record Metadata(String name, List<String> primaryKeyFields, SortedMap<Str
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Metadata.class);
 	
-	private static final ConcurrentMap<File, Metadata> metadata = new ConcurrentHashMap<>();
+	private static final ConcurrentMap<String, Metadata> cache = new ConcurrentHashMap<>();
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
@@ -36,10 +36,18 @@ public record Metadata(String name, List<String> primaryKeyFields, SortedMap<Str
 	}
 	
 	public static Metadata getMetadata(String table) {
+		
+		if (cache.containsKey(table)) {
+			return cache.get(table);
+		}
+		
 		File file = Files.getMetadata(table);
 		
 		if (file.exists()) {
-			return metadata.computeIfAbsent(file, x -> load(x));
+			Metadata result = load(file);
+			
+			cache.put(table, result);
+			return result;
 		} else {
 			throw new DBRuntimeException("Table " + table + " does not exist.");
 		}
@@ -57,7 +65,7 @@ public record Metadata(String name, List<String> primaryKeyFields, SortedMap<Str
 		File file = Files.getMetadata(meta.name);
 		
 		MAPPER.writeValue(file, meta); 
-		metadata.put(file, meta);
+		cache.put(meta.name, meta);
 		
 	}
 }
