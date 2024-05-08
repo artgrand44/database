@@ -2,6 +2,7 @@ package org.art.db.storage;
 
 import java.util.HashMap;
 
+import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +105,9 @@ public class PrometheusPublisher implements MetricsPublisher {
 	}
 	
 	public void start() {
-		Metrics.getInstance().addPublisher(this);
+		if (Configuration.getInstance().getProperty("org.art.db.logPrometheus", "false").equalsIgnoreCase("true")) {
+			Metrics.getInstance().addPublisher(this);
+		}
 	}
 	
 	class CounterGroup extends HashMap<String, Counter> {

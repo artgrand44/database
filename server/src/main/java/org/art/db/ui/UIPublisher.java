@@ -146,8 +146,10 @@ public class UIPublisher implements MetricsPublisher {
      
 
 	public void start() {
-		this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
-		Metrics.getInstance().addPublisher(this);
+		if (Configuration.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
+			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
+			Metrics.getInstance().addPublisher(this);
+		}
 	}
 	
 	public void stop() {
