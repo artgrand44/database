@@ -40,6 +40,29 @@ public class TypedOutputStream extends DataOutputStream {
 			LogEntry.class,
 	};
 	
+	static enum Types {
+		Boolean,
+		Byte,
+		Character,
+		Double,
+		Float,
+		Integer,
+		Long,
+		Short,
+		String,
+		Document,
+		Key,
+		List,
+		ArrayList,
+		LinkedList,
+		DocumentSet,
+		DBNull,
+		Blob,
+		GUID,
+		Date,
+		LogEntry,
+	}
+	
 	private static final Map<Object, Integer> sizes = Map.of(
 			Boolean.class,   1,
 			Byte.class,      1,
@@ -93,65 +116,68 @@ public class TypedOutputStream extends DataOutputStream {
 	@SuppressWarnings("rawtypes")
 	public void writeObject(Object obj) throws IOException {
 		Class<?> clazz = obj.getClass();
-		int typeIndex = -1;
 		
-		for (int idx = 0; idx < SUPPORTED_TYPES.length; idx++) {			
-			if (clazz == SUPPORTED_TYPES[idx]) {
-				typeIndex = idx;
-				break;
-			}
-		}
-		
-		if (typeIndex == -1) {
-			throw new IllegalArgumentException("Bad type " + obj.getClass());
-		}
-		
-		this.writeByte(typeIndex);
-
 		if (clazz == Boolean.class) {
+			this.writeByte(Types.Boolean.ordinal());
 			this.writeBoolean((Boolean)obj);
 		} else if (clazz == Byte.class) {
+			this.writeByte(Types.Byte.ordinal());
 			this.writeByte((Byte)obj);
 		} else if ((clazz == Character.class)) {
+			this.writeByte(Types.Character.ordinal());
 			this.writeChar((Character)obj);
 		} else if (clazz == Double.class) {
+			this.writeByte(Types.Double.ordinal());
 			this.writeDouble((Double)obj);
 		} else if (clazz == Float.class) {
+			this.writeByte(Types.Float.ordinal());
 			this.writeFloat((Float)obj);
 		} else if (clazz == Integer.class) {
+			this.writeByte(Types.Integer.ordinal());
 			this.writeInt((Integer)obj);
 		} else if (clazz == Long.class) {
+			this.writeByte(Types.Long.ordinal());
 			this.writeLong((Long)obj);
 		} else if (clazz == Short.class) {
+			this.writeByte(Types.Short.ordinal());
 			this.writeShort((Short)obj);
 		} else if (clazz == Date.class) {
+			this.writeByte(Types.Date.ordinal());
 			this.writeLong((((Date)obj).getTime()));
 		} else if (clazz == String.class) {
 			byte[] bytes = ((String)obj).getBytes();
 			
+			this.writeByte(Types.String.ordinal());
 			this.writeInt(bytes.length);
 			this.write(bytes);
 		} else if (clazz == LogEntry.class) {
+			this.writeByte(Types.LogEntry.ordinal());
 			((LogEntry)obj).serialize(this);
 		} else if (List.class.isAssignableFrom(clazz)) {
 			List list = (List)obj;
 			
+			this.writeByte(Types.List.ordinal());
 			this.writeInt(list.size()); 
 			
 			for (Object item : list) {
 				this.writeObject(item);
 			}
 		} else if (clazz == DocumentSet.class) {
+			this.writeByte(Types.DocumentSet.ordinal());
 			((DocumentSet)obj).serialize(this);
 		} else if (clazz == Key.class) {
+			this.writeByte(Types.Key.ordinal());
 			((Key)obj).serialize(this);
 		} else if (clazz == Document.class) {
+			this.writeByte(Types.Document.ordinal());
 			((Document)obj).serialize(this);
 		} else if (clazz == DBNull.class) {
-		
+			this.writeByte(Types.DBNull.ordinal());
 		} else if (clazz == Blob.class) {
+			this.writeByte(Types.Blob.ordinal());
 			((Blob)obj).serialize(this);
 		} else if (clazz == GUID.class) {
+			this.writeByte(Types.GUID.ordinal());
 			((GUID)obj).serialize(this);
 		} else {
 			throw new IOException("Illegal field type");
