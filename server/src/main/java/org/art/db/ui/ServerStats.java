@@ -5,6 +5,7 @@ import java.lang.management.MemoryMXBean;
 import java.util.List;
 
 import org.art.db.common.CPUMeter;
+import org.art.db.common.RollingAverage;
 
 public class ServerStats extends Stats {
 	

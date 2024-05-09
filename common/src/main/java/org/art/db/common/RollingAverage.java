@@ -1,10 +1,9 @@
-package org.art.db.ui;
+package org.art.db.common;
 
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +23,7 @@ public class RollingAverage {
 	
 	private static final int MAX_SAMPLES = 100;
 	
-	RollingAverage(String name) {
+	public RollingAverage(String name) {
 		this.name = name;
 		Scheduler.DEFAULT.scheduleAtFixedRate(this::update, 1, 1, TimeUnit.SECONDS);
 	}
@@ -34,11 +33,11 @@ public class RollingAverage {
 		this.currentSampleValue.set(0);
 	}
 	
-	void logEvent() {
+	public void logEvent() {
 		this.currentSampleValue.incrementAndGet();
 	}
 	
-	void logEvent(long count) {
+	public void logEvent(long count) {
 		this.currentSampleValue.addAndGet(count);
 	}
 	
@@ -52,7 +51,7 @@ public class RollingAverage {
 		}
 	}
 	
-	synchronized long getAverage() {
+	public synchronized long getAverage() {
 		if (this.samples.isEmpty()) {
 			return 0;
 		}

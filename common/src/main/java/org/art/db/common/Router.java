@@ -12,6 +12,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,7 @@ public class Router {
 		
 	}
 	
-	private record BatchEntry(String uri, byte[] body, CompletableFuture<byte[]> future) {
+	private record BatchEntry(String uri, byte[] body, CompletableFuture<byte[]> future, long startTime) {
 		
 	}
 	
@@ -42,9 +43,28 @@ public class Router {
 	
 	private static final ScheduledExecutorService SCHEDULER =  Scheduler.createScheduler("Rest", 10);
 
+	
+	private static final ConcurrentMap<RouterKey, Router> routers = new ConcurrentHashMap<>();
+	
+	/**
+	 * The total number of batch requests
+	 */
+	private final AtomicLong totalBatchRequests = new AtomicLong();
+	
+	/**
+	 * The average time a batch request is waiting for the timer to go off
+	 */
+	private final RollingAverage averageQueueTime = new RollingAverage("averageQueueTime");
+		
+	/**
+	 * The average time for a batch request
+	 */
+	private final RollingAverage averageRequestTime = new RollingAverage("averageRequestTime");
+	
+	private int maxBatchSize = MAX_SIZE;
+	
 	private static final int MAX_SIZE = 10;
 	
-	private static ConcurrentMap<RouterKey, Router> routers = new ConcurrentHashMap<>();
 	
 	private Router(DiscoveryHandler discoveryHandler, String user, String password) {
 		this.discoveryHandler = discoveryHandler;
@@ -57,11 +77,11 @@ public class Router {
 		// Add the request to the batch queue.  If the queue is large enough, process all of the
 		// queue entries.
 		
-		BatchEntry entry = new BatchEntry(uri, body, (CompletableFuture<byte[]>)new CompletableFuture());
+		BatchEntry entry = new BatchEntry(uri, body, (CompletableFuture<byte[]>)new CompletableFuture(), System.currentTimeMillis());
 		
 		this.batchQueue.add(entry);
 
-		if (this.batchQueue.size() >= MAX_SIZE) {
+		if (this.batchQueue.size() >= this.maxBatchSize) {
 			SCHEDULER.submit(() -> processBatchQueue(batchURI));
 		} 		
 		
@@ -69,12 +89,15 @@ public class Router {
 		// that the queue never got big enough to start a batch, and process the
 		// request manually.
 		
-		try {
+		try {			
 			return entry.future.get(1, TimeUnit.SECONDS);
 		} catch (TimeoutException exc) {
 			return this.post(null, uri, body);
 		} catch (ExecutionException exc) {
 			throw exc.getCause() instanceof DBRuntimeException runtime ? runtime : new DBRuntimeException("Error processing batch", exc.getCause()); 
+		} finally {
+			this.averageRequestTime.logEvent(System.currentTimeMillis() - entry.startTime);
+			this.tuneBatchSize();
 		}
 	}
 	
@@ -149,6 +172,8 @@ public class Router {
 		this.batchQueue.drainTo(list);
 		
 		if (!list.isEmpty()) {
+			long now = System.currentTimeMillis();
+			
 			try (TypedOutputStream stream = new TypedOutputStream()) {
 				
 				stream.writeInt(list.size());
@@ -157,6 +182,8 @@ public class Router {
 					stream.writeUTF(entry.uri);
 					stream.writeInt(entry.body.length);
 					stream.write(entry.body);
+					
+					this.averageQueueTime.logEvent(now - entry.startTime);
 				}
 				
 				byte[] body = stream.toByteArray();
@@ -178,5 +205,26 @@ public class Router {
 				logger.info("Batch error on " + exc.getMessage());
 			}
 		} 
+	}
+	
+	private void tuneBatchSize() {
+		long totalRequests = this.totalBatchRequests.incrementAndGet();
+		
+		if (totalRequests > 100 && totalRequests % 1000 == 0) {
+			long queueTime = this.averageQueueTime.getAverage();
+			long requestTime = this.averageRequestTime.getAverage();
+			
+			if (requestTime != 0) {
+				long queuePercent = (queueTime * 100) / requestTime;
+
+				if (queuePercent > 10) {
+					this.maxBatchSize--;
+					logger.info("percent = " + queuePercent + " lowered to" + this.maxBatchSize);
+				} else if (queuePercent < 5 && this.maxBatchSize < MAX_SIZE) {
+					this.maxBatchSize++;
+					logger.info("percent = " + queuePercent + " raised to" + this.maxBatchSize);
+				}
+			}
+		}
 	}
 }

@@ -2,6 +2,8 @@ package org.art.db.ui;
 
 import java.util.List;
 
+import org.art.db.common.RollingAverage;
+
 public class QueryStats extends Stats{
 	private String query;
 	private long calls;

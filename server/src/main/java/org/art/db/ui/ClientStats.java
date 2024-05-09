@@ -2,6 +2,8 @@ package org.art.db.ui;
 
 import java.util.List;
 
+import org.art.db.common.RollingAverage;
+
 public class ClientStats extends Stats {
 	private long calls;
 	private long matches;
