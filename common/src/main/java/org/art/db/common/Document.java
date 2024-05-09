@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 public class Document extends Serializable<Document> implements Iterable<Map.Entry<String, Object>>{
 	
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Document.class);
 	
 	private final Map<String, Object> map = new HashMap<>();
@@ -24,8 +25,8 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 		this.key = that.key;
 		
 		for (Map.Entry<String, Object> entry : that.map.entrySet()) {
-			String name = entry.getKey();
-			Object value = entry.getValue();
+			final String name = entry.getKey();
+			final Object value = entry.getValue();
 			
 			if (value instanceof Document doc) {
 				this.map.put(name, new Document(doc));
@@ -40,8 +41,8 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 		int size = stream.readInt();
 		
 		for (int idx = 0; idx < size; idx++) {
-			String key = stream.readUTF();
-			Object value = stream.readObject();
+			final String key = stream.readUTF();
+			final Object value = stream.readObject();
 			
 			this.map.put(key, value);
 		}
@@ -105,18 +106,15 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 	public void put(String name, Object value) {
 		int dot = name.indexOf('.');
 		
-		if (value instanceof String str && str.contains("org.art.db.storage.DBNull@")) {
-			logger.info("oops");
-		}
 		if (dot == -1) {
 			this.map.put(name, value);
 		} else {		
-			String prefix = name.substring(0,  dot);
-			String suffix = name.substring(dot + 1);
-			Object existingValue = this.map.get(prefix);
+			final String prefix = name.substring(0,  dot);
+			final String suffix = name.substring(dot + 1);
+			final Object existingValue = this.map.get(prefix);
 			
 			if (existingValue == null || existingValue == DBNull.NULL) {
-				Document doc = new Document();
+				final Document doc = new Document();
 				
 				this.map.put(prefix, doc);
 				doc.put(suffix, value);
@@ -139,8 +137,6 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 	@Override
 	public String toString() {
 		return "Document [map=" + map + "]";
-	}
-	
-	
+	}	
 	
 }
