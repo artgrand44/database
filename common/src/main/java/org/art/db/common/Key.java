@@ -47,11 +47,11 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public int compareTo(Key that) {
-		int length = Math.min(this.keys.length, that.keys.length);
+		final int length = Math.min(this.keys.length, that.keys.length);
 		
 		for (int idx = 0; idx < length; idx++) {
-			Comparable<?> thisKey = this.keys[idx];
-			Comparable<?> thatKey =  that.keys[idx];
+			final Comparable<?> thisKey = this.keys[idx];
+			final Comparable<?> thatKey =  that.keys[idx];
 			
 			if (thisKey == MIN) {
 				return -1;
@@ -64,7 +64,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 			} else if (thatKey instanceof DBNull && ! (thisKey instanceof DBNull)) {
 				return +1;
 			} else {
-				int comp = this.compareKey(thisKey, thatKey, thisKey.getClass());
+				final int comp = this.compareKey(thisKey, thatKey, thisKey.getClass());
 				
 				if (comp != 0) {
 					return comp;
@@ -77,9 +77,8 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	
 	@Override
 	public Key deserialize(TypedInputStream stream) throws IOException {
-		int count = stream.readInt();
-		
-		Comparable<?>[] keys = new Comparable<?>[count];
+		final int count = stream.readInt();
+		final Comparable<?>[] keys = new Comparable<?>[count];
 		
 		for (int idx = 0; idx < count; idx++) {
 			keys[idx] = (Comparable<?>)stream.readObject();
@@ -150,7 +149,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	}
 	
 	public Key with(Comparable<?> key) {
-		Comparable<?>[] keys = new Comparable<?>[this.keys.length + 1];
+		final Comparable<?>[] keys = new Comparable<?>[this.keys.length + 1];
 		
 		System.arraycopy(this.keys, 0, keys, 0, this.keys.length);
 		

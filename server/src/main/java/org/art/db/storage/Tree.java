@@ -286,7 +286,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	Cursor getFirstGE(Key key) throws Exception {
 		logs.get().setLength(0);
 		visits.get().clear();
-		boolean trace = TRACE && key.toString().toLowerCase().contains("name");
+		boolean trace = TRACE && false;
 		Cursor cursor = this.getFirstLE(key);
 		Key max = key.with(Key.MAX);
 
@@ -326,7 +326,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 
 	Cursor getFirstLE(Key key) throws Exception {
 		TreeNode node = this.root;
-		boolean trace = key.toString().toLowerCase().contains("name");
+		boolean trace = false;
 		Cursor cursor;
 
 		this.checkReadLock(node);
@@ -421,8 +421,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 
 		this.lockManager.readLock(this.guardNode.getId());
 		this.lockManager.readLock(this.root.getId());
-
-		//boolean trace = key.toString().toLowerCase().contains("name");
 
 		Trace.clear();
 
