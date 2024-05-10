@@ -90,9 +90,7 @@ public class Router {
 		// request manually.
 		
 		try {			
-			return entry.future.get(1, TimeUnit.SECONDS);
-		} catch (TimeoutException exc) {
-			return this.post(null, uri, body);
+			return entry.future.get();
 		} catch (ExecutionException exc) {
 			throw exc.getCause() instanceof DBRuntimeException runtime ? runtime : new DBRuntimeException("Error processing batch", exc.getCause()); 
 		} finally {

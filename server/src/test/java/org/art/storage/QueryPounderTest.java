@@ -100,7 +100,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 
 	@Override
 	protected void loadDabase() throws Exception {
-		Client client = new Client("cluster", "admin", "admin");
+		Client client = new Client("cluster", "admin", "admin").batch(false);
 		String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 		String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
 		

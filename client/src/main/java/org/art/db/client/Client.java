@@ -34,6 +34,7 @@ public class Client {
 	private URI uri;
 	private String database = "";
 	private final String shard;
+	private boolean batch = true;
 	
 	public static final String WILDCARD = "*";
 	
@@ -110,6 +111,11 @@ public class Client {
 		this.shard = shard;
 	}
 	
+	public Client batch(boolean batch) {
+		this.batch = batch;
+		return this;
+	}
+	
 	private void checkParameters(Object ...parameters) throws Exception {
 		for (int idx = 0; idx < parameters.length; idx++) {
 			Object param = parameters[idx];
@@ -123,7 +129,7 @@ public class Client {
 	}
 	
 	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
- 		if (this.uri == null && this.shard.equals("*")) {
+ 		if (this.batch && this.uri == null && this.shard.equals("*")) {
  			return this.router.batch("/db/batch", url, body); 
  		} else {
  			return doPost(url, parameters, body);
@@ -147,7 +153,13 @@ public class Client {
 			new ClientArgs(this.database, this.shard, statement, list).serialize(stream);
 			byte[] body = stream.toByteArray();
 
-			this.doPost("/db/execute", Collections.emptyMap(), body);
+			String lower = statement.toLowerCase().trim();
+			
+			if (lower.startsWith("insert") || lower.startsWith("update") || lower.startsWith("delete")) {
+				this.doBatch("/db/execute", Collections.emptyMap(), body);
+			} else {
+				this.doPost("/db/execute", Collections.emptyMap(), body);
+			}
 		}
 	}
 	

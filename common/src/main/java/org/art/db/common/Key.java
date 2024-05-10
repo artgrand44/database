@@ -139,7 +139,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 		return this.keys.length == 1 && this.keys[0] instanceof GUID;
 	}
 	
-	public void setKeys(Comparable<?>[] keys) {
+	public void setKeys(Comparable<?> ...keys) {
 		this.keys = keys;
 	}
 	
