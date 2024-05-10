@@ -34,6 +34,17 @@ class TreeNode {
 		this.modified = true;
 	}
 	
+	TreeNode(TreeNode that) {
+		this.isLeaf = that.isLeaf;
+		this.id = that.id;
+		this.next = that.next;
+		this.modified = that.modified;
+		
+		for (Entry entry : that.entries) {
+			this.entries.add(entry);
+		}
+	}
+	
 	public TreeNode(byte[] bytes) throws Exception {
 		try (TypedInputStream stream = new TypedInputStream(bytes) ) {
 			this.isLeaf = stream.readBoolean();

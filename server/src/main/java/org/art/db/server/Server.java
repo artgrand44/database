@@ -82,6 +82,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			Metrics.getInstance().logStatus("Running");
 			logger.info("Started WebServer on port " + port);
 		} catch (Throwable exc) {
+			exc.printStackTrace();
 			logger.error(exc.getClass().getName() + exc.getMessage());
 		}		
 	}

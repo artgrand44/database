@@ -38,25 +38,22 @@ public class RestClient {
 	
 	private Duration timeout = Duration.ofSeconds(3000);
 	
-	private final String localHost;
+	private final static String localHost;
 	
-	public RestClient() {
+	static {
 		try {
-			this.localHost = InetAddress.getLocalHost().getHostAddress();
+			localHost = InetAddress.getLocalHost().getHostAddress();
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
-		}		
+		}	
+	}
+	public RestClient() {
+		
 	}
 	
 	public RestClient(String user, String password) {
 		this.user = user;
 		this.password = password;
-		
-		try {
-			this.localHost = InetAddress.getLocalHost().getHostAddress();
-		} catch (Exception exc) {
-			throw new IllegalStateException(exc);
-		}
 	}
 	
 	public  void broadcast(Collection<URI> baseUrls, String path,byte[] body) throws Exception {
@@ -133,7 +130,7 @@ public class RestClient {
 				.header("Content-Type", "application/json")
 				.header("accept", "application/json")
 				.header("Accept-Encoding", "gzip")
-				.header("Client", this.localHost)
+				.header("Client", localHost)
 				.timeout(this.timeout)
 				.version(HttpClient.Version.HTTP_2);
 		
@@ -186,7 +183,7 @@ public class RestClient {
 					.header("Content-Type", "application/json")
 					.header("accept", "application/json")
 					.header("Accept-Encoding", "gzip")
-					.header("Client", this.localHost)
+					.header("Client", localHost)
 					.timeout(this.timeout)
 					.version(HttpClient.Version.HTTP_2);
 

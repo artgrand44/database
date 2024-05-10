@@ -48,9 +48,7 @@ public class Table implements Closeable {
 	private static final LinkedBlockingQueue<MergeQueueEntry> mergeQueue =  new LinkedBlockingQueue<>();
 	
 	static {
-		for (int idx = 0; idx < 3; idx++) {
-			Scheduler.DEFAULT.submit(Table::mergerLoop);
-		}
+		Scheduler.DEFAULT.submit(Table::mergerLoop);
 	}
 	
 	public Table(String table, Map<String, Index> indices) throws Exception {
@@ -298,9 +296,9 @@ public class Table implements Closeable {
 				}
 
 				segment.close();
-				mergeQueue.add(new MergeQueueEntry(this, file));
 			} finally {
 				this.writeLock.unlock();
+				mergeQueue.add(new MergeQueueEntry(this, file));
 			}
 
 		} catch (Exception exc) {
