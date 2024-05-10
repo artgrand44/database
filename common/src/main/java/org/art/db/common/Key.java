@@ -18,6 +18,8 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	public static final String MAX = "max".intern();
 	public static final String WILD_CARD = "*".intern();
 	private Comparable<?>[] keys;
+	private int hash;
+	private int size;
 	
 	public Key() {
 		this.keys = new Comparable<?>[0];
@@ -30,7 +32,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 			Objects.requireNonNull(key);
 		}
 		
-		this.keys = keys;
+		this.setKeys(keys);
 	
 	}
 
@@ -84,10 +86,11 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 			keys[idx] = (Comparable<?>)stream.readObject();
 		}
 		
-		this.keys = keys;
+		this.setKeys(keys);
 				
 		return this;
 	}
+	
 	
 	public Comparable<?>[] getKeys() {
 		return keys;
@@ -95,13 +98,13 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 
 	@Override
 	public int hashCode() {
-		int hash = 125;
-		
-		for (int idx = 0; idx < this.keys.length; idx++)  {
-			hash ^= this.keys[idx].hashCode() + idx;
-		}
-		
-		return hash;
+		return this.hash;
+	}
+	
+
+	@Override
+	public int getSize() {
+		return this.size;
 	}
 	
 	@Override
@@ -141,6 +144,17 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	
 	public void setKeys(Comparable<?> ...keys) {
 		this.keys = keys;
+		
+		int hash = 125;
+		int size = 5;
+		
+		for (int idx = 0; idx < this.keys.length; idx++)  {
+			hash ^= this.keys[idx].hashCode() + idx;
+			size += TypedOutputStream.getSize(this.keys[idx]);
+		}
+		
+		this.hash = hash;
+		this.size = size;
 	}
 	
 	@Override
