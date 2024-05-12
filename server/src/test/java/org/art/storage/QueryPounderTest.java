@@ -22,7 +22,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);
 	
 	public QueryPounderTest() {
-		super("./application.properties", NITEMS, NTHREADS);
+		super("./bigcache.properties", NITEMS, NTHREADS);
 	}
 
 	private String getName(int idx) {
