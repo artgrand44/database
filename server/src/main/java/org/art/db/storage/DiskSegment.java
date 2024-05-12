@@ -57,6 +57,7 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error opening the database");
 			logger.info("Got exception on file " + file.getAbsolutePath() + " " + exc.getMessage());
+			exc.printStackTrace();
 			throw exc;
 		}
 	}

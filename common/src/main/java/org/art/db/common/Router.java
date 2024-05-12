@@ -95,7 +95,7 @@ public class Router {
 			throw exc.getCause() instanceof DBRuntimeException runtime ? runtime : new DBRuntimeException("Error processing batch", exc.getCause()); 
 		} finally {
 			this.averageRequestTime.logEvent(System.currentTimeMillis() - entry.startTime);
-			this.tuneBatchSize();
+			//this.tuneBatchSize();
 		}
 	}
 	

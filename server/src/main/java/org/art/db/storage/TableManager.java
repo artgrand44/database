@@ -124,6 +124,7 @@ public class TableManager implements Closeable{
 				} catch (Exception exc) {
 					Metrics.getInstance().logAlert("There was an error recovering a log entry");
 					logger.info("There was an exception recovering a log entry " + exc.getMessage() + " " + entry + " check " + checkTimestamps);
+					exc.printStackTrace();
 				}
 			}
 		} catch (Exception exc) {

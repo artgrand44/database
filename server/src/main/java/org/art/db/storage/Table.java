@@ -57,6 +57,8 @@ public class Table implements Closeable {
 		this.discoveryHandler = DiscoveryHandler.getServerInstance();
 		this.config = Configuration.getInstance();
 		this.maxSegmentSize = Integer.parseInt(this.config.getProperty("org.art.db.maxSegmentSize", this.config.getDefault("org.art.db.maxSegmentSize")));
+		
+		logger.info("table = " + table + "max seg = " + this.maxSegmentSize);
 		this.currentSegment = new MemorySegment(table, this.discoveryHandler, this.config);
 		
 		this.segments.add(this.currentSegment);
@@ -124,6 +126,7 @@ public class Table implements Closeable {
 				} else if (segment.size() == 0) {
 					return;
 				} else if (this.prevSegment == null && !saving) {
+					logger.info("flush saving");
 					this.switchSegments(); 
 					saving = true;
 				} else if (segment.isSaved()) {
@@ -276,6 +279,7 @@ public class Table implements Closeable {
 		try {
 			File file  = Files.getDiskSegment(this.table, 1);
 
+			logger.info("save segment");
 			DiskSegment saved = segment.save(file);
 
 			this.writeLock.lock();
@@ -330,6 +334,7 @@ public class Table implements Closeable {
 
 		try {
 			if (this.currentSegment.size() > this.maxSegmentSize && this.prevSegment == null && !this.closed) {
+				logger.info("calling switch " + this.currentSegment.size());
 				switchSegments();
 			}
 		} finally {

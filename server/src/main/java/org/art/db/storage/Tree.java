@@ -143,7 +143,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		this.lockManager.checkWriteLock(node.getId());
 	}
 
-	private boolean commit() {
+	private boolean commit() throws Exception {
 		this.treeStore.commit();
 		return this.lockManager.unlockAll();
 	}
@@ -421,6 +421,9 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 
 		this.lockManager.readLock(this.guardNode.getId());
 		this.lockManager.readLock(this.root.getId());
+		
+		this.lockManager.checkReadLock(this.guardNode.getId());
+		this.lockManager.readLock(this.root.getId());
 
 		Trace.clear();
 
@@ -568,6 +571,9 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		TreeNode newNode = this.putInternal(this.root, key, value, 0, this.guardNode, stamp);
 
 		if (newNode != null) {
+			this.lockManager.checkWriteLock(this.guardNode.getId());
+			this.lockManager.checkWriteLock(this.root.getId());
+			
 			TreeNode newRoot = this.createNode(false);
 
 			this.lockManager.writeLock(newRoot.getId());
@@ -587,17 +593,29 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 
 	}
 
-	private TreeNode putInternal(TreeNode node, Key key, TValue value, int level, TreeNode parent, long parentStamp)
-			throws Exception {
+	private TreeNode putInternal(TreeNode node, Key key, TValue value, int level, TreeNode parent, long parentStamp) throws Exception {
 		long stamp = this.lockManager.writeLock(node.getId());
 
 		this.checkWriteLock(node);
-
-		if (node.storageSize() + TreeNode.getEntrySize(key, value) < this.nodeSize && parent != null
-				&& parent.getChildIndex(key) != 0) {
+		
+		logs.get().setLength(0);
+		
+		int newSize = node.storageSize() + TreeNode.getEntrySize(key, value);
+		
+		if (parent == this.guardNode && newSize <= this.nodeSize) {
 			this.lockManager.unlock(parent.getId(), parentStamp);
+		} else if (newSize < this.nodeSize && parent != null && parent.getChildIndex(key) != 0) {
+			this.lockManager.unlock(parent.getId(), parentStamp);
+			
+			if (parent == this.guardNode) {
+				logger.info("second unlock");
+			}
+		} else if (parent == this.guardNode){
+			logger.info("guard still locked new = " + newSize + " node " + nodeSize +  " current " + node.storageSize() + " entry "
+		               +  TreeNode.getEntrySize(key, value) + " " + key);
+					
 		}
-
+		
 		if (node.isLeaf()) {
 			this.checkWriteLock(node);
 
@@ -608,14 +626,27 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 				if (cursor.currentValue() instanceof Blob blob && blob.isOnDisk()) {
 					blob.releaseDiskSpace(this.treeStore);
 				}
-
+				
+				int before = node.storageSize();
 				node.setValue(node.getChildIndex(key), value);
+				
+				logs.get().append("set child from " + before + " to" + node.storageSize() + "\n");
 
 				if (node.storageSize() < this.nodeSize) {
 					this.saveNode(node);
 				}
 			} else {
+				this.lockManager.checkWriteLock(node.getId());
+				int before = node.storageSize();
+				
+				this.lockManager.checkWriteLock(node.getId());
 				node.addEntry(node.getInsertionPoint(key), key, value);
+				
+				int after = node.storageSize();
+				int elementSize = TreeNode.getEntrySize(key, value);
+				int total = before + elementSize;
+				
+				logs.get().append("added child from " + before + " to" + after + " element " + elementSize + " total" + total + "\n");
 
 				if (node.storageSize() < this.nodeSize) {
 					this.saveNode(node);
@@ -644,7 +675,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 
 		if (node.storageSize() > this.nodeSize) {
 			this.checkWriteLock(node);
-
+			this.checkWriteLock(parent);
 			TreeNode newNode = node.split(this.treeStore.allocateNode());
 
 			this.saveNode(newNode);

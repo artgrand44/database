@@ -140,7 +140,13 @@ public class TreeStore implements Closeable, BlobStore {
 		threadDeltas.get().clear();
 	}
 	
-	public void commit() {
+	public void commit() throws Exception {
+		
+		Map<LogKey, TreeNode> deltas = threadDeltas.get();
+		
+		if (deltas.isEmpty()) {
+			return;
+		}
 		
 		this.lock.lock();
 
@@ -150,7 +156,7 @@ public class TreeStore implements Closeable, BlobStore {
 			
 			// Merge the changes for this thread into the current batch
 			
-			Map<LogKey, TreeNode> deltas = threadDeltas.get();
+			
 			
 			if (this.changeRootKey != null) {
 				for (Map.Entry<LogKey, TreeNode> entry : deltas.entrySet()) {
@@ -162,6 +168,26 @@ public class TreeStore implements Closeable, BlobStore {
 				}
 			}
 					 
+			if (deltas.size() == 1) {
+				Map.Entry<LogKey, TreeNode> delta = deltas.entrySet().iterator().next();
+				
+				if (delta.getKey().op == Operation.Update) {
+					long id = delta.getKey().id;
+					byte[] bytes = delta.getValue().serialize();
+					
+					if (!this.currentDelta.entrySet().stream().anyMatch(x -> x.getKey().id == id) 
+						&& (this.prevDelta == null || !this.prevDelta.entrySet().stream().anyMatch(x -> x.getKey().id == id))) {
+						try {
+							this.writeBlock(bytes, id);
+
+							return;
+						} catch (Exception exc) {
+							logger.info("fast commit failed " + exc);
+					}
+					}
+				}
+			}
+			
 			this.currentDelta.putAll(deltas);
 			threadDeltas.get().clear();
 
