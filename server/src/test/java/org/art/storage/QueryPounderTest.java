@@ -15,7 +15,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 	
 	private static int NITEMS = 10000;
 	private static int NLOOPS = 1000000;
-	private static int NTHREADS = 50;
+	private static int NTHREADS = 150;
 	
 	private AtomicInteger nextId  = new AtomicInteger(NITEMS + 1);
 	

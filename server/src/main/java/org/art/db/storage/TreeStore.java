@@ -148,6 +148,20 @@ public class TreeStore implements Closeable, BlobStore {
 			return;
 		}
 		
+		if (deltas.size() == 1) {
+			Map.Entry<LogKey, TreeNode> delta = deltas.entrySet().iterator().next();
+			LogKey key = delta.getKey();
+			long block = key.id;
+			
+			if (key.op == Operation.Update
+				&& !this.currentDelta.entrySet().stream().anyMatch(x -> x.getKey().id == block)
+				&& (this.prevDelta == null || !!this.prevDelta.entrySet().stream().anyMatch(x -> x.getKey().id == block))) {
+				this.writeBlock(delta.getValue().serialize(), block);
+				threadDeltas.get().clear();
+				
+				return;
+			}
+		}
 		this.lock.lock();
 
 		this.updateCount.addAndGet(threadDeltas.get().size());

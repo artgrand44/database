@@ -192,71 +192,87 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	}
 
 	public Set<TValue> getAll(Comparison comparison, Key key) throws Exception {
-		Set<TValue> result;
+		try {
+			Set<TValue> result;
+			
+			do {
+				logger.info("root " + this.lockManager.getLockId(this.root.getId()));
+				Iterator<Map.Entry<Key, TValue>> iterator = this.getRange(comparison, key);
+				result = new HashSet<>();
 
-		do {
-			Iterator<Map.Entry<Key, TValue>> iterator = this.getRange(comparison, key);
-			result = new HashSet<>();
+				while (iterator.hasNext()) {
+					result.add(iterator.next().getValue());
+				}
+				visits.get().clear();
+				Trace.clear();
+			} while (!this.commit());
 
-			while (iterator.hasNext()) {
-				result.add(iterator.next().getValue());
-			}
-			visits.get().clear();
-			Trace.clear();
-		} while (!this.commit());
+			this.updateStatistics(1, result.size());
 
-		this.updateStatistics(1, result.size());
-
-		return result;
+			return result;
+		} finally {
+			this.lockManager.unlockAll();
+		}
+	
 	}
 
 	public Set<TValue> getAllBetween(Key firstKey, Key lastKey) throws Exception {
 		if (firstKey.compareTo(lastKey) > 0) {
 			return new HashSet<>();
 		}
+		
+		try {
+			this.lockManager.readLock(this.guardNode.getId());
+			this.lockManager.readLock(this.root.getId());
 
-		this.lockManager.readLock(this.guardNode.getId());
-		this.lockManager.readLock(this.root.getId());
+			Set<TValue> result;
+			Cursor first = this.getFirstGE(firstKey);
+			Cursor last = this.getFirstLE(lastKey.with(Key.MAX));
 
-		Set<TValue> result;
-		Cursor first = this.getFirstGE(firstKey);
-		Cursor last = this.getFirstLE(lastKey.with(Key.MAX));
-
-		if (first.currentKey().compareTo(firstKey) < 0) {
-			this.commit();
-			return new HashSet<>();
-		}
-
-		do {
-			Iterator<Map.Entry<Key, TValue>> iterator = new RangeIterator(first, last);
-			result = new HashSet<>();
-
-			while (iterator.hasNext()) {
-				result.add(iterator.next().getValue());
+			if (first.currentKey().compareTo(firstKey) < 0) {
+				this.commit();
+				return new HashSet<>();
 			}
-		} while (!this.commit());
 
-		this.updateStatistics(1, result.size());
+			do {
+				Iterator<Map.Entry<Key, TValue>> iterator = new RangeIterator(first, last);
+				result = new HashSet<>();
 
-		return result;
+				while (iterator.hasNext()) {
+					result.add(iterator.next().getValue());
+				}
+			} while (!this.commit());
+
+
+			this.updateStatistics(1, result.size());
+
+			return result;
+		} finally {
+			this.lockManager.unlockAll();
+		}
 	}
 
 	public Set<Key> getAllKeys(Comparison comparison, Key key) throws Exception {
-		Set<Key> result;
-		do {
-			Iterator<Map.Entry<Key, TValue>> iterator = this.getRange(comparison, key);
-			result = new HashSet<>();
+		try {
+			Set<Key> result;
+			do {
+				logger.info("root " + this.lockManager.getLockId(this.root.getId()));
+				Iterator<Map.Entry<Key, TValue>> iterator = this.getRange(comparison, key);
+				result = new HashSet<>();
 
-			while (iterator.hasNext()) {
-				result.add(iterator.next().getKey());
-			}
-			visits.get().clear();
-			Trace.clear();
-		} while (!this.commit());
+				while (iterator.hasNext()) {
+					result.add(iterator.next().getKey());
+				}
+				visits.get().clear();
+				Trace.clear();
+			} while (!this.commit());
 
-		this.updateStatistics(1, result.size());
+			this.updateStatistics(1, result.size());
 
-		return result;
+			return result;
+		} finally {
+			this.lockManager.unlockAll();
+		}
 	}
 
 	private TreeNode getChild(TreeNode node, int idx) throws Exception {
@@ -412,7 +428,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		Trace.clear();
 	}
 
-	public Iterator<Map.Entry<Key, TValue>> getRange(Comparison comparison, Key key) throws Exception {
+	private Iterator<Map.Entry<Key, TValue>> getRange(Comparison comparison, Key key) throws Exception {
 
 		visits.get().clear();
 		Trace.clear();
@@ -535,7 +551,10 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			return this.root.size() == 0 ? new EmptyIterator() : new RangeIterator(this.getFirst(), this.getLast());
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
+		} finally {
+			this.lockManager.unlockAll();
 		}
+	
 	}
 
 	@SuppressWarnings("unchecked")
@@ -568,6 +587,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	private void putInternal(Key key, TValue value) throws Exception {
 		long stamp = this.lockManager.writeLock(this.guardNode.getId());
 
+		logger.info("root " + this.lockManager.getLockId(this.root.getId()));
 		TreeNode newNode = this.putInternal(this.root, key, value, 0, this.guardNode, stamp);
 
 		if (newNode != null) {
@@ -606,15 +626,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			this.lockManager.unlock(parent.getId(), parentStamp);
 		} else if (newSize < this.nodeSize && parent != null && parent.getChildIndex(key) != 0) {
 			this.lockManager.unlock(parent.getId(), parentStamp);
-			
-			if (parent == this.guardNode) {
-				logger.info("second unlock");
-			}
-		} else if (parent == this.guardNode){
-			logger.info("guard still locked new = " + newSize + " node " + nodeSize +  " current " + node.storageSize() + " entry "
-		               +  TreeNode.getEntrySize(key, value) + " " + key);
-					
-		}
+		} 
 		
 		if (node.isLeaf()) {
 			this.checkWriteLock(node);
@@ -954,6 +966,8 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 				return result;
 			} catch (Exception exc) {
 				throw new IllegalStateException(exc);
+			} finally {
+				lockManager.unlockAll();
 			}
 
 		}

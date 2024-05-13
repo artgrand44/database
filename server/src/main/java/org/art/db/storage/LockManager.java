@@ -81,6 +81,12 @@ public class LockManager<T> {
 		}
 	}
 	
+	public String getLockId(T key) {
+		StampedLock lock = this.getLock(key);
+		
+		return lock.toString();
+	}
+	
 	private StampedLock getLock(T key) {
 		this.lock.lock();
 		
@@ -89,6 +95,7 @@ public class LockManager<T> {
 		
 		if (ref == null || (lock = ref.get()) == null) {
 			lock = new StampedLock();
+			
 			this.locks.put(key, new WeakRef(key, lock));
 		}
 		
