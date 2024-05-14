@@ -196,7 +196,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			Set<TValue> result;
 			
 			do {
-				logger.info("root " + this.lockManager.getLockId(this.root.getId()));
+				//logger.info("root " + this.lockManager.getLockId(this.root.getId()));
 				Iterator<Map.Entry<Key, TValue>> iterator = this.getRange(comparison, key);
 				result = new HashSet<>();
 
@@ -587,7 +587,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	private void putInternal(Key key, TValue value) throws Exception {
 		long stamp = this.lockManager.writeLock(this.guardNode.getId());
 
-		logger.info("root " + this.lockManager.getLockId(this.root.getId()));
 		TreeNode newNode = this.putInternal(this.root, key, value, 0, this.guardNode, stamp);
 
 		if (newNode != null) {
