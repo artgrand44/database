@@ -606,30 +606,23 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			this.checkReadLock(node);
 			this.lockManager.writeLock(node.getId());
 			
-			boolean changed = false;
-			
 			if (cursor.found) {
 				node.setValue(cursor.index, value);
-				changed = true;
+				this.commit();
+				return;
 			} else {
 				int insertionPoint = node.getInsertionPoint(key);
 				
 				if (insertionPoint != 0) {
 					node.addEntry(insertionPoint, key, value);
-					changed = true;
+					this.commit();
+					return;
 				}
-			}
-			
-			if (changed) {
-				this.commit();
-				return;
-			} else {
-				this.lockManager.unlock(node.getId());
 			}
 		}
 		
 
-		
+		this.lockManager.unlock(node.getId());
 		TreeNode newNode = this.putInternal(this.root, key, value, 0, this.guardNode, stamp);
 
 		if (newNode != null) {
