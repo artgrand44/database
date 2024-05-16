@@ -19,6 +19,7 @@ class TreeNode {
 	private boolean isLeaf;
 	private long next;
 	private long id;
+	private int storageSize;
 	
 	
 	private boolean modified;
@@ -32,6 +33,8 @@ class TreeNode {
 		this.id = id;
 		this.next = -1;
 		this.modified = true;
+		
+		this.computeStorageSize();
 	}
 	
 	TreeNode(TreeNode that) {
@@ -39,6 +42,7 @@ class TreeNode {
 		this.id = that.id;
 		this.next = that.next;
 		this.modified = that.modified;
+		this.storageSize = that.storageSize;
 		
 		for (Entry entry : that.entries) {
 			this.entries.add(entry);
@@ -62,14 +66,19 @@ class TreeNode {
 				
 				this.entries.add(new Entry(key, value));
 			}
+			
+			this.computeStorageSize();
 		}
 	}
+	
 	void addEntry(int insertionPoint, Key key, Object value) {
 		Objects.requireNonNull(key);
 		Objects.requireNonNull(value);
 		
 		this.entries.add(insertionPoint, new Entry(key, value));
 		this.modified = true;
+		
+		this.computeStorageSize();
 	}
 	
 	void addEntry(Key key, Object value) {
@@ -81,12 +90,14 @@ class TreeNode {
 		
 		this.entries.add(new Entry(key, value));
 		this.modified = true;
+		
+		this.computeStorageSize();
 	}
 	
 	int binarySearch(Key key) {
 		try {
 			return Collections.binarySearch(this.entries, new Entry(key, null));
-		} catch (NullPointerException exc) {
+		} catch (Exception exc) {
 			for (Entry entry : this.entries) {
 				if (entry == null) {
 					logger.info("null entry");
@@ -181,6 +192,7 @@ class TreeNode {
 	
 	void markModified() {
 		this.modified = true;
+		this.computeStorageSize();
 	}
 	
 	void merge(TreeNode nextChild) {
@@ -191,11 +203,15 @@ class TreeNode {
 		}
 		this.next = nextChild.next;	
 		this.modified = true;
+		
+		this.computeStorageSize();
 	}
 	
 	void remove(int idx) {
 		this.entries.remove(idx);
 		this.modified = true;
+		
+		this.computeStorageSize();
 	}
 	
 	public void setId(long id) {
@@ -221,21 +237,28 @@ class TreeNode {
 		}
 		this.entries.set(idx, new Entry(old.key, value));
 		this.modified = true;
+		
+		this.computeStorageSize();
 	}
 
 	int size() {
 		return this.entries.size();
 	}
 
-	int storageSize() {
+	private void computeStorageSize() {
 		int size = 21;
 		
 		for (Entry entry : this.entries) {
+			if (entry == null) {
+				logger.info("null entry");
+			}
 			size += entry.getSize();
 		}
 		
-		return size;
-
+		this.storageSize = size;
+	}
+	int storageSize() {
+		return this.storageSize;
 	}
 	
 	public byte[] serialize() throws Exception {
@@ -275,6 +298,8 @@ class TreeNode {
 		newNode.next = this.next;
 		this.next = newNode.id;
 		this.modified = true;
+		
+		this.computeStorageSize();
 		
 		return newNode;
 

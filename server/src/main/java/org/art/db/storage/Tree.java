@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.art.db.common.Blob;
@@ -222,7 +223,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		}
 		
 		try {
-			this.lockManager.readLock(this.guardNode.getId());
 			this.lockManager.readLock(this.root.getId());
 
 			Set<TValue> result;
@@ -302,7 +302,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	Cursor getFirstGE(Key key) throws Exception {
 		logs.get().setLength(0);
 		visits.get().clear();
-		boolean trace = TRACE && false;
+		boolean trace = false;
 		Cursor cursor = this.getFirstLE(key);
 		Key max = key.with(Key.MAX);
 
@@ -341,30 +341,46 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	}
 
 	Cursor getFirstLE(Key key) throws Exception {
+		try {
 		TreeNode node = this.root;
 		boolean trace = false;
 		Cursor cursor;
 
+		Trace.clear();
+		
+		Trace.log("locking " + key);
+		lockManager.readLock(node.getId());
+		this.lockManager.checkReadLock(node.getId());
+
+		if (trace) visits.get().add(new Visit("root in getFirstLE", node));
 		this.checkReadLock(node);
-
-		if (trace)
-			visits.get().add(new Visit("root in getFirstLE", node));
-
+		
 		for (;;) {
+			this.checkReadLock(node);
 			cursor = this.getFirstLE(node, key);
 
 			if (cursor.isLeaf()) {
 				break;
 			} else {
-				node = this.getChild(cursor.node, Math.max(0, cursor.index));
+				TreeNode child = this.getChild(cursor.node, Math.max(0, cursor.index));
+				this.checkReadLock(child);
 
-				if (trace)
-					visits.get().add(new Visit("descend to index " + Math.max(0, cursor.index), node));
+				if (trace) visits.get().add(new Visit("descend to index " + Math.max(0, cursor.index),  child));
+				this.checkReadLock(node);
+				this.lockManager.unlock(node.getId());
+				
+				node = child;
 				this.checkReadLock(node);
 			}
 		}
 
 		return cursor;
+		} catch (Exception exc) {
+			logger.info(Trace.asString());
+			throw exc;
+		} finally {
+			Trace.clear();
+		}
 	}
 
 	Cursor getLast() throws Exception {
@@ -434,12 +450,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		Trace.clear();
 
 		Iterator<Map.Entry<Key, TValue>> empty = new HashMap<Key, TValue>().entrySet().iterator();
-
-		this.lockManager.readLock(this.guardNode.getId());
-		this.lockManager.readLock(this.root.getId());
-		
-		this.lockManager.checkReadLock(this.guardNode.getId());
-		this.lockManager.readLock(this.root.getId());
 
 		Trace.clear();
 
@@ -584,9 +594,36 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			}
 	}
 
+	AtomicInteger puts = new AtomicInteger();
+	AtomicInteger fast = new AtomicInteger();
 	private void putInternal(Key key, TValue value) throws Exception {
 		long stamp = this.lockManager.writeLock(this.guardNode.getId());
+		
+		/*Cursor cursor = this.getFirstLE(key);
+		int size = cursor.node.storageSize() + TreeNode.getEntrySize(key, value);
+		TreeNode node = cursor.node;
+		
+		puts.incrementAndGet();
+		if (size <= this.nodeSize) {
+			this.checkReadLock(node);
+			this.lockManager.writeLock(node.getId());
+			
+			if (cursor.found) {
+				node.setValue(cursor.index, value);
+			} else {
+				node.addEntry(node.getInsertionPoint(key), key, value);
+			}
+			
+			//logger.info("fast case");
+			this.commit();
+			fast.incrementAndGet();
+			return;
+		}
 
+		if (puts.get() % 1000 == 0) {
+			logger.info("fast = " + ((fast.get() * 100) / puts.get()));
+		}*/
+		
 		TreeNode newNode = this.putInternal(this.root, key, value, 0, this.guardNode, stamp);
 
 		if (newNode != null) {

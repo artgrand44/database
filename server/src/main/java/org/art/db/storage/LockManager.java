@@ -143,6 +143,7 @@ public class LockManager<T> {
 		
 		return true;
 	}
+	
 	public void unlock(T key, long stamp) {
 		Map<T, LockInfo> map = threadInfo.get();
 		StampedLock lock = this.getLock(key);
@@ -156,6 +157,11 @@ public class LockManager<T> {
 		
 	}
 
+
+	public void unlock(T key) {
+		this.unlock(key, threadInfo.get().get(key).timestamp);
+	}
+	
 	public boolean unlockAll() {
 		Map<T, LockInfo> map = threadInfo.get();
 		boolean success = true;
