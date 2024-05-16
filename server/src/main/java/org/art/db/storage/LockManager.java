@@ -102,6 +102,7 @@ public class LockManager<T> {
 		this.lock.unlock();
 		
 		return lock;
+		
 	}
 	
 	public boolean isReadLocked(T key) {

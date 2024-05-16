@@ -148,7 +148,7 @@ public class TreeStore implements Closeable, BlobStore {
 			return;
 		}
 		
-		if (deltas.size() == 1) {
+		/*if (deltas.size() == 1) {
 			Map.Entry<LogKey, TreeNode> delta = deltas.entrySet().iterator().next();
 			LogKey key = delta.getKey();
 			long block = key.id;
@@ -161,7 +161,7 @@ public class TreeStore implements Closeable, BlobStore {
 				
 				return;
 			}
-		}
+		}*/
 		this.lock.lock();
 
 		this.updateCount.addAndGet(threadDeltas.get().size());
@@ -182,26 +182,6 @@ public class TreeStore implements Closeable, BlobStore {
 				}
 			}
 					 
-			if (deltas.size() == 1) {
-				Map.Entry<LogKey, TreeNode> delta = deltas.entrySet().iterator().next();
-				
-				if (delta.getKey().op == Operation.Update) {
-					long id = delta.getKey().id;
-					byte[] bytes = delta.getValue().serialize();
-					
-					if (!this.currentDelta.entrySet().stream().anyMatch(x -> x.getKey().id == id) 
-						&& (this.prevDelta == null || !this.prevDelta.entrySet().stream().anyMatch(x -> x.getKey().id == id))) {
-						try {
-							this.writeBlock(bytes, id);
-
-							return;
-						} catch (Exception exc) {
-							logger.info("fast commit failed " + exc);
-					}
-					}
-				}
-			}
-			
 			this.currentDelta.putAll(deltas);
 			threadDeltas.get().clear();
 
