@@ -595,7 +595,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	}
 
 	private void putInternal(Key key, TValue value) throws Exception {
-		long stamp = this.lockManager.writeLock(this.guardNode.getId());
 		
 		Cursor cursor = this.getFirstLE(key);
 		int size = cursor.node.storageSize() + TreeNode.getEntrySize(key, value);
@@ -627,6 +626,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		
 		
 		
+		long stamp = this.lockManager.writeLock(this.guardNode.getId());
 		
 		TreeNode newNode = this.putInternal(this.root, key, value, 0, this.guardNode, stamp);
 
