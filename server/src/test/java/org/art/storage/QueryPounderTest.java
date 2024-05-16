@@ -64,7 +64,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 				Assertions.assertThat(ids.iterator().next().get("ID").equals(Long.valueOf(id))).isTrue();
 				
 				if (names.size() != 1) {
-					///logger.info("Names is bad " + name);				
+					logger.info("Names is bad " + name);				
 				}
 				//Assertions.assertThat(names.size() == 1).isTrue();
 				Assertions.assertThat(ids.iterator().next().get("FirstName").equals(name)).isTrue();

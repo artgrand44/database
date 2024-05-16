@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,10 +43,6 @@ public class Router {
 	
 	private static final ConcurrentMap<RouterKey, Router> routers = new ConcurrentHashMap<>();
 	
-	/**
-	 * The total number of batch requests
-	 */
-	private final AtomicLong totalBatchRequests = new AtomicLong();
 	
 	/**
 	 * The average time a batch request is waiting for the timer to go off
@@ -203,24 +198,4 @@ public class Router {
 		} 
 	}
 	
-	private void tuneBatchSize() {
-		long totalRequests = this.totalBatchRequests.incrementAndGet();
-		
-		if (totalRequests > 100 && totalRequests % 1000 == 0) {
-			long queueTime = this.averageQueueTime.getAverage();
-			long requestTime = this.averageRequestTime.getAverage();
-			
-			if (requestTime != 0) {
-				long queuePercent = (queueTime * 100) / requestTime;
-
-				if (queuePercent > 10) {
-					this.maxBatchSize--;
-					logger.info("percent = " + queuePercent + " lowered to" + this.maxBatchSize);
-				} else if (queuePercent < 5 && this.maxBatchSize < MAX_SIZE) {
-					this.maxBatchSize++;
-					logger.info("percent = " + queuePercent + " raised to" + this.maxBatchSize);
-				}
-			}
-		}
-	}
 }

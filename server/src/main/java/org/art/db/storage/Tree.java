@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.art.db.common.Blob;
@@ -83,6 +82,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 
 	private final LockManager<Long> lockManager = new LockManager<>();
 
+	@SuppressWarnings("unused")
 	private static boolean TRACE = false;
 
 	private final static ThreadLocal<StringBuilder> logs = ThreadLocal.withInitial(() -> new StringBuilder());
@@ -594,35 +594,50 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			}
 	}
 
-	AtomicInteger puts = new AtomicInteger();
-	AtomicInteger fast = new AtomicInteger();
 	private void putInternal(Key key, TValue value) throws Exception {
 		long stamp = this.lockManager.writeLock(this.guardNode.getId());
 		
-		/*Cursor cursor = this.getFirstLE(key);
+		
+		Cursor cursor = this.getFirstLE(key);
 		int size = cursor.node.storageSize() + TreeNode.getEntrySize(key, value);
 		TreeNode node = cursor.node;
+		long version = node.getVersion();
+		int oldInsertionPoint = node.getInsertionPoint(key);
 		
-		puts.incrementAndGet();
 		if (size <= this.nodeSize) {
 			this.checkReadLock(node);
 			this.lockManager.writeLock(node.getId());
 			
+			boolean changed = false;
+			if (node.getVersion() != version) {
+				logger.info("*****changed");
+			}
 			if (cursor.found) {
 				node.setValue(cursor.index, value);
+				changed = true;
+				logger.info("*****found");
 			} else {
-				node.addEntry(node.getInsertionPoint(key), key, value);
+				int insertionPoint = node.getInsertionPoint(key);
+				
+				if (insertionPoint != oldInsertionPoint) {
+					logger.info("****moved");
+				}
+				
+				if (insertionPoint != 0) {
+					node.addEntry(insertionPoint, key, value);
+					changed = true;
+				}
 			}
 			
-			//logger.info("fast case");
-			this.commit();
-			fast.incrementAndGet();
-			return;
+			if (changed) {
+				this.commit();
+				return;
+			} else {
+				this.lockManager.unlock(node.getId());
+			}
 		}
+		
 
-		if (puts.get() % 1000 == 0) {
-			logger.info("fast = " + ((fast.get() * 100) / puts.get()));
-		}*/
 		
 		TreeNode newNode = this.putInternal(this.root, key, value, 0, this.guardNode, stamp);
 
