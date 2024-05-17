@@ -624,8 +624,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		
 		this.lockManager.unlock(node.getId());
 		
-		
-		
 		long stamp = this.lockManager.writeLock(this.guardNode.getId());
 		
 		TreeNode newNode = this.putInternal(this.root, key, value, 0, this.guardNode, stamp);

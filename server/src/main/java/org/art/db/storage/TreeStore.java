@@ -148,24 +148,12 @@ public class TreeStore implements Closeable, BlobStore {
 			return;
 		}
 		
-		/*if (deltas.size() == 1) {
-			Map.Entry<LogKey, TreeNode> delta = deltas.entrySet().iterator().next();
-			LogKey key = delta.getKey();
-			long block = key.id;
-			
-			if (key.op == Operation.Update
-				&& !this.currentDelta.entrySet().stream().anyMatch(x -> x.getKey().id == block)
-				&& (this.prevDelta == null || !!this.prevDelta.entrySet().stream().anyMatch(x -> x.getKey().id == block))) {
-				this.writeBlock(delta.getValue().serialize(), block);
-				threadDeltas.get().clear();
-				
-				return;
-			}
-		}*/
 		this.lock.lock();
 
 		this.updateCount.addAndGet(threadDeltas.get().size());
 
+		boolean doFlush = false;
+		
 		try {
 			
 			// Merge the changes for this thread into the current batch
@@ -190,17 +178,20 @@ public class TreeStore implements Closeable, BlobStore {
 			// since the changes within a batch aren't ordered.  If we create a batch
 			// with two changes to the route, they might be applied in the wrong order.
 			
-			if (this.prevDelta == null && this.currentDelta.size() > 50) {
+			if (this.prevDelta == null && this.currentDelta.size() > 200) {
 				this.prevDelta = this.currentDelta;
 				this.currentDelta = new ConcurrentHashMap<>();
 				this.changeRootKey = null;
-
-				Scheduler.DEFAULT.submit(() -> this.flushPrevious());
+				
+				doFlush = true;
 			} 
 		} finally {
 			this.lock.unlock();
 		}
 
+		if (doFlush) {
+			Scheduler.DEFAULT.submit(() -> this.flushPrevious());
+		}
 	}
 	
 	public void crash() throws IOException {
