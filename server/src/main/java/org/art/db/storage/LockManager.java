@@ -88,12 +88,16 @@ public class LockManager<T> {
 	}
 	
 	private StampedLock getLock(T key) {
+		StampedLock lock;
+		WeakRef ref;
+		
+		if ((ref = this.locks.get(key)) != null && (lock = ref.get()) != null) {
+			return lock;
+		}
+		
 		this.lock.lock();
 		
-		WeakRef ref = this.locks.get(key);
-		StampedLock lock; 
-		
-		if (ref == null || (lock = ref.get()) == null) {
+		if ((ref = this.locks.get(key)) == null || (lock = ref.get()) == null) {
 			lock = new StampedLock();
 			
 			this.locks.put(key, new WeakRef(key, lock));
