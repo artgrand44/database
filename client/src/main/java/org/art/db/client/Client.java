@@ -155,13 +155,13 @@ public class Client {
 
 			String lower = statement.toLowerCase().trim();
 			
-			//this.doPost("/db/execute", Collections.emptyMap(), body);
+			this.doPost("/db/execute", Collections.emptyMap(), body);
 			
-			if (lower.startsWith("insert") || lower.startsWith("update") || lower.startsWith("delete")) {
+			/*if (lower.startsWith("insert") || lower.startsWith("update") || lower.startsWith("delete")) {
 				this.doBatch("/db/execute", Collections.emptyMap(), body);
 			} else {
 				this.doPost("/db/execute", Collections.emptyMap(), body);
-			}
+			}*/
 		}
 	}
 	

@@ -141,6 +141,7 @@ public class MemorySegment extends Segment {
 	 */
 	private void broadcastTimer() {
 
+		long start = System.nanoTime();
 		this.lock.lock();
 
 		try {
@@ -150,6 +151,7 @@ public class MemorySegment extends Segment {
 			}
 		} finally {
 			this.lock.unlock();
+			Trace.memoryLocks.logEvent(System.nanoTime() - start);
 		}
 		
 		Collection<URI> peers;
@@ -215,7 +217,7 @@ public class MemorySegment extends Segment {
 	 */
 	
 	private void log(Operation op, Key key, Document value, boolean propagate) throws Exception {
-		
+		long start = System.nanoTime();
 		this.lock.lock();
 		
 		try {
@@ -231,6 +233,7 @@ public class MemorySegment extends Segment {
 			}
 		} finally {
 			this.lock.unlock();
+			Trace.memoryLocks.logEvent(System.nanoTime() - start);
 		}
 	
 	}

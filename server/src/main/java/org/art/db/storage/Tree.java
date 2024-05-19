@@ -80,7 +80,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	 */
 	private final AtomicLong resultCount = new AtomicLong();
 
-	private final LockManager<Long> lockManager = new LockManager<>();
+	private final LockManager<Long> lockManager = new LockManager<>(Trace.nodeLocks);
 
 	@SuppressWarnings("unused")
 	private static boolean TRACE = false;
@@ -308,8 +308,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 
 		if (!cursor.found) {
 			cursor.next();
-			if (trace)
-				visits.get().add(new Visit("getFirstGE after not found", cursor.node));
+			if (trace) visits.get().add(new Visit("getFirstGE after not found", cursor.node));
 		}
 
 		if (cursor.currentKey() == null) {
@@ -321,8 +320,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		}
 
 		while (cursor.currentKey().compareTo(max) < 0 && !cursor.currentKey().startsWith(key) && cursor.next()) {
-			if (trace)
-				visits.get().add(new Visit("getFirstGE in loop", cursor.node));
+			if (trace) visits.get().add(new Visit("getFirstGE in loop", cursor.node));
 		}
 
 		return cursor;
@@ -341,7 +339,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	}
 
 	Cursor getFirstLE(Key key) throws Exception {
-		try {
+		
 		TreeNode node = this.root;
 		boolean trace = false;
 		Cursor cursor;
@@ -350,10 +348,8 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		
 		Trace.log("locking " + key);
 		lockManager.readLock(node.getId());
-		this.lockManager.checkReadLock(node.getId());
-
+		
 		if (trace) visits.get().add(new Visit("root in getFirstLE", node));
-		this.checkReadLock(node);
 		
 		for (;;) {
 			this.checkReadLock(node);
@@ -363,24 +359,17 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 				break;
 			} else {
 				TreeNode child = this.getChild(cursor.node, Math.max(0, cursor.index));
-				this.checkReadLock(child);
-
+				
 				if (trace) visits.get().add(new Visit("descend to index " + Math.max(0, cursor.index),  child));
-				this.checkReadLock(node);
 				this.lockManager.unlock(node.getId());
 				
 				node = child;
-				this.checkReadLock(node);
 			}
 		}
 
+		Trace.clear();
 		return cursor;
-		} catch (Exception exc) {
-			logger.info(Trace.asString());
-			throw exc;
-		} finally {
-			Trace.clear();
-		}
+	
 	}
 
 	Cursor getLast() throws Exception {
@@ -605,6 +594,8 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			this.checkReadLock(node);
 			
 			try {
+				insertionPoint = node.getInsertionPoint(key);
+				
 				this.lockManager.writeLock(node.getId());
 
 				if (cursor.found && cursor.index != 0) {
@@ -612,7 +603,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 					this.saveNode(node);
 					this.commit();
 					return;
-				} else if ((!cursor.found) && (insertionPoint = node.getInsertionPoint(key)) != 0){
+				} else if ((!cursor.found) && insertionPoint != 0){
 					node.addEntry(insertionPoint, key, value);
 					this.saveNode(node);
 					this.commit();

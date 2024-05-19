@@ -155,6 +155,7 @@ public class Table implements Closeable {
 			return result;
 		}
 
+		long start = System.nanoTime();
 		this.readLock.lock();
 
 		try {
@@ -178,6 +179,7 @@ public class Table implements Closeable {
 
 			return null;
 		} finally {
+			Trace.tableLocks.logEvent(System.nanoTime() - start);
 			this.readLock.unlock();
 		}
 	}
@@ -243,6 +245,7 @@ public class Table implements Closeable {
 		
 
 	public void insert(Key key, Document value, boolean propagate) throws Exception {
+		long start = System.nanoTime();
 		this.readLock.lock();
 		
 		try {
@@ -250,6 +253,7 @@ public class Table implements Closeable {
 			
 			cache.put(new DocId(this, key), value);
 		} finally {
+			Trace.tableLocks.logEvent(System.nanoTime() - start);
 			this.readLock.unlock();
 		}
 
@@ -263,12 +267,14 @@ public class Table implements Closeable {
 	}
 	
 	public void remove(Key key, boolean propagate) throws Exception {
+		long start = System.nanoTime();
 		this.readLock.lock();
 		
 		try {
 			this.currentSegment.remove(key, propagate);
 			cache.invalidate(new DocId(this, key));
 		} finally {
+			Trace.tableLocks.logEvent(System.nanoTime() - start);
 			this.readLock.unlock();
 		}
 		
@@ -343,6 +349,7 @@ public class Table implements Closeable {
 	}
 	
 	public void update(Key key, Document value, boolean propagate) throws Exception {
+		long start = System.nanoTime();
 		this.readLock.lock();
 		
 		try {
@@ -350,6 +357,7 @@ public class Table implements Closeable {
 			
 			cache.put(new DocId(this, key), value);
 		} finally {
+			Trace.tableLocks.logEvent(System.nanoTime() - start);
 			this.readLock.unlock();
 		}
 		
