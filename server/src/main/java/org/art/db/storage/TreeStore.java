@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.RemovalCause;
+import java.util.AbstractMap.SimpleEntry;
 
 public class TreeStore implements Closeable, BlobStore {
 	
@@ -43,7 +45,8 @@ public class TreeStore implements Closeable, BlobStore {
 	enum Operation {
 		Release,
 		Update,
-		SetRoot
+		SetRoot,
+		EOF
 	}
 	
 	record LogKey(Operation op, long id) {
@@ -69,19 +72,22 @@ public class TreeStore implements Closeable, BlobStore {
 	private static final TreeNode NULL_NODE = new TreeNode();
 	
 	
-	private volatile ConcurrentMap<LogKey, TreeNode> currentDelta = new ConcurrentHashMap<>();	
-	private volatile ConcurrentMap<LogKey, TreeNode> prevDelta;
-	private LogKey changeRootKey;
+	private volatile ConcurrentMap<LogKey, Object> currentDelta = new ConcurrentHashMap<>();	
+	private volatile ConcurrentMap<LogKey, Object> prevDelta;
 	
-	private final static ThreadLocal<Map<LogKey, TreeNode>> threadDeltas = ThreadLocal.withInitial(() -> new HashMap<>());
 	
+	private final static ThreadLocal<Map<LogKey, Object>> threadDeltas = ThreadLocal.withInitial(() -> new HashMap<>());
+	
+	private final static LogKey SET_ROOT_KEY = new LogKey(Operation.SetRoot, 0);
+	
+	private final static LogKey EOF_ROOT_KEY = new LogKey(Operation.EOF, 0);
+	
+	private final static Map.Entry<LogKey, Object> EOF = new SimpleEntry<>(EOF_ROOT_KEY, null);
 	
 	public TreeStore() throws IOException, Exception {
 		this(File.createTempFile("tree", ".dat"));
 	}
-	
-	
-	
+		
 	public TreeStore(File file) throws Exception { 
 		this(file, 2048);
 	}
@@ -142,7 +148,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void commit() throws Exception {
 		
-		Map<LogKey, TreeNode> deltas = threadDeltas.get();
+		Map<LogKey, Object> deltas = threadDeltas.get();
 		
 		if (deltas.isEmpty()) {
 			return;
@@ -155,20 +161,6 @@ public class TreeStore implements Closeable, BlobStore {
 		boolean doFlush = false;
 		
 		try {
-			
-			// Merge the changes for this thread into the current batch
-			
-			
-			
-			if (this.changeRootKey != null) {
-				for (Map.Entry<LogKey, TreeNode> entry : deltas.entrySet()) {
-					if (entry.getKey().op == Operation.SetRoot && changeRootKey != null) {
-						this.currentDelta.remove(this.changeRootKey);
-						this.changeRootKey = entry.getKey();
-						break;
-					}
-				}
-			}
 					 
 			this.currentDelta.putAll(deltas);
 			threadDeltas.get().clear();
@@ -181,8 +173,6 @@ public class TreeStore implements Closeable, BlobStore {
 			if (this.prevDelta == null && this.currentDelta.size() > 200) {
 				this.prevDelta = this.currentDelta;
 				this.currentDelta = new ConcurrentHashMap<>();
-				this.changeRootKey = null;
-				
 				doFlush = true;
 			} 
 		} finally {
@@ -224,22 +214,25 @@ public class TreeStore implements Closeable, BlobStore {
 		
 	}
 
-	private void flush(ConcurrentMap<LogKey, TreeNode> delta)  {
+	private void flush(ConcurrentMap<LogKey, Object> delta)  {
 		this.flushLock.lock();
 		
 		try {
+			List<Map.Entry<LogKey, Object>> entries = new LinkedList<>();
 			
-			Map<LogKey, byte[]> serialized = new HashMap<>();
-			
-			for (Map.Entry<LogKey, TreeNode> entry : delta.entrySet()) {
-				if (entry.getKey().op == Operation.Update) {
-					serialized.put(entry.getKey(), entry.getValue().serialize());
-				}
+			for (Map.Entry<LogKey, Object> entry : delta.entrySet()) {
+				LogKey key = entry.getKey();
+				Object value = entry.getValue();
+				
+				entries.add(new SimpleEntry<>(key, value instanceof TreeNode node ? node.serialize() : value));
 			}
+			
+			entries.add(EOF);
 			
 			// Write the log entries then close the log.  This is the fastest way 
 			// to guarantee that the end of file marker has been written to the
 			// operating system.
+			
 			
 			try (DataOutputStream log = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(this.logFile)))){
 
@@ -249,28 +242,21 @@ public class TreeStore implements Closeable, BlobStore {
 
 				this.writeCount.addAndGet(delta.size());
 
-				log.writeInt(delta.size());
+				log.writeInt(entries.size());
 
-				for (Map.Entry<LogKey, TreeNode> entry : delta.entrySet()) {
-					LogKey key = entry.getKey();
-
-					log.writeLong(key.id);
-					log.writeUTF(key.op.toString());
-
-					if (key.op == Operation.Update) {
-						byte[] bytes = serialized.get(key);
-						log.writeInt(bytes.length);
-						log.write(bytes);
-					}
+				for (Map.Entry<LogKey, Object> entry : entries) {
+					flush(log, entry);
 				} 
 
 				log.flush();
 			}	
 						
-			for (Map.Entry<LogKey, TreeNode> entry : delta.entrySet()) {
+			for (Map.Entry<LogKey, Object> entry : entries) {
 				LogKey key = entry.getKey();
 				
 				switch (key.op) {
+				case EOF:
+					break;
 				case Release:
 					this.freeNode(key.id);
 					break;
@@ -279,7 +265,7 @@ public class TreeStore implements Closeable, BlobStore {
 					this.writeHeader();
 					break;
 				case Update:
-					this.file.writeBlock(serialized.get(key), key.id);
+					this.file.writeBlock((byte[])entry.getValue(), key.id);
 					break;
 				}
 			}
@@ -294,6 +280,20 @@ public class TreeStore implements Closeable, BlobStore {
 		}
 	}
 	
+	private void flush(DataOutputStream log, Map.Entry<LogKey, Object> entry) throws Exception {
+		LogKey key = entry.getKey();
+
+		log.writeLong(key.id);
+		log.writeUTF(key.op.toString());
+
+		if (key.op == Operation.Update) {
+			byte[] bytes = (byte[])entry.getValue();
+			log.writeInt(bytes.length);
+			log.write(bytes);
+		} else if (key == SET_ROOT_KEY) {
+			log.writeLong((Long)entry.getValue());
+		}
+	}
 	public void flushAll() {
 		this.lock.lock();
 		
@@ -348,36 +348,63 @@ public class TreeStore implements Closeable, BlobStore {
 		return new Blob(bytes);
 	}
 
+	
 	private void recover() {
 		try (FileInputStream fstream = new FileInputStream(this.logFile); DataInputStream stream = new DataInputStream(fstream)) {
 			int count = stream.readInt();
-			
+
+			List<Map.Entry<LogKey, Object>> items = new LinkedList<>();
+
 			for (int idx = 0; idx < count; idx++) {
 				long id = stream.readLong();
 				Operation op = Enum.valueOf(Operation.class, stream.readUTF());
-				
+				Object value = null;
+
 				switch (op) {
+				case Update:
+					byte[] bytes = new byte[stream.readInt()];
+					stream.read(bytes);
+					value = bytes;
+					break;
+				case EOF:
+					break;
+				case SetRoot:
+					value = stream.readLong();
+				default:
+					break;
+				}
+
+				items.add(new SimpleEntry<>(new LogKey(op, id), value));							
+			}
+
+			if (items.isEmpty() || items.getLast().getKey().op != Operation.EOF) { 
+				return;
+			}
+			
+			for (Map.Entry<LogKey, Object> item : items) {
+				LogKey key = item.getKey();
+
+				switch (key.op) {
 				case Release:
 					break;
 				case SetRoot:
-					this.header.root = id;
+					this.header.root = (Long)item.getValue();
 					this.writeHeader();
 					break;
 				case Update:
-					byte[] bytes = new byte[stream.readInt()];
-					
-					stream.read(bytes);
-					
-					this.file.writeBlock(bytes, id);
+					this.file.writeBlock((byte[])item.getValue(), key.id);
+					break;
+				case EOF:
 					break;
 				}
 			}
+
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error recovering database");
 			logger.info("Recovery failed " + exc.getMessage());
 		}
 	}
-	
+
 	public void releaseNode(long id) throws IOException {
 		
 		threadDeltas.get().put(new LogKey(Operation.Release, id), NULL_NODE);
@@ -385,7 +412,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	
 	public void rollback() {
-		for (Map.Entry<LogKey, TreeNode> entry : threadDeltas.get().entrySet()) {
+		for (Map.Entry<LogKey, Object> entry : threadDeltas.get().entrySet()) {
 			cache.invalidate(new NodeId(this, entry.getKey().id));
 		}
 		
@@ -492,9 +519,9 @@ public class TreeStore implements Closeable, BlobStore {
 			LogKey key = new LogKey(Operation.Update, id);
 			
 			if (this.currentDelta.containsKey(key)) {
-				return this.currentDelta.get(key);
+				return (TreeNode)this.currentDelta.get(key);
 			} else if (prevDelta != null && this.prevDelta.containsKey(key)) {
-				return this.prevDelta.get(key);
+				return (TreeNode)this.prevDelta.get(key);
 			} else {
 				byte[] bytes = this.file.readBlock(key.id);
 				TreeNode node = new TreeNode(bytes);
@@ -525,8 +552,9 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void saveRoot(long id) throws IOException {
 		
-		threadDeltas.get().put(new LogKey(Operation.SetRoot, id), NULL_NODE);
+		threadDeltas.get().put(SET_ROOT_KEY, id);
 	}
+	
 	
 	public void saveNode(TreeNode node) throws Exception {
 		NodeId id = new NodeId(this, node.getId());
