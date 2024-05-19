@@ -36,9 +36,12 @@ class TreeNode {
 		this.modified = true;
 		
 		this.computeStorageSize();
+		check();
 	}
 	
 	TreeNode(TreeNode that) {
+		that.check();
+		
 		this.isLeaf = that.isLeaf;
 		this.id = that.id;
 		this.next = that.next;
@@ -49,6 +52,9 @@ class TreeNode {
 		for (Entry entry : that.entries) {
 			this.entries.add(entry);
 		}
+		
+		this.check();
+		
 	}
 	
 	public TreeNode(byte[] bytes) throws Exception {
@@ -71,6 +77,7 @@ class TreeNode {
 			}
 			
 			this.computeStorageSize();
+			check();
 		}
 	}
 	
@@ -78,11 +85,14 @@ class TreeNode {
 		Objects.requireNonNull(key);
 		Objects.requireNonNull(value);
 		
-		this.entries.add(insertionPoint, new Entry(key, value));
+		check();
+		Entry entry = new Entry(key, value);
+		
+		this.entries.add(insertionPoint, entry);
 		this.modified = true;
 		this.version++;
-		
-		this.computeStorageSize();
+		this.storageSize += entry.getSize();
+		check();
 	}
 	
 	void addEntry(Key key, Object value) {
@@ -91,12 +101,15 @@ class TreeNode {
 		}
 		Objects.requireNonNull(key);
 		Objects.requireNonNull(value);
+		check();
 		
-		this.entries.add(new Entry(key, value));
+		Entry entry = new Entry(key, value);
+		
+		this.entries.add(entry);
 		this.modified = true;
 		this.version++;
-		
-		this.computeStorageSize();
+		this.storageSize += entry.getSize();
+		check();
 	}
 	
 	int binarySearch(Key key) {
@@ -189,6 +202,7 @@ class TreeNode {
 	}
 	
 	void markModified() {
+		check();
 		this.modified = true;
 		this.version++;
 		this.computeStorageSize();
@@ -197,6 +211,8 @@ class TreeNode {
 	void merge(TreeNode nextChild) {
 		this.entries.addAll(nextChild.entries);
 		
+		check();
+		nextChild.check();
 		for (Entry entry : this.entries) {
 			Objects.requireNonNull(entry);
 		}
@@ -205,14 +221,17 @@ class TreeNode {
 		this.version++;
 		
 		this.computeStorageSize();
+		check();
 	}
 	
 	void remove(int idx) {
-		this.entries.remove(idx);
+		check();
+		Entry entry = this.entries.remove(idx);
 		this.modified = true;
 		this.version++;
+		this.storageSize -= entry.getSize();
 		
-		this.computeStorageSize();
+		check();
 	}
 	
 	public void setId(long id) {
@@ -221,10 +240,14 @@ class TreeNode {
 	
 	void setKey(int idx, Key key) {
 		Entry old = this.entries.get(idx);
+		Key oldKey = old.key;
 		
 		this.entries.set(idx, new Entry(key, old.value));
 		this.modified = true;
 		this.version++;
+		this.storageSize = this.storageSize - oldKey.getSize() + key.getSize();
+		
+		check();
 	}
 	
 	public void setNext(long next) {
@@ -234,28 +257,39 @@ class TreeNode {
 	}	
 	
 	void setValue(int idx, Object value) {
-		Entry old = this.entries.get(idx);
-		if (value == null) {
-			logger.info("setting null value");
-		}
-		this.entries.set(idx, new Entry(old.key, value));
+		check();
+		Entry oldEntry = this.entries.get(idx);
+		Entry newEntry = new Entry(oldEntry.key, value);
+		
+		this.entries.set(idx, newEntry);
 		this.modified = true;
 		this.version++;
 		
-		this.computeStorageSize();
+		this.storageSize = this.storageSize - oldEntry.getSize() + newEntry.getSize();
+		check();
+		
 	}
 
 	int size() {
 		return this.entries.size();
+	}
+	
+	private void check() {
+		int size = 21;
+		
+		for (Entry entry : this.entries) {
+			size += entry.getSize();
+		}
+		
+		if (this.storageSize != size) {
+			logger.info("oops");
+		}
 	}
 
 	private void computeStorageSize() {
 		int size = 21;
 		
 		for (Entry entry : this.entries) {
-			if (entry == null) {
-				logger.info("null entry");
-			}
 			size += entry.getSize();
 		}
 		
@@ -286,6 +320,7 @@ class TreeNode {
 	
 	
 	TreeNode split(long newId) {
+		check();
 		int split = this.entries.size() / 2;
 		
 		TreeNode newNode = new TreeNode(this.isLeaf(), newId);
@@ -306,6 +341,10 @@ class TreeNode {
 		this.version++;
 		
 		this.computeStorageSize();
+		newNode.computeStorageSize();
+		
+		this.check();
+		newNode.check();
 		
 		return newNode;
 
