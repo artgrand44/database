@@ -34,7 +34,7 @@ public class Trace {
 	public final static RollingAverage tableLocks = new RollingAverage("TableLocks");
 	
 	static {
-		Scheduler.DEFAULT.scheduleAtFixedRate(() -> logStats(), 10, 10, TimeUnit.SECONDS);
+		//Scheduler.DEFAULT.scheduleAtFixedRate(() -> logStats(), 10, 10, TimeUnit.SECONDS);
 	}
 	
 	public static String asString() {
