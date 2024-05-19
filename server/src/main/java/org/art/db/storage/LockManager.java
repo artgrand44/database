@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.StampedLock;
 
@@ -46,8 +47,6 @@ public class LockManager<T> {
 	private final ReferenceQueue<StampedLock> queue = new ReferenceQueue<>();
 	
 	private final ScheduledFuture<?> cleaner;
-	
-	private final ReentrantLock lock = new ReentrantLock();
 	
 	public LockManager() {
 		this.cleaner = Scheduler.DEFAULT.scheduleAtFixedRate(this::cleanup, 10, 10, TimeUnit.SECONDS);
@@ -88,20 +87,26 @@ public class LockManager<T> {
 	}
 	
 	private StampedLock getLock(T key) {
-		this.lock.lock();
-		
-		WeakRef ref = this.locks.get(key);
-		StampedLock lock; 
-		
-		if (ref == null || (lock = ref.get()) == null) {
-			lock = new StampedLock();
+		final AtomicReference<StampedLock> ref = new AtomicReference<>(null);
+				
+		return this.locks.compute(key, (k, v) ->  {
+			if (v == null) {
+				StampedLock lock = new StampedLock();
+				ref.set(lock);
+				return new WeakRef(key, lock);
+			}
 			
-			this.locks.put(key, new WeakRef(key, lock));
-		}
+			ref.set(v.get());
+			
+			if (ref.get() == null) {
+				StampedLock lock = new StampedLock();
+				ref.set(lock);
+				return new WeakRef(key, lock);
+			}
+			
+			return v;
+		}).get();
 		
-		this.lock.unlock();
-		
-		return lock;
 		
 	}
 	
