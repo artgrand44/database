@@ -20,11 +20,7 @@ class TreeNode {
 	private long next;
 	private long id;
 	private int storageSize;
-	private long version;
 	
-	
-	private boolean modified;
-
 	TreeNode() {
 		
 	}
@@ -33,27 +29,19 @@ class TreeNode {
 		this.isLeaf = isLeaf;
 		this.id = id;
 		this.next = -1;
-		this.modified = true;
 		
 		this.computeStorageSize();
-		check();
 	}
 	
 	TreeNode(TreeNode that) {
-		that.check();
-		
 		this.isLeaf = that.isLeaf;
 		this.id = that.id;
 		this.next = that.next;
-		this.modified = that.modified;
 		this.storageSize = that.storageSize;
-		this.version = that.version;
 		
 		for (Entry entry : that.entries) {
 			this.entries.add(entry);
 		}
-		
-		this.check();
 		
 	}
 	
@@ -62,7 +50,6 @@ class TreeNode {
 			this.isLeaf = stream.readBoolean();
 			this.id = stream.readLong();
 			this.next = stream.readLong();
-			this.version = stream.readLong();
 			
 			int count = stream.readInt();
 			
@@ -77,7 +64,6 @@ class TreeNode {
 			}
 			
 			this.computeStorageSize();
-			check();
 		}
 	}
 	
@@ -85,31 +71,20 @@ class TreeNode {
 		Objects.requireNonNull(key);
 		Objects.requireNonNull(value);
 		
-		check();
 		Entry entry = new Entry(key, value);
 		
 		this.entries.add(insertionPoint, entry);
-		this.modified = true;
-		this.version++;
 		this.storageSize += entry.getSize();
-		check();
 	}
 	
 	void addEntry(Key key, Object value) {
-		if (key == null) {
-			logger.info("oops");
-		}
 		Objects.requireNonNull(key);
 		Objects.requireNonNull(value);
-		check();
 		
 		Entry entry = new Entry(key, value);
 		
 		this.entries.add(entry);
-		this.modified = true;
-		this.version++;
 		this.storageSize += entry.getSize();
-		check();
 	}
 	
 	int binarySearch(Key key) {
@@ -193,45 +168,22 @@ class TreeNode {
 		return this.isLeaf;
 	}
 	
-	public boolean isModified() {
-		return modified;
-	}
-
-	void markClean() {
-		this.modified = false;
-	}
-	
-	void markModified() {
-		check();
-		this.modified = true;
-		this.version++;
-		this.computeStorageSize();
-	}
-	
 	void merge(TreeNode nextChild) {
 		this.entries.addAll(nextChild.entries);
 		
-		check();
-		nextChild.check();
 		for (Entry entry : this.entries) {
 			Objects.requireNonNull(entry);
 		}
+		
 		this.next = nextChild.next;	
-		this.modified = true;
-		this.version++;
 		
 		this.computeStorageSize();
-		check();
 	}
 	
 	void remove(int idx) {
-		check();
 		Entry entry = this.entries.remove(idx);
-		this.modified = true;
-		this.version++;
-		this.storageSize -= entry.getSize();
 		
-		check();
+		this.storageSize -= entry.getSize();
 	}
 	
 	public void setId(long id) {
@@ -243,30 +195,20 @@ class TreeNode {
 		Key oldKey = old.key;
 		
 		this.entries.set(idx, new Entry(key, old.value));
-		this.modified = true;
-		this.version++;
 		this.storageSize = this.storageSize - oldKey.getSize() + key.getSize();
-		
-		check();
 	}
 	
 	public void setNext(long next) {
 		this.next = next;
-		this.modified = true;
-		this.version++;
 	}	
 	
 	void setValue(int idx, Object value) {
-		check();
 		Entry oldEntry = this.entries.get(idx);
 		Entry newEntry = new Entry(oldEntry.key, value);
 		
 		this.entries.set(idx, newEntry);
-		this.modified = true;
-		this.version++;
 		
 		this.storageSize = this.storageSize - oldEntry.getSize() + newEntry.getSize();
-		check();
 		
 	}
 
@@ -274,18 +216,6 @@ class TreeNode {
 		return this.entries.size();
 	}
 	
-	private void check() {
-		int size = 21;
-		
-		for (Entry entry : this.entries) {
-			size += entry.getSize();
-		}
-		
-		if (this.storageSize != size) {
-			logger.info("oops");
-		}
-	}
-
 	private void computeStorageSize() {
 		int size = 21;
 		
@@ -305,7 +235,6 @@ class TreeNode {
 			stream.writeBoolean(this.isLeaf);
 			stream.writeLong(this.id);
 			stream.writeLong(this.next);
-			stream.writeLong(this.version);
 			stream.writeInt(this.entries.size());
 			
 			for (Entry entry : this.entries) {
@@ -320,7 +249,6 @@ class TreeNode {
 	
 	
 	TreeNode split(long newId) {
-		check();
 		int split = this.entries.size() / 2;
 		
 		TreeNode newNode = new TreeNode(this.isLeaf(), newId);
@@ -337,14 +265,9 @@ class TreeNode {
 
 		newNode.next = this.next;
 		this.next = newNode.id;
-		this.modified = true;
-		this.version++;
 		
 		this.computeStorageSize();
 		newNode.computeStorageSize();
-		
-		this.check();
-		newNode.check();
 		
 		return newNode;
 
@@ -355,13 +278,10 @@ class TreeNode {
 		String first = this.entries.isEmpty() ? "" :  (this.entries.get(0).key.toString());
 		String last = this.entries.isEmpty() ? "" :  this.entries.get(this.entries.size() - 1).key.toString();
 		
-		return "Node [id=" + id + ", isLeaf=" + isLeaf + ",version = " + version + ", count = " + entries.size() + " next = " + next + ", first = " + first + ", last = " + last + "]";
+		return "Node [id=" + id + ", isLeaf=" + isLeaf +  ", count = " + entries.size() + " next = " + next + ", first = " + first + ", last = " + last + "]";
 	}
 
-	public long getVersion() {
-		return version;
-	}
-
+	
 	static class Entry implements Comparable<Entry> {
 
 		private Key key;
