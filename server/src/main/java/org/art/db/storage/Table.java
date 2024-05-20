@@ -159,7 +159,7 @@ public class Table implements Closeable {
 		this.readLock.lock();
 
 		try {
-			List<String> lowKeys = new ArrayList<>();
+			List<String> lowKeys = new ArrayList<>(this.segments.size());
 
 			for (Segment segment : this.segments) {
 				lowKeys.add(segment.getHighGUID().toString());

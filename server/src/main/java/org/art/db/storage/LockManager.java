@@ -193,17 +193,10 @@ public class LockManager<T> {
 
 	void readLock(T key) {
 		Map<T, LockInfo> map = threadInfo.get();
-		long start = System.nanoTime();
 		
 		if (!map.containsKey(key)) {
 			StampedLock lock = this.getLock(key);
 			map.put(key, new LockInfo(lock, lock.readLock()));
-		}
-		
-		this.stats.logEvent(System.nanoTime() - start);
-		
-		if (this.stats == Trace.nodeLocks) {
-			Trace.nodeReads.logEvent(System.nanoTime() - start);
 		}
 		
 	}
@@ -213,7 +206,6 @@ public class LockManager<T> {
 	}
 	
 	public long writeLock(T key) throws UpgradeException {
-		long start = System.nanoTime();
 		Map<T, LockInfo> map = threadInfo.get();
 		LockInfo info = map.get(key);
 		StampedLock lock = this.getLock(key);
@@ -223,7 +215,6 @@ public class LockManager<T> {
 			stamp = lock.tryConvertToWriteLock(info.timestamp);
 			
 			if (stamp == 0) {
-				this.stats.logEvent(System.nanoTime() - start);
 				throw new UpgradeException();
 			}
 		} else {
@@ -232,11 +223,6 @@ public class LockManager<T> {
 		
 		map.put(key, new LockInfo(lock, stamp));
 		
-		this.stats.logEvent(System.nanoTime() - start);
-		
-		if (this.stats == Trace.nodeLocks) {
-			Trace.nodeWrites.logEvent(System.nanoTime() - start);
-		}
 		return stamp;
 	}
 	
