@@ -116,7 +116,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 
 			this.treeStore.saveRoot(root.getId());
 		} else {
-			logger.info("reading root " + rootId + " from " + file.getName());
 			this.root = this.getNode(rootId);
 			this.getCount.set(this.treeStore.getSearchCount());
 			this.resultCount.set(this.treeStore.getResultCount());
