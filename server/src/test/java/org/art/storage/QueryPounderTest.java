@@ -15,7 +15,8 @@ public class QueryPounderTest extends BaseQueryPounder {
 	
 	private static int NITEMS = 10000;
 	private static int NLOOPS = 1000000;
-	private static int NTHREADS = 150;
+	private static int NUPDATERS = 20;
+	private static int NTHREADS = 150 + NUPDATERS;
 	
 	private AtomicInteger nextId  = new AtomicInteger(NITEMS + 1);
 	
@@ -35,8 +36,17 @@ public class QueryPounderTest extends BaseQueryPounder {
 	
 	@Override
 	protected void pound(int index, int mainLoop) {	
+		super.waitForAllStarted();
+		
+		if (index < NUPDATERS) {
+			this.doUpdates(index);
+		} else {
+			this.doSelects(index);
+		}
+	}
+	
+	protected void doSelects(int index) {	
 		try {
-			super.waitForAllStarted();
 			String nameQuery = "select * from pounder where FirstName = ?";
 			String idQuery = "select * from pounder where ID = ?";
 			Random random = new Random(index);
@@ -50,46 +60,45 @@ public class QueryPounderTest extends BaseQueryPounder {
 				DocumentSet ids = client.executeQuery(idQuery, id);
 				DocumentSet names = client.executeQuery(nameQuery, name);
 				
-				if (ids.size() == 0) {
-					logger.info("missing id " + id);
-					
-					synchronized (this) {
-						ids = client.executeQuery(idQuery, id);
-						logger.info("after 2nd " + ids.size());
-					}
-					
-				}
-				Assertions.assertThat(ids.size() == 1).isTrue();
+				this.addRead();
+				this.addRead();
 				
+				Assertions.assertThat(ids.size() == 1).isTrue();
 				Assertions.assertThat(ids.iterator().next().get("ID").equals(Long.valueOf(id))).isTrue();
 				
 				if (names.size() != 1) {
 					logger.info("Names is bad " + name);				
 				}
-				//Assertions.assertThat(names.size() == 1).isTrue();
+				
+				Assertions.assertThat(names.size() == 1).isTrue();
 				Assertions.assertThat(ids.iterator().next().get("FirstName").equals(name)).isTrue();
-				
-				if (loop % 3 == 0) {
-					this.insert(client, this.nextId.incrementAndGet());
-					this.addWrite();
-				}
-				
-				if (loop % 10 == 0) {
-					id = -(this.deleteNextId.incrementAndGet());
-					
-					this.insert(client, id);
-					//this.remove(client, id);
-					this.addWrite();
-					//this.addDelete();
-				}
-				this.addRead(2);
 			}
+			
 		} catch (Throwable exc) {
 			logger.error(exc.getMessage());
 			this.addError(exc);
 		}
 	}
 
+	protected void doUpdates(int index) {	
+		try {
+			
+			Client client = new Client("cluster", "admin", "admin");
+			
+			for (int loop = 0; loop < NLOOPS; loop++) {
+				int id = -(this.deleteNextId.incrementAndGet());
+					
+				this.insert(client, id);
+				this.addWrite();
+
+				//this.remove(client, id);
+				//this.addDelete();
+			}
+		} catch (Throwable exc) {
+			logger.error(exc.getMessage());
+			this.addError(exc);
+		}
+	}
 		
 	
 
