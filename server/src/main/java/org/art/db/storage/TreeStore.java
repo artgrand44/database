@@ -152,7 +152,6 @@ public class TreeStore implements Closeable, BlobStore {
 	public void commit() throws Exception {
 		
 		Map<LogKey, Object> deltas = threadDeltas.get();
-		long start = System.nanoTime();
 		
 		if (deltas.isEmpty()) {
 			return;
@@ -186,7 +185,6 @@ public class TreeStore implements Closeable, BlobStore {
 				doFlush = true;
 			} 
 		} finally {
-			Trace.commitLocks.logEvent(System.nanoTime() - start);
 			this.lock.unlock();
 		}
 		
@@ -200,7 +198,6 @@ public class TreeStore implements Closeable, BlobStore {
 	}
 	
 	public long allocateNode() throws Exception {
-		long start = System.nanoTime();
 		this.lock.lock();
 		
 		try {
@@ -217,7 +214,6 @@ public class TreeStore implements Closeable, BlobStore {
 
 			return this.freeBlocks.remove(0);
 		} finally {
-			Trace.allocateLocks.logEvent(System.nanoTime() - start);
 			this.lock.unlock();
 		}
 	}
@@ -441,7 +437,6 @@ public class TreeStore implements Closeable, BlobStore {
 	
 
 	private void freeNode(long id) {
-		long start = System.nanoTime();
 		this.lock.lock();
 		
 		try {
@@ -465,7 +460,6 @@ public class TreeStore implements Closeable, BlobStore {
 		} catch (Exception exc) {
 			logger.info("Exception freeing node " + exc.getMessage());
 		} finally {
-			Trace.allocateLocks.logEvent(System.nanoTime() - start);
 			this.lock.unlock();
 		}
 

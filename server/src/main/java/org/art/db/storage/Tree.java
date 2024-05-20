@@ -80,7 +80,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	 */
 	private final AtomicLong resultCount = new AtomicLong();
 
-	private final LockManager<Long> lockManager = new LockManager<>(Trace.nodeLocks);
+	private final LockManager<Long> lockManager = new LockManager<>();
 
 	@SuppressWarnings("unused")
 	private static boolean TRACE = false;

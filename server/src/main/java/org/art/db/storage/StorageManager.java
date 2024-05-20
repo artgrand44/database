@@ -52,6 +52,7 @@ public class StorageManager  {
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
+			exc.printStackTrace();
 			throw new DBRuntimeException("Error initializing table", exc);
 		}
 	}

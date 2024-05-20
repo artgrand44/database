@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.StampedLock;
 
-import org.art.db.common.RollingAverage;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,10 +49,7 @@ public class LockManager<T> {
 	
 	private final ReentrantLock lock = new ReentrantLock();
 	
-	private final RollingAverage stats;
-	
-	public LockManager(RollingAverage stats) {
-		this.stats = stats;
+	public LockManager() {
 		this.cleaner = Scheduler.DEFAULT.scheduleAtFixedRate(this::cleanup, 10, 10, TimeUnit.SECONDS);
 	}
 

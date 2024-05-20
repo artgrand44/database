@@ -43,7 +43,7 @@ public class TableManager implements Closeable{
 	private final File metadataFile;
 	private final List<IndexInfo> indexInfo;
 	private final Map<String, Index> indices = new HashMap<>();
-	private final LockManager<Key> lockManager = new LockManager<>(Trace.keyLocks);
+	private final LockManager<Key> lockManager = new LockManager<>();
 	private final boolean checkConstraints;
 	private final RestClient restClient = new RestClient();
 	private final FileLock lock;
