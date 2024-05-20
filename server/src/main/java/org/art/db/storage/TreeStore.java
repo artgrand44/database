@@ -69,12 +69,13 @@ public class TreeStore implements Closeable, BlobStore {
 	private static final TreeNode NULL_NODE = new TreeNode();
 	
 	
-	private volatile ConcurrentMap<LogKey, TreeNode> currentDelta = new ConcurrentHashMap<>();	
-	private volatile ConcurrentMap<LogKey, TreeNode> prevDelta;
+	private volatile ConcurrentMap<LogKey, Object> currentDelta = new ConcurrentHashMap<>();	
+	private volatile ConcurrentMap<LogKey, Object> prevDelta;
 	private LogKey changeRootKey;
 	
-	private final static ThreadLocal<Map<LogKey, TreeNode>> threadDeltas = ThreadLocal.withInitial(() -> new HashMap<>());
+	private final static ThreadLocal<Map<LogKey, Object>> threadDeltas = ThreadLocal.withInitial(() -> new HashMap<>());
 	
+	private final static LogKey ROOT_KEY = new LogKey(Operation.SetRoot, -1);
 	
 	public TreeStore() throws IOException, Exception {
 		this(File.createTempFile("tree", ".dat"));
@@ -142,7 +143,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void commit() throws Exception {
 		
-		Map<LogKey, TreeNode> deltas = threadDeltas.get();
+		Map<LogKey, Object> deltas = threadDeltas.get();
 		
 		if (deltas.isEmpty()) {
 			return;
@@ -157,18 +158,6 @@ public class TreeStore implements Closeable, BlobStore {
 		try {
 			
 			// Merge the changes for this thread into the current batch
-			
-			
-			
-			if (this.changeRootKey != null) {
-				for (Map.Entry<LogKey, TreeNode> entry : deltas.entrySet()) {
-					if (entry.getKey().op == Operation.SetRoot && changeRootKey != null) {
-						this.currentDelta.remove(this.changeRootKey);
-						this.changeRootKey = entry.getKey();
-						break;
-					}
-				}
-			}
 					 
 			this.currentDelta.putAll(deltas);
 			threadDeltas.get().clear();
@@ -224,16 +213,18 @@ public class TreeStore implements Closeable, BlobStore {
 		
 	}
 
-	private void flush(ConcurrentMap<LogKey, TreeNode> delta)  {
+	private void flush(ConcurrentMap<LogKey, Object> delta)  {
 		this.flushLock.lock();
 		
 		try {
 			
 			Map<LogKey, byte[]> serialized = new HashMap<>();
 			
-			for (Map.Entry<LogKey, TreeNode> entry : delta.entrySet()) {
+			for (Map.Entry<LogKey, Object> entry : delta.entrySet()) {
 				if (entry.getKey().op == Operation.Update) {
-					serialized.put(entry.getKey(), entry.getValue().serialize());
+					TreeNode node = (TreeNode)entry.getValue();
+					
+					serialized.put(entry.getKey(), node.serialize());
 				}
 			}
 			
@@ -251,7 +242,7 @@ public class TreeStore implements Closeable, BlobStore {
 
 				log.writeInt(delta.size());
 
-				for (Map.Entry<LogKey, TreeNode> entry : delta.entrySet()) {
+				for (Map.Entry<LogKey, Object> entry : delta.entrySet()) {
 					LogKey key = entry.getKey();
 
 					log.writeLong(key.id);
@@ -261,13 +252,15 @@ public class TreeStore implements Closeable, BlobStore {
 						byte[] bytes = serialized.get(key);
 						log.writeInt(bytes.length);
 						log.write(bytes);
+					} else if (key.op == Operation.SetRoot) {
+						log.writeLong((Long)entry.getValue());
 					}
 				} 
 
 				log.flush();
 			}	
 						
-			for (Map.Entry<LogKey, TreeNode> entry : delta.entrySet()) {
+			for (Map.Entry<LogKey, Object> entry : delta.entrySet()) {
 				LogKey key = entry.getKey();
 				
 				switch (key.op) {
@@ -275,7 +268,7 @@ public class TreeStore implements Closeable, BlobStore {
 					this.freeNode(key.id);
 					break;
 				case SetRoot:
-					this.header.root = key.id;
+					this.header.root = (long)entry.getValue();
 					this.writeHeader();
 					break;
 				case Update:
@@ -385,7 +378,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	
 	public void rollback() {
-		for (Map.Entry<LogKey, TreeNode> entry : threadDeltas.get().entrySet()) {
+		for (Map.Entry<LogKey, Object> entry : threadDeltas.get().entrySet()) {
 			cache.invalidate(new NodeId(this, entry.getKey().id));
 		}
 		
@@ -517,7 +510,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void saveRoot(long id) throws IOException {
 		
-		threadDeltas.get().put(new LogKey(Operation.SetRoot, id), NULL_NODE);
+		threadDeltas.get().put(ROOT_KEY, id);
 	}
 	
 	public void saveNode(TreeNode node) throws Exception {
