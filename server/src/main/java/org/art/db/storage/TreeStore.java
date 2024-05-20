@@ -489,20 +489,12 @@ public class TreeStore implements Closeable, BlobStore {
 			this.hitCount.incrementAndGet();
 			return node;
 		} else {
-			LogKey key = new LogKey(Operation.Update, id);
-			
-			if (this.currentDelta.containsKey(key)) {
-				return this.currentDelta.get(key);
-			} else if (prevDelta != null && this.prevDelta.containsKey(key)) {
-				return this.prevDelta.get(key);
-			} else {
-				byte[] bytes = this.file.readBlock(key.id);
-				TreeNode node = new TreeNode(bytes);
+			byte[] bytes = this.file.readBlock(id);
+			TreeNode node = new TreeNode(bytes);
 
-				cache.put(nodeId, node);
+			cache.put(nodeId, node);
 
-				return node;
-			}
+			return node;
 		}
 			
 	}
