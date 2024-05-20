@@ -18,8 +18,6 @@ public class QueryPounderTest extends BaseQueryPounder {
 	private static int NUPDATERS = 20;
 	private static int NTHREADS = 150 + NUPDATERS;
 	
-	private AtomicInteger nextId  = new AtomicInteger(NITEMS + 1);
-	
 	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);
 	
 	public QueryPounderTest() {
@@ -91,8 +89,8 @@ public class QueryPounderTest extends BaseQueryPounder {
 				this.insert(client, id);
 				this.addWrite();
 
-				//this.remove(client, id);
-				//this.addDelete();
+				this.remove(client, id);
+				this.addDelete();
 			}
 		} catch (Throwable exc) {
 			logger.error(exc.getMessage());

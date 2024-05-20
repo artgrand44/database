@@ -752,25 +752,28 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	}
 
 	private void removeInternal(Key key) throws Exception {
-		long stamp = this.lockManager.writeLock(this.guardNode.getId());
-
 		
 		Cursor cursor = this.getFirstLE(key);
 		TreeNode node = cursor.node;
+		int index = cursor.index;
 		
-		if (cursor.found && node.storageSize() >=  this.nodeSize / 2) {
+		if (cursor.found && index > 0 && node.storageSize() - node.getEntrySize(index) > this.nodeSize / 2) {
 			this.checkReadLock(node);
-			this.lockManager.writeLock(node.getId());
 			
-			node.remove(cursor.index);
-			this.saveNode(node);
-			this.size.decrementAndGet();
-			this.commit();
-			return;
+			try {
+				this.lockManager.writeLock(node.getId());
+
+				this.size.decrementAndGet();
+				node.remove(cursor.index);
+				this.saveNode(node);
+				return;
+			} catch (UpgradeException exc) {
+			}
 		}
 		
-
 		this.lockManager.unlock(node.getId());
+
+		long stamp = this.lockManager.writeLock(this.guardNode.getId());
 
 		this.removeInternal(this.root, key, 0, this.guardNode, stamp, true);
 

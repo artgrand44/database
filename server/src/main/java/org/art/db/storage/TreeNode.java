@@ -119,6 +119,10 @@ class TreeNode {
 		}
 	}
 	
+	public int getEntrySize(int index) {
+		return this.entries.get(index).getSize();
+	}
+	
 	public static int getEntrySize(Key key, Object value) {
 		return new Entry(key, value).getSize();
 	}
