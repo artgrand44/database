@@ -4,6 +4,7 @@ import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.RemovalCause;
+import java.util.AbstractMap.SimpleEntry;
 
 public class TreeStore implements Closeable, BlobStore {
 	
@@ -42,7 +45,8 @@ public class TreeStore implements Closeable, BlobStore {
 	enum Operation {
 		Release,
 		Update,
-		SetRoot
+		SetRoot,
+		EOF
 	}
 	
 	static record LogKey(Operation op, long id) {
@@ -166,6 +170,10 @@ public class TreeStore implements Closeable, BlobStore {
 					 
 			this.currentBatch.putAll(changes);
 			this.currentBatch.transactional |= changes.size() > 1;
+			
+			if (changes.size() > 1 && !this.currentBatch.transactional) {
+				logger.info("not set");
+			}
 			threadChanges.get().clear();
 
 			// If the batch is full then flush it.
@@ -240,8 +248,6 @@ public class TreeStore implements Closeable, BlobStore {
 			
 			if (batch.transactional) {
 				try (DataOutputStream log = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(this.logFile)))){
-
-
 					this.writeCount.addAndGet(batch.size());
 
 					log.writeInt(batch.size());
@@ -261,6 +267,8 @@ public class TreeStore implements Closeable, BlobStore {
 						}
 					} 
 
+					log.writeLong(0);
+					log.writeUTF(Operation.EOF.toString());
 					log.flush();
 				}	
 			}
@@ -269,6 +277,8 @@ public class TreeStore implements Closeable, BlobStore {
 				LogKey key = entry.getKey();
 				
 				switch (key.op) {
+				case EOF:
+					break;
 				case Release:
 					this.freeNode(key.id);
 					break;
@@ -350,26 +360,57 @@ public class TreeStore implements Closeable, BlobStore {
 		try (FileInputStream fstream = new FileInputStream(this.logFile); DataInputStream stream = new DataInputStream(fstream)) {
 			int count = stream.readInt();
 			
+			List<Map.Entry<LogKey, Object>> batch = new LinkedList<>();
+			
 			for (int idx = 0; idx < count; idx++) {
 				long id = stream.readLong();
 				Operation op = Enum.valueOf(Operation.class, stream.readUTF());
+				Object value = null;
 				
 				switch (op) {
-				case Release:
-					break;
 				case SetRoot:
-					this.header.root = id;
-					this.writeHeader();
+					value = stream.readLong();
 					break;
 				case Update:
 					byte[] bytes = new byte[stream.readInt()];
 					
 					stream.read(bytes);
-					
-					this.file.writeBlock(bytes, id);
+					value = bytes;
+					break;
+				default:
+					break;
+				}
+				
+				batch.add(new SimpleEntry<>(new LogKey(op, id), value));
+			}
+			
+			if (batch.isEmpty()) {
+				return;
+			}
+			
+			if (batch.getLast().getKey().op != Operation.EOF) {
+				logger.info("Tree log was not properly closed");
+				return;
+			}
+			
+			for (Map.Entry<LogKey, Object> entry : batch) {
+				LogKey key = entry.getKey();
+				
+				switch (key.op) {
+				case SetRoot:
+					this.header.root = (long)entry.getValue();
+					this.writeHeader();
+					break;
+				case Update:
+					this.file.writeBlock((byte[])entry.getValue(), key.id);
+					break;
+				default:
 					break;
 				}
 			}
+		} catch (EOFException exc) {
+			Metrics.getInstance().logAlert("The index log was not properly closed");
+			logger.info("The index log was not properly closed");
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error recovering database");
 			logger.info("Recovery failed " + exc.getMessage());
