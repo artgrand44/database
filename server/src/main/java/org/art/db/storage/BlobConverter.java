@@ -32,7 +32,7 @@ public class BlobConverter {
 	
 	static Blob fromDocument(Metadata metadata, Document doc) throws Exception {
 		
-		if (doc == Document.ZOMBIE) {
+		if (doc.isZombie()) {
 			return new Blob(new byte[0]);
 		}
 		

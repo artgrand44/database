@@ -166,7 +166,7 @@ public class Table implements Closeable {
 
 			for (Segment segment : this.segments) {
 				if ((result = segment.get(key)) != null) {
-					if (result == Document.ZOMBIE) {
+					if (result.isZombie()) {
 						return null;
 					} else {
 						cache.put(id, result);

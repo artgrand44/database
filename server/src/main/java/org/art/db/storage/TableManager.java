@@ -423,7 +423,7 @@ public class TableManager implements Closeable{
 			Index index = this.indices.get(info.name());
 			
 			Key oldKey = oldDoc == null ? null : this.buildKey(oldDoc, info.fields());
-			Key newKey = newDoc == null || newDoc == Document.ZOMBIE ? null : this.buildKey(newDoc, info.fields());
+			Key newKey = newDoc == null || newDoc.isZombie() ? null : this.buildKey(newDoc, info.fields());
 
 			if (!Objects.equals(oldKey, newKey)) {
 				if (oldKey != null) {

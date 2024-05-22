@@ -16,15 +16,21 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 	
 	private final Map<String, Object> map = new HashMap<>();
 	private Key key;
+	private final boolean zombie;
 	
-	public static final Document ZOMBIE = new Document();
+	public final static Document ZOMBIE = new Document(true);
 	
 	public Document() {
-		
+		this(false);
+	}
+	
+	private Document(boolean zombie) {
+		this.zombie = zombie;
 	}
 	
 	public Document(Document that) {
 		this.key = that.key;
+		this.zombie = that.zombie;
 		
 		for (Map.Entry<String, Object> entry : that.map.entrySet()) {
 			final String name = entry.getKey();
@@ -38,6 +44,10 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 		}
 	}
 	
+	public boolean isZombie() {
+		return zombie;
+	}
+
 	@Override
 	public Document deserialize(TypedInputStream stream) throws IOException {
 		int size = stream.readInt();
