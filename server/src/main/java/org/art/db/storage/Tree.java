@@ -256,7 +256,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		try {
 			Set<Key> result;
 			do {
-				logger.info("root " + this.lockManager.getLockId(this.root.getId()));
 				Iterator<Map.Entry<Key, TValue>> iterator = this.getRange(comparison, key);
 				result = new HashSet<>();
 

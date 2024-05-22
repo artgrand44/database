@@ -39,8 +39,8 @@ public class ReplicationTest extends BaseIntegrationTest {
 				super.startInternal("./replication.properties");
 				super.startExternal("./secondary.properties");
 				
-				Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin");
-				Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin");
+				Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin").batch(false);
+				Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin").batch(false);
 				
 				primaryClient.waitServerCount(2);
 				secondaryClient.waitServerCount(2);

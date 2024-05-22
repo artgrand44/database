@@ -8,6 +8,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -32,6 +33,8 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 	
 	private AtomicInteger deleteCount = new AtomicInteger();
 	
+	private final CountDownLatch exitLatch;
+	
 	private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
 	private long startTime;
@@ -48,6 +51,7 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 		
 		this.nitems = nitems;
 		this.nthreads = nthreads;
+		this.exitLatch = new CountDownLatch(nthreads - (nthreads / 10));
 	
 		this.startInternal(profile);
 	}
@@ -81,6 +85,10 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 		this.errors.add(thr);
 	}
 
+	protected void addCompletion() {
+		this.exitLatch.countDown();
+	}
+	
 	protected void addRead() {
 		this.readCount.incrementAndGet();
 	}
@@ -122,7 +130,6 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 			}
 
 			readCount.set(0);
-
 			
 			threads.forEach(x -> x.start());
 
@@ -135,23 +142,30 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 			this.startTime = System.currentTimeMillis();
 			this.lock.writeLock().unlock();
 			
+			// Wait until 90% of the threads have finished then kill the rest
+			// of the threads.  If we wait for the last 10% to complete then
+			// performance becomes extremely slow.
+			
+			this.exitLatch.await();
+			
 			for (Thread thread : threads) {
-				thread.join();
-
-				if (this.errors.size() != 0)  {
-					logger.info("Test errors");
-					
-					for (Throwable error : this.errors) {
-						logger.info(error.getMessage());
-					}
+				if (thread.isAlive()) {
+					thread.interrupt();
 				}
-				
-				Assertions.assertEquals(0, this.errors.size());
 			}
-
+				
 			logger.info("end of searches " + this.getClass().getSimpleName());
 			
+			if (this.errors.size() != 0)  {
+				logger.info("Test errors");
 
+				for (Throwable error : this.errors) {
+					logger.info(error.getMessage());
+				}
+			}
+
+			Assertions.assertEquals(0, this.errors.size());
+			
 			this.stop();
 
 			long end = System.currentTimeMillis();
@@ -160,13 +174,6 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 
 
 			logger.info(String.format(this.getClass().getSimpleName() + " Final Per read = %f10", timePerRead) + "ms total " + readCount.get() + " elapsed " + elapsed);
-			
-			/*
-				try {
-					Thread.sleep(1000 * 60 * 10);
-				} catch (Exception exc) {
-
-				}*/
 		} catch (Exception exc) {
 			logger.error(exc.getMessage());
 			exc.printStackTrace();
@@ -207,7 +214,8 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 			if (Float.isFinite(timePerRead) && elapsed > 1000) {
 				long gcRate = totalGC / (elapsed / 1000);
 				
-				String entry = this.getClass().getSimpleName() + " " + String.format("Per read = %f10 ms reads %s writes %s deletes %s tps %s heap %sMB gc %s/sec cpu %s", 
+				String entry = this.getClass().getSimpleName() + " " + String.format("Completed %s Per read = %f10 ms reads %s writes %s deletes %s tps %s heap %sMB gc %s/sec cpu %s", 
+						this.exitLatch.getCount(),
 						timePerRead,
 						readCount.get(),
 						writeCount.get(),

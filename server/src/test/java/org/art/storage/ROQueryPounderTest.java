@@ -81,11 +81,16 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 				
 				this.addRead(2);
 			}
+		} catch (InterruptedException exc) {
+			
 		} catch (Throwable exc) {
 			logger.error(exc.getMessage());
 			exc.printStackTrace();
 			this.addError(exc);
 		}
+		
+		
+		this.addCompletion();
 	}
 
 		
@@ -109,6 +114,7 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 		}
 		
 		logger.info("inserts complete");
+		
 	}
 
 	private void insert(Client client, int idx) throws Exception {

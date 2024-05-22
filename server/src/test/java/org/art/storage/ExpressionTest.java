@@ -25,7 +25,7 @@ public class ExpressionTest extends BaseIntegrationTest {
 			try  {
 				startInternal("./application.properties");
 				
-				Client client = new Client("cluster", "admin", "admin");
+				Client client = new Client("cluster", "admin", "admin").batch(false);
 				
 				String create = "CREATE TABLE expressions (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255), count int)";
 				String createIndex = "CREATE INDEX expressions ON expressions(first)";

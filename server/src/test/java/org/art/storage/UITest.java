@@ -37,7 +37,7 @@ public class UITest extends BaseIntegrationTest {
 				
 				startInternal("./application.properties");
 				
-				Client primaryClient = new Client("cluster", "admin", "admin");
+				Client primaryClient = new Client("cluster", "admin", "admin").batch(false);
 				
 				this.load(primaryClient);
 				

@@ -20,7 +20,7 @@ public class SegmentMergeTest extends BaseIntegrationTest {
 			try  {
 				startInternal("./tinysegments.properties");
 				
-				Client client = new Client("cluster", "admin", "admin");
+				Client client = new Client("cluster", "admin", "admin").batch(false);
 				
 				String create = "CREATE TABLE segmentTest (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255), count int)";
 				String insert = "insert into segmentTest (id, first, last, count ) values (?, 'art', ?, ?)";

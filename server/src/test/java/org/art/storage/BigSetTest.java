@@ -21,7 +21,7 @@ public class BigSetTest extends BaseIntegrationTest {
 			try  {
 				startInternal("./application.properties");
 				
-				Client client = new Client("cluster", "admin", "admin");
+				Client client = new Client("cluster", "admin", "admin").batch(false);
 				
 				String create = "CREATE TABLE bigset (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255), count int)";
 				String insert = "insert into bigset (id, first, last, count ) values (?, 'art', ?, ?)";

@@ -25,7 +25,7 @@ public class ClientIntegrationTest extends BaseIntegrationTest {
 			
 			try {
 				logger.info("start");
-				Client client = new Client("cluster", "admin", "admin");
+				Client client = new Client("cluster", "admin", "admin").batch(false);
 				
 				logger.info("Got client");
 				String create = "CREATE TABLE insert (id int NOT NULL PRIMARY KEY, last varchar(255) NOT NULL, first varchar(255), count int)";

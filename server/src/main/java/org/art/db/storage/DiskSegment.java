@@ -48,6 +48,7 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 			try (TypedInputStream stream = new TypedInputStream(bytes)) {
 				int count = stream.readInt();
 
+				logger.info("zombies " + count);
 				for (int idx = 0; idx < count; idx++) {
 					zombies.add(new Key().deserialize(stream));
 				}

@@ -50,7 +50,7 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 				String delete = "delete from negative where id = 1";
 				
 				
-				this.client = new Client("cluster", "admin", "admin");
+				this.client = new Client("cluster", "admin", "admin").batch(false);
 				
 				this.checkExecuteException(insert, "Table SYS.SYS.negative does not exist.");
 				this.checkExecuteException(update, "Table SYS.SYS.negative does not exist.");

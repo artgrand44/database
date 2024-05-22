@@ -71,31 +71,38 @@ public class QueryPounderTest extends BaseQueryPounder {
 				Assertions.assertThat(names.size() == 1).isTrue();
 				Assertions.assertThat(ids.iterator().next().get("FirstName").equals(name)).isTrue();
 			}
+		} catch (InterruptedException exc) {
 			
 		} catch (Throwable exc) {
 			logger.error(exc.getMessage());
 			this.addError(exc);
 		}
+		
+		this.addCompletion();
 	}
 
 	protected void doUpdates(int index) {	
 		try {
-			
+
 			Client client = new Client("cluster", "admin", "admin");
-			
+
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				int id = -(this.deleteNextId.incrementAndGet());
-					
+
 				this.insert(client, id);
 				this.addWrite();
 
 				this.remove(client, id);
 				this.addDelete();
 			}
+		} catch (InterruptedException exc) {
+
 		} catch (Throwable exc) {
 			logger.error(exc.getMessage());
 			this.addError(exc);
 		}
+		
+		this.addCompletion();
 	}
 		
 	
@@ -105,6 +112,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 		Client client = new Client("cluster", "admin", "admin").batch(false);
 		String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 		String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
+		
 		
 		client.execute(create);
 		client.execute(createIndex);
