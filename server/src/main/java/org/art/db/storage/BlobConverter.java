@@ -10,6 +10,10 @@ import org.art.db.common.ZipUtils;
 public class BlobConverter {
 	
 	static Document toDocument(Metadata metadata, Blob blob) throws Exception {
+		if (blob.getBytes().length == 0) {
+			return Document.ZOMBIE;
+		}
+		
 		Document doc = new Document();
 		byte[] bytes = ZipUtils.decompress(blob.getBytes());
 				
@@ -27,6 +31,10 @@ public class BlobConverter {
 	}
 	
 	static Blob fromDocument(Metadata metadata, Document doc) throws Exception {
+		
+		if (doc == Document.ZOMBIE) {
+			return new Blob(new byte[0]);
+		}
 		
 		try (TypedOutputStream stream = new TypedOutputStream()) {
 			for (String column : metadata.columns().keySet()) {

@@ -2,11 +2,9 @@ package org.art.db.storage;
 
 import java.io.Closeable;
 import java.util.BitSet;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.art.db.common.Blob;
 import org.art.db.common.Document;
@@ -23,7 +21,6 @@ public abstract class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeab
 	static final int BLOOM_SIZE = 2048;
 	static final int DISK_BLOCK_SIZE = 1024 * 1024;
 	
-	private Set<Key> zombies = new HashSet<>();
 	private BitSet bloomFilter;
 	
 	private Metadata metadata;
@@ -69,14 +66,6 @@ public abstract class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeab
 	@Override
 	public String toString() {
 		return "Segment []";
-	}
-
-	public Set<Key> getZombies() {
-		return zombies;
-	}
-
-	public void setZombies(Set<Key> zombies) {
-		this.zombies = zombies;
 	}
 
 	public BitSet getBloomFilter() {

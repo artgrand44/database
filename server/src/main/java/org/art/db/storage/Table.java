@@ -165,12 +165,14 @@ public class Table implements Closeable {
 			}
 
 			for (Segment segment : this.segments) {
-				if (segment.getZombies().contains(key)) {
-					return null;
-				} else if ((result = segment.get(key)) != null) {
-					cache.put(id, result);
+				if ((result = segment.get(key)) != null) {
+					if (result == Document.ZOMBIE) {
+						return null;
+					} else {
+						cache.put(id, result);
 					
-					return result;
+						return result;
+					}
 				} else if (key.isGUID() && key.getGUID().compareTo(segment.getHighGUID()) > 0) {
 					return null;
 				} 
@@ -266,7 +268,7 @@ public class Table implements Closeable {
 		this.readLock.lock();
 		
 		try {
-			this.currentSegment.remove(key, propagate);
+			this.currentSegment.update(key, Document.ZOMBIE, propagate);
 			cache.invalidate(new DocId(this, key));
 		} finally {
 			this.readLock.unlock();

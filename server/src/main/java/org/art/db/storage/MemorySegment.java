@@ -248,7 +248,6 @@ public class MemorySegment extends Segment {
 		
 		this.documents.put(key, doc);
 		this.getBloomFilter().set(this.getHash(key));
-		this.getZombies().remove(key);
 		
 		GUID guid;
 		
@@ -273,7 +272,6 @@ public class MemorySegment extends Segment {
 		this.log(Operation.REMOVE, key, null, propagate);
 		
 		this.documents.remove(key);
-		this.getZombies().add(key);
 	}
 	
 	public DiskSegment save(File file) throws Exception {
@@ -297,7 +295,6 @@ public class MemorySegment extends Segment {
 		
 		this.documents.put(key, doc);
 		this.getBloomFilter().set(this.getHash(key));
-		this.getZombies().remove(key);
 		
 		GUID guid;
 		

@@ -17,6 +17,8 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 	private final Map<String, Object> map = new HashMap<>();
 	private Key key;
 	
+	public static final Document ZOMBIE = new Document();
+	
 	public Document() {
 		
 	}

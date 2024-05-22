@@ -38,7 +38,7 @@ public class Blob extends Serializable<Blob> {
 		
 		if (this.onDisk) {
 			stream.writeLong(this.firstBlock);
-		} else {
+		} else if (this.size != 0) {
 			stream.write(this.bytes);
 		}
 		
@@ -51,7 +51,7 @@ public class Blob extends Serializable<Blob> {
 		
 		if (this.onDisk) {
 			this.firstBlock = stream.readLong();		
-		} else {
+		} else if (size != 0){
 			this.bytes = new byte[this.size];
 		
 			stream.read(this.bytes);

@@ -307,18 +307,9 @@ public class TableManager implements Closeable{
 						return;
 					}
 
-					// Load the segment and process the zombies
+					// Load the segments
 
 					segment = new DiskSegment(downloadFile);
-
-					for (Key key : segment.getZombies()) {
-						Document doc = this.get(key);
-
-						if (doc != null) {
-							logger.info("Remove " + key);
-							this.remove(doc, false);
-						}
-					}
 
 					// Iterate over the segments and update the index entries for each
 					// document.  This process is i/o intensive, so we process several
@@ -430,8 +421,9 @@ public class TableManager implements Closeable{
 		for (int idx = 0; idx < this.indexInfo.size(); idx++) {
 			IndexInfo info = this.indexInfo.get(idx);
 			Index index = this.indices.get(info.name());
+			
 			Key oldKey = oldDoc == null ? null : this.buildKey(oldDoc, info.fields());
-			Key newKey = newDoc == null ? null : this.buildKey(newDoc, info.fields());
+			Key newKey = newDoc == null || newDoc == Document.ZOMBIE ? null : this.buildKey(newDoc, info.fields());
 
 			if (!Objects.equals(oldKey, newKey)) {
 				if (oldKey != null) {

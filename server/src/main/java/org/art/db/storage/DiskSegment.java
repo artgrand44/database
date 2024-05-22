@@ -3,16 +3,13 @@ package org.art.db.storage;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.art.db.common.Blob;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
-import org.art.db.common.TypedInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +21,6 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 	
 	static final int DISK_BLOCK_SIZE = 1024 * 1024;
 	
-	private final Set<Key> zombies = new HashSet<>();
 	private final Tree<Blob> tree;
 	private final TreeStore treeStore;
 	private final File file;
@@ -41,20 +37,6 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 			this.setMetadata(this.treeStore.getMetadata());
 			this.setHighGUID(this.treeStore.getHighGUID());
 			this.setBloomFilter(this.treeStore.getBloomFilter());
-
-			byte[] bytes = this.treeStore.getZombies();
-			Set<Key> zombies = new HashSet<>();
-
-			try (TypedInputStream stream = new TypedInputStream(bytes)) {
-				int count = stream.readInt();
-
-				logger.info("zombies " + count);
-				for (int idx = 0; idx < count; idx++) {
-					zombies.add(new Key().deserialize(stream));
-				}
-			}
-
-			this.setZombies(zombies);
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error opening the database");
 			logger.info("Got exception on file " + file.getAbsolutePath() + " " + exc.getMessage());
@@ -98,10 +80,6 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 		return this.tree.size();
 	}
 	
-	public Set<Key> getZombies() {
-		return zombies;
-	}
-
 	public long getCreateTime() {
 		return this.treeStore.getCreateTime();
 	}

@@ -9,13 +9,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -23,7 +23,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.art.db.common.Blob;
 import org.art.db.common.BlobStore;
 import org.art.db.common.GUID;
-import org.art.db.common.Key;
 import org.art.db.common.Scheduler;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
@@ -32,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import java.util.AbstractMap.SimpleEntry;
 
 public class TreeStore implements Closeable, BlobStore {
 	
@@ -542,14 +540,6 @@ public class TreeStore implements Closeable, BlobStore {
 		return this.blockSize;
 	}
 	
-	public byte[] getZombies() throws IOException {
-		if (this.header.zombieOffset == -1 || this.header.zombieSize == 0) {
-			throw new IllegalStateException("The zombies are missing");
-		}
-		
-		return this.file.getBytes(this.header.zombieOffset, this.header.zombieSize);
-	}
-	
 	public boolean isNew() {
 		return this.file.isNew();
 	}
@@ -651,25 +641,6 @@ public class TreeStore implements Closeable, BlobStore {
 		
 		this.writeHeader();		
 		
-	}
-	
-	public void setZombies(Set<Key> keys) throws Exception {
-		byte[] bytes;
-		
-		try (TypedOutputStream stream = new TypedOutputStream()) {
-			stream.writeInt(keys.size());
-			
-			for (Key key : keys) {
-				key.serialize(stream);
-			}
-			
-			bytes = stream.toByteArray();
-		}
-		
-		this.header.zombieOffset = this.file.append(bytes);
-		this.header.zombieSize = bytes.length;
-		
-		this.writeHeader();
 	}
 	
 	public void setStatistics(long searchCount, long resultCount) throws Exception {
@@ -786,8 +757,6 @@ public class TreeStore implements Closeable, BlobStore {
 		long highGUID = -1;
 		long metadataOffset = -1;
 		int metadataSize = 0;
-		long zombieOffset = -1;
-		int zombieSize = 0;
 		long searchCount;
 		long resultCount;
 		boolean flushed = false;
@@ -806,8 +775,6 @@ public class TreeStore implements Closeable, BlobStore {
 			this.highGUID = stream.readLong();
 			this.metadataOffset = stream.readLong();
 			this.metadataSize = stream.readInt();
-			this.zombieOffset = stream.readLong();
-			this.zombieSize = stream.readInt();
 			this.searchCount = stream.readLong();
 			this.resultCount = stream.readLong();
 			this.flushed = stream.readBoolean();
@@ -829,8 +796,6 @@ public class TreeStore implements Closeable, BlobStore {
 				stream.writeLong(this.highGUID);
 				stream.writeLong(this.metadataOffset);
 				stream.writeInt(this.metadataSize);
-				stream.writeLong(zombieOffset);
-				stream.writeInt(this.zombieSize);
 				stream.writeLong(this.searchCount);
 				stream.writeLong(this.resultCount);
 				stream.writeBoolean(this.flushed);
@@ -843,8 +808,7 @@ public class TreeStore implements Closeable, BlobStore {
 
 		@Override
 		public String toString() {
-			return "Header [root=" + root + ", freeBlock=" + freeBlock + ", bloomOffset=" + bloomOffset
-					+ ", zombieOffset=" + zombieOffset + ", flushed=" + flushed + "]";
+			return "Header [root=" + root + ", freeBlock=" + freeBlock + ", bloomOffset=" + bloomOffset +  ", flushed=" + flushed + "]";
 		}
 
 		

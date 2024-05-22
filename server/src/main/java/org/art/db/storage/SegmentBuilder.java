@@ -6,11 +6,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,7 +35,7 @@ public class SegmentBuilder {
 	 * @throws Exception
 	 */
 	static void build(Segment segment, File toFile, int diskBlockSize) throws Exception {
-		build(toFile, segment.iterator(), segment.getMetadata(), segment.getBloomFilter(), segment.getZombies(), diskBlockSize);
+		build(toFile, segment.iterator(), segment.getMetadata(), segment.getBloomFilter(), diskBlockSize);
 	}
 	
 	
@@ -50,7 +48,7 @@ public class SegmentBuilder {
 	 * @throws Exception
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private static void build(File segment, Iterator leafNodes, Metadata metadata, BitSet bloomFilter, Set<Key> zombies, int diskBlockSize) throws Exception {
+	private static void build(File segment, Iterator leafNodes, Metadata metadata, BitSet bloomFilter, int diskBlockSize) throws Exception {
 		
 		Header header = new Header();
 		
@@ -165,11 +163,10 @@ public class SegmentBuilder {
 			blockFile.writeBlock(header.serialize(), 0);
 		}
 		
-		// Write out the bloom filter, zombies, etc
+		// Write out the bloom filter,  etc
 		
 		try (TreeStore store = new TreeStore(tempFile, diskBlockSize)) {
 			store.setBloomFilter(bloomFilter);
-			store.setZombies(zombies);
 			store.setMetadata(metadata);
 			
 			String name = segment.getName();
@@ -202,7 +199,7 @@ public class SegmentBuilder {
 			bloomFilter.or(segments[idx].getBloomFilter());
 		}
 		
-		build(toFile, new Merger(segments), segments[0].getMetadata(), bloomFilter, Collections.emptySet(), diskBlockSize);
+		build(toFile, new Merger(segments), segments[0].getMetadata(), bloomFilter, diskBlockSize);
 		
 		for (Segment segment : segments) {
 			segment.close();
