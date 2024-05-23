@@ -158,21 +158,14 @@ public class Table implements Closeable {
 		this.readLock.lock();
 
 		try {
-			List<String> lowKeys = new ArrayList<>(this.segments.size());
-
-			for (Segment segment : this.segments) {
-				lowKeys.add(segment.getHighGUID().toString());
-			}
-
 			for (Segment segment : this.segments) {
 				if ((result = segment.get(key)) != null) {
 					if (result.isZombie()) {
-						return null;
-					} else {
-						cache.put(id, result);
+						break;
+					} 
 					
-						return result;
-					}
+					cache.put(id, result);
+					return result;	
 				} else if (key.isGUID() && key.getGUID().compareTo(segment.getHighGUID()) > 0) {
 					return null;
 				} 
