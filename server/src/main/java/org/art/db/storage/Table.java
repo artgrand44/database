@@ -260,7 +260,7 @@ public class Table implements Closeable {
 		this.readLock.lock();
 		
 		try {
-			this.currentSegment.update(key, Document.ZOMBIE, propagate);
+			this.currentSegment.remove(key, propagate);
 			cache.invalidate(new DocId(this, key));
 		} finally {
 			this.readLock.unlock();

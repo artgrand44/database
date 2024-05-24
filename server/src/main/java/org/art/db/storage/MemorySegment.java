@@ -271,7 +271,7 @@ public class MemorySegment extends Segment {
 	public void remove(Key key, boolean propagate) throws Exception {
 		this.log(Operation.REMOVE, key, null, propagate);
 		
-		this.documents.remove(key);
+		this.documents.put(key, Document.ZOMBIE);
 	}
 	
 	public DiskSegment save(File file) throws Exception {
