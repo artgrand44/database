@@ -126,10 +126,17 @@ public class Dispatcher {
 					input.read(request);
 					
 					Handler handler = HANDLERS.get(uri);
-					byte[] response = (byte[])handler.handle(exchange, parameters, request);
 					
-					output.writeInt(response.length);
-					output.write(response);
+					try {
+						byte[] response = (byte[])handler.handle(exchange, parameters, request);
+
+						output.writeBoolean(true);
+						output.writeInt(response.length);
+						output.write(response);
+					} catch (Exception exc) {
+						output.writeBoolean(false);
+						output.writeUTF(exc.getMessage());
+					}
 				}
 				
 				return output.toByteArray();

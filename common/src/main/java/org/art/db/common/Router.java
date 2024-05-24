@@ -165,10 +165,18 @@ public class Router {
 				try (TypedInputStream result = new TypedInputStream(response)) {
 					for (BatchEntry entry : list) {
 						try {
-							byte[] buffer = new byte[result.readInt()];
-						
-							result.read(buffer);
-							entry.future.complete(buffer);
+							boolean success = result.readBoolean();
+							
+							if (success) {
+								byte[] buffer = new byte[result.readInt()];
+
+								result.read(buffer);
+								entry.future.complete(buffer);
+							} else {
+								String message = result.readUTF();
+								
+								entry.future.completeExceptionally(new DBRuntimeException(message));
+							}
 						} catch (Exception exc) {
 							logger.info("Got exception on " + exc.getMessage());
 						}
