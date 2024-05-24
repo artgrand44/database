@@ -70,10 +70,11 @@ public class Server implements HttpHandler, FullBytesCallback {
 			this.handler.start();
 			
 			InetAddress address = InetAddress.getLocalHost();
+			String host = "Arts-MacBook-Air.local".equals(address.getHostName()) ? "10.0.0.4" : address.getHostAddress();
 
 			this.server = Undertow.builder()
 								.setByteBufferPool(new DefaultByteBufferPool(false, 1024, 1024 * 1000, 10))
-								.addHttpListener(port, address.getHostAddress(), this)
+								.addHttpListener(port, host, this)
 								.setServerOption(UndertowOptions.ENABLE_HTTP2, true)
 								.setServerOption(UndertowOptions.SHUTDOWN_TIMEOUT, 2000)
 								.build();

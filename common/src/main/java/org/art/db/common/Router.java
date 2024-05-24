@@ -43,17 +43,6 @@ public class Router {
 	
 	private static final ConcurrentMap<RouterKey, Router> routers = new ConcurrentHashMap<>();
 	
-	
-	/**
-	 * The average time a batch request is waiting for the timer to go off
-	 */
-	private final RollingAverage averageQueueTime = new RollingAverage("averageQueueTime");
-		
-	/**
-	 * The average time for a batch request
-	 */
-	private final RollingAverage averageRequestTime = new RollingAverage("averageRequestTime");
-	
 	private int maxBatchSize = MAX_SIZE;
 	
 	private static final int MAX_SIZE = 10;
@@ -86,10 +75,7 @@ public class Router {
 			return entry.future.get();
 		} catch (ExecutionException exc) {
 			throw exc.getCause() instanceof DBRuntimeException runtime ? runtime : new DBRuntimeException("Error processing batch", exc.getCause()); 
-		} finally {
-			this.averageRequestTime.logEvent(System.currentTimeMillis() - entry.startTime);
-			//this.tuneBatchSize();
-		}
+		} 
 	}
 	
 	private byte[] doCall(String method, String shardKey, String template, Object body, Object ... args) throws Exception {
@@ -163,8 +149,6 @@ public class Router {
 		this.batchQueue.drainTo(list);
 		
 		if (!list.isEmpty()) {
-			long now = System.currentTimeMillis();
-			
 			try (TypedOutputStream stream = new TypedOutputStream()) {
 				
 				stream.writeInt(list.size());
@@ -173,8 +157,6 @@ public class Router {
 					stream.writeUTF(entry.uri);
 					stream.writeInt(entry.body.length);
 					stream.write(entry.body);
-					
-					this.averageQueueTime.logEvent(now - entry.startTime);
 				}
 				
 				byte[] body = stream.toByteArray();

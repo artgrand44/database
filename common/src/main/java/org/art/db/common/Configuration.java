@@ -30,7 +30,7 @@ public class Configuration {
 	
 	static {
 		try {
-			instance = new Configuration(InetAddress.getLocalHost().getHostAddress(), "8080", "s", "c").withProperty("org.art.db.maxBatch", "1");			
+			instance = new Configuration(getLocalHost(), "8080", "s", "c").withProperty("org.art.db.maxBatch", "1");			
 		} catch (Exception exc) {
 			logger.info("Error getting local host " + exc.getMessage());
 		}
@@ -62,7 +62,7 @@ public class Configuration {
 		
 		if (this.host != null && this.host.contains("localhost")) {
 			try {
-				this.host = InetAddress.getLocalHost().getHostAddress();
+				this.host = getLocalHost();
 			} catch (Exception exc) {
 				throw new DBRuntimeException(exc);
 			}
@@ -130,6 +130,12 @@ public class Configuration {
 		}
 		
 		return result;
+	}
+	
+	public static String getLocalHost() throws Exception {
+		InetAddress address = InetAddress.getLocalHost();
+		
+		return "Arts-MacBook-Air.local".equals(address.getHostName()) ? "10.0.0.4" : address.getHostAddress();
 	}
 	
 	public String getHost() {
