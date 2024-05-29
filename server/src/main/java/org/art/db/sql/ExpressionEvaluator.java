@@ -120,6 +120,8 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	private List<Comparable<?>> parameters;
 	private List<String> selectColumns;
 	private List<OrderBy> orderBy;
+	private long offset;
+	private long max;
 	private Document document;
 	private Object result;
 	
@@ -165,10 +167,12 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	
 	
 	
-	DocumentSet evaluateWhere(Expression exp, List<String> selectColumns, List<OrderBy> orderBy, List<Comparable<?>> parameters) {
+	DocumentSet evaluateWhere(Expression exp, List<String> selectColumns, List<OrderBy> orderBy, List<Comparable<?>> parameters, long offset, long max) {
 		this.selectColumns = selectColumns;
 		this.parameters = parameters;
 		this.orderBy = orderBy;
+		this.offset = offset;
+		this.max = max;
 		
 		return (DocumentSet) this.evaluate(exp);
 	}
@@ -207,7 +211,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		}
 		
 		try {
-			result = QueryManager.getInstance().select(this.table, this.selectColumns, this.orderBy,  evaluatedFilters);
+			result = QueryManager.getInstance().select(this.table, this.selectColumns, this.orderBy,  evaluatedFilters, this.offset, this.max);
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("Select failed", exc);

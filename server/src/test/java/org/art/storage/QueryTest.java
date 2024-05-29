@@ -110,7 +110,17 @@ public class QueryTest extends BaseSQLTest {
 			for (int idx = 0; idx < 10; idx++) {
 				manager.insert(this.getDocument(idx), true);
 			}
-					                       
+					    
+			doQuery(manager,
+					new int[] {0, 1, 2, 3, 4},
+					null,
+					"select * from test where name >= 'Name0' order by name limit 5");
+			
+			doQuery(manager,
+					new int[] {5, 6, 7, 8, 9},
+					null,
+					"select * from test where name >= 'Name0'  order by name offset 5 limit 5");
+			
 			doQuery(manager,
 					new int[] {0, 2, 4, 6, 8},
 					null,
@@ -180,6 +190,7 @@ public class QueryTest extends BaseSQLTest {
 					new int[] {1},
 					null,
 					"select * from test where id = '1' or name = 'Name1'");
+			
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Exception exc) {

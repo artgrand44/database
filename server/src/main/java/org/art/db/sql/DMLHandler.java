@@ -29,6 +29,8 @@ import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.Limit;
+import net.sf.jsqlparser.statement.select.Offset;
 import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
@@ -112,7 +114,7 @@ public class DMLHandler {
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression normalized = new ExpressionNormalizer().normalize(where);
 			
-			DocumentSet docs = evaluator.evaluateWhere(normalized, null, null, parameters);
+			DocumentSet docs = evaluator.evaluateWhere(normalized, null, null, parameters, 0, Long.MAX_VALUE);
 
 			for (Document doc : docs) {
 				QueryManager.getInstance().remove(table, doc);
@@ -259,10 +261,19 @@ public class DMLHandler {
 		
 		List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
 		List<String> selectColumns = buildSelectList(plainSelect.getSelectItems());
+		
+		// Compute the offset and limit (if any)
+		
+		Limit limitClause = plainSelect.getLimit();
+		long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
+		
+		Offset offsetClause = plainSelect.getOffset();
+		long offset = offsetClause == null  || offsetClause.getOffset() == null ? 0 : (long)evaluator.evaluate(offsetClause.getOffset(), Long.class);
+		
 						
 		// Get the document set then process any aliases and expressions in the select items
 		
-		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters);	
+		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters, offset, limit);	
 				
 		if (!plainSelect.getSelectItems().stream().anyMatch(x -> x.getExpression() instanceof AllColumns)) {		
 			for (Document doc : set) {
@@ -347,7 +358,7 @@ public class DMLHandler {
 			
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression normalized = new ExpressionNormalizer().normalize(where);
-			DocumentSet docs =  evaluator.evaluateWhere(normalized, null, null, parameters);
+			DocumentSet docs =  evaluator.evaluateWhere(normalized, null, null, parameters, 0, Long.MAX_VALUE);
 			
 			for (Document oldDoc : docs) {
 				Document newDoc = new Document(oldDoc);

@@ -2,10 +2,13 @@ package org.art.db.query;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
 
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.DocumentSet;
+import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Comparison;
 import org.art.db.common.DBNull;
 import org.art.db.storage.Metadata;
@@ -32,42 +35,84 @@ public class QueryManager {
 		manager.insert(doc, true);
 	}
 	
-	public DocumentSet select(String table, List<String> selectColumns, List<OrderBy> orderBy, List<Filter> filters) throws Exception {
+	@SuppressWarnings("resource")
+	public DocumentSet select(String table, List<String> selectColumns, List<OrderBy> orderBy, List<Filter> filters, long offset, long limit) throws Exception {
+		
+		// Find the documents that match the filter
+		
 		Metadata metadata = Metadata.getMetadata(table);
 		Plan plan = Planner.buildPlan(table, selectColumns, filters);
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
-		
+				
 		DocumentSet set = plan.execute(manager);
+		
+		// Go through the documents, find the null values, and merge in the defaults
+		
+		for (Document doc : set) {
+			for (Map.Entry<String, ColumnInfo> entry : metadata.columns().entrySet()) {
+				String name = entry.getKey();
+				ColumnInfo info = entry.getValue();
+				Object value = doc.get(name);
+				
+				if (value == DBNull.NULL && ! metadata.column(name).nullable()) {
+					doc.put(name, info.defaultValue());
+				}
+				
+			}
+		}
 		
 		if (orderBy != null && !orderBy.isEmpty()) {
 			set.sort(new DocumentComparer(orderBy));
 		}
-			
-		if (selectColumns == null || selectColumns.isEmpty()) {
-			return set;
-		}
 		
-		DocumentSet newSet = new DocumentSet();
+		// Handle the selected columns
 		
-		for (Document doc : set) {
-			Document newDoc = new Document();
+		if (selectColumns != null && !selectColumns.isEmpty()) {
+			DocumentSet newSet = new DocumentSet();
 
-			for (String name : selectColumns) {
-				Object value = doc.get(name);
+			for (Document doc : set) {
+				Document newDoc = new Document();
 
-				if (value == DBNull.NULL && ! metadata.column(name).nullable()) {
-					value = metadata.column(name).defaultValue();
+				for (String name : selectColumns) {
+					Object value = doc.get(name);
+
+					if (value == DBNull.NULL && ! metadata.column(name).nullable()) {
+						value = metadata.column(name).defaultValue();
+					}
+
+					newDoc.put(name, value);
 				}
 
-				newDoc.put(name, value);
+				newSet.add(newDoc);
 			}
-
-			newSet.add(newDoc);
+			
+			set = newSet;
 		}
 
-		return newSet;
+
+		// Handle the offset and limit clauses
+		
+		if (offset != 0 || limit != Long.MAX_VALUE) {
+			DocumentSet newSet = new DocumentSet();
+			long index = 0;
+
+			for (Document doc : set) {
+				if (newSet.size() == limit) { 
+					break;
+				} else if (index >= offset) {
+					newSet.add(doc);
+				}
+				
+				index++;
+			}
+
+			set = newSet;
+		}
+		
+		
+		return set;
 	}
-	
+
 	
 	public void remove(String table, Document doc) throws Exception {
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
