@@ -94,6 +94,17 @@ public class ShardTest extends BaseIntegrationTest {
 				}
 				Assertions.assertThat(set.size() == 10).isTrue();
 				
+				set = clusterClient.executeQuery("select * from sharded where color = 'red' order by id limit 5");
+				
+				if (set.size() != 5) {
+					logger.info("**** size is " + set.size());
+					
+					for (Document doc : set) {
+						logger.info("doc = " + doc);
+					}
+				}
+				
+				Assertions.assertThat(set.size() == 5).isTrue();
 				
 				clusterClient.execute("update sharded set color = 'blue' where color = 'red'");
 				

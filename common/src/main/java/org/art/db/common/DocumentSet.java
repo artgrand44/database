@@ -122,60 +122,55 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		return this.size;
 	}
 	
-	public DocumentSet merge(DocumentSet that, Comparator<Document> comparator) throws Exception {
+	public DocumentSet merge(List<DocumentSet> others, Comparator<Document> comparator) throws Exception {
 		
 		try (DocumentSet result = new DocumentSet()) {
-			Iterator<Document> left = this.iterator();
-			Iterator<Document> right = that.iterator();
-			Document leftDoc = null;
-			Document rightDoc = null;
-			boolean eofLeft = false;
-			boolean eofRight  = false;
+			List<Document> current = new ArrayList<>();
+			List<Iterator<Document>> iterators = new ArrayList<>();
+			List<Boolean> eof = new ArrayList<>();
+			
+			current.add(null);
+			iterators.add(this.iterator());
+			eof.add(false);
+			
+			for (DocumentSet set : others) {
+				current.add(null);
+				iterators.add(set.iterator());
+				eof.add(false);
+			}
 
 			for (;;) {
-				if (leftDoc == null) {
-					leftDoc = getNext(left);
-					eofLeft = leftDoc == null;
+				for (int idx = 0; idx < current.size(); idx++) {
+					if (current.get(idx) == null && !eof.get(idx)) {
+						Document doc = getNext(iterators.get(idx));
+						
+						current.set(idx, doc);
+						eof.set(idx, doc == null);
+					}
 				}
-
-				if (rightDoc == null) {
-					rightDoc = getNext(right);
-					eofRight = rightDoc == null;
+				
+				int smallestIndex = -1;
+				
+				for (int idx = 0; idx < current.size(); idx++) {
+					if (eof.get(idx)) {
+						continue;
+					} else if (smallestIndex == -1) {
+						smallestIndex = idx;
+					} else if (comparator.compare(current.get(idx), current.get(smallestIndex)) < 0) {
+						smallestIndex = idx;
+					}
 				}
-
-				if (eofLeft || eofRight) {
+				
+				if (smallestIndex == -1) {
 					break;
 				}
-
-				int comp = comparator.compare(leftDoc, rightDoc);
-
-				if (comp < 0) {
-					result.add(leftDoc);
-					leftDoc = null;
-				} else if (comp == 0) {
-					result.add(leftDoc);
-					leftDoc = null;
-					rightDoc = null;
-				} else {
-					result.add(rightDoc);
-					rightDoc = null;
-				}
-			}
-
-			if (!eofLeft) {
-				result.add(leftDoc);
-			}
-			
-			while ((leftDoc = getNext(left)) != null) {
-				result.add(leftDoc);
-			}
-					
-			if (!eofRight) {
-				result.add(rightDoc);
-			}
-			
-			while ((rightDoc = getNext(right)) != null) {
-				result.add(rightDoc);
+				
+				result.add(current.get(smallestIndex));
+				
+				Document doc = getNext(iterators.get(smallestIndex));
+				
+				current.set(smallestIndex, doc);
+				eof.set(smallestIndex, doc == null);
 			}
 
 			return result;

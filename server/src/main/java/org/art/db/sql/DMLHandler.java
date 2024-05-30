@@ -250,38 +250,38 @@ public class DMLHandler {
 				}
 				
 				DocumentComparer comparer = new DocumentComparer(orderByList);
+				List<DocumentSet> others = SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters);
 				
-				for (DocumentSet other : SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters)) {
-					set = set.merge(other, comparer);
-				}
-				
+				set = set.merge(others, comparer);
 			}
 			
+			
 			// Handle the offset and limit clauses
-			
-			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
-			Limit limitClause = plainSelect.getLimit();
-			long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
-			
-			Offset offsetClause = plainSelect.getOffset();
-			long offset = offsetClause == null  || offsetClause.getOffset() == null ? 0 : (long)evaluator.evaluate(offsetClause.getOffset(), Long.class);
-			
-			
-			if (offset != 0 || limit != Long.MAX_VALUE) {
-				try (DocumentSet newSet = new DocumentSet()) {
-					long index = 0;
 
-					for (Document doc : set) {
-						if (newSet.size() == limit) { 
-							break;
-						} else if (index >= offset) {
-							newSet.add(doc);
+			if (targetShard.equals(Client.WILDCARD)) {
+				ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
+				Limit limitClause = plainSelect.getLimit();
+				long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
+
+				Offset offsetClause = plainSelect.getOffset();
+				long offset = offsetClause == null  || offsetClause.getOffset() == null ? 0 : (long)evaluator.evaluate(offsetClause.getOffset(), Long.class);
+
+				if (offset != 0 || limit != Long.MAX_VALUE) {
+					try (DocumentSet newSet = new DocumentSet()) {
+						long index = 0;
+
+						for (Document doc : set) {
+							if (newSet.size() == limit) { 
+								break;
+							} else if (index >= offset) {
+								newSet.add(doc);
+							}
+
+							index++;
 						}
 
-						index++;
+						set = newSet;
 					}
-
-					set = newSet;
 				}
 			}
 			
