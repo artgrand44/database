@@ -122,12 +122,13 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		return this.size;
 	}
 	
-	public DocumentSet merge(List<DocumentSet> others, Comparator<Document> comparator) throws Exception {
+	public DocumentSet merge(List<DocumentSet> others, Comparator<Document> comparator, long offset, long limit) {
 		
 		try (DocumentSet result = new DocumentSet()) {
 			List<Document> current = new ArrayList<>();
 			List<Iterator<Document>> iterators = new ArrayList<>();
 			List<Boolean> eof = new ArrayList<>();
+			long skipped = 0;
 			
 			current.add(null);
 			iterators.add(this.iterator());
@@ -139,7 +140,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 				eof.add(false);
 			}
 
-			for (;;) {
+			while (result.size < limit) {
 				for (int idx = 0; idx < current.size(); idx++) {
 					if (current.get(idx) == null && !eof.get(idx)) {
 						Document doc = getNext(iterators.get(idx));
@@ -165,7 +166,11 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 					break;
 				}
 				
-				result.add(current.get(smallestIndex));
+				if (skipped >= offset) {
+					result.add(current.get(smallestIndex));
+				} else {
+					skipped++;
+				}
 				
 				Document doc = getNext(iterators.get(smallestIndex));
 				
@@ -174,7 +179,9 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 			}
 
 			return result;
-		}		
+		} catch (Exception exc) {
+			throw new DBRuntimeException(exc);
+		}
 		
 	}
 	

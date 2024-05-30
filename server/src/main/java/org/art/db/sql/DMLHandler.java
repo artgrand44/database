@@ -9,7 +9,6 @@ import org.art.db.client.Client;
 import org.art.db.common.Converter;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
-import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.query.DocumentComparer;
@@ -231,18 +230,27 @@ public class DMLHandler {
 			}
 			
 			Expression where = plainSelect.getWhere();
-			String shard = SQLUtils.getShard(table, where, parameters);
+			String shardContainingData = SQLUtils.getShard(table, where, parameters);
 			
-			if (!SQLUtils.isShardLocal(shard)) {
-				return SQLUtils.forwardExecuteQuery(database, shard, sqlString, user, password, parameters);
+			if (!SQLUtils.isShardLocal(shardContainingData)) {
+				return SQLUtils.forwardExecuteQuery(database, shardContainingData, sqlString, user, password, parameters);
 			}
 			
 			DocumentSet set = selectLocal(plainSelect, sqlString, fromTable, database, user, password, parameters);
 
-			// Merge the document sets from the other shards, using the order by clause
-			// or the primary key as the sort key.
+			// Get the offset and the limit
 			
-			if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
+			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
+			Limit limitClause = plainSelect.getLimit();
+			long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
+
+			Offset offsetClause = plainSelect.getOffset();
+			long offset = offsetClause == null  || offsetClause.getOffset() == null ? 0 : (long)evaluator.evaluate(offsetClause.getOffset(), Long.class);
+
+			// If the select is coming from an application and the data is on multiple shards
+			// then get the document lists from the other shards and merge them together.
+			
+			if (shardContainingData.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
 				List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
 				
 				if (orderByList.isEmpty()) {
@@ -252,38 +260,31 @@ public class DMLHandler {
 				DocumentComparer comparer = new DocumentComparer(orderByList);
 				List<DocumentSet> others = SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters);
 				
-				set = set.merge(others, comparer);
-			}
+				return set.merge(others, comparer, offset, limit);
+			} 
+
+			// If the the select is coming from an application and the data is all local then
+			// enforce the offset and limit clauses.
 			
-			
-			// Handle the offset and limit clauses
+			if ((offset != 0 || limit != Long.MAX_VALUE) && !targetShard.equals(Client.WILDCARD)) {
+				try (DocumentSet newSet = new DocumentSet()) {
+					long index = 0;
 
-			if (targetShard.equals(Client.WILDCARD)) {
-				ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
-				Limit limitClause = plainSelect.getLimit();
-				long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
-
-				Offset offsetClause = plainSelect.getOffset();
-				long offset = offsetClause == null  || offsetClause.getOffset() == null ? 0 : (long)evaluator.evaluate(offsetClause.getOffset(), Long.class);
-
-				if (offset != 0 || limit != Long.MAX_VALUE) {
-					try (DocumentSet newSet = new DocumentSet()) {
-						long index = 0;
-
-						for (Document doc : set) {
-							if (newSet.size() == limit) { 
-								break;
-							} else if (index >= offset) {
-								newSet.add(doc);
-							}
-
-							index++;
+					for (Document doc : set) {
+						if (newSet.size() == limit) { 
+							break;
+						} else if (index >= offset) {
+							newSet.add(doc);
 						}
 
-						set = newSet;
+						index++;
 					}
-				}
+
+					return newSet;
+				}				
 			}
+			
+			// Otherwise return the local document set
 			
 			return set;
 		}
