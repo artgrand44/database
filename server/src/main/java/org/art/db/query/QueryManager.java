@@ -1,16 +1,13 @@
 package org.art.db.query;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
 
-import org.art.db.common.Document;
-import org.art.db.common.Key;
-import org.art.db.common.DocumentSet;
-import org.art.db.storage.ColumnInfo;
-import org.art.db.storage.Comparison;
 import org.art.db.common.DBNull;
+import org.art.db.common.Document;
+import org.art.db.common.DocumentSet;
+import org.art.db.common.Key;
+import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
 import org.art.db.storage.TableManager;
@@ -36,7 +33,7 @@ public class QueryManager {
 	}
 	
 	@SuppressWarnings("resource")
-	public DocumentSet select(String table, List<String> selectColumns, List<OrderBy> orderBy, List<Filter> filters, long offset, long limit) throws Exception {
+	public DocumentSet select(String table, List<String> selectColumns, List<OrderBy> orderBy, List<Filter> filters) throws Exception {
 		
 		// Find the documents that match the filter
 		
@@ -89,27 +86,6 @@ public class QueryManager {
 			set = newSet;
 		}
 
-
-		// Handle the offset and limit clauses
-		
-		if (offset != 0 || limit != Long.MAX_VALUE) {
-			DocumentSet newSet = new DocumentSet();
-			long index = 0;
-
-			for (Document doc : set) {
-				if (newSet.size() == limit) { 
-					break;
-				} else if (index >= offset) {
-					newSet.add(doc);
-				}
-				
-				index++;
-			}
-
-			set = newSet;
-		}
-		
-		
 		return set;
 	}
 
@@ -127,39 +103,4 @@ public class QueryManager {
 		manager.update(oldDoc, newDoc, true);
 	}
 	
-	static class DocumentComparer implements Comparator<Document> {
-		private final List<OrderBy> orderBy;
-		
-		DocumentComparer(List<OrderBy> orderBy) {
-			this.orderBy = orderBy;
-		}
-		
-		public int compare(Document first, Document second) {
-			
-			for (OrderBy orderBy : this.orderBy) {
-				String name = orderBy.field();
-
-				Object firstField = first.get(name);
-				Object secondField = second.get(name);
-
-				if (firstField instanceof DBNull && ! (secondField instanceof DBNull)) {
-					return -1;
-				}
-				
-				if (secondField instanceof DBNull && ! (firstField instanceof DBNull)) {
-					return +1;
-				}
-				
-				int comp = Comparison.compare(firstField, secondField);
-
-				if (comp != 0) {
-					return orderBy.ascending() ? comp : - comp;
-				}
-
-			}
-			
-			return 0;
-		}
-	}
-
 }

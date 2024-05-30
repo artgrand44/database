@@ -2,6 +2,7 @@ package org.art.db.sql;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -9,8 +10,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.art.db.client.Client;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
-import org.art.db.common.Key;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.Key;
 import org.art.db.query.Filter;
 import org.art.db.storage.Comparison;
 import org.art.db.storage.Metadata;
@@ -56,15 +57,15 @@ public class SQLUtils {
 		}
 	}
 	
-	static DocumentSet broadcastExecuteQuery(String database, String statement, String user, String password, List<Comparable<?>> parameters) throws Exception {
-		DocumentSet set = new DocumentSet();
+	static List<DocumentSet> broadcastExecuteQuery(String database, String statement, String user, String password, List<Comparable<?>> parameters) throws Exception {
+		List<DocumentSet> result = new LinkedList<>();
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 
 		if (handler != null) {
 			for (String shard : handler.getInstances().keySet()) {
 				if (!shard.equals(handler.getlocalShard())) {
 					try {
-						set.addAll(forwardExecuteQuery(database, shard, statement, user, password, parameters));
+						result.add(forwardExecuteQuery(database, shard, statement, user, password, parameters));
 					} catch (Exception exc) {
 						logger.info("  forward on handler.getLocalPort() got exception " + exc.getMessage()); 
 					}
@@ -72,7 +73,7 @@ public class SQLUtils {
 			}
 		}
 		
-		return set;
+		return result;
 	}
 	
 	private static Filter findFilter(List<Filter> filters, String name) {

@@ -9,8 +9,10 @@ import org.art.db.client.Client;
 import org.art.db.common.Converter;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
+import org.art.db.query.DocumentComparer;
 import org.art.db.query.OrderBy;
 import org.art.db.query.QueryManager;
 import org.art.db.security.SecurityHandler;
@@ -114,7 +116,7 @@ public class DMLHandler {
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression normalized = new ExpressionNormalizer().normalize(where);
 			
-			DocumentSet docs = evaluator.evaluateWhere(normalized, null, null, parameters, 0, Long.MAX_VALUE);
+			DocumentSet docs = evaluator.evaluateWhere(normalized, null, null, parameters);
 
 			for (Document doc : docs) {
 				QueryManager.getInstance().remove(table, doc);
@@ -210,6 +212,10 @@ public class DMLHandler {
 	}
 	
 	static DocumentSet select(Select select, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+		boolean trace = true;
+		String port = DiscoveryHandler.getServerInstance().getLocalPort();
+		
+		if (trace) logger.info("got select on " + port);
 		
 		if (select instanceof PlainSelect plainSelect && plainSelect.getFromItem() instanceof Table fromTable) {
 			String table = SQLUtils.getFQN(fromTable, database);
@@ -225,10 +231,52 @@ public class DMLHandler {
 				return SQLUtils.forwardExecuteQuery(database, shard, sqlString, user, password, parameters);
 			}
 			
-			DocumentSet set = selectLocal(plainSelect, sqlString, fromTable, database, user, password, parameters);
+			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
+			
+			DocumentSet set = selectLocal(plainSelect, sqlString, fromTable, database, user, password, parameters, evaluator);
 
 			if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
-				set.addAll(SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters));
+				List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
+				
+				if (trace) logger.info("broadcast from " + port);
+				for (DocumentSet other : SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters)) {
+					if (trace) logger.info("Got back " + other + "    this = " + set);
+					
+					if (orderByList.isEmpty()) {
+						set.addAll(other);
+					} else {
+						set = set.merge(other, new DocumentComparer(orderByList));
+					}
+					if (trace) logger.info("merged = " + set);
+				}
+				
+			}
+			
+			// Handle the offset and limit clauses
+			
+			Limit limitClause = plainSelect.getLimit();
+			long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
+			
+			Offset offsetClause = plainSelect.getOffset();
+			long offset = offsetClause == null  || offsetClause.getOffset() == null ? 0 : (long)evaluator.evaluate(offsetClause.getOffset(), Long.class);
+			
+			
+			if (offset != 0 || limit != Long.MAX_VALUE) {
+				try (DocumentSet newSet = new DocumentSet()) {
+					long index = 0;
+
+					for (Document doc : set) {
+						if (newSet.size() == limit) { 
+							break;
+						} else if (index >= offset) {
+							newSet.add(doc);
+						}
+
+						index++;
+					}
+
+					set = newSet;
+				}
 			}
 			
 			return set;
@@ -237,7 +285,15 @@ public class DMLHandler {
 		throw new UnsupportedOperationException("Syntax not supported.");
 	}
 	
-	private static DocumentSet selectLocal(PlainSelect plainSelect, String sqlString, Table fromTable, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+	private static DocumentSet selectLocal(PlainSelect plainSelect, 
+			                               String sqlString, 
+			                               Table fromTable, 
+			                               String database, 
+			                               String user, 
+			                               String password,
+			                               List<Comparable<?>> parameters, 
+			                               ExpressionEvaluator evaluator) throws Exception {
+		
 		String table = SQLUtils.getFQN(fromTable, database);
 		long start = System.currentTimeMillis();
 		
@@ -248,7 +304,6 @@ public class DMLHandler {
 		// Normalize the where clause
 		
 		Expression where = plainSelect.getWhere();
-		ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 		
 		if (where == null) {
 			throw new DBRuntimeException("The select must contain a where clause");
@@ -261,19 +316,10 @@ public class DMLHandler {
 		
 		List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
 		List<String> selectColumns = buildSelectList(plainSelect.getSelectItems());
-		
-		// Compute the offset and limit (if any)
-		
-		Limit limitClause = plainSelect.getLimit();
-		long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
-		
-		Offset offsetClause = plainSelect.getOffset();
-		long offset = offsetClause == null  || offsetClause.getOffset() == null ? 0 : (long)evaluator.evaluate(offsetClause.getOffset(), Long.class);
-		
 						
 		// Get the document set then process any aliases and expressions in the select items
 		
-		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters, offset, limit);	
+		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters);	
 				
 		if (!plainSelect.getSelectItems().stream().anyMatch(x -> x.getExpression() instanceof AllColumns)) {		
 			for (Document doc : set) {
@@ -358,7 +404,7 @@ public class DMLHandler {
 			
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression normalized = new ExpressionNormalizer().normalize(where);
-			DocumentSet docs =  evaluator.evaluateWhere(normalized, null, null, parameters, 0, Long.MAX_VALUE);
+			DocumentSet docs =  evaluator.evaluateWhere(normalized, null, null, parameters);
 			
 			for (Document oldDoc : docs) {
 				Document newDoc = new Document(oldDoc);

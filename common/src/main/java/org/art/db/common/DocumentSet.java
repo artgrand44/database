@@ -122,6 +122,72 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		return this.size;
 	}
 	
+	public DocumentSet merge(DocumentSet that, Comparator<Document> comparator) throws Exception {
+		
+		try (DocumentSet result = new DocumentSet()) {
+			Iterator<Document> left = this.iterator();
+			Iterator<Document> right = that.iterator();
+			Document leftDoc = null;
+			Document rightDoc = null;
+			boolean eofLeft = false;
+			boolean eofRight  = false;
+
+			for (;;) {
+				if (leftDoc == null) {
+					leftDoc = getNext(left);
+					eofLeft = leftDoc == null;
+				}
+
+				if (rightDoc == null) {
+					rightDoc = getNext(right);
+					eofRight = rightDoc == null;
+				}
+
+				if (eofLeft || eofRight) {
+					break;
+				}
+
+				int comp = comparator.compare(leftDoc, rightDoc);
+
+				if (comp < 0) {
+					result.add(leftDoc);
+					leftDoc = null;
+				} else if (comp == 0) {
+					result.add(leftDoc);
+					leftDoc = null;
+					rightDoc = null;
+				} else {
+					result.add(rightDoc);
+					rightDoc = null;
+				}
+			}
+
+			if (!eofLeft) {
+				result.add(leftDoc);
+			}
+			
+			while ((leftDoc = getNext(left)) != null) {
+				result.add(leftDoc);
+			}
+					
+			if (!eofRight) {
+				result.add(rightDoc);
+			}
+			
+			while ((rightDoc = getNext(right)) != null) {
+				result.add(rightDoc);
+			}
+
+			return result;
+		}		
+		
+	}
+	
+	private Document getNext(Iterator<Document> iter) {
+		return iter.hasNext() ? iter.next() : null;
+	}
+	
+	
 	public void sort(Comparator<Document> comparator) throws Exception {
 		if (this.file == null) {
 			Collections.sort(this.list, comparator);
