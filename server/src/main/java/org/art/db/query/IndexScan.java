@@ -6,6 +6,7 @@ import java.util.Set;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.Filter;
 import org.art.db.storage.TableManager;
 
 public class IndexScan extends Plan {

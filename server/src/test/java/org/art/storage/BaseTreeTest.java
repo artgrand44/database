@@ -8,8 +8,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.StringUtils;
+import org.art.db.common.Comparison;
 import org.art.db.common.Key;
-import org.art.db.storage.Comparison;
 import org.art.db.storage.Tree;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;

@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.art.db.common.Comparison;
 import org.art.db.common.Key;
 
 import java.util.Map.Entry;

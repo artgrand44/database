@@ -8,11 +8,11 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.art.db.common.Comparison;
 import org.art.db.common.Configuration;
 import org.art.db.common.Key;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
-import org.art.db.storage.Comparison;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;

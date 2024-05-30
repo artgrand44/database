@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.art.db.query.Filter;
-import org.art.db.storage.Comparison;
+import org.art.db.common.Comparison;
+import org.art.db.common.Filter;
 
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;

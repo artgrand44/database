@@ -1,7 +1,7 @@
 package org.art.db.query;
 
+import org.art.db.common.Comparison;
 import org.art.db.common.Key;
-import org.art.db.storage.Comparison;
 
 public class Scan{
 	private final String index; 

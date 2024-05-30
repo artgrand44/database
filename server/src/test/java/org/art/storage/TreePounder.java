@@ -5,7 +5,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
-import org.art.db.storage.Comparison;
+import org.art.db.common.Comparison;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.RepeatedTest;
 import org.slf4j.Logger;

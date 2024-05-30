@@ -5,6 +5,7 @@ import java.util.List;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.Filter;
 import org.art.db.storage.TableManager;
 
 public class TableInLookup extends Plan {

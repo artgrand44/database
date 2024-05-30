@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
+import org.art.db.common.Comparison;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;

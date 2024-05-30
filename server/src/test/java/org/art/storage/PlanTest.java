@@ -8,13 +8,13 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.art.db.common.Comparison;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
-import org.art.db.query.Filter;
+import org.art.db.common.Filter;
 import org.art.db.query.Plan;
 import org.art.db.query.Planner;
 import org.art.db.storage.ColumnInfo;
-import org.art.db.storage.Comparison;
 import org.art.db.storage.IndexInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;

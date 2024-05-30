@@ -1,11 +1,7 @@
-package org.art.db.query;
+package org.art.db.common;
 
 import java.util.Comparator;
 import java.util.List;
-
-import org.art.db.common.DBNull;
-import org.art.db.common.Document;
-import org.art.db.storage.Comparison;
 
 public class DocumentComparer implements Comparator<Document> {
 	private final List<OrderBy> orderBy;

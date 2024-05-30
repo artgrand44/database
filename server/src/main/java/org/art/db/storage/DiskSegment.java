@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.art.db.common.Blob;
+import org.art.db.common.Comparison;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.slf4j.Logger;

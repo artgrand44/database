@@ -8,12 +8,12 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.art.db.client.Client;
+import org.art.db.common.Comparison;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.Filter;
 import org.art.db.common.Key;
-import org.art.db.query.Filter;
-import org.art.db.storage.Comparison;
 import org.art.db.storage.Metadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

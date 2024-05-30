@@ -4,14 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.art.db.common.Comparison;
 import org.art.db.common.Converter;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
-import org.art.db.query.Filter;
-import org.art.db.query.OrderBy;
+import org.art.db.common.Filter;
+import org.art.db.common.OrderBy;
 import org.art.db.query.QueryManager;
 import org.art.db.storage.ColumnInfo;
-import org.art.db.storage.Comparison;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.storage.Metadata;

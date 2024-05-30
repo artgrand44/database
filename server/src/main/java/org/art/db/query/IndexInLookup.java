@@ -4,10 +4,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.art.db.common.Comparison;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.DocumentSet;
-import org.art.db.storage.Comparison;
+import org.art.db.common.Filter;
 import org.art.db.storage.TableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

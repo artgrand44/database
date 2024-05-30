@@ -1,11 +1,8 @@
-package org.art.db.query;
+package org.art.db.common;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-import org.art.db.common.Key;
-import org.art.db.storage.Comparison;
 
 public class Filter {
 	private final Comparison comparison;
