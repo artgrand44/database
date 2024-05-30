@@ -46,6 +46,17 @@ public class DMLHandler {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(DMLHandler.class);
 	
+	private static List<OrderBy> buildDefaultOrderBy(Metadata metadata) {
+		List<OrderBy> orderByList = new ArrayList<>();
+		
+
+		for (String key : metadata.primaryKeyFields()) {
+			orderByList.add(new OrderBy(key, true));
+		}
+
+		return orderByList;
+	}
+
 	private static List<OrderBy> buildOrderBy(List<OrderByElement> elements) {
 		List<OrderBy> orderByList = new ArrayList<>();
 
@@ -212,11 +223,6 @@ public class DMLHandler {
 	}
 	
 	static DocumentSet select(Select select, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
-		boolean trace = true;
-		String port = DiscoveryHandler.getServerInstance().getLocalPort();
-		
-		if (trace) logger.info("got select on " + port);
-		
 		if (select instanceof PlainSelect plainSelect && plainSelect.getFromItem() instanceof Table fromTable) {
 			String table = SQLUtils.getFQN(fromTable, database);
 			
@@ -231,29 +237,29 @@ public class DMLHandler {
 				return SQLUtils.forwardExecuteQuery(database, shard, sqlString, user, password, parameters);
 			}
 			
-			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
-			
-			DocumentSet set = selectLocal(plainSelect, sqlString, fromTable, database, user, password, parameters, evaluator);
+			DocumentSet set = selectLocal(plainSelect, sqlString, fromTable, database, user, password, parameters);
 
+			// Merge the document sets from the other shards, using the order by clause
+			// or the primary key as the sort key.
+			
 			if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
 				List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
 				
-				if (trace) logger.info("broadcast from " + port);
+				if (orderByList.isEmpty()) {
+					orderByList = buildDefaultOrderBy(Metadata.getMetadata(table));
+				}
+				
+				DocumentComparer comparer = new DocumentComparer(orderByList);
+				
 				for (DocumentSet other : SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters)) {
-					if (trace) logger.info("Got back " + other + "    this = " + set);
-					
-					if (orderByList.isEmpty()) {
-						set.addAll(other);
-					} else {
-						set = set.merge(other, new DocumentComparer(orderByList));
-					}
-					if (trace) logger.info("merged = " + set);
+					set = set.merge(other, comparer);
 				}
 				
 			}
 			
 			// Handle the offset and limit clauses
 			
+			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Limit limitClause = plainSelect.getLimit();
 			long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
 			
@@ -285,14 +291,7 @@ public class DMLHandler {
 		throw new UnsupportedOperationException("Syntax not supported.");
 	}
 	
-	private static DocumentSet selectLocal(PlainSelect plainSelect, 
-			                               String sqlString, 
-			                               Table fromTable, 
-			                               String database, 
-			                               String user, 
-			                               String password,
-			                               List<Comparable<?>> parameters, 
-			                               ExpressionEvaluator evaluator) throws Exception {
+	private static DocumentSet selectLocal(PlainSelect plainSelect, String sqlString, Table fromTable, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		
 		String table = SQLUtils.getFQN(fromTable, database);
 		long start = System.currentTimeMillis();
@@ -319,6 +318,7 @@ public class DMLHandler {
 						
 		// Get the document set then process any aliases and expressions in the select items
 		
+		ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters);	
 				
 		if (!plainSelect.getSelectItems().stream().anyMatch(x -> x.getExpression() instanceof AllColumns)) {		
