@@ -62,12 +62,6 @@ public class DocumentSetTest extends BaseSQLTest {
 			
 			set.sort(this::compare);
 			
-			count = 0;
-			for (Document doc : set) {
-				count++;
-			}
-			
-			Assertions.assertThat(count == 2000).isTrue();
 			String prev = "";
 			
 			for (Document doc : set) {

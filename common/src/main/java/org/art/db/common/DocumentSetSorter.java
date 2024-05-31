@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DocumentSetSorter {
+	
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(DocumentSetSorter.class);
 	
 	private static File createTempFile() throws IOException {
@@ -29,11 +31,6 @@ public class DocumentSetSorter {
 		Document rightDoc = null;
 		boolean eofLeft = false;
 		boolean eofRight = false;
-		int count = 0;
-		int readLeft = 0;
-		int readRight = 0;
-		int wroteLeft = 0;
-		int wroteRight = 0;
 		
 		try (TypedOutputStream outStream = new TypedOutputStream(result);
 				TypedInputStream leftStream = new TypedInputStream(left);
@@ -43,29 +40,20 @@ public class DocumentSetSorter {
 				if (leftDoc == null) {
 					leftDoc = readDocument(leftStream);
 					eofLeft = leftDoc == null;
-					
-					if (leftDoc != null) readLeft++;
 				}
 				
 				if (rightDoc == null) {
 					rightDoc = readDocument(rightStream);
 					eofRight = rightDoc == null;
-					if (right != null) readRight++;
 				}
 				
 				if (eofLeft || eofRight) {
-					logger.info("break eofLeft " + eofLeft + " eofRight " + eofRight);
-					
 					if (leftDoc != null ) {
 						outStream.writeObject(leftDoc);
-						wroteLeft++;
-						count++;
 					}
 					
 					if (rightDoc != null ) {
 						outStream.writeObject(rightDoc);
-						wroteRight++;
-						count++;
 					}
 					
 					break;
@@ -76,44 +64,30 @@ public class DocumentSetSorter {
 				
 				if (comp < 0) {
 					outStream.writeObject(leftDoc);
-					wroteLeft++;
-					count++;
 					leftDoc = null;
 				} else if (comp == 0) {
 					outStream.writeObject(leftDoc);
-					count++;
-					wroteLeft++;
-					logger.info("found = ");
 					leftDoc = null;
 					rightDoc = null;
 				} else {
 					outStream.writeObject(rightDoc);
-					wroteRight++;
-					count++;
 					rightDoc = null;
 				}
 			}
 			
-			logger.info("after loop " + count + " left " + readLeft + " right = " + readRight + " wrote left" + wroteLeft + " wrote right " + wroteRight);
-			logger.info("eofLeft " + eofLeft + " eofRight " + eofRight);
 			if (!eofLeft) {
 				while ((leftDoc = readDocument(leftStream)) != null) {
 					outStream.writeObject(leftDoc);
-					wroteLeft++;
-					count++;
 				}
 			}
 			
 			if (!eofRight) {
 				while ((rightDoc = readDocument(rightStream)) != null) {
 					outStream.writeObject(rightDoc);
-					count++;
-					wroteRight++;
 				}
 			}
 		}
 		
-		logger.info("after merge " + count + " left " + readLeft + " right = " + readRight + " wrote left " + wroteLeft + " wrote right " + wroteRight);
 		return result;
 	}
 	
@@ -190,7 +164,7 @@ public class DocumentSetSorter {
 				count++;
 			}		
 		} catch (EOFException exc) {
-			logger.info("split eof " + count);
+		
 		}
 		
 		return new File[] { temp1, temp2 };

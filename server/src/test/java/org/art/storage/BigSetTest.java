@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 public class BigSetTest extends BaseIntegrationTest {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(BigSetTest.class);
 	
 	
