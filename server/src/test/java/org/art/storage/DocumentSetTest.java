@@ -41,10 +41,33 @@ public class DocumentSetTest extends BaseSQLTest {
 				}				
 			}
 			
+
+			Assertions.assertThat(set.size() == 2000).isTrue();
+			
+			long count = 0;
+			for (@SuppressWarnings("unused") Document doc : set) {
+				count++;
+			}
+			
+			Assertions.assertThat(count == 2000).isTrue();
+			
 			set.freeze();
+			
+			count = 0;
+			for (@SuppressWarnings("unused") Document doc : set) {
+				count++;
+			}
+			
+			Assertions.assertThat(count == 2000).isTrue();
 			
 			set.sort(this::compare);
 			
+			count = 0;
+			for (Document doc : set) {
+				count++;
+			}
+			
+			Assertions.assertThat(count == 2000).isTrue();
 			String prev = "";
 			
 			for (Document doc : set) {

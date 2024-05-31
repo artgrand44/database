@@ -29,6 +29,7 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 public class DocumentSet extends Serializable<DocumentSet> implements Iterable<Document>, Closeable {
 	
 	private static final Logger logger = LoggerFactory.getLogger(DocumentSet.class);
+	
 	private static AtomicInteger nextId = new AtomicInteger();
 	private List<Document> list = new ArrayList<>();
 	private TypedOutputStream outputStream;
@@ -41,7 +42,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	
 	private static final int MAX_MEMORY = 1000;
 	
-	private static final Cache<File, TypedInputStream> cache = Caffeine.newBuilder().maximumSize(10000).evictionListener(DocumentSet::onRemoval).build();
+	private static final Cache<File, TypedInputStream> cache = Caffeine.newBuilder().maximumSize(10000).removalListener(DocumentSet::onRemoval).build();
 		
 	public DocumentSet() {
 		logger.info("create " + this.id);
@@ -223,6 +224,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	
 	
 	public void sort(Comparator<Document> comparator) throws DBRuntimeException {
+		logger.info("sort " + this.size);
 		if (this.file == null) {
 			Collections.sort(this.list, comparator);
 		} else {
@@ -317,6 +319,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 
 	private static void onRemoval(@Nullable File key, @Nullable TypedInputStream stream, RemovalCause cause) {
 		try {
+			logger.info("key " + key + " " + cause);
 			stream.close();
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
@@ -346,7 +349,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		private final File file;
 		private final int size;
 		private final String id;
-		private final TypedInputStream stream;
+		//private final TypedInputStream stream;
 		private static AtomicInteger next = new AtomicInteger();
 		
 		FileBasedIterator(File file, int size, int id) {
@@ -354,31 +357,36 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 			this.size = size;
 			this.id = "" + id + "." + next.incrementAndGet();
 			
-			try {
+			/*try {
 				this.stream = new TypedInputStream(new CountingInputStream(new FileInputStream(this.file)));
 			} catch (Exception exc) {
 				exc.printStackTrace();
 				throw new IllegalStateException(exc);
-			}
+			}*/
 			logger.info(this.id + " created len " + this.file.length());
 		}
 		
 		@Override
 		public boolean hasNext() {
-			return this.count < this.size;
+			if (this.count < this.size) {
+				return true;
+			}
+			
+			cache.invalidate(this.file);
+			return false;
 		}
 
 		@Override
 		public Document next() {
 			try {
-				/*TypedInputStream stream = cache.getIfPresent(this.file);
+				TypedInputStream stream = cache.getIfPresent(this.file);
 			
 				if (stream == null) {
 					logger.info(id + " getting stream " + file.getAbsolutePath() + " length " + this.file.length() + " position = " + this.position);
 					stream = new TypedInputStream(new CountingInputStream(new FileInputStream(this.file)));
 					stream.skip(this.position);
 					cache.put(this.file, stream);
-				}*/
+				}
 				
 				Document doc = (Document)stream.readObject();
 				

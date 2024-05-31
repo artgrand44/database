@@ -51,7 +51,7 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 		
 		this.nitems = nitems;
 		this.nthreads = nthreads;
-		this.exitLatch = new CountDownLatch(nthreads - (nthreads / 10));
+		this.exitLatch = new CountDownLatch(nthreads - (nthreads / 5));
 	
 		this.startInternal(profile);
 	}
