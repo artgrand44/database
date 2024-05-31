@@ -37,11 +37,25 @@ public class BigSetTest extends BaseIntegrationTest {
 				
 				DocumentSet set = client.executeQuery(query);
 					
+				if (set.size() != 2000) {
+					long actual = 0;
+					
+					for (@SuppressWarnings("unused") Document doc : set) {
+						actual++;
+					}
+					
+					logger.info("size " + set.size() + " actual " + actual);
+					
+					
+				}
 				Assertions.assertThat(set.size() == 2000).isTrue();
 				
 				int count = 0;
 				
 				for (Document doc : set) {
+					if (!doc.get("count").equals(Long.valueOf(count))) {
+						logger.info("mismatch doc = " + doc.get("count") + " count " + count);
+					}
 					Assertions.assertThat(doc.get("count").equals(Long.valueOf(count))).isTrue();
 					count++;
 				}

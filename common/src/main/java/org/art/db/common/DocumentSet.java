@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.input.CountingInputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -28,11 +29,12 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 public class DocumentSet extends Serializable<DocumentSet> implements Iterable<Document>, Closeable {
 	
 	private static final Logger logger = LoggerFactory.getLogger(DocumentSet.class);
-	
+	private static AtomicInteger nextId = new AtomicInteger();
 	private List<Document> list = new ArrayList<>();
 	private TypedOutputStream outputStream;
 	private File file;
 	private int size;
+	private final int id = nextId.incrementAndGet();
 	private boolean isRemote = false;
 	private URI serverURI;
 	private static final RestClient restClient = new RestClient();
@@ -41,12 +43,17 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	
 	private static final Cache<File, TypedInputStream> cache = Caffeine.newBuilder().maximumSize(10000).evictionListener(DocumentSet::onRemoval).build();
 		
+	public DocumentSet() {
+		logger.info("create " + this.id);
+	}
 	public void add(Document doc)  {
 		try {
 			if (this.outputStream == null) {
 				this.list.add(doc);
 				this.size++;
-
+				if (this.size >= 1999) {
+					logger.info("id = " + id + " " + this.size);
+				}
 				if (this.size == MAX_MEMORY) {
 					this.file = File.createTempFile("docsset", ".dat");
 					this.outputStream = new TypedOutputStream(new FileOutputStream(file));
@@ -60,6 +67,9 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 			} else {
 				this.outputStream.writeObject(doc);
 				this.size++;
+				if (this.size >= 1999) {
+					logger.info("id = " + id + " " + this.size);
+				}
 			}
 		} catch (IOException exc) {
 			throw new DBRuntimeException(exc.getMessage(), exc);
@@ -73,7 +83,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	}
 	
 	public static byte[] fetch(String fileName, int index, int size) throws IOException {
-		Iterator<Document> iterator = new FileBasedIterator(new File(fileName), size);
+		Iterator<Document> iterator = new FileBasedIterator(new File(fileName), size, -1);
 		
 		for (int idx = 0; idx < idx; idx++) {
 			iterator.next();
@@ -110,7 +120,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		} else if (this.file == null) {
 			return  this.list.iterator();
 		} else {
-			return new FileBasedIterator(this.file, this.size);
+			return new FileBasedIterator(this.file, this.size, this.id);
 		}
 	}
 
@@ -123,74 +133,96 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	}
 	
 	public DocumentSet merge(List<DocumentSet> others, Comparator<Document> comparator, long offset, long limit) {
+		Iterator<Document> iterator1 = this.iterator();
+		int count = 0;
 		
-		try (DocumentSet result = new DocumentSet()) {
-			List<Document> current = new ArrayList<>();
-			List<Iterator<Document>> iterators = new ArrayList<>();
-			List<Boolean> eof = new ArrayList<>();
-			long skipped = 0;
-			
-			current.add(null);
-			iterators.add(this.iterator());
-			eof.add(false);
-			
-			for (DocumentSet set : others) {
-				current.add(null);
-				iterators.add(set.iterator());
-				eof.add(false);
-			}
-
-			while (result.size < limit) {
-				for (int idx = 0; idx < current.size(); idx++) {
-					if (current.get(idx) == null && !eof.get(idx)) {
-						Document doc = getNext(iterators.get(idx));
-						
-						current.set(idx, doc);
-						eof.set(idx, doc == null);
-					}
-				}
-				
-				int smallestIndex = -1;
-				
-				for (int idx = 0; idx < current.size(); idx++) {
-					if (eof.get(idx)) {
-						continue;
-					} else if (smallestIndex == -1) {
-						smallestIndex = idx;
-					} else if (comparator.compare(current.get(idx), current.get(smallestIndex)) < 0) {
-						smallestIndex = idx;
-					}
-				}
-				
-				if (smallestIndex == -1) {
-					break;
-				}
-				
-				if (skipped >= offset) {
-					result.add(current.get(smallestIndex));
-				} else {
-					skipped++;
-				}
-				
-				Document doc = getNext(iterators.get(smallestIndex));
-				
-				current.set(smallestIndex, doc);
-				eof.set(smallestIndex, doc == null);
-			}
-
-			return result;
-		} catch (Exception exc) {
-			throw new DBRuntimeException(exc);
+		/*while (iterator1.hasNext()) {
+			iterator1.next();
+			count++;
 		}
 		
+		if (count != this.size) {
+			logger.info("Bad count at start");
+		}*/
+		DocumentSet result = new DocumentSet();
+		List<Document> current = new ArrayList<>();
+		List<Iterator<Document>> iterators = new ArrayList<>();
+		long skipped = 0;
+
+		iterators.add(this.iterator());
+
+		for (DocumentSet set : others) {
+			iterators.add(set.iterator());
+		}
+
+		logger.info("iterators " + iterators);
+		for (Iterator<Document> iterator : iterators) {
+			current.add(iterator.hasNext() ? iterator.next() : null);
+		}
+		
+		while (result.size < limit) {
+			int smallestIndex = -1;
+			Document smallestDoc = null;
+			Iterator<Document> smallestIterator = null;
+
+			for (int idx = 0; idx < current.size(); idx++) {
+				Document doc  = current.get(idx);
+				
+				if (doc == null) {
+					continue;
+				} else if (smallestDoc == null || comparator.compare(doc, smallestDoc) < 0) {
+					smallestIndex = idx;
+					smallestDoc = doc;
+					smallestIterator = iterators.get(idx);
+				} 
+			}
+
+			if (smallestDoc == null) {
+				break;
+			} else if (skipped >= offset) {
+				result.add(smallestDoc);
+			} else {
+				skipped++;
+			}
+
+			current.set(smallestIndex, smallestIterator.hasNext() ? smallestIterator.next() : null);
+		}
+
+		iterator1 = this.iterator();
+		count = 0;
+		
+		while (iterator1.hasNext()) {
+			iterator1.next();
+			count++;
+		}
+		
+		if (count != this.size) {
+			logger.info("Bad count at end");
+		}
+		
+		if (others.isEmpty() && this.size != result.size) {
+			logger.info("wrong size");
+		}
+		
+		if (others.isEmpty()) {
+			iterator1 = result.iterator();
+			count = 0;
+			
+			while (iterator1.hasNext()) {
+				iterator1.next();
+				count++;
+			}
+			
+			if (count != result.size) {
+				logger.info("Mistach");
+			}
+		}
+		return result;
+		
 	}
 	
-	private Document getNext(Iterator<Document> iter) {
-		return iter.hasNext() ? iter.next() : null;
-	}
 	
-	
-	public void sort(Comparator<Document> comparator) throws Exception {
+	public void sort(Comparator<Document> comparator) throws DBRuntimeException {
 		if (this.file == null) {
 			Collections.sort(this.list, comparator);
 		} else {
@@ -259,6 +291,9 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		if (this.isRemote) {
 			try {
 				this.size = stream.readInt();
+				if (this.size >= 1999) {
+					logger.info("id = " + id + " " + this.size);
+				}
 				this.file = new File(stream.readUTF());
 				this.serverURI = new URI(stream.readUTF());
 
@@ -271,6 +306,9 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		} else {
 			this.list = (List<Document>)stream.readObject();
 			this.size = this.list.size();
+			if (this.size >= 1999) {
+				logger.info("id = " + id + " " + this.size);
+			}
 		}
 
 		return this;
@@ -307,27 +345,40 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		private long count;
 		private final File file;
 		private final int size;
+		private final String id;
+		private final TypedInputStream stream;
+		private static AtomicInteger next = new AtomicInteger();
 		
-		FileBasedIterator(File file, int size) {
+		FileBasedIterator(File file, int size, int id) {
 			this.file = file;
 			this.size = size;
+			this.id = "" + id + "." + next.incrementAndGet();
+			
+			try {
+				this.stream = new TypedInputStream(new CountingInputStream(new FileInputStream(this.file)));
+			} catch (Exception exc) {
+				exc.printStackTrace();
+				throw new IllegalStateException(exc);
+			}
+			logger.info(this.id + " created len " + this.file.length());
 		}
 		
 		@Override
 		public boolean hasNext() {
-			return this.count < this.size - 1;
+			return this.count < this.size;
 		}
 
 		@Override
 		public Document next() {
 			try {
-				TypedInputStream stream = cache.getIfPresent(this.file);
+				/*TypedInputStream stream = cache.getIfPresent(this.file);
 			
 				if (stream == null) {
+					logger.info(id + " getting stream " + file.getAbsolutePath() + " length " + this.file.length() + " position = " + this.position);
 					stream = new TypedInputStream(new CountingInputStream(new FileInputStream(this.file)));
 					stream.skip(this.position);
 					cache.put(this.file, stream);
-				}
+				}*/
 				
 				Document doc = (Document)stream.readObject();
 				
@@ -338,12 +389,18 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 				
 				return doc;		
 			} catch (EOFException exc) {
-				logger.info("got eof " + this.count);
+				logger.info("got eof  " + this);
 				throw new IllegalStateException(exc);
 			} catch (Exception exc)  {
 				throw new IllegalStateException(exc);
 			}
 		}
+
+		@Override
+		public String toString() {
+			return "FileBasedIterator [id=" + id + ", count=" + count + ", size=" + size + "]";
+		}
+		
 		
 	}
 

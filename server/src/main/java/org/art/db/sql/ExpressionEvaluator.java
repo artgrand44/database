@@ -1,14 +1,18 @@
 package org.art.db.sql;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.art.db.common.Comparison;
 import org.art.db.common.Converter;
 import org.art.db.common.Document;
+import org.art.db.common.DocumentComparer;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
+import org.art.db.common.Key;
 import org.art.db.common.OrderBy;
 import org.art.db.query.QueryManager;
 import org.art.db.storage.ColumnInfo;
@@ -483,13 +487,33 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		
 	}
 
+	
 	@Override
 	public void visit(OrExpression orExpression) {
 		Object left = this.evaluate(orExpression.getLeftExpression());
 		Object right = this.evaluate(orExpression.getRightExpression());
 		
+		// If left and right are document sets then merge the sets (skipping any
+		// duplicates) and resort the set.
+		
 		if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
-			lset.addAll(rset);
+			Set<Key> leftKeys = new HashSet<>();
+			
+			for (Document doc : rset) {
+				leftKeys.add(SQLUtils.buildPrimaryKey(doc, this.metadata));
+			}
+			
+			for (Document doc : rset) {
+				if (!leftKeys.contains(SQLUtils.buildPrimaryKey(doc, this.metadata))) {
+					lset.add(doc);
+				}
+			}
+			
+			List<OrderBy> orderBy = this.orderBy == null ? SQLUtils.buildDefaultOrderBy(this.metadata) : this.orderBy;
+			DocumentComparer comparer = new DocumentComparer(orderBy);
+			
+			lset.sort(comparer);
+			
 			this.result = left;
 			return;
 		} 

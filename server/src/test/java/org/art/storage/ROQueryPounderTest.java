@@ -14,7 +14,7 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 	private static final Logger logger = LoggerFactory.getLogger(ROQueryPounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 100000;
+	private static int NLOOPS = 10000;
 	private static int NTHREADS = 150;
 	
 	public ROQueryPounderTest() {

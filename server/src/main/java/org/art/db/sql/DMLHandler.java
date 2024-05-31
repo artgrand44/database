@@ -45,17 +45,7 @@ public class DMLHandler {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(DMLHandler.class);
 	
-	private static List<OrderBy> buildDefaultOrderBy(Metadata metadata) {
-		List<OrderBy> orderByList = new ArrayList<>();
-		
-
-		for (String key : metadata.primaryKeyFields()) {
-			orderByList.add(new OrderBy(key, true));
-		}
-
-		return orderByList;
-	}
-
+	
 	private static List<OrderBy> buildOrderBy(List<OrderByElement> elements) {
 		List<OrderBy> orderByList = new ArrayList<>();
 
@@ -248,13 +238,13 @@ public class DMLHandler {
 			long offset = offsetClause == null  || offsetClause.getOffset() == null ? 0 : (long)evaluator.evaluate(offsetClause.getOffset(), Long.class);
 
 			// If the select is coming from an application and the data is on multiple shards
-			// then get the document lists from the other shards and merge them together.
+			// then get the document sets from the other shards and merge them together.
 			
 			if (shardContainingData.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
 				List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
 				
 				if (orderByList.isEmpty()) {
-					orderByList = buildDefaultOrderBy(Metadata.getMetadata(table));
+					orderByList = SQLUtils.buildDefaultOrderBy(Metadata.getMetadata(table));
 				}
 				
 				DocumentComparer comparer = new DocumentComparer(orderByList);
@@ -267,21 +257,20 @@ public class DMLHandler {
 			// enforce the offset and limit clauses.
 			
 			if ((offset != 0 || limit != Long.MAX_VALUE) && !targetShard.equals(Client.WILDCARD)) {
-				try (DocumentSet newSet = new DocumentSet()) {
-					long index = 0;
+				DocumentSet newSet = new DocumentSet();
+				long index = 0;
 
-					for (Document doc : set) {
-						if (newSet.size() == limit) { 
-							break;
-						} else if (index >= offset) {
-							newSet.add(doc);
-						}
-
-						index++;
+				for (Document doc : set) {
+					if (newSet.size() == limit) { 
+						break;
+					} else if (index >= offset) {
+						newSet.add(doc);
 					}
 
-					return newSet;
-				}				
+					index++;
+				}
+
+				return newSet;			
 			}
 			
 			// Otherwise return the local document set

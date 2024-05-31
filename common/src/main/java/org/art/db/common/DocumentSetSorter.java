@@ -83,46 +83,49 @@ public class DocumentSetSorter {
 			return null;
 		}
 	}
-	
-	static File sort(File file, Comparator<Document> comparator) throws Exception {
-		if (file.length() < 1024 * 1024) {
-			List<Document> list = new ArrayList<>();
-			
-			try (TypedInputStream stream = new TypedInputStream(file)) {
-				for (;;) {
-					list.add((Document)stream.readObject()); 
+
+	static File sort(File file, Comparator<Document> comparator) throws DBRuntimeException {
+		try {
+			if (file.length() < 1024 * 1024) {
+				List<Document> list = new ArrayList<>();
+
+				try (TypedInputStream stream = new TypedInputStream(file)) {
+					for (;;) {
+						list.add((Document)stream.readObject()); 
+					}
+				} catch (EOFException exc) {
+
 				}
-			} catch (EOFException exc) {
-				
-			}
-			
-			Collections.sort(list, comparator);
-			
-			File result = createTempFile();
-			
-			try (TypedOutputStream stream = new TypedOutputStream(result)) {
-				for (Document doc : list) {
-					stream.writeObject(doc);
+
+				Collections.sort(list, comparator);
+
+				File result = createTempFile();
+
+				try (TypedOutputStream stream = new TypedOutputStream(result)) {
+					for (Document doc : list) {
+						stream.writeObject(doc);
+					}
 				}
+
+				return result;
+			} else {
+				File[] files = splitFile(file);
+
+				sort(files[0], comparator);
+				sort(files[1], comparator);
+
+				File result = mergeFiles(files[0], files[1], comparator);
+
+				files[0].delete();
+				files[1].delete();
+
+				return result;
 			}
-			
-			return result;
-		} else {
-			File[] files = splitFile(file);
-			
-			sort(files[0], comparator);
-			sort(files[1], comparator);
-			
-			File result = mergeFiles(files[0], files[1], comparator);
-			
-			files[0].delete();
-			files[1].delete();
-			
-			return result;
+		} catch (Exception exc) {
+			throw new DBRuntimeException("There was an error sorting the documents", exc);
 		}
-		
 	}
-	
+
 	private static File[] splitFile(File file) throws IOException {
 		File temp1 = createTempFile();
 		File temp2 = createTempFile();

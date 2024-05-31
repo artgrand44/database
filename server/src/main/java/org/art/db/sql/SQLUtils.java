@@ -14,6 +14,7 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
 import org.art.db.common.Key;
+import org.art.db.common.OrderBy;
 import org.art.db.storage.Metadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,27 @@ import net.sf.jsqlparser.schema.Table;
 public class SQLUtils {
 
 	private static final Logger logger = LoggerFactory.getLogger(SQLUtils.class);
+	
+	static List<OrderBy> buildDefaultOrderBy(Metadata metadata) {
+		List<OrderBy> orderByList = new ArrayList<>();
+		
+
+		for (String key : metadata.primaryKeyFields()) {
+			orderByList.add(new OrderBy(key, true));
+		}
+
+		return orderByList;
+	}
+
+	static Key buildPrimaryKey(Document doc, Metadata metadata) {
+		List<Comparable<?>> keys = new ArrayList<>();
+		
+		for (String field : metadata.primaryKeyFields()) {
+			keys.add((Comparable<?>)doc.get(field));
+		}
+		
+		return new Key(keys);
+	}
 	
 	static void broadcastExecute(String database, String statement, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
@@ -127,6 +149,7 @@ public class SQLUtils {
 		
 		return String.format("%s.%s.%s", dbName, schema, name);		
 	}
+	
 	
 	static String getFQN(String table, String database) {
 		String dbName = StringUtils.isBlank(database) ? "SYS" : database;
