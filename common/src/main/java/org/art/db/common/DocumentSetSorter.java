@@ -25,71 +25,59 @@ public class DocumentSetSorter {
 		
 	}
 	
-	private static File mergeFiles(File left, File right, Comparator<Document> comparator) throws Exception {
+	public static File merge(List<File> files, Comparator<Document> comparator) throws Exception {
+		List<Document> current = new ArrayList<>();
 		File result = createTempFile();
-		Document leftDoc = null;
-		Document rightDoc = null;
-		boolean eofLeft = false;
-		boolean eofRight = false;
+		List<TypedInputStream> inputs = new ArrayList<>();
+
+		try (TypedOutputStream outStream = new TypedOutputStream(result)) {
+			for (File file : files) {
+				TypedInputStream input = new TypedInputStream(file);
+				
+				inputs.add(input);
+				current.add(readDocument(input));
+			}
 		
-		try (TypedOutputStream outStream = new TypedOutputStream(result);
-				TypedInputStream leftStream = new TypedInputStream(left);
-				TypedInputStream rightStream = new TypedInputStream(right)) {
-			
+		
 			for (;;) {
-				if (leftDoc == null) {
-					leftDoc = readDocument(leftStream);
-					eofLeft = leftDoc == null;
+				int smallestIndex = -1;
+				Document smallestDoc = null;
+				TypedInputStream smallestInput = null;
+
+				for (int idx = 0; idx < current.size(); idx++) {
+					Document doc  = current.get(idx);
+
+					if (doc == null) {
+						continue;
+					} else if (smallestDoc == null || comparator.compare(doc, smallestDoc) < 0) {
+						smallestIndex = idx;
+						smallestDoc = doc;
+						smallestInput = inputs.get(idx);
+					} 
 				}
-				
-				if (rightDoc == null) {
-					rightDoc = readDocument(rightStream);
-					eofRight = rightDoc == null;
-				}
-				
-				if (eofLeft || eofRight) {
-					if (leftDoc != null ) {
-						outStream.writeObject(leftDoc);
-					}
-					
-					if (rightDoc != null ) {
-						outStream.writeObject(rightDoc);
-					}
-					
+
+				if (smallestDoc == null) {
 					break;
-				}
-						
-				
-				int comp = comparator.compare(leftDoc, rightDoc);
-				
-				if (comp < 0) {
-					outStream.writeObject(leftDoc);
-					leftDoc = null;
-				} else if (comp == 0) {
-					outStream.writeObject(leftDoc);
-					leftDoc = null;
-					rightDoc = null;
 				} else {
-					outStream.writeObject(rightDoc);
-					rightDoc = null;
-				}
+					outStream.writeObject(smallestDoc);
+				} 
+
+				current.set(smallestIndex,readDocument(smallestInput));
 			}
-			
-			if (!eofLeft) {
-				while ((leftDoc = readDocument(leftStream)) != null) {
-					outStream.writeObject(leftDoc);
-				}
-			}
-			
-			if (!eofRight) {
-				while ((rightDoc = readDocument(rightStream)) != null) {
-					outStream.writeObject(rightDoc);
+		} finally {
+			for (TypedInputStream input : inputs) {
+				try {
+					input.close();
+				} catch (Exception exc) {
+					throw exc;
 				}
 			}
 		}
-		
+
 		return result;
+		
 	}
+
 	
 	private static Document readDocument(TypedInputStream stream) throws Exception {
 		try {
@@ -124,15 +112,17 @@ public class DocumentSetSorter {
 
 				return result;
 			} else {
-				File[] files = splitFile(file);
+				List<File> files = splitFile(file);
 
-				sort(files[0], comparator);
-				sort(files[1], comparator);
+				for (File subfile : files) {
+					sort(subfile, comparator);
+				}
+				
+				File result = merge(files, comparator);
 
-				File result = mergeFiles(files[0], files[1], comparator);
-
-				files[0].delete();
-				files[1].delete();
+				for (File subfile : files) {
+					subfile.delete();
+				}
 
 				return result;
 			}
@@ -141,7 +131,7 @@ public class DocumentSetSorter {
 		}
 	}
 
-	private static File[] splitFile(File file) throws IOException {
+	private static List<File> splitFile(File file) throws IOException {
 		File temp1 = createTempFile();
 		File temp2 = createTempFile();
 		int count = 0;
@@ -167,7 +157,7 @@ public class DocumentSetSorter {
 		
 		}
 		
-		return new File[] { temp1, temp2 };
+		return List.of(temp1, temp2);
 	}
 	
 }

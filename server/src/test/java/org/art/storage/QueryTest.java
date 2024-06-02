@@ -91,6 +91,10 @@ public class QueryTest extends BaseSQLTest {
 			actualSet.add(doc);
 		}
 		
+		if (docs.size() != expectedIds.length) {
+			logger.info("bad length");
+		}
+		
 		Assertions.assertThat(docs.size() == expectedIds.length).isTrue();
 		Assertions.assertThat(expectedSet.equals(actualSet)).isTrue();		
 		
