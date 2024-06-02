@@ -250,7 +250,7 @@ public class DMLHandler {
 				DocumentComparer comparer = new DocumentComparer(orderByList);
 				List<DocumentSet> others = SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters);
 				
-				return set.merge(others, comparer, offset, limit);
+				return others.isEmpty() ? set : set.merge(others, comparer, offset, limit);
 			} 
 
 			// If the the select is coming from an application and the data is all local then
