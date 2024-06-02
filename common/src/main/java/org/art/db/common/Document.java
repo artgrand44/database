@@ -115,6 +115,22 @@ public class Document extends Serializable<Document> implements Iterable<Map.Ent
 		return null;
 	}
 
+	public <T> T get(String name, Class<T> clazz) {
+		Object obj = this.get(name);
+		
+		if (obj == null) {
+			return null;
+		} else if (clazz.isAssignableFrom(obj.getClass())) {
+			return clazz.cast(obj);
+		} else {
+			try {
+				return clazz.cast(Converter.convert(obj, clazz));
+			} catch (Exception exc) {
+				throw new DBRuntimeException("The value cannot be converted to " + clazz.getName());
+			}
+		}
+	}
+	
 	public void put(String name, Object value) {
 		int dot = name.indexOf('.');
 		

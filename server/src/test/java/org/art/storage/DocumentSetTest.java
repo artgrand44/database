@@ -65,7 +65,7 @@ public class DocumentSetTest extends BaseSQLTest {
 			String prev = "";
 			
 			for (Document doc : set) {
-				String key = (String)doc.get("key");
+				String key = doc.get("key", String.class);
 				
 				Assertions.assertThat(prev.compareTo(key) < 0).isTrue();
 				prev = key;
