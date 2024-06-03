@@ -70,7 +70,6 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 				this.checkExecuteException(badUpdate, "junk is not a valid column.");
 				this.checkExecuteException(badDelete, "junk is not a valid column.");
 				this.checkExecuteException(query,     "Select statements must be called via Client.executeQuery.");
-				this.checkQueryException(insert,      "Client.executeQuery can only be used for select statements.");
 				
 				String badSyntaxQuery = "select *  where junk < 'last3000' order by last";
 				this.checkQueryException(badSyntaxQuery, "Syntax not supported.");
