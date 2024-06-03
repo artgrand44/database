@@ -153,14 +153,21 @@ public class DDLHandler {
 			throw new DBRuntimeException("Index " + indexName + " already exists");
 		}
 		
+		Metadata metadata = Metadata.getMetadata(SQLUtils.getFQN(table, database));
+		
 		for (ColumnParams param : index.getColumns()) {
-			fields.add(param.getColumnName());
+			String name = param.getColumnName();
+			
+			if (!metadata.columns().containsKey(name)) {
+				throw new DBRuntimeException(name + " is not a valid comlumn");
+			}
+			
+			fields.add(name);
 		}
 		
 		IndexInfo indexInfo = new IndexInfo(indexName, unique, fields);
 	
 		try {
-			Metadata metadata = Metadata.getMetadata(SQLUtils.getFQN(table, database));
 			List<IndexInfo> indices = metadata.indices();
 			
 			if (metadata.indices().contains(indexInfo)) {

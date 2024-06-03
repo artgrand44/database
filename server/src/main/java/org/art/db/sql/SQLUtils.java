@@ -20,7 +20,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.Limit;
 
 public class SQLUtils {
 
@@ -89,7 +92,7 @@ public class SQLUtils {
 					try {
 						result.add(forwardExecuteQuery(database, shard, statement, user, password, parameters));
 					} catch (Exception exc) {
-						logger.info("  forward on handler.getLocalPort() got exception " + exc.getMessage()); 
+						logger.info("forward on handler.getLocalPort() got exception " + exc.getMessage()); 
 					}
 				}
 			}
@@ -98,6 +101,40 @@ public class SQLUtils {
 		return result;
 	}
 	
+	static List<DocumentSet> broadcastExecuteQuery(String database, Statement statement,  Limit limitClause, long limit, String user, String password, List<Comparable<?>> parameters) throws Exception {
+		List<DocumentSet> result = new LinkedList<>();
+		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
+
+		if (handler != null) {
+			long shardLimit = limit;
+			
+			for (String shard : handler.getInstances().keySet()) {
+				if (shardLimit == 0) {
+					break;
+					
+				}
+				if (!shard.equals(handler.getlocalShard())) {
+					try {
+						
+						if (limitClause != null) {
+							limitClause.setRowCount(new LongValue(shardLimit));
+						}
+						
+						
+						DocumentSet set = forwardExecuteQuery(database, shard, statement.toString(), user, password, parameters);
+						result.add(set);
+										
+						shardLimit = shardLimit - set.size();
+					} catch (Exception exc) {
+						logger.info("forward on handler.getLocalPort() got exception " + exc.getMessage()); 
+					}
+				}
+			}
+		}
+		
+		return result;
+	}
+
 	private static Filter findFilter(List<Filter> filters, String name) {
 		for (Filter filter : filters) {
 			if (filter.getField().equals(name)) {

@@ -229,6 +229,7 @@ public class DiscoveryHandler {
 	public Set<String> getShards() {
 		return this.instances.get().keySet();
 	}
+	
 	public boolean hasServices() {
 		return !this.instances.get().isEmpty();
 	}

@@ -2,6 +2,7 @@ package org.art.db.sql;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +32,7 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.ReturningClause;
+import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.AllColumns;
@@ -82,7 +84,7 @@ public class DMLHandler {
 	}
 	
 	
-	static void delete(Delete delete, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+	static DocumentSet delete(Delete delete, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		
 		String table = SQLUtils.getFQN(delete.getTable(), database);
 		
@@ -95,46 +97,71 @@ public class DMLHandler {
 		String shard = SQLUtils.getShard(table, where, parameters);
 		
 		if (!SQLUtils.isShardLocal(shard)) {
-			SQLUtils.forwardExecute(database, shard, sqlString, user, password, parameters);
-			return;
+			return SQLUtils.forwardExecuteQuery(database, shard, sqlString, user, password, parameters);
 		}
+		
+		DocumentSet set = deleteLocal(delete, sqlString, database, user, password, parameters);
 		
 		if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
-			SQLUtils.broadcastExecute(database, sqlString, user, password, parameters);
+			Limit limitClause = delete.getLimit();
+			long limit = getLimit(limitClause, table);
+
+			for (DocumentSet other : SQLUtils.broadcastExecuteQuery(database, delete, limitClause,  limit - set.size(), user, password, parameters)) {
+				set.addAll(other);
+			}
 		}
 		
-		deleteLocal(delete, sqlString, database, user, password, parameters);
+		return delete.getReturningClause() == null ? new DocumentSet() : set;
 		
 	}
 	
-	private static void deleteLocal(Delete delete, String sqlString, String database, String user, String password, List<Comparable<?>> parameters) {
+	private static DocumentSet deleteLocal(Delete delete, String sqlString, String database, String user, String password, List<Comparable<?>> parameters) {
+		long start = System.currentTimeMillis();
+		
 		try {
 			String table = SQLUtils.getFQN(delete.getTable(), database);
 			Expression where = delete.getWhere();
-			long start = System.currentTimeMillis();
+			ReturningClause returnClause = delete.getReturningClause();
 			
+						
 			if (where == null) {
 				throw new DBRuntimeException("The delete must contain a where clause");
 			}
+			
+			// Find the documents and delete them
 
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression normalized = new ExpressionNormalizer().normalize(where);
 			
-			DocumentSet docs = evaluator.evaluateWhere(normalized, null, null, parameters);
+			DocumentSet docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters), delete.getLimit(), evaluator);
 
 			for (Document doc : docs) {
 				QueryManager.getInstance().remove(table, doc);
 			}
 			
-			Metrics.getInstance().logDelete();
-			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
-			
+			return returnClause == null || returnClause.isEmpty() 
+				   ? new DocumentSet()
+				   : processSelectItems(docs, returnClause, evaluator, parameters);
+				
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
 			throw new DBRuntimeException("The delete failed", exc);
+		} finally {
+			Metrics.getInstance().logDelete();
+			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		}
 				
+	}
+	
+	static long getLimit(Limit limitClause, String table) throws Exception {
+		if (limitClause == null || limitClause.getRowCount() == null) {
+			return Long.MAX_VALUE;
+		}
+		
+		ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
+		
+		return (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
 	}
 	
 	static void insert(Insert insert, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) {
@@ -215,7 +242,7 @@ public class DMLHandler {
 		
 	}
 	
-	private static void processSelectItems(DocumentSet set, List<SelectItem<?>> items, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) {
+	private static DocumentSet processSelectItems(DocumentSet set, List<SelectItem<?>> items, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) {
 		if (!items.stream().anyMatch(x -> x.getExpression() instanceof AllColumns)) {		
 			for (Document doc : set) {
 				for (SelectItem<?> item : items) {
@@ -238,6 +265,7 @@ public class DMLHandler {
 			}
 		}
 		
+		return set;
 	}
 	
 	static DocumentSet select(Select select, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
@@ -370,29 +398,12 @@ public class DMLHandler {
 		DocumentSet set = updateLocal(update, sqlString, database, user, password, parameters);
 		
 		if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
-			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Limit limitClause = update.getLimit();
-			long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
+			long limit = getLimit(limitClause, table);
 
-			if (limit == Long.MAX_VALUE) {
-				for (DocumentSet other : SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters)) {
-					set.addAll(other);
-				} 
-			} else {
-				DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
-				
-				for (String ashard : handler.getShards()) {
-					if (shard.equals(handler.getlocalShard())) {
-						continue;
-					} else if (set.size() == limit) {
-						break;
-					} else {
-						limitClause.setRowCount(new LongValue(limit - set.size())); 
-						
-						set.addAll(SQLUtils.forwardExecuteQuery(database, ashard, update.toString(), user, password, parameters));
-					}
-				}				
-			}			
+			for (DocumentSet other : SQLUtils.broadcastExecuteQuery(database, update, limitClause, limit - set.size(), user, password, parameters)) {
+				set.addAll(other);
+			}
 		}
 		
 		return set;
@@ -401,18 +412,18 @@ public class DMLHandler {
 	
 	@SuppressWarnings("resource")
 	static DocumentSet updateLocal(Update update, String sqlString, String database, String user, String password, List<Comparable<?>> parameters) {
+		long start = System.currentTimeMillis();
+		
 		try {
 			String table = SQLUtils.getFQN(update.getTable(), database);
+			ReturningClause returnClause = update.getReturningClause();
 			Metadata metadata = Metadata.getMetadata(table);
-			long start = System.currentTimeMillis();
-			ReturningClause clause = update.getReturningClause();
-			boolean returnsValue = clause != null && !clause.isEmpty();
-			DocumentSet result = new DocumentSet();
-			
 			
 			if (metadata == null) {
 				throw new DBRuntimeException("Table " + update.getTable().getName() + " does not exist");
 			}
+			
+			// Validate the update clauses
 			
 			for (UpdateSet set : update.getUpdateSets()) {
 				List<Column> columns = set.getColumns();
@@ -427,21 +438,19 @@ public class DMLHandler {
 				}
 			}
 			
+			// Find the documents that need to be updated
+			
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
-			
 			Expression where = update.getWhere();
-			Limit limitClause = update.getLimit();
-			long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
-
-			Expression normalized = new ExpressionNormalizer().normalize(where);
-			DocumentSet docs =  evaluator.evaluateWhere(normalized, null, null, parameters);
-			int count = 0;
 			
-			for (Document oldDoc : docs) {
-				if (count++ == limit) {
-					break;
-				}
-				
+			Expression normalized = new ExpressionNormalizer().normalize(where);
+			DocumentSet oldDocs =  trim(evaluator.evaluateWhere(normalized, null, null, parameters), update.getLimit(), evaluator);
+			
+			// Update the documents and create a DocumentSet with all of the new documents
+			
+			DocumentSet newDocs = new DocumentSet();
+			
+			for (Document oldDoc : oldDocs) {
 				Document newDoc = new Document(oldDoc);
 				
 				for (UpdateSet set : update.getUpdateSets()) {
@@ -466,28 +475,47 @@ public class DMLHandler {
 					}
 				}
 				
-				if (returnsValue) {
-					result.add(newDoc);
-				}
+				newDocs.add(newDoc);
 				
 				QueryManager.getInstance().update(table, oldDoc, newDoc);
 				
 			}
-						
-			if (returnsValue) {
-				processSelectItems(result, clause, evaluator, parameters);				
-			}
 			
-			Metrics.getInstance().logUpdate();
-			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
+			return returnClause == null || returnClause.isEmpty() 
+				   ? new DocumentSet()
+				   : processSelectItems(newDocs, returnClause, evaluator, parameters);
 			
-			return result;
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
-			exc.printStackTrace();
 			throw new DBRuntimeException("The update failed", exc);
+		} finally {
+			Metrics.getInstance().logUpdate();
+			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		}
+	}
+	
+	private static DocumentSet trim(DocumentSet set, Limit limitClause, ExpressionEvaluator evaluator) {
+		if (limitClause == null || limitClause.getRowCount() == null) {
+			return set;
+		}
+		
+		
+		long limit = (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
+		
+		if (limit > set.size()) {
+			return set;
+		}
+		
+		DocumentSet result = new DocumentSet();
+		Iterator<Document> iterator = set.iterator();
+		
+		while (result.size() < limit && iterator.hasNext()) {
+			result.add(iterator.next());
+		}
+		
+		return result;
+
 	}
 	
 }
