@@ -4,11 +4,13 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.art.db.client.Client;
 import org.art.db.common.Converter;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentComparer;
 import org.art.db.common.DocumentSet;
@@ -24,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -364,11 +367,35 @@ public class DMLHandler {
 			return SQLUtils.forwardExecuteQuery(database, shard, sqlString, user, password, parameters);
 		}
 		
+		DocumentSet set = updateLocal(update, sqlString, database, user, password, parameters);
+		
 		if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
-			SQLUtils.broadcastExecute(database, sqlString, user, password, parameters);
+			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
+			Limit limitClause = update.getLimit();
+			long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
+
+			if (limit == Long.MAX_VALUE) {
+				for (DocumentSet other : SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters)) {
+					set.addAll(other);
+				} 
+			} else {
+				DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
+				
+				for (String ashard : handler.getShards()) {
+					if (shard.equals(handler.getlocalShard())) {
+						continue;
+					} else if (set.size() == limit) {
+						break;
+					} else {
+						limitClause.setRowCount(new LongValue(limit - set.size())); 
+						
+						set.addAll(SQLUtils.forwardExecuteQuery(database, ashard, update.toString(), user, password, parameters));
+					}
+				}				
+			}			
 		}
 		
-		return updateLocal(update, sqlString, database, user, password, parameters);
+		return set;
 		
 	}
 	
