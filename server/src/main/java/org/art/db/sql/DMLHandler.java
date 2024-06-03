@@ -27,6 +27,7 @@ import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.ReturningClause;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.AllColumns;
@@ -211,6 +212,31 @@ public class DMLHandler {
 		
 	}
 	
+	private static void processSelectItems(DocumentSet set, List<SelectItem<?>> items, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) {
+		if (!items.stream().anyMatch(x -> x.getExpression() instanceof AllColumns)) {		
+			for (Document doc : set) {
+				for (SelectItem<?> item : items) {
+					Alias alias = item.getAlias();
+					Expression exp = item.getExpression();
+					
+					if (exp instanceof Column col && alias != null) {
+						doc.put(alias.getName(), doc.get(col.getColumnName()));
+					} else if (exp instanceof Column) {
+						continue;
+					} else if (alias == null) {
+						throw new DBRuntimeException("Missing alias for expression for expression " + exp);
+					} else {						
+						String name = alias.getName();
+						Object value = evaluator.evaluate(exp, doc, parameters);
+						
+						doc.put(name, value);
+					}
+				}	
+			}
+		}
+		
+	}
+	
 	static DocumentSet select(Select select, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		if (select instanceof PlainSelect plainSelect && plainSelect.getFromItem() instanceof Table fromTable) {
 			String table = SQLUtils.getFQN(fromTable, database);
@@ -311,27 +337,7 @@ public class DMLHandler {
 		ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters);	
 				
-		if (!plainSelect.getSelectItems().stream().anyMatch(x -> x.getExpression() instanceof AllColumns)) {		
-			for (Document doc : set) {
-				for (SelectItem<?> item : plainSelect.getSelectItems()) {
-					Alias alias = item.getAlias();
-					Expression exp = item.getExpression();
-					
-					if (exp instanceof Column col && alias != null) {
-						doc.put(alias.getName(), doc.get(col.getColumnName()));
-					} else if (exp instanceof Column) {
-						continue;
-					} else if (alias == null) {
-						throw new DBRuntimeException("Missing alias for expression for expression " + exp);
-					} else {						
-						String name = alias.getName();
-						Object value = evaluator.evaluate(exp, doc, parameters);
-						
-						doc.put(name, value);
-					}
-				}	
-			}
-		}
+		processSelectItems(set, plainSelect.getSelectItems(), evaluator, parameters);
 		
 		Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, set.size());
 		
@@ -339,7 +345,7 @@ public class DMLHandler {
 		
 	}
 
-	static void update(Update update, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+	static DocumentSet update(Update update, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		String table = SQLUtils.getFQN(update.getTable(), database);
 		
 		if (!SecurityHandler.getInstance().isInRole(user, password, table, User.UPDATE)) {
@@ -355,23 +361,27 @@ public class DMLHandler {
 		String shard = SQLUtils.getShard(table, where, parameters);
 		
 		if (!SQLUtils.isShardLocal(shard)) {
-			SQLUtils.forwardExecute(database, shard, sqlString, user, password, parameters);
-			return;
+			return SQLUtils.forwardExecuteQuery(database, shard, sqlString, user, password, parameters);
 		}
 		
 		if (shard.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
 			SQLUtils.broadcastExecute(database, sqlString, user, password, parameters);
 		}
 		
-		updateLocal(update, sqlString, database, user, password, parameters);
+		return updateLocal(update, sqlString, database, user, password, parameters);
 		
 	}
 	
-	static void updateLocal(Update update, String sqlString, String database, String user, String password, List<Comparable<?>> parameters) {
+	@SuppressWarnings("resource")
+	static DocumentSet updateLocal(Update update, String sqlString, String database, String user, String password, List<Comparable<?>> parameters) {
 		try {
 			String table = SQLUtils.getFQN(update.getTable(), database);
 			Metadata metadata = Metadata.getMetadata(table);
 			long start = System.currentTimeMillis();
+			ReturningClause clause = update.getReturningClause();
+			boolean returnsValue = clause != null && !clause.isEmpty();
+			DocumentSet result = new DocumentSet();
+			
 			
 			if (metadata == null) {
 				throw new DBRuntimeException("Table " + update.getTable().getName() + " does not exist");
@@ -390,13 +400,21 @@ public class DMLHandler {
 				}
 			}
 			
-			Expression where = update.getWhere();
-			
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
+			
+			Expression where = update.getWhere();
+			Limit limitClause = update.getLimit();
+			long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
+
 			Expression normalized = new ExpressionNormalizer().normalize(where);
 			DocumentSet docs =  evaluator.evaluateWhere(normalized, null, null, parameters);
+			int count = 0;
 			
 			for (Document oldDoc : docs) {
+				if (count++ == limit) {
+					break;
+				}
+				
 				Document newDoc = new Document(oldDoc);
 				
 				for (UpdateSet set : update.getUpdateSets()) {
@@ -421,11 +439,22 @@ public class DMLHandler {
 					}
 				}
 				
+				if (returnsValue) {
+					result.add(newDoc);
+				}
+				
 				QueryManager.getInstance().update(table, oldDoc, newDoc);
+				
+			}
+						
+			if (returnsValue) {
+				processSelectItems(result, clause, evaluator, parameters);				
 			}
 			
 			Metrics.getInstance().logUpdate();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
+			
+			return result;
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {

@@ -80,8 +80,10 @@ public class SQLHandler {
 		
 			if (statement instanceof Select select) {
 				return DMLHandler.select(select, sql, shard, database, user, password, parameters);
+			} else if (statement instanceof Update update && update.getReturningClause() != null) {
+				return DMLHandler.update(update, sql, shard, database, user, password, parameters);
 			} else {
-				throw new DBRuntimeException("Client.executeQuery can only be used for select statements.");
+				throw new DBRuntimeException("Client.executeQuery can only be used for select update returns statements.");
 			}
 		} catch (JSQLParserException exc) {
 			String[] lines = exc.getMessage().split("\\n");

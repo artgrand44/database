@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.art.db.common.Converter;
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.GUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +27,7 @@ public class FunctionEvaluator {
 		Calendar cal;
 
 		try {
-			switch (name) {
+			switch (name.toLowerCase()) {
 			case "abs":
 				number = (Number)validate(name, parameters, 0, Number.class);
 
@@ -134,7 +135,10 @@ public class FunctionEvaluator {
 				cal = toCalendar(validate(name, parameters, 0, Date.class));
 				
 				return cal.getTimeInMillis();
-								
+					
+			case "uid":
+				return new GUID();
+				
 			case "upper":
 				return validate(name, parameters, 0, String.class).toUpperCase();
 				

@@ -256,8 +256,10 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		ExpressionList<?> parameters = function.getParameters();
 		List<Object> values = new ArrayList<>();
 		
-		for (Expression exp : parameters) {
-			values.add(this.evaluate(exp));
+		if (parameters != null) {
+			for (Expression exp : parameters) {
+				values.add(this.evaluate(exp));
+			}
 		}
 		
 		this.result = FunctionEvaluator.evaluate(function.getName(), values);
@@ -613,7 +615,10 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 
 	@Override
 	public void visit(IsNullExpression isNullExpression) {
-		throw new UnsupportedSyntaxException("The is null operator is not supported");
+		Object value = this.evaluate(isNullExpression.getLeftExpression());
+		boolean isNull = value == null || value == DBNull.NULL;
+		
+		this.result =  isNullExpression.isNot() ? !isNull : isNull;
 		
 	}
 

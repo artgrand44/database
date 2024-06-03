@@ -5,13 +5,18 @@ import java.util.Objects;
 
 
 public class GUID extends  Serializable<GUID> implements Comparable<GUID> {
+	
+	public static final GUID MINIMUM = new GUID(0);
+	
 	private long value;
 	
 	public GUID() {
 		this.value = GUIDGenerator.getInstance().generateValue();
 	}
 	
-	
+	private GUID(long value) {
+		this.value = value;
+	}
 	
 	@Override
 	public int compareTo(GUID that) {
