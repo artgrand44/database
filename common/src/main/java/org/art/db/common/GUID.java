@@ -20,7 +20,15 @@ public class GUID extends  Serializable<GUID> implements Comparable<GUID> {
 	
 	@Override
 	public int compareTo(GUID that) {
-		return (int)(this.value - that.value);
+		long diff = this.value - that.value;
+		
+		if (diff == 0) {
+			return 0;
+		} else if (diff < 0) {
+			return -1;
+		} else {
+			return +1;
+		}
 	}
 
 	@Override
