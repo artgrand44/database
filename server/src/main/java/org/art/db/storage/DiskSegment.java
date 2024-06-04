@@ -37,6 +37,8 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 
 			this.setMetadata(this.treeStore.getMetadata());
 			this.setHighGUID(this.treeStore.getHighGUID());
+			this.setHighZombe(this.treeStore.getHighZombie());
+			this.setLowGUID(this.treeStore.getLowGUID());
 			this.setBloomFilter(this.treeStore.getBloomFilter());
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error opening the database");

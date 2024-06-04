@@ -25,13 +25,34 @@ public abstract class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeab
 	
 	private Metadata metadata;
 	private GUID highGUID;
+	private GUID lowGUID;
+	private GUID highZombe;
 	
 	public Segment() throws Exception {
 		this.metadata = new Metadata("");
 		this.bloomFilter = new BitSet(BLOOM_SIZE);
+		this.lowGUID = new GUID();
+		this.highZombe = new GUID();
 		this.highGUID = new GUID();
+		
 	}
 	
+	public GUID getLowGUID() {
+		return lowGUID;
+	}
+
+	public void setLowGUID(GUID lowGUID) {
+		this.lowGUID = lowGUID;
+	}
+
+	public GUID getHighZombe() {
+		return highZombe;
+	}
+
+	public void setHighZombe(GUID highZombe) {
+		this.highZombe = highZombe;
+	}
+
 	public abstract Document get(Key key) throws Exception;
 	
 	protected int getHash(Key key) {
@@ -75,7 +96,6 @@ public abstract class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeab
 	public void setBloomFilter(BitSet bloomFilter) {
 		this.bloomFilter = bloomFilter;
 	}
-
 	
 }
 
