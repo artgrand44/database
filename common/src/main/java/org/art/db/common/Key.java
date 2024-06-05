@@ -49,6 +49,9 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public int compareTo(Key that) {
+		if (that == null) {
+			logger.info("null key");
+		}
 		try {
 		final int length = Math.min(this.keys.length, that.keys.length);
 		

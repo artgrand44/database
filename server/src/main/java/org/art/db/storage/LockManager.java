@@ -213,8 +213,6 @@ public class LockManager<T> {
 			if (stamp == 0) {
 				throw new UpgradeException();
 			}
-		} else if (lock.isWriteLocked() && info != null && StampedLock.isWriteLockStamp(info.timestamp()))  {
-			return info.timestamp;
 		} else {
 			stamp = lock.writeLock();
 		}

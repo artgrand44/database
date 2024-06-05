@@ -396,6 +396,7 @@ public class TableManager implements Closeable{
 		this.timestamps.put(primaryKey, System.currentTimeMillis());
 		this.table.remove(primaryKey, propagate);
 		this.updateIndices(doc, null, primaryKey);
+		this.lockManager.unlockAll();
 	}
 	
 	public void unlock(Key key) {
