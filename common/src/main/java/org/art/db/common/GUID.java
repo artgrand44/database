@@ -49,6 +49,11 @@ public class GUID extends  Serializable<GUID> implements Comparable<GUID> {
 	}
 
 	@Override
+	public String toString() {
+		return "GUID [value=" + value + "]";
+	}
+
+	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
