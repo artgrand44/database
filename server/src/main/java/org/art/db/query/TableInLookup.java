@@ -19,14 +19,22 @@ public class TableInLookup extends Plan {
 	
 	
 	@Override
-	public DocumentSet execute(TableManager engine) throws Exception {
+	public DocumentSet execute(TableManager engine, long limit, boolean lock) throws Exception {
 		DocumentSet result = new DocumentSet();
 		
 		for (Comparable<?> value : this.inClause) {
-			Document doc = engine.getDocument(new Key(value));
+			Key key = new Key(value);
+			
+			Document doc = engine.getDocument(key, lock);
 
 			if (doc != null && super.matches(doc, filters)) {		
 				result.add(doc);
+			} else if (lock) {
+				engine.unlock(key);
+			}
+			
+			if (result.size() == limit) {
+				break;
 			}
 		}
 

@@ -49,6 +49,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public int compareTo(Key that) {
+		try {
 		final int length = Math.min(this.keys.length, that.keys.length);
 		
 		for (int idx = 0; idx < length; idx++) {
@@ -75,6 +76,10 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 		}
 		
 		return this.keys.length - that.keys.length;
+		} catch (Throwable exc) {
+			logger.info("bad key types " + this + " " + that);
+			throw exc;
+		}
 	}
 	
 	@Override

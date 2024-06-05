@@ -186,7 +186,7 @@ public class Planner {
 		}
 
 		@Override
-		public DocumentSet execute(TableManager engine) throws Exception { return null; }
+		public DocumentSet execute(TableManager engine, long limit, boolean lock) throws Exception { return null; }
 	}
 	
 }

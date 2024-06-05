@@ -124,6 +124,8 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	private List<Comparable<?>> parameters;
 	private List<String> selectColumns;
 	private List<OrderBy> orderBy;
+	private long limit;
+	private boolean lock;
 	private Document document;
 	private Object result;
 	
@@ -169,10 +171,12 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	
 	
 	
-	DocumentSet evaluateWhere(Expression exp, List<String> selectColumns, List<OrderBy> orderBy, List<Comparable<?>> parameters) {
+	DocumentSet evaluateWhere(Expression exp, List<String> selectColumns, List<OrderBy> orderBy, List<Comparable<?>> parameters, long limit, boolean lock) {
 		this.selectColumns = selectColumns;
 		this.parameters = parameters;
 		this.orderBy = orderBy;
+		this.limit = limit;
+		this.lock = lock;
 		
 		return (DocumentSet) this.evaluate(exp);
 	}
@@ -211,7 +215,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		}
 		
 		try {
-			result = QueryManager.getInstance().select(this.table, this.selectColumns, this.orderBy,  evaluatedFilters);
+			result = QueryManager.getInstance().select(this.table, this.selectColumns, this.orderBy,  evaluatedFilters, this.limit, this.lock);
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("Select failed", exc);
@@ -424,123 +428,140 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	@SuppressWarnings("resource")
 	@Override
 	public void visit(AndExpression andExpression) {
+		long saveLimit = this.limit;
 		
-		if (andExpression.getLeftExpression() instanceof FilterExpression filter) {
-			DocumentSet set = (DocumentSet)this.evaluate(filter);
-			DocumentSet newSet = new DocumentSet();
+		try {
+			this.limit = Long.MAX_VALUE;
 			
-			for (Document doc : set) {
-				this.document = doc;
-				
-				if (this.evaluate(andExpression.getRightExpression()) == Boolean.TRUE) {
-					newSet.add(doc);
+			if (andExpression.getLeftExpression() instanceof FilterExpression filter) {
+				DocumentSet set = (DocumentSet)this.evaluate(filter);
+				DocumentSet newSet = new DocumentSet();
+
+				for (Document doc : set) {
+					this.document = doc;
+
+					if (this.evaluate(andExpression.getRightExpression()) == Boolean.TRUE) {
+						newSet.add(doc);
+					} else {
+						QueryManager.getInstance().unlock(this.table, doc);
+					}
 				}
+
+				this.result = newSet;
+				return;			
 			}
-			
-			this.result = newSet;
-			return;			
-		}
-		
-		if (andExpression.getRightExpression() instanceof FilterExpression filter) {
-			DocumentSet set = (DocumentSet)this.evaluate(filter);
-			DocumentSet newSet = new DocumentSet();
-			
-			for (Document doc : set) {
-				this.document = doc;
-				
-				if (this.evaluate(andExpression.getLeftExpression()) == Boolean.TRUE) {
-					newSet.add(doc);
+
+			if (andExpression.getRightExpression() instanceof FilterExpression filter) {
+				DocumentSet set = (DocumentSet)this.evaluate(filter);
+				DocumentSet newSet = new DocumentSet();
+
+				for (Document doc : set) {
+					this.document = doc;
+
+					if (this.evaluate(andExpression.getLeftExpression()) == Boolean.TRUE) {
+						newSet.add(doc);
+					}
 				}
+
+				this.result = newSet;
+				return;			
 			}
-			
-			this.result = newSet;
-			return;			
+
+
+			Object left = this.evaluate(andExpression.getLeftExpression());
+			Object right = this.evaluate(andExpression.getRightExpression());
+
+			if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
+				throw new UnsupportedSyntaxException("Bad plan for " + andExpression);
+			} 
+
+			if (left instanceof DocumentSet set) {
+				this.result = right.equals(Boolean.TRUE) ? left : new DocumentSet();
+				return;
+			}
+
+			if (right instanceof DocumentSet) {
+				this.result = left.equals(Boolean.TRUE) ? right : new DocumentSet();
+				return;
+			}
+
+			if (left instanceof Number lnum && right instanceof Number rnum) {
+				this.result = Long.valueOf(lnum.longValue() & rnum.longValue());
+				return;
+			}
+
+			if (left instanceof Boolean lbool && right instanceof Boolean rbool) {
+				this.result = Boolean.toString(lbool & rbool);
+				return;
+			}
+
+			throw new UnsupportedSyntaxException("The AND operator is not supported for these types");
+		} finally {
+			this.limit = saveLimit;
 		}
-		
-		
-		Object left = this.evaluate(andExpression.getLeftExpression());
-		Object right = this.evaluate(andExpression.getRightExpression());
-		
-		if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
-			throw new UnsupportedSyntaxException("Bad plan for " + andExpression);
-		} 
-		
-		if (left instanceof DocumentSet set) {
-			this.result = right.equals(Boolean.TRUE) ? left : new DocumentSet();
-			return;
-		}
-		
-		if (right instanceof DocumentSet) {
-			this.result = left.equals(Boolean.TRUE) ? right : new DocumentSet();
-			return;
-		}
-		
-		if (left instanceof Number lnum && right instanceof Number rnum) {
-			this.result = Long.valueOf(lnum.longValue() & rnum.longValue());
-			return;
-		}
-		
-		if (left instanceof Boolean lbool && right instanceof Boolean rbool) {
-			this.result = Boolean.toString(lbool & rbool);
-			return;
-		}
-				
-		throw new UnsupportedSyntaxException("The AND operator is not supported for these types");
-		
+
 	}
 
 	
 	@Override
 	public void visit(OrExpression orExpression) {
-		Object left = this.evaluate(orExpression.getLeftExpression());
-		Object right = this.evaluate(orExpression.getRightExpression());
-		
-		// If left and right are document sets then merge the sets (skipping any
-		// duplicates) and resort the set.
-		
-		if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
-			Set<Key> leftKeys = new HashSet<>();
-			
-			for (Document doc : rset) {
-				leftKeys.add(SQLUtils.buildPrimaryKey(doc, this.metadata));
-			}
-			
-			for (Document doc : rset) {
-				if (!leftKeys.contains(SQLUtils.buildPrimaryKey(doc, this.metadata))) {
-					lset.add(doc);
+		long saveLimit = this.limit;
+
+		try {
+			this.limit = Long.MAX_VALUE;
+
+			Object left = this.evaluate(orExpression.getLeftExpression());
+			Object right = this.evaluate(orExpression.getRightExpression());
+
+			// If left and right are document sets then merge the sets (skipping any
+			// duplicates) and resort the set.
+
+			if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
+				Set<Key> leftKeys = new HashSet<>();
+
+				for (Document doc : rset) {
+					leftKeys.add(SQLUtils.buildPrimaryKey(doc, this.metadata));
 				}
+
+				for (Document doc : rset) {
+					if (!leftKeys.contains(SQLUtils.buildPrimaryKey(doc, this.metadata))) {
+						lset.add(doc);
+					}
+				}
+
+				List<OrderBy> orderBy = this.orderBy == null ? SQLUtils.buildDefaultOrderBy(this.metadata) : this.orderBy;
+				DocumentComparer comparer = new DocumentComparer(orderBy);
+
+				lset.sort(comparer);
+
+				this.result = left;
+				return;
+			} 
+
+			if (left instanceof DocumentSet) {
+				this.result = left;
+				return;
+			} 
+
+			if (right instanceof DocumentSet) {
+				this.result = right;
+				return;
+			} 
+
+			if (left instanceof Number lnum && right instanceof Number rnum) {
+				this.result = Long.valueOf(lnum.longValue() | rnum.longValue());
+				return;
 			}
-			
-			List<OrderBy> orderBy = this.orderBy == null ? SQLUtils.buildDefaultOrderBy(this.metadata) : this.orderBy;
-			DocumentComparer comparer = new DocumentComparer(orderBy);
-			
-			lset.sort(comparer);
-			
-			this.result = left;
-			return;
-		} 
-		
-		if (left instanceof DocumentSet) {
-			this.result = left;
-			return;
-		} 
-		
-		if (right instanceof DocumentSet) {
-			this.result = right;
-			return;
-		} 
-		
-		if (left instanceof Number lnum && right instanceof Number rnum) {
-			this.result = Long.valueOf(lnum.longValue() | rnum.longValue());
-			return;
+
+			if (left instanceof Boolean lbool && right instanceof Boolean rbool) {
+				this.result = Boolean.toString(lbool & rbool);
+				return;
+			}
+
+			throw new UnsupportedSyntaxException("The OR operator is not supported for these types");
+		} finally {
+			this.limit = saveLimit;
 		}
-		
-		if (left instanceof Boolean lbool && right instanceof Boolean rbool) {
-			this.result = Boolean.toString(lbool & rbool);
-			return;
-		}
-		
-		throw new UnsupportedSyntaxException("The OR operator is not supported for these types");
 	}
 
 	@Override

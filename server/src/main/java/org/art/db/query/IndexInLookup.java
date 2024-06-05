@@ -29,7 +29,7 @@ public class IndexInLookup extends Plan {
 	}
 	
 	@Override
-	public DocumentSet execute(TableManager engine) throws Exception {
+	public DocumentSet execute(TableManager engine, long limit, boolean lock) throws Exception {
 		Set<Key> keys = new HashSet<>();
 		
 		for (Comparable<?> value : this.inClause) {
@@ -39,10 +39,16 @@ public class IndexInLookup extends Plan {
 		DocumentSet result = new DocumentSet();
 		
 		for (Key key : keys) {
-			Document doc = engine.getDocument(key);
+			Document doc = engine.getDocument(key, lock);
 			
 			if (doc != null && this.matches(doc, this.filters)) {
 				result.add(doc);
+			} else if (lock) {
+				engine.unlock(key);
+			}
+			
+			if (result.size() == limit) {
+				break;
 			}
 		}
 				

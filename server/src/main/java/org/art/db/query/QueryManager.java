@@ -8,7 +8,6 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentComparer;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
-import org.art.db.common.Key;
 import org.art.db.common.OrderBy;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
@@ -22,13 +21,6 @@ public class QueryManager {
 		return instance;
 	}
 	
-	public Document get(String table, Key key)  throws Exception {
-		TableManager manager = StorageManager.getInstance().getTableManager(table);
-		
-		return manager.getDocument(key);
-		
-	}
-	
 	public void insert(String table, Document doc) throws Exception {
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
@@ -36,7 +28,7 @@ public class QueryManager {
 	}
 	
 	@SuppressWarnings("resource")
-	public DocumentSet select(String table, List<String> selectColumns, List<OrderBy> orderBy, List<Filter> filters) throws Exception {
+	public DocumentSet select(String table, List<String> selectColumns, List<OrderBy> orderBy, List<Filter> filters, long limit, boolean lock) throws Exception {
 		
 		// Find the documents that match the filter
 		
@@ -44,7 +36,7 @@ public class QueryManager {
 		Plan plan = Planner.buildPlan(table, selectColumns, filters);
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 				
-		DocumentSet set = plan.execute(manager);
+		DocumentSet set = plan.execute(manager, limit, lock);
 		
 		// Go through the documents, find the null values, and merge in the defaults
 		
@@ -97,6 +89,13 @@ public class QueryManager {
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
 		manager.remove(doc, true);
+		
+	}
+	
+	public void unlock(String table, Document doc)  {
+		TableManager manager = StorageManager.getInstance().getTableManager(table);
+		
+		manager.unlock(doc);
 		
 	}
 	

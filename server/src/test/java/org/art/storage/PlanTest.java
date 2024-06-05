@@ -79,7 +79,7 @@ public class PlanTest {
 		
 		logger.info("Got plan " + plan);
 		
-		DocumentSet docs = plan.execute(storage);
+		DocumentSet docs = plan.execute(storage, Long.MAX_VALUE, false);
 		DocumentSet expected = new DocumentSet();
 		
 		for (int id : expectedIds) {

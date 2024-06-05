@@ -71,7 +71,7 @@ public class DatabaseTest extends BaseTreeTest {
 				
 				Assertions.assertThat(keys.size() == 1).isTrue();
 				
-				Document doc = manager.getDocument(keys.iterator().next());
+				Document doc = manager.getDocument(keys.iterator().next(), false);
 				Assertions.assertThat(this.checkDocument(doc, String.valueOf(idx), "Name" + idx)).isTrue();
 			}
 			logger.info("end");

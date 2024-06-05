@@ -18,12 +18,14 @@ public class TableLookup extends Plan {
 	
 	
 	@Override
-	public DocumentSet execute(TableManager engine) throws Exception {
+	public DocumentSet execute(TableManager engine, long limit, boolean lock) throws Exception {
 		DocumentSet result = new DocumentSet();
-		Document doc = engine.getDocument(key);
+		Document doc = engine.getDocument(key, lock);
 		
 		if (doc != null && super.matches(doc, filters)) {		
 			result.add(doc);
+		} else if (lock) {
+			engine.unlock(key);
 		}
 		
 		return result;

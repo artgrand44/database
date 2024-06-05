@@ -25,7 +25,7 @@ public abstract class Plan  {
 		this.table = table;;
 	}
 	
-	public abstract DocumentSet execute(TableManager engine) throws Exception;
+	public abstract DocumentSet execute(TableManager engine, long limit, boolean lock) throws Exception;
 	
 	protected Key buildKey(List<String> keys, List<Filter> filters) {
 		List<Comparable<?>> fields = new ArrayList<>();

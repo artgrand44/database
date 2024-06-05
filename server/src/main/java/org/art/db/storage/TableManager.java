@@ -183,7 +183,12 @@ public class TableManager implements Closeable{
 		return this.indices.get(indexName).getAllBetween(first, last);
 	}
 	
-	public Document getDocument(Key key) throws Exception {
+	public Document getDocument(Key key, boolean lock) throws Exception {
+		
+		if (lock) {
+			this.lockManager.writeLock(key);
+		}
+		
 		Document doc = this.table.get(key);
 		
 		if (doc != null) {
@@ -207,7 +212,7 @@ public class TableManager implements Closeable{
 			Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
 
 			if (this.checkConstraints) {
-				this.lockManager.writeLock(new Key("", primaryKey));
+				this.lockManager.writeLock(primaryKey);
 				
 				Document old = this.table.get(primaryKey);
 				
@@ -391,6 +396,14 @@ public class TableManager implements Closeable{
 		this.timestamps.put(primaryKey, System.currentTimeMillis());
 		this.table.remove(primaryKey, propagate);
 		this.updateIndices(doc, null, primaryKey);
+	}
+	
+	public void unlock(Key key) {
+		this.lockManager.unlock(key);
+	}
+	
+	public void unlock(Document doc) {
+		this.lockManager.unlock(this.buildKey(doc, this.metadata.primaryKeyFields()));
 	}
 	
 	public void update(Document oldDoc, Document newDoc, boolean propagate) throws Exception {

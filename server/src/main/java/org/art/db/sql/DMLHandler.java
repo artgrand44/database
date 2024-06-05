@@ -128,8 +128,9 @@ public class DMLHandler {
 
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression normalized = new ExpressionNormalizer().normalize(where);
+			long limit = getLimit(delete.getLimit(), table);
 			
-			DocumentSet docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters), delete.getLimit(), evaluator);
+			DocumentSet docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, true), delete.getLimit(), evaluator);
 
 			for (Document doc : docs) {
 				QueryManager.getInstance().remove(table, doc);
@@ -362,7 +363,7 @@ public class DMLHandler {
 		// Get the document set then process any aliases and expressions in the select items
 		
 		ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
-		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters);	
+		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters, Long.MAX_VALUE, false);	
 				
 		processSelectItems(set, plainSelect.getSelectItems(), evaluator, parameters);
 		
@@ -438,9 +439,10 @@ public class DMLHandler {
 			
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression where = update.getWhere();
+			long limit = getLimit(update.getLimit(), table);
 			
 			Expression normalized = new ExpressionNormalizer().normalize(where);
-			DocumentSet oldDocs =  trim(evaluator.evaluateWhere(normalized, null, null, parameters), update.getLimit(), evaluator);
+			DocumentSet oldDocs =  trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, true), update.getLimit(), evaluator);
 			
 			// Update the documents and create a DocumentSet with all of the new documents
 			

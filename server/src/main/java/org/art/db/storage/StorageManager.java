@@ -81,7 +81,7 @@ public class StorageManager  {
 	}
 
 
-	public TableManager getTableManager(String table) throws Exception {
+	public TableManager getTableManager(String table) throws DBRuntimeException {
 		return  this.tableManagers.computeIfAbsent(table, x -> this.createTableManager(x));
 	}
 

@@ -28,7 +28,7 @@ public class IndexScan extends Plan {
 	}
 	
 	@Override
-	public DocumentSet execute(TableManager engine) throws Exception {
+	public DocumentSet execute(TableManager engine, long limit, boolean lock) throws Exception {
 		Set<Key> keys = engine.getAllKeys(scan.getIndex(), scan.getComparison(), key);
 		DocumentSet result = new DocumentSet();
 		
@@ -43,6 +43,10 @@ public class IndexScan extends Plan {
 				
 				if (this.matches(doc, this.filters)) {
 					result.add(doc);
+				}
+				
+				if (result.size() == limit) {
+					break;
 				}
 			}	
 		}
