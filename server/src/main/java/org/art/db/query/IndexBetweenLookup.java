@@ -41,7 +41,7 @@ public class IndexBetweenLookup extends Plan {
 			if (doc != null && this.matches(doc, this.filters)) {
 				result.add(doc);
 			} else if (lock){
-				engine.unlock(key);
+				engine.unlockPrimaryKey(key);
 			}
 			
 			if (result.size() == limit) {

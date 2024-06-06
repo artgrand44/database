@@ -20,14 +20,16 @@ public class FilterExpression extends ASTNodeAccessImpl implements Expression {
 
 	
 	private static final Map<String, Comparison> COMPARISONS  =
-			Map.of("<",  Comparison.LT,
-			       "<=", Comparison.LE,
-				   ">",  Comparison.GT,
-				   ">=", Comparison.GE,
-				   "=",  Comparison.EQ,
-				   "<>", Comparison.NE,
-				   "IN", Comparison.IN,
-				   "BETWEEN", Comparison.BETWEEN);
+			Map.of("<",         Comparison.LT,
+			       "<=",        Comparison.LE,
+				   ">",         Comparison.GT,
+				   ">=",        Comparison.GE,
+				   "=",         Comparison.EQ,
+				   "<>",        Comparison.NE,
+				   "IN",        Comparison.IN,
+				   "ISNULL",    Comparison.NULL,
+				   "ISNOTNULL", Comparison.NOT_NULL,
+				   "BETWEEN",   Comparison.BETWEEN);
 	
 		
 	private final List<Filter> filters = new ArrayList<>();

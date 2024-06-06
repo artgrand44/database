@@ -202,7 +202,9 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 				Class<?> type = col.type();
 				Object value;
 						
-				if (expression instanceof List list) {
+				if (expression == null) {
+					value = null;
+				} else if (expression instanceof List list) {
 					value =  list.stream().map(x-> this.evaluate((Expression)x, type)).toList();
 				} else {
 					value = type == Document.class ? this.evaluate(expression) : this.evaluate(expression, type);
@@ -216,8 +218,9 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		
 		try {
 			result = QueryManager.getInstance().select(this.table, this.selectColumns, this.orderBy,  evaluatedFilters, this.limit, this.lock);
+		} catch (DBRuntimeException exc) {
+			throw exc;
 		} catch (Exception exc) {
-			exc.printStackTrace();
 			throw new DBRuntimeException("Select failed", exc);
 		}
 	}
@@ -443,7 +446,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 					if (this.evaluate(andExpression.getRightExpression()) == Boolean.TRUE) {
 						newSet.add(doc);
 					} else {
-						QueryManager.getInstance().unlock(this.table, doc);
+						QueryManager.getInstance().unlockPrimaryKey(this.table, doc);
 					}
 				}
 

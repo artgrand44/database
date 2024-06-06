@@ -133,8 +133,11 @@ public class DMLHandler {
 			DocumentSet docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, true), delete.getLimit(), evaluator);
 
 			for (Document doc : docs) {
+				QueryManager.getInstance().checkWriteLock(table, doc);
 				QueryManager.getInstance().remove(table, doc);
 			}
+			
+			QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
 			
 			return returnClause == null || returnClause.isEmpty() 
 				   ? new DocumentSet()
@@ -227,6 +230,7 @@ public class DMLHandler {
 			}
 			
 			QueryManager.getInstance().insert(table, doc);	
+			QueryManager.getInstance().unlockPrimaryKey(table, doc);
 			
 			Metrics.getInstance().logInsert();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
@@ -451,6 +455,9 @@ public class DMLHandler {
 			for (Document oldDoc : oldDocs) {
 				Document newDoc = new Document(oldDoc);
 				
+				QueryManager.getInstance().checkWriteLock(table, oldDoc);
+				QueryManager.getInstance().checkWriteLock(table, newDoc);
+				
 				for (UpdateSet set : update.getUpdateSets()) {
 					List<Column> columns = set.getColumns();
 					ExpressionList<?> values = set.getValues();
@@ -465,6 +472,10 @@ public class DMLHandler {
 							throw new DBRuntimeException("The value for " + column + " cannot be null");
 						}
 						
+						if (column.equalsIgnoreCase("owner") && newDoc.get("owner") != null) {
+							logger.info("overriding owner old = " + newDoc.get("owner") + "  value = "  + value);
+							logger.info("");
+						}
 						if (info.type() == Document.class) {
 							newDoc.put(column, value);
 						} else {
@@ -475,9 +486,10 @@ public class DMLHandler {
 				
 				newDocs.add(newDoc);
 				
-				QueryManager.getInstance().update(table, oldDoc, newDoc);
-				
+				QueryManager.getInstance().update(table, oldDoc, newDoc);	
 			}
+			
+			QueryManager.getInstance().unlockPrimaryAllKeys(table, newDocs);
 			
 			return returnClause == null || returnClause.isEmpty() 
 				   ? new DocumentSet()

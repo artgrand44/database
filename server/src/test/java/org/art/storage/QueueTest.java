@@ -90,9 +90,6 @@ public class QueueTest  extends BaseIntegrationTest {
 		try {
 			this.setup(100);
 			
-			
-			GUID prev = GUID.MINIMUM;
-			
 			for (int idx = 0; idx < 5; idx++) {
 				DocumentSet list = this.lease();
 				
@@ -103,9 +100,7 @@ public class QueueTest  extends BaseIntegrationTest {
 				GUID  guid = doc.get("id", GUID.class);
 				
 				Assertions.assertThat(doc.get("owner", String.class).equals("art")).isTrue();
-				Assertions.assertThat(guid != null).isTrue();
-				
-				prev = guid;				
+				Assertions.assertThat(guid != null).isTrue();				
 			}
 		} catch (AssertionFailedError exc) {
 			throw exc;

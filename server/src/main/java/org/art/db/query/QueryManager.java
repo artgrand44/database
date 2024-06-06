@@ -21,6 +21,13 @@ public class QueryManager {
 		return instance;
 	}
 	
+	public void checkWriteLock(String table, Document doc)  {
+		TableManager manager = StorageManager.getInstance().getTableManager(table);
+		
+		manager.checkWriteLock(doc);
+		
+	}
+	
 	public void insert(String table, Document doc) throws Exception {
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
@@ -92,11 +99,17 @@ public class QueryManager {
 		
 	}
 	
-	public void unlock(String table, Document doc)  {
+	public void unlockPrimaryKey(String table, Document doc)  {
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
-		manager.unlock(doc);
+		manager.unlockPrimaryKey(doc);
 		
+	}
+	
+	public void unlockPrimaryAllKeys(String table, DocumentSet set)  {
+		TableManager manager = StorageManager.getInstance().getTableManager(table);
+		
+		manager.unlockAllPrimaryKeys(set);		
 	}
 	
 	public void update(String table, Document oldDoc, Document newDoc) throws Exception {

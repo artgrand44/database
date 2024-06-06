@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.art.db.common.Key;
 import org.art.db.common.Comparison;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
 import org.art.db.storage.IndexInfo;
@@ -138,7 +139,7 @@ public class Planner {
 			return new IndexLookup(table, filters, alternateKeyLookups);
 		}
 		
-		throw new Exception("The query does must include one of more indexed fields");
+		throw new DBRuntimeException("The query does must include one of more indexed fields");
 		
 	}
 	
@@ -161,7 +162,7 @@ public class Planner {
 		Filter first = filters.get(0);
 		Comparison comp = first.getComparison();
 		
-		if (comp == Comparison.BETWEEN || comp == Comparison.IN) {
+		if (comp == Comparison.BETWEEN || comp == Comparison.IN || comp == Comparison.NOT_NULL || comp == Comparison.NULL) {
 			return null;
 		}
 		

@@ -198,12 +198,17 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			Set<TValue> result;
 			
 			do {
-				//logger.info("root " + this.lockManager.getLockId(this.root.getId()));
 				Iterator<Map.Entry<Key, TValue>> iterator = this.getRange(comparison, key);
 				result = new HashSet<>();
 
 				while (iterator.hasNext()) {
-					result.add(iterator.next().getValue());
+					TValue value = iterator.next().getValue();
+					
+					if (value != null) {
+						result.add(value);
+					} else {
+						logger.info("*** null value");
+					}
 				}
 				visits.get().clear();
 				Trace.clear();
@@ -261,7 +266,13 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 				result = new HashSet<>();
 
 				while (iterator.hasNext()) {
-					result.add(iterator.next().getKey());
+					Key value = iterator.next().getKey();
+					
+					if (value != null) {
+						result.add(value);
+					} else {
+						logger.info("null value");
+					}
 				}
 				visits.get().clear();
 				Trace.clear();
@@ -457,14 +468,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		case EQ:
 			first = this.getFirstGE(key);
 			last = this.getLastEQ(key);
-
-			/*
-			 * boolean hasData = first.currentKey() != null &&
-			 * first.currentKey().compareTo(key) >= 0 && first.currentKey().compareTo(max) <
-			 * 0;
-			 * 
-			 * if (trace && !hasData) { Trace.log("missing key = " + key); dumpVisited(); }
-			 */
 
 			return first.currentKey() != null && first.currentKey().compareTo(key) >= 0
 					&& first.currentKey().compareTo(max) < 0 ? new RangeIterator(first, last) : empty;
@@ -924,7 +927,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 
 				this.index = 0;
 				return true;
-			}
+			}			
 		}
 
 		@Override
@@ -960,6 +963,9 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			}
 
 			try {
+				if (this.cursor.currentKey() == null) {
+					logger.info("cursor has null value");
+				}
 				Entry<Key, TValue> result = new SimpleEntry<>(this.cursor.currentKey(), this.cursor.currentValue());
 				this.hasNext = this.cursor.next();
 
@@ -988,7 +994,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		private final Cursor first;
 		private final Cursor last;
 		private boolean hasNext = true;
-
+		
 		RangeIterator(Cursor first, Cursor last) {
 			this.first = first;
 			this.last = last;
@@ -1015,9 +1021,10 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 				this.hasNext = !first.matches(last) && first.next();
 				return result;
 			} catch (Exception exc) {
+				exc.printStackTrace();
 				throw new IllegalStateException(exc);
 			} finally {
-				lockManager.unlockAll();
+			
 			}
 
 		}

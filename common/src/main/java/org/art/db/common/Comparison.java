@@ -4,15 +4,17 @@ import java.util.function.BiFunction;
 import java.util.List;
 
 public enum Comparison {
-	NE((x, y) -> compare(x, y) != 0,                true, "<>"),
-	GE((x, y) -> compare(x, y) >= 0,                true, ">="),
-	GT((x, y) -> compare(x, y) > 0,                 true, ">"),
-	LE((x, y) -> compare(x, y) <= 0,                true, "<="),
-	LT((x, y) -> compare(x, y) < 0,                 true, "<"),
-	MATCH((x, y) -> ((String)x).matches((String)y), false, "match"),
-	IN((x, y) -> ((List<?>)y).contains(x),          true, "in"),
-	EQ((x, y) -> compare(x, y) == 0,                true, "="),
-	BETWEEN((x, y) -> between(x, y),                true, "between");
+	NE((x, y)       -> compare(x, y) != 0,                true, "<>"),
+	GE((x, y)       -> compare(x, y) >= 0,                true, ">="),
+	GT((x, y)       -> compare(x, y) > 0,                 true, ">"),
+	LE((x, y)       -> compare(x, y) <= 0,                true, "<="),
+	LT((x, y)       -> compare(x, y) < 0,                 true, "<"),
+	MATCH((x, y)    -> ((String)x).matches((String)y),    false, "match"),
+	IN((x, y)       -> ((List<?>)y).contains(x),          true, "in"),
+	EQ((x, y)       -> compare(x, y) == 0,                true, "="),
+	NULL((x, y)     -> x == null,                         false, "null"),
+	NOT_NULL((x, y) -> x != null,                         false, "not null"),
+	BETWEEN((x, y)  -> between(x, y),                     true, "between");
 
 	private final boolean indexable;
 	private final String sql;

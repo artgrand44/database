@@ -24,6 +24,7 @@ import org.art.db.common.Comparison;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
+import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry;
 import org.art.db.common.RestClient;
@@ -44,7 +45,8 @@ public class TableManager implements Closeable{
 	private final File metadataFile;
 	private final List<IndexInfo> indexInfo;
 	private final Map<String, Index> indices = new HashMap<>();
-	private final LockManager<Key> lockManager = new LockManager<>();
+	private final LockManager<Key> primaryKeyLockManager = new LockManager<>();
+	private final LockManager<Key> alternateKeyLockManager = new LockManager<>();
 	private final boolean checkConstraints;
 	private final RestClient restClient = new RestClient();
 	private final FileLock lock;
@@ -156,11 +158,15 @@ public class TableManager implements Closeable{
 		
 		Key indexKey = this.buildKey(doc, info.fields());
 		
-		this.lockManager.writeLock(new Key(info.name(), indexKey));
+		this.alternateKeyLockManager.writeLock(new Key(info.name(), indexKey));
 		
 		if (index.get(indexKey) != null) {
 			throw new DBRuntimeException("Duplicate value for " + info.name());
 		}
+	}
+	
+	public void checkWriteLock(Document doc) {
+		this.primaryKeyLockManager.checkWriteLock(this.buildKey(doc, metadata.primaryKeyFields()));
 	}
 	
 	public void flush() {
@@ -186,7 +192,7 @@ public class TableManager implements Closeable{
 	public Document getDocument(Key key, boolean lock) throws Exception {
 		
 		if (lock) {
-			this.lockManager.writeLock(key);
+			this.primaryKeyLockManager.writeLock(key);
 		}
 		
 		Document doc = this.table.get(key);
@@ -212,7 +218,7 @@ public class TableManager implements Closeable{
 			Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
 
 			if (this.checkConstraints) {
-				this.lockManager.writeLock(primaryKey);
+				this.primaryKeyLockManager.writeLock(primaryKey);
 				
 				Document old = this.table.get(primaryKey);
 				
@@ -233,7 +239,7 @@ public class TableManager implements Closeable{
 			this.table.insert(primaryKey, doc, propagate);
 			this.updateIndices(null, doc, primaryKey);
 		} finally {
-			this.lockManager.unlockAll();
+			this.alternateKeyLockManager.unlockAll();
 		}
 		
 	}
@@ -396,15 +402,21 @@ public class TableManager implements Closeable{
 		this.timestamps.put(primaryKey, System.currentTimeMillis());
 		this.table.remove(primaryKey, propagate);
 		this.updateIndices(doc, null, primaryKey);
-		this.lockManager.unlockAll();
 	}
 	
-	public void unlock(Key key) {
-		this.lockManager.unlock(key);
+	public void unlockPrimaryKey(Key key) {
+		this.primaryKeyLockManager.unlock(key);
 	}
 	
-	public void unlock(Document doc) {
-		this.lockManager.unlock(this.buildKey(doc, this.metadata.primaryKeyFields()));
+	public void unlockPrimaryKey(Document doc) {
+		this.primaryKeyLockManager.unlock(this.buildKey(doc, this.metadata.primaryKeyFields()));
+	}
+	
+	
+	public void unlockAllPrimaryKeys(DocumentSet set) {
+		for (Document doc : set) {
+			unlockPrimaryKey(doc);
+		}
 	}
 	
 	public void update(Document oldDoc, Document newDoc, boolean propagate) throws Exception {
@@ -427,7 +439,7 @@ public class TableManager implements Closeable{
 			this.table.update(primaryKey, newDoc, propagate);			
 			this.updateIndices(oldDoc, newDoc, primaryKey);
 		} finally {
-			this.lockManager.unlockAll();
+			this.alternateKeyLockManager.unlockAll();
 		}
 	}
 	

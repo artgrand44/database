@@ -25,7 +25,7 @@ public class TableLookup extends Plan {
 		if (doc != null && super.matches(doc, filters)) {		
 			result.add(doc);
 		} else if (lock) {
-			engine.unlock(key);
+			engine.unlockPrimaryKey(key);
 		}
 		
 		return result;

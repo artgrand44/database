@@ -48,9 +48,24 @@ public abstract class Plan  {
 			Object expected = filter.getValue(); 
 			Comparison comparison = filter.getComparison();
 			
-			if (!comparison.matches(actual, expected, expected.getClass())) {
-				return false;
-			}	
+			switch (comparison) {
+			case NOT_NULL:
+				if (actual == null) {
+					return false;
+				}
+				
+				break;
+			case NULL:
+				if (actual != null) {
+					return false;
+				}
+				
+				break;
+			default:
+				if (!comparison.matches(actual, expected, expected.getClass())) {
+					return false;
+				}	
+			}
 		}
 		
 		return true;

@@ -297,6 +297,12 @@ public class ExpressionNormalizer implements ExpressionVisitor {
 		if (left instanceof FilterExpression leftFilter && right instanceof FilterExpression rightFilter) {
 			leftFilter.merge(rightFilter);
 			this.replacement = leftFilter;
+		} else if (left instanceof FilterExpression filter && right instanceof IsNullExpression exp && exp.getLeftExpression() instanceof Column col) {
+			String name = col.getFullyQualifiedName();
+			String op = exp.isNot() ? "ISNOTNULL" : "ISNULL";
+			
+			filter.merge(new FilterExpression(name, op, null));
+			this.replacement = filter;
 		} else {
 			andExpression.setLeftExpression(left);
 			andExpression.setRightExpression(right);

@@ -41,27 +41,15 @@ public class IndexLookup extends Plan {
 		
 		List<Key> list = new ArrayList<>(keys);
 		
-		for (Key key : list) {
-			if (key == null) {
-				logger.info("null key");
-			}
-		}
-		
 		Collections.sort(list);
 		
-		Key prev = new Key();
 		for (Key key : list) {
-			if (!(key.compareTo(prev) > 0)) {
-				logger.info("wrong order " + prev + " " + key);
-			}
-
-			//logger.info("locking " + key);
 			Document doc = engine.getDocument(key, lock);
 			
 			if (doc != null && this.matches(doc, this.filters)) {
 				result.add(doc);
 			} else if (lock) {
-				engine.unlock(key);
+				engine.unlockPrimaryKey(key);
 			}
 			
 			if (result.size() == limit) {

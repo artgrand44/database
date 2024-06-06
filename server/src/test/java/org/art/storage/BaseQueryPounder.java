@@ -44,6 +44,7 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 	private final int nitems;
 	private final int nthreads;
 	private int started = 0;
+	private final int countDownTo;
 	
 	Thread timer = null;
 
@@ -51,7 +52,8 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 		
 		this.nitems = nitems;
 		this.nthreads = nthreads;
-		this.exitLatch = new CountDownLatch(nthreads - (nthreads / 5));
+		this.countDownTo = nthreads - (nthreads / 5);
+		this.exitLatch = new CountDownLatch(this.countDownTo);
 	
 		this.startInternal(profile);
 	}
@@ -215,7 +217,7 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 				long gcRate = totalGC / (elapsed / 1000);
 				
 				String entry = this.getClass().getSimpleName() + " " + String.format("Completed %s Per read = %f10 ms reads %s writes %s deletes %s tps %s heap %sMB gc %s/sec cpu %s", 
-						this.exitLatch.getCount(),
+						this.countDownTo - this.exitLatch.getCount(),
 						timePerRead,
 						readCount.get(),
 						writeCount.get(),

@@ -30,7 +30,7 @@ public class TableInLookup extends Plan {
 			if (doc != null && super.matches(doc, filters)) {		
 				result.add(doc);
 			} else if (lock) {
-				engine.unlock(key);
+				engine.unlockPrimaryKey(key);
 			}
 			
 			if (result.size() == limit) {
