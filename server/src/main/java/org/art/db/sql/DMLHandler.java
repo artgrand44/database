@@ -114,8 +114,10 @@ public class DMLHandler {
 	private static DocumentSet deleteLocal(Delete delete, String sqlString, String database, String user, String password, List<Comparable<?>> parameters) {
 		long start = System.currentTimeMillis();
 		
+		String table = SQLUtils.getFQN(delete.getTable(), database);
+		DocumentSet docs = null;
+		
 		try {
-			String table = SQLUtils.getFQN(delete.getTable(), database);
 			Expression where = delete.getWhere();
 			ReturningClause returnClause = delete.getReturningClause();
 			
@@ -130,14 +132,12 @@ public class DMLHandler {
 			Expression normalized = new ExpressionNormalizer().normalize(where);
 			long limit = getLimit(delete.getLimit(), table);
 			
-			DocumentSet docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, true), delete.getLimit(), evaluator);
+			docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, true), delete.getLimit(), evaluator);
 
 			for (Document doc : docs) {
 				QueryManager.getInstance().checkWriteLock(table, doc);
 				QueryManager.getInstance().remove(table, doc);
 			}
-			
-			QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
 			
 			return returnClause == null || returnClause.isEmpty() 
 				   ? new DocumentSet()
@@ -148,6 +148,8 @@ public class DMLHandler {
 		} catch (Exception exc) {
 			throw new DBRuntimeException("The delete failed", exc);
 		} finally {
+			QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
+			
 			Metrics.getInstance().logDelete();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		}
@@ -414,9 +416,11 @@ public class DMLHandler {
 	@SuppressWarnings("resource")
 	static DocumentSet updateLocal(Update update, String sqlString, String database, String user, String password, List<Comparable<?>> parameters) {
 		long start = System.currentTimeMillis();
+		String table = SQLUtils.getFQN(update.getTable(), database);
+		DocumentSet newDocs = new DocumentSet();
 		
 		try {
-			String table = SQLUtils.getFQN(update.getTable(), database);
+			
 			ReturningClause returnClause = update.getReturningClause();
 			Metadata metadata = Metadata.getMetadata(table);
 			
@@ -449,8 +453,6 @@ public class DMLHandler {
 			DocumentSet oldDocs =  trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, true), update.getLimit(), evaluator);
 			
 			// Update the documents and create a DocumentSet with all of the new documents
-			
-			DocumentSet newDocs = new DocumentSet();
 			
 			for (Document oldDoc : oldDocs) {
 				Document newDoc = new Document(oldDoc);
@@ -489,7 +491,7 @@ public class DMLHandler {
 				QueryManager.getInstance().update(table, oldDoc, newDoc);	
 			}
 			
-			QueryManager.getInstance().unlockPrimaryAllKeys(table, newDocs);
+			
 			
 			return returnClause == null || returnClause.isEmpty() 
 				   ? new DocumentSet()
@@ -500,6 +502,8 @@ public class DMLHandler {
 		} catch (Exception exc) {
 			throw new DBRuntimeException("The update failed", exc);
 		} finally {
+			QueryManager.getInstance().unlockPrimaryAllKeys(table, newDocs);
+			
 			Metrics.getInstance().logUpdate();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		}

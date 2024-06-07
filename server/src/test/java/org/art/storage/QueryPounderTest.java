@@ -4,6 +4,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.client.Client;
+import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 		try {
 			String nameQuery = "select * from pounder where FirstName = ?";
 			String idQuery = "select * from pounder where ID = ?";
+			String update = "update pounder set Age = '2' where ID = ? limit 1";
 			Random random = new Random(index);
 			Client client = new Client("cluster", "admin", "admin");
 
@@ -69,7 +71,15 @@ public class QueryPounderTest extends BaseQueryPounder {
 				}
 				
 				Assertions.assertThat(names.size() == 1).isTrue();
-				Assertions.assertThat(ids.iterator().next().get("FirstName").equals(name)).isTrue();
+				
+				Document doc = ids.iterator().next();
+				
+				Assertions.assertThat(doc.get("FirstName").equals(name)).isTrue();
+				
+				if (loop % 10  == 0) {
+					client.execute(update, index);
+					this.addWrite();
+				}
 			}
 		} catch (InterruptedException exc) {
 			

@@ -178,7 +178,14 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		this.limit = limit;
 		this.lock = lock;
 		
-		return (DocumentSet) this.evaluate(exp);
+		
+		Object result = this.evaluate(exp);
+		
+		if (result instanceof DocumentSet set) {
+			return set;
+		}
+		
+		throw new DBRuntimeException("The where clause " + exp + " is not valid.");
 	}
 	
 	
