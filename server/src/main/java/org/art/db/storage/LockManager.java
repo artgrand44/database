@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.StampedLock;
 
-import org.art.db.common.Key;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +48,6 @@ public class LockManager<T> {
 	private final ScheduledFuture<?> cleaner;
 	
 	private final ReentrantLock lock = new ReentrantLock();
-	
-	public boolean trace = false;
 	
 	public LockManager() {
 		this.cleaner = Scheduler.DEFAULT.scheduleAtFixedRate(this::cleanup, 10, 10, TimeUnit.SECONDS);
@@ -103,7 +100,6 @@ public class LockManager<T> {
 		if ((ref = this.locks.get(key)) == null || (lock = ref.get()) == null) {
 			lock = new StampedLock();
 			
-			trace(key, "create ");
 			this.locks.put(key, new WeakRef(key, lock));
 		}
 		
@@ -157,37 +153,27 @@ public class LockManager<T> {
 		Map<T, LockInfo> map = threadInfo.get();
 		StampedLock lock = this.getLock(key);
 		
-		if (lock.isWriteLocked() && !this.trace) {
-			map.put(key, new LockInfo(lock, lock.tryConvertToReadLock(stamp)));
-		} else {
-			lock.unlock(stamp);
-			map.remove(key);;
-		}
-		
+		lock.unlock(stamp);
+		map.remove(key);
+	
 	}
 
 
 	public void unlock(T key) {
-		this.unlock(key, threadInfo.get().get(key).timestamp);
-		trace(key, "unlock1 " );
-		
+		this.unlock(key, threadInfo.get().get(key).timestamp);		
 	}
 	
 	public boolean unlockAll() {
 		Map<T, LockInfo> map = threadInfo.get();
 		boolean success = true;
 		
-		for (Map.Entry<T, LockInfo> entry : map.entrySet()) {
-			T key = entry.getKey();
-			LockInfo info = entry.getValue();
+		for (LockInfo info : map.values()) { 
 			long stamp = info.timestamp;
 			StampedLock lock = info.lock;
 			
 			try {
 				lock.unlock(stamp);
-				trace(key, " unlockAll");
 			} catch (IllegalMonitorStateException exc) {
-				trace(key, " unlockAll failed");
 				success = false;
 			}			
 		}
@@ -199,9 +185,7 @@ public class LockManager<T> {
 
 	void readLock(T key) {
 		Map<T, LockInfo> map = threadInfo.get();
-		if (trace) {
-			logger.info("readlocking " + key);
-		}
+		
 		if (!map.containsKey(key)) {
 			StampedLock lock = this.getLock(key);
 			map.put(key, new LockInfo(lock, lock.readLock()));
@@ -213,19 +197,6 @@ public class LockManager<T> {
 		this.cleaner.cancel(true);
 	}
 	
-	private void trace(T key, String message) {
-		if (false && key instanceof Key k && trace) {
-			Object[] keys = k.getKeys();
-			Object first = keys[0];
-			
-			if (first instanceof String str && !str.contains("-")) {
-				logger.info(message +  " " + key +  " thread " + Thread.currentThread().getId());
-			} else if (first instanceof Number num && num.intValue() > 0 && num.intValue() < 200) {
-				logger.info(message +  " " + key +  " thread " + Thread.currentThread().getId());
-			}
-			
-		}
-	}
 	public long writeLock(T key) throws UpgradeException {
 		Map<T, LockInfo> map = threadInfo.get();
 		LockInfo info = map.get(key);
@@ -233,9 +204,6 @@ public class LockManager<T> {
 		long stamp;
 		
 		if (lock.isReadLocked() && info != null && StampedLock.isReadLockStamp(info.timestamp())) {
-			if (trace) {
-				logger.info("try  convert " + key);
-			}
 			stamp = lock.tryConvertToWriteLock(info.timestamp);
 			
 			if (stamp == 0) {
@@ -244,12 +212,7 @@ public class LockManager<T> {
 		} else if (lock.isWriteLocked() && info != null && StampedLock.isWriteLockStamp(info.timestamp()))  {
 			return info.timestamp;
 		} else {
-			if (lock.isWriteLocked()) {
-				trace(key, "**will wait on write ");
-				
-			}
 			stamp = lock.writeLock();
-			trace(key, "got lock");
 		}
 		
 		map.put(key, new LockInfo(lock, stamp));
