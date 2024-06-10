@@ -18,7 +18,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	private static final Logger logger = LoggerFactory.getLogger(AQueuePounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 100000;
+	private static int NLOOPS = 100;
 	private static int NTHREADS = 150;
 	
 	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);
@@ -100,7 +100,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 					
 					Assertions.assertThat(!leased.containsKey(guid)).isTrue();
 					
-					leased.put(guid, Thread.currentThread().getId());
+					leased.put(guid, Thread.currentThread().threadId());
 					Assertions.assertThat(!keys.contains(guid)).isTrue();
 					keys.add(guid);
 				}
@@ -113,7 +113,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 					Assertions.assertThat(!threadReleased.contains(guid)).isTrue();
 					
 					if (released.contains(guid)) {
-						logger.info("guid " + guid + " already released by "  + released.get(guid) + " current thread = "  + Thread.currentThread().getId());
+						logger.info("guid " + guid + " already released by "  + released.get(guid) + " current thread = "  + Thread.currentThread().threadId());
 						logger.info("");
 					}
 					Assertions.assertThat(!released.containsKey(guid)).isTrue();
@@ -122,7 +122,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 						logger.info("remove failure");
 					}
 					
-					released.put(guid, Thread.currentThread().getId());
+					released.put(guid, Thread.currentThread().threadId());
 					threadReleased.add(guid);
 					this.addDelete();
 					

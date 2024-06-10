@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
 import org.art.db.common.Document;
-import org.art.db.common.GUID;
 import org.art.db.common.Key;
 import org.art.db.common.TypedOutputStream;
 import org.art.db.storage.TreeStore.Header;
@@ -58,10 +57,8 @@ public class SegmentBuilder {
 		
 		File tempFile = File.createTempFile("segment", "tmp", segment.getParentFile());
 		Key lowKey = null;
-		Key highZombe = null;
 		Key highKey = null;
 		int count = 0;
-		boolean allZombies = true;
 		
 		try (FileOutputStream fstream = new FileOutputStream(tempFile); 
 				BufferedOutputStream bstream = new BufferedOutputStream(fstream, 10 * 1024); 
@@ -114,19 +111,7 @@ public class SegmentBuilder {
 						value = blob.toStream(stream, startBlock, diskBlockSize, nblocks);
 						startBlock += nblocks.get();
 					}
-					
-					
-					// If the value is a blob for a zombie then set highZombe
-					
-					if (value instanceof Blob blob && allZombies) {
-						Document doc = BlobConverter.toDocument(metadata, blob);
-						
-						if (doc.isZombie()) {
-							highZombe = key;
-						} else {
-							allZombies = false;
-						}
-					}
+
 					
 					// If the key/value pair will fit in the current node then add it
 					// to the node.  Otherwise write out the current node, create
@@ -202,16 +187,6 @@ public class SegmentBuilder {
 			if (highKey == null) {
 				logger.info("no high key " + count);
 			}
-			
-			if (lowKey != null && lowKey.isGUID()) {
-				store.setLowGUID(lowKey.getGUID());
-			}
-			
-			if (highKey != null && highKey.isGUID()) {
-				store.setHighGUID(highKey.getGUID());
-			}
-			
-			store.setHighZombie(highZombe == null ? GUID.MINIMUM : highZombe.getGUID());
 		}
 				
 		tempFile.renameTo(segment);

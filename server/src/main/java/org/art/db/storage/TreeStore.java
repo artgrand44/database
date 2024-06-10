@@ -129,6 +129,7 @@ public class TreeStore implements Closeable, BlobStore {
 		
 		try {
 			if (!this.isClosed) {
+				logger.info("Closing log " + this.logFile.getAbsolutePath());
 				this.flushAll();			
 				this.currentBatch.clear();
 
@@ -245,6 +246,11 @@ public class TreeStore implements Closeable, BlobStore {
 			
 			
 			if (batch.transactional) {
+				if (this.logFile == null) {
+					logger.info("*** null logFile");
+				} else if (!this.logFile.getParentFile().exists()) {
+					logger.info("not exists " + this.logFile.getAbsolutePath());
+				}
 				try (DataOutputStream log = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(this.logFile)))){
 					this.writeCount.addAndGet(batch.size());
 
@@ -499,22 +505,6 @@ public class TreeStore implements Closeable, BlobStore {
 		return guid;
 	}
 	
-	public GUID getHighZombie()throws IOException {
-		GUID guid = new GUID();
-		
-		guid.setValue(this.header.highZombie);
-		
-		return guid;
-	}
-	
-	public GUID getLowGUID()throws IOException {
-		GUID guid = new GUID();
-		
-		guid.setValue(this.header.lowGUID);
-		
-		return guid;
-	}
-	
 	public int getMergeLevel() {
 		return this.header.mergeLevel;
 	}
@@ -644,19 +634,8 @@ public class TreeStore implements Closeable, BlobStore {
 		}
 	}
 	
-	public void setHighZombie(GUID guid) throws Exception {
-		try (TypedOutputStream stream = new TypedOutputStream()) {
-			this.header.highZombie = guid.getValue();
-			this.writeHeader();
-		}
-	}
 	
-	public void setLowGUID(GUID guid) throws Exception {
-		try (TypedOutputStream stream = new TypedOutputStream()) {
-			this.header.lowGUID = guid.getValue();
-			this.writeHeader();
-		}
-	}
+	
 	public void setMergeLevel(int mergeLevel) throws Exception {
 		this.header.mergeLevel = mergeLevel;
 		
@@ -784,8 +763,6 @@ public class TreeStore implements Closeable, BlobStore {
 		long bloomOffset = -1;
 		int bloomSize = 0;
 		long highGUID = -1;
-		long highZombie = -1;
-		long lowGUID = -1;
 		long metadataOffset = -1;
 		int metadataSize = 0;
 		long searchCount;
@@ -804,8 +781,6 @@ public class TreeStore implements Closeable, BlobStore {
 			this.bloomOffset = stream.readLong();
 			this.bloomSize = stream.readInt();
 			this.highGUID = stream.readLong();
-			this.highZombie = stream.readLong();
-			this.lowGUID = stream.readLong();
 			this.metadataOffset = stream.readLong();
 			this.metadataSize = stream.readInt();
 			this.searchCount = stream.readLong();
@@ -827,8 +802,6 @@ public class TreeStore implements Closeable, BlobStore {
 				stream.writeLong(this.bloomOffset);
 				stream.writeInt(this.bloomSize);
 				stream.writeLong(this.highGUID);
-				stream.writeLong(this.highZombie);
-				stream.writeLong(this.lowGUID);
 				stream.writeLong(this.metadataOffset);
 				stream.writeInt(this.metadataSize);
 				stream.writeLong(this.searchCount);

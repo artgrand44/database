@@ -254,10 +254,6 @@ public class MemorySegment extends Segment {
 		if (key.isGUID() && (guid = key.getGUID()).compareTo(this.getHighGUID()) > 0) {
 			this.setHighGUID(guid);
 		}
-		
-		if (key.isGUID() && (guid = key.getGUID()).compareTo(this.getLowGUID()) < 0) {
-			this.setLowGUID(guid);
-		}
 	}
 	
 	@Override
