@@ -32,6 +32,13 @@ public class Files {
 	
 	private final static String TABLE_LOCK = "%s/lock.dat";
 	
+	public static File changeExtention(File file, String extension) {
+		String path = file.getAbsolutePath();
+		int dot = path.lastIndexOf('.');
+		
+		return new File(path.substring(0,  dot) + extension);
+	}
+	
 	public static File createTempFile(String table, String prefix, String suffix) throws IOException {
 		File dir = new File(getRoot(), table);
 		File tempFile = File.createTempFile(prefix, suffix, dir);

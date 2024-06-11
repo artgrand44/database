@@ -41,7 +41,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	}
 	
 	private DocumentSet lease(Client client, String owner) throws Exception {
-		String lease = "update queue set owner=? where id > ? and owner is null limit 10 returning *";
+		String lease = "update queue set owner=? where owner is null limit 10 returning *";
 		
 		DocumentSet result = client.executeQuery(lease, owner, GUID.MINIMUM);
 		
@@ -59,7 +59,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	protected void loadDabase() throws Exception {
 		Client client = new Client("cluster", "admin", "admin").batch(false);
 		String create = "CREATE TABLE queue (id guid NOT NULL PRIMARY KEY, name varchar(255), value varchar(255), owner varchar(255))";
-		String createIndex = "CREATE INDEX index ON queue(id)";
+		String createIndex = "CREATE INDEX index ON queue(owner)";
 		
 		
 		client.execute(create);

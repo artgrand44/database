@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
 import org.art.db.common.Comparison;
+import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
@@ -143,11 +144,7 @@ public class TableManager implements Closeable{
 		for (String name : names) {
 			Comparable<?>  value = (Comparable<?>)doc.get(name);
 			
-			if (value == null) {
-				break;
-			} else {
-				keys.add(value);
-			}
+			keys.add(value == null ? DBNull.NULL : value);
 		}
 		
 		return new Key(keys);

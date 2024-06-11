@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.art.db.common.Comparison;
+import org.art.db.common.DBNull;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
@@ -62,7 +63,7 @@ public abstract class Plan  {
 				
 				break;
 			default:
-				if (!comparison.matches(actual, expected, expected.getClass())) {
+				if (!comparison.matches(actual == null ? DBNull.NULL : actual, expected, expected.getClass())) {
 					return false;
 				}	
 			}

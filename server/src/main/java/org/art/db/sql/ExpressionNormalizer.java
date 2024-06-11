@@ -298,6 +298,7 @@ public class ExpressionNormalizer implements ExpressionVisitor {
 			leftFilter.merge(rightFilter);
 			this.replacement = leftFilter;
 		} else if (left instanceof FilterExpression filter && right instanceof IsNullExpression exp && exp.getLeftExpression() instanceof Column col) {
+			logger.info("**** bad and case");
 			String name = col.getFullyQualifiedName();
 			String op = exp.isNot() ? "ISNOTNULL" : "ISNULL";
 			
@@ -382,8 +383,12 @@ public class ExpressionNormalizer implements ExpressionVisitor {
 
 	@Override
 	public void visit(IsNullExpression isNullExpression) {
-		// TODO Auto-generated method stub
-		
+		if (isNullExpression.getLeftExpression() instanceof Column column) {
+			String field = column.getFullyQualifiedName();
+			
+			this.replacement = new FilterExpression(field, isNullExpression.isNot() ? "<>" : "=", new NullValue());
+		}
+			
 	}
 
 	@Override

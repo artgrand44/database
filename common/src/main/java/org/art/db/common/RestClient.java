@@ -111,7 +111,7 @@ public class RestClient {
 			return result;
 		} catch (ExecutionException exc) {
 			Throwable cause = exc.getCause();
-			
+			exc.printStackTrace();
 			logger.info("Exception for " + uri + " " + cause);
 			if (cause instanceof ConnectException) {
 				throw new RestException(RestException.NO_CONNECTION, "", cause);

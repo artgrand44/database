@@ -115,9 +115,6 @@ public class RecoveryTest extends BaseIntegrationTest {
 				int id = this.getId(idx);
 				String name = this.getName(idx);
 				
-				if (idx % 100 == 0) {
-					logger.info("check " + idx);
-				}
 				DocumentSet ids = primaryClient.executeQuery(idQuery, id);
 				DocumentSet names = primaryClient.executeQuery(nameQuery, name);
 				
