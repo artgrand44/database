@@ -20,11 +20,13 @@ import org.art.db.security.User;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.Metrics;
+import org.art.db.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -358,18 +360,30 @@ public class DMLHandler {
 			throw new DBRuntimeException("The select must contain a where clause");
 		}
 
-		Expression normalized = new ExpressionNormalizer().normalize(where);
-		
 		
 		// Find the order by list and the selected columns
 		
 		List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
 		List<String> selectColumns = buildSelectList(plainSelect.getSelectItems());
-						
-		// Get the document set then process any aliases and expressions in the select items
-		
 		ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
-		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters, Long.MAX_VALUE, false);	
+		DocumentSet set;				
+		
+		if (where instanceof Function func && func.getName().equals("lease") && func.getParameters().size() == 2) {
+			ExpressionList<?> params = func.getParameters();
+			String owner = evaluator.evaluate(params.get(0), null, parameters, String.class);
+			int count = evaluator.evaluate(params.get(1), null, parameters, Integer.class);
+			
+			set = StorageManager.getInstance().getTableManager(table).lease(owner, count);
+			
+			for (Document doc : set) {
+				if (doc.get("id") == null) {
+					logger.info("no id " + doc);
+				}
+			}
+		} else {
+			Expression normalized = new ExpressionNormalizer().normalize(where);
+			set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters, Long.MAX_VALUE, false);	
+		}
 				
 		processSelectItems(set, plainSelect.getSelectItems(), evaluator, parameters);
 		

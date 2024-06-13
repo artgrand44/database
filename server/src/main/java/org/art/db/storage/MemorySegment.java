@@ -8,12 +8,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +27,7 @@ import org.art.db.common.Blob;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
+import org.art.db.common.DocumentSet;
 import org.art.db.common.GUID;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry;
@@ -65,7 +69,10 @@ public class MemorySegment extends Segment {
 	/**
 	 * The documents in this segment
 	 */
-	private final ConcurrentHashMap<Key, Document> documents = new ConcurrentHashMap<>(10000);
+	private final ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
+	
+	
+	private final ConcurrentSkipListMap<Key, String> leases = new ConcurrentSkipListMap<>();
 	
 	/**
 	 * The rest client for sending snapshots
@@ -265,6 +272,75 @@ public class MemorySegment extends Segment {
 		return this.closed;
 	}
 	
+	public synchronized DocumentSet lease(String owner, int count) {
+		DocumentSet result = new DocumentSet();
+		Set<Key> keys = new HashSet<>();
+		Key lastLease = this.leases.isEmpty() ? this.documents.firstKey() : this.leases.lastKey();
+		
+		for (int idx = 0; idx < count; idx++) {
+			
+			
+			Map.Entry<Key, Document> nextEntry = this.documents.tailMap(lastLease, false).firstEntry();
+			
+			if (nextEntry == null) {
+				break;
+			}
+			
+			Key nextKey = nextEntry.getKey();
+			
+			if (keys.contains(nextKey)) {
+				logger.info("dup next key");
+				continue;
+			}
+			
+			if (this.leases.get(lastLease) == null) {
+				this.leases.put(lastLease, owner);
+				result.add(nextEntry.getValue());
+				keys.add(nextKey);
+				lastLease = nextKey;
+			}
+		}
+		
+		return result;
+	}
+	
+	
+	public DocumentSet leasex(String owner, int count) {
+		DocumentSet result = new DocumentSet();
+		Set<Key> keys = new HashSet<>();
+		
+		for (int idx = 0; idx < count; idx++) {
+			Key lastLease = null;
+			
+			try {
+				lastLease = this.leases.lastKey();
+			} catch (Exception exc) {
+				try {
+					lastLease = this.documents.firstKey();
+					logger.info("using first doc leases = " + leases);
+				} catch (Exception exc1) {
+					logger.info("no key");
+					break;
+				}
+			}
+			
+			Map.Entry<Key, Document> nextEntry = this.documents.tailMap(lastLease, false).firstEntry();
+			
+			if (nextEntry == null) {
+				break;
+			}
+			
+			Key nextKey = nextEntry.getKey();
+			
+			if (!keys.contains(nextKey) && this.leases.computeIfAbsent(nextKey, x -> owner).equals(owner)) {
+				result.add(nextEntry.getValue());
+				keys.add(nextKey);
+			}
+		}
+		
+		return result;
+	}
+	
 	/**
 	 * Intercept a remove to log the updates
 	 */
@@ -272,6 +348,7 @@ public class MemorySegment extends Segment {
 		this.log(Operation.REMOVE, key, null, propagate);
 		
 		this.documents.put(key, Document.ZOMBIE);
+		this.leases.remove(key);
 	}
 	
 	public DiskSegment save(File file) throws Exception {

@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -18,6 +19,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
+import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
@@ -174,6 +176,11 @@ public class Table implements Closeable {
 		} finally {
 			this.readLock.unlock();
 		}
+	}
+	
+	
+	public DocumentSet lease(String owner, int count) {
+		return this.currentSegment.lease(owner, count);
 	}
 	
 	private void merge(File file) {

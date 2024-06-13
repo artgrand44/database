@@ -241,6 +241,10 @@ public class TableManager implements Closeable{
 		
 	}
 	
+	public DocumentSet lease(String owner, int count) {
+		return this.table.lease(owner, count);
+	}
+	
 	/**
 	 * Recover the table after a restore.  The recovery process
 	 * copies the missing segments from another instance and then
