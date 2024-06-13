@@ -303,42 +303,6 @@ public class MemorySegment extends Segment {
 	}
 	
 	
-	public DocumentSet leasex(String owner, int count) {
-		DocumentSet result = new DocumentSet();
-		Set<Key> keys = new HashSet<>();
-		
-		for (int idx = 0; idx < count; idx++) {
-			Key lastLease = null;
-			
-			try {
-				lastLease = this.leases.lastKey();
-			} catch (Exception exc) {
-				try {
-					lastLease = this.documents.firstKey();
-					logger.info("using first doc leases = " + leases);
-				} catch (Exception exc1) {
-					logger.info("no key");
-					break;
-				}
-			}
-			
-			Map.Entry<Key, Document> nextEntry = this.documents.tailMap(lastLease, false).firstEntry();
-			
-			if (nextEntry == null) {
-				break;
-			}
-			
-			Key nextKey = nextEntry.getKey();
-			
-			if (!keys.contains(nextKey) && this.leases.computeIfAbsent(nextKey, x -> owner).equals(owner)) {
-				result.add(nextEntry.getValue());
-				keys.add(nextKey);
-			}
-		}
-		
-		return result;
-	}
-	
 	/**
 	 * Intercept a remove to log the updates
 	 */
