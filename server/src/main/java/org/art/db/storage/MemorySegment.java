@@ -278,8 +278,6 @@ public class MemorySegment extends Segment {
 		Key lastLease = this.leases.isEmpty() ? this.documents.firstKey() : this.leases.lastKey();
 		
 		for (int idx = 0; idx < count; idx++) {
-			
-			
 			Map.Entry<Key, Document> nextEntry = this.documents.tailMap(lastLease, false).firstEntry();
 			
 			if (nextEntry == null) {

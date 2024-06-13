@@ -108,6 +108,8 @@ public class AQueuePounderTest extends BaseQueryPounder {
 					}
 					Assertions.assertThat(!released.containsKey(guid)).isTrue();
 					
+					leased.remove(guid);
+					
 					if (!this.remove(client, guid)) {
 						logger.info("remove failure");
 					}

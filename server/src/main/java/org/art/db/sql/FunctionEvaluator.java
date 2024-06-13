@@ -6,7 +6,9 @@ import java.util.List;
 
 import org.art.db.common.Converter;
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.Document;
 import org.art.db.common.GUID;
+import org.art.db.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +18,7 @@ public class FunctionEvaluator {
 	private static final Logger logger = LoggerFactory.getLogger(FunctionEvaluator.class);
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	static Object evaluate(String name, List<Object> parameters) throws DBRuntimeException {
+	static Object evaluate(String table, Document document, String name, List<Object> parameters) throws DBRuntimeException {
 		Number number;
 		Number first;
 		Number second;
@@ -66,6 +68,12 @@ public class FunctionEvaluator {
 			case "lower":
 				return validate(name, parameters, 0, String.class).toLowerCase();
 
+			case "lease":
+				String owner = validate(name, parameters, 0, String.class);
+				Number count = validate(name, parameters, 1, Number.class);
+				
+				return StorageManager.getInstance().getTableManager(table).lease(owner, count.intValue());
+				
 			case "max":
 				first = validate(name, parameters, 0, Number.class);
 				second = validate(name, parameters, 1, Number.class);

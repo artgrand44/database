@@ -276,7 +276,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 			}
 		}
 		
-		this.result = FunctionEvaluator.evaluate(function.getName(), values);
+		this.result = FunctionEvaluator.evaluate(this.table, this.document, function.getName(), values);
 		
 	}
 
