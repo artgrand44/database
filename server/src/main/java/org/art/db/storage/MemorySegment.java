@@ -274,7 +274,6 @@ public class MemorySegment extends Segment {
 	
 	public synchronized DocumentSet lease(String owner, int count) {
 		DocumentSet result = new DocumentSet();
-		Set<Key> keys = new HashSet<>();
 		Key lastLease = this.leases.isEmpty() ? this.documents.firstKey() : this.leases.lastKey();
 		
 		for (int idx = 0; idx < count; idx++) {
@@ -286,15 +285,9 @@ public class MemorySegment extends Segment {
 			
 			Key nextKey = nextEntry.getKey();
 			
-			if (keys.contains(nextKey)) {
-				logger.info("dup next key");
-				continue;
-			}
-			
 			if (this.leases.get(lastLease) == null) {
 				this.leases.put(lastLease, owner);
 				result.add(nextEntry.getValue());
-				keys.add(nextKey);
 				lastLease = nextKey;
 			}
 		}
