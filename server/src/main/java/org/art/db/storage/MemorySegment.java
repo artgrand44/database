@@ -274,28 +274,24 @@ public class MemorySegment extends Segment {
 	
 	public synchronized DocumentSet lease(String owner, int count) {
 		DocumentSet result = new DocumentSet();
-		Key lastLease = this.leases.isEmpty() ? this.documents.firstKey() : this.leases.lastKey();
+		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
 		
-		for (int idx = 0; idx < count; idx++) {
-			Map.Entry<Key, Document> nextEntry = this.documents.tailMap(lastLease, false).firstEntry();
-			
-			if (nextEntry == null) {
-				break;
-			}
+		for (int idx = 0; idx < count && iterator.hasNext(); idx++) {
+			Map.Entry<Key, Document> nextEntry = iterator.next();
 			
 			Key nextKey = nextEntry.getKey();
+			Document nextValue = nextEntry.getValue();
 			
-			if (this.leases.get(lastLease) == null) {
-				this.leases.put(lastLease, owner);
-				result.add(nextEntry.getValue());
-				lastLease = nextKey;
+			if (this.leases.get(nextKey) == null && !nextValue.isZombie()) {
+				this.leases.put(nextKey, owner);
+				result.add(nextValue);
 			}
 		}
 		
 		return result;
 	}
 	
-	
+
 	/**
 	 * Intercept a remove to log the updates
 	 */

@@ -79,7 +79,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 					GUID guid = doc.get("id", GUID.class);
 					
 					if (guid == null) {
-						logger.info("no guid");
+						logger.info("no guid " + set);
 					}
 
 					if (keys.contains(guid)) {
