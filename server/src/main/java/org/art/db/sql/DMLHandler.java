@@ -116,6 +116,7 @@ public class DMLHandler {
 		
 		String table = SQLUtils.getFQN(delete.getTable(), database);
 		DocumentSet docs = null;
+		boolean lock = false;
 		
 		try {
 			Expression where = delete.getWhere();
@@ -131,11 +132,12 @@ public class DMLHandler {
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression normalized = new ExpressionNormalizer().normalize(where);
 			long limit = getLimit(delete.getLimit(), table);
+			Metadata metadata = Metadata.getMetadata(table);
 			
-			docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, true), delete.getLimit(), evaluator);
+			lock = !isPrimaySearch(metadata, normalized);
+			docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, lock), delete.getLimit(), evaluator);
 
 			for (Document doc : docs) {
-				QueryManager.getInstance().checkWriteLock(table, doc);
 				QueryManager.getInstance().remove(table, doc);
 			}
 			
@@ -148,7 +150,9 @@ public class DMLHandler {
 		} catch (Exception exc) {
 			throw new DBRuntimeException("The delete failed", exc);
 		} finally {
-			QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
+			if (lock) {
+				QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
+			}
 			
 			Metrics.getInstance().logDelete();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
@@ -164,6 +168,14 @@ public class DMLHandler {
 		ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 		
 		return (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
+	}
+	
+	private static boolean isPrimaySearch(Metadata metadata, Expression where) {
+		if (where instanceof FilterExpression exp) {
+			return exp.getFilters().stream().allMatch(x -> metadata.primaryKeyFields().contains(x.getField()));
+		}
+		
+		return false;
 	}
 	
 	static void insert(Insert insert, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) {
@@ -417,10 +429,10 @@ public class DMLHandler {
 	static DocumentSet updateLocal(Update update, String sqlString, String database, String user, String password, List<Comparable<?>> parameters) {
 		long start = System.currentTimeMillis();
 		String table = SQLUtils.getFQN(update.getTable(), database);
-		DocumentSet newDocs = new DocumentSet();
+		DocumentSet docs = null;
+		boolean lock = false;
 		
-		try {
-			
+		try {			
 			ReturningClause returnClause = update.getReturningClause();
 			Metadata metadata = Metadata.getMetadata(table);
 			
@@ -437,8 +449,10 @@ public class DMLHandler {
 					String column = columns.get(idx).getFullyQualifiedName();
 					String prefix = column.contains(".") ? column.substring(0, column.indexOf('.')) : column;					
 					
-					if ( metadata.column(prefix) == null) {
+					if (metadata.column(prefix) == null) {
 						throw new DBRuntimeException(column + " is not a valid column");
+					} else if (metadata.primaryKeyFields().contains(column)) {
+						throw new DBRuntimeException("Primary field columns cannot be changed");
 					}
 				}
 			}
@@ -448,17 +462,17 @@ public class DMLHandler {
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression where = update.getWhere();
 			long limit = getLimit(update.getLimit(), table);
-			
 			Expression normalized = new ExpressionNormalizer().normalize(where);
-			DocumentSet oldDocs =  trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, true), update.getLimit(), evaluator);
+			
+			lock = !isPrimaySearch(metadata, normalized);
+			docs =  trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, lock), update.getLimit(), evaluator);
 			
 			// Update the documents and create a DocumentSet with all of the new documents
 			
-			for (Document oldDoc : oldDocs) {
-				Document newDoc = new Document(oldDoc);
-				
-				QueryManager.getInstance().checkWriteLock(table, oldDoc);
-				QueryManager.getInstance().checkWriteLock(table, newDoc);
+			DocumentSet newDocs = new DocumentSet();
+			
+			for (Document dod : docs) {
+				Document newDoc = new Document(dod);
 				
 				for (UpdateSet set : update.getUpdateSets()) {
 					List<Column> columns = set.getColumns();
@@ -468,16 +482,12 @@ public class DMLHandler {
 						String column = columns.get(idx).getFullyQualifiedName();
 						int dot = column.indexOf('.');
 						ColumnInfo info = dot == -1 ? metadata.column(column) : metadata.column(column.substring(0, dot));
-						Object value = evaluator.evaluate(values.get(idx), oldDoc, parameters);
+						Object value = evaluator.evaluate(values.get(idx), dod, parameters);
 						
 						if (value == DBNull.NULL && !info.nullable()) {
 							throw new DBRuntimeException("The value for " + column + " cannot be null");
 						}
 						
-						if (column.equalsIgnoreCase("owner") && newDoc.get("owner") != null) {
-							logger.info("overriding owner old = " + newDoc.get("owner") + "  value = "  + value);
-							logger.info("");
-						}
 						if (info.type() == Document.class) {
 							newDoc.put(column, value);
 						} else {
@@ -488,7 +498,7 @@ public class DMLHandler {
 				
 				newDocs.add(newDoc);
 				
-				QueryManager.getInstance().update(table, oldDoc, newDoc);	
+				QueryManager.getInstance().update(table, dod, newDoc);	
 			}
 			
 			
@@ -502,7 +512,9 @@ public class DMLHandler {
 		} catch (Exception exc) {
 			throw new DBRuntimeException("The update failed", exc);
 		} finally {
-			QueryManager.getInstance().unlockPrimaryAllKeys(table, newDocs);
+			if (lock) {
+				QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
+			}
 			
 			Metrics.getInstance().logUpdate();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);

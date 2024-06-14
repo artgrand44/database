@@ -161,8 +161,10 @@ public class DAOHandler<TEntity> implements DAO<TEntity>, InvocationHandler {
 			String column = prop.getColumn();
 			Object value = doc.get(column);
 			
-			updates.add(column + " = ?");
-			values.add(value);
+			if (!prop.hasAnnotation(Id.class)) {
+				updates.add(column + " = ?");
+				values.add(value);
+			}
 		}
 		
 		List<String> comparisons = new ArrayList<>();
