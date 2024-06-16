@@ -43,6 +43,10 @@ import org.slf4j.LoggerFactory;
 public class MemorySegment extends Segment {
 	private static final Logger logger = LoggerFactory.getLogger(MemorySegment.class);
 	
+	static record Lease(String owner, long expiration) {
+		
+	}
+	
 	/**
 	 * The log file
 	 */
@@ -69,7 +73,7 @@ public class MemorySegment extends Segment {
 	private final ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
 	
 	
-	private final ConcurrentSkipListMap<Key, String> leases = new ConcurrentSkipListMap<>();
+	private final ConcurrentSkipListMap<Key, Lease> leases = new ConcurrentSkipListMap<>();
 	
 	/**
 	 * The rest client for sending snapshots
@@ -99,7 +103,11 @@ public class MemorySegment extends Segment {
 	/**
 	 * The timer for async broadcasts
 	 */
-	private final ScheduledFuture<?> timer;
+	private final ScheduledFuture<?> broadcastHandler;
+	
+	private final ScheduledFuture<?> timeoutHandler;
+	
+	private final boolean isQueue;
 	
 	/**
 	 * Lock for logging
@@ -117,7 +125,7 @@ public class MemorySegment extends Segment {
 	private static ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("MemSeg", 5);
 	
 
-	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Configuration config) throws Exception {
+	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Configuration config, boolean isQueue) throws Exception {
 		super();
 		
 		Interval interval;
@@ -133,10 +141,14 @@ public class MemorySegment extends Segment {
 		this.table = table;
 		this.discoveryHandler = discoveryHandler;
 		this.logDelay = interval.toMillis();
-		this.timer = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::broadcastTimer, 1,  1,  TimeUnit.SECONDS);
+		this.broadcastHandler = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::broadcastTimer, 1,  1,  TimeUnit.SECONDS);
 		this.id = "Mem" + nextId.incrementAndGet();		
+		this.isQueue = isQueue;
+		this.timeoutHandler = isQueue ? Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutLeases, 10, 10, TimeUnit.SECONDS) : null;
 		
 		this.setMetadata(Metadata.getMetadata(table));
+		
+		
 		
 	}
 	
@@ -193,8 +205,12 @@ public class MemorySegment extends Segment {
 		}
 		
 		try {
-			if (this.timer != null) {
-				this.timer.cancel(true);
+			if (this.timeoutHandler != null) {
+				this.timeoutHandler.cancel(true);
+			}
+			
+			if (this.broadcastHandler != null) {
+				this.broadcastHandler.cancel(true);
 			}
 
 			this.broadcastTimer();
@@ -238,6 +254,9 @@ public class MemorySegment extends Segment {
 	
 	}
 	
+	public void deleteLog() {
+		this.logFile.delete();
+	}
 	
 	@Override
 	public Document get(Key key) throws Exception {
@@ -280,7 +299,7 @@ public class MemorySegment extends Segment {
 			Document nextValue = nextEntry.getValue();
 			
 			if (this.leases.get(nextKey) == null && !nextValue.isZombie()) {
-				this.leases.put(nextKey, owner);
+				this.leases.put(nextKey, new Lease(owner, System.currentTimeMillis() + 10000));
 				result.add(nextValue);
 			}
 		}
@@ -295,9 +314,14 @@ public class MemorySegment extends Segment {
 	public void remove(Key key, boolean propagate) throws Exception {
 		this.log(Operation.REMOVE, key, null, propagate);
 		
-		this.documents.put(key, Document.ZOMBIE);
-		this.leases.remove(key);
+		if (this.isQueue) {
+			this.documents.remove(key);
+		} else {
+			this.documents.put(key, Document.ZOMBIE);
+		}
+		
 	}
+	
 	
 	public DiskSegment save(File file) throws Exception {
 		SegmentBuilder.build(this, file, DISK_BLOCK_SIZE);
@@ -328,6 +352,21 @@ public class MemorySegment extends Segment {
 		}
 	}
 
+	private void timeoutLeases() {
+		Iterator<Map.Entry<Key, Lease>> iterator = this.leases.entrySet().iterator();
+		
+		while (iterator.hasNext()) {
+			Map.Entry<Key, Lease> entry = iterator.next();
+			Key key = entry.getKey();
+			Lease lease = entry.getValue();
+			
+			if (System.currentTimeMillis() > lease.expiration || this.documents.get(key) == null) {
+				iterator.remove();
+			}
+			
+		}
+	}
+	
 	@Override
 	public String toString() {
 		return "MemorySegment [logFile=" + logFile.getName() + ", closed=" + closed + ", id=" + id +  "]";
