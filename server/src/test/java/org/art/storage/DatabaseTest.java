@@ -57,7 +57,8 @@ public class DatabaseTest extends BaseTreeTest {
 			Metadata metadata = new Metadata("test1",
 											primaryKeysFields,
 					                    	columns,
-					                    	Collections.singletonList(new IndexInfo("name", false, keyFields)));
+					                    	Collections.singletonList(new IndexInfo("name", false, keyFields)),
+					                    	false);
 			
 			Metadata.setMetadata(metadata);
 			TableManager manager = StorageManager.getInstance().getTableManager("test1");

@@ -143,7 +143,7 @@ public class PlanTest {
 			indexList.add(info);
 		}
 		
-		Metadata metadata = new Metadata(name, primaryKeyList, fieldMap, indexList);
+		Metadata metadata = new Metadata(name, primaryKeyList, fieldMap, indexList, false);
 		
 		Metadata.setMetadata(metadata);
 		

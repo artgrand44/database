@@ -81,7 +81,7 @@ public class TableCrashTest  {
 			columns.put("value", valueInfo);
 			columns.put("id", idInfo);
 			
-			Metadata metadata = new Metadata("test", Collections.singletonList("id"), columns, Collections.emptyList());
+			Metadata metadata = new Metadata("test", Collections.singletonList("id"), columns, Collections.emptyList(), false);
 			
 			Metadata.setMetadata(metadata);
 			

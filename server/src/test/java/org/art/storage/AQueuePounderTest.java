@@ -47,7 +47,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	@Override
 	protected void loadDabase() throws Exception {
 		Client client = new Client("cluster", "admin", "admin").batch(false);
-		String create = "CREATE TABLE queue (id guid NOT NULL PRIMARY KEY, name varchar(255), value varchar(255))";
+		String create = "CREATE QUEUE TABLE queue (id guid NOT NULL PRIMARY KEY, name varchar(255), value varchar(255))";
 		
 		client.execute(create);
 		
