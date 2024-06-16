@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -99,6 +100,11 @@ public class MemorySegment extends Segment {
 	 * Has the segment been saved
 	 */
 	private boolean isSaved = false;
+	
+	/**
+	 * The number of zombies in the segment
+	 */
+	private AtomicInteger zombieCount = new AtomicInteger();
 	
 	/**
 	 * The timer for async broadcasts
@@ -243,6 +249,7 @@ public class MemorySegment extends Segment {
 			if (this.closed) {
 				logger.info("log after close " + this);
 			}
+			
 			this.log.write(entry);
 			
 			if (propagate) {
@@ -288,6 +295,10 @@ public class MemorySegment extends Segment {
 		return this.closed;
 	}
 	
+	public boolean isZombieSegment() {
+		return this.zombieCount.get() == this.documents.size();
+	}
+	
 	public synchronized DocumentSet lease(String owner, int count) {
 		DocumentSet result = new DocumentSet();
 		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
@@ -313,13 +324,8 @@ public class MemorySegment extends Segment {
 	 */
 	public void remove(Key key, boolean propagate) throws Exception {
 		this.log(Operation.REMOVE, key, null, propagate);
-		
-		if (this.isQueue) {
-			this.documents.remove(key);
-		} else {
-			this.documents.put(key, Document.ZOMBIE);
-		}
-		
+		this.documents.put(key, Document.ZOMBIE);
+		this.zombieCount.incrementAndGet();		
 	}
 	
 	

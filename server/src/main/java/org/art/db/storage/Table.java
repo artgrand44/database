@@ -42,6 +42,7 @@ public class Table implements Closeable {
 	private final Configuration config;
 	private final int maxSegmentSize;
 	private final ScheduledFuture<?> switcher;
+	private final ScheduledFuture<?> timer;
 	private final boolean isQueue;
 	private boolean closed;
 	
@@ -80,6 +81,7 @@ public class Table implements Closeable {
 		}
 		
 		this.switcher = Scheduler.DEFAULT.scheduleAtFixedRate(this::switchSegmentIfNeeded, 5, 10, TimeUnit.MILLISECONDS);
+		this.timer = this.isQueue ? Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutSegments, 5, 5,  TimeUnit.MINUTES) : null;
 
 	}
 	
@@ -90,7 +92,9 @@ public class Table implements Closeable {
 		try {
 			this.closed = true;
 			
-			if (!this.isQueue) {
+			if (this.isQueue) {
+				this.timer.cancel(true);
+			} else {
 				while (this.prevSegment != null) {
 					this.writeLock.unlock();
 					Thread.sleep(1000);
@@ -284,20 +288,15 @@ public class Table implements Closeable {
 		this.readLock.lock();
 		
 		try {
+			cache.invalidate(new DocId(this, key));
+			
 			if (this.isQueue) {
 				for (Segment segment : this.segments) {
-					MemorySegment mem = (MemorySegment)segment;
-					
-					mem.remove(key, propagate);
-					
-					if (mem.size() == 0 && mem != this.currentSegment) {
-						mem.deleteLog();
-					}
+					((MemorySegment)segment).remove(key, segment == this.currentSegment && propagate);
 				}
 			} else {
 				this.currentSegment.remove(key, propagate);
-			}
-			cache.invalidate(new DocId(this, key));
+			}			
 		} finally {
 			this.readLock.unlock();
 		}
@@ -386,6 +385,24 @@ public class Table implements Closeable {
 		
 	}
 	
+	private void timeoutSegments() {
+		this.writeLock.lock();
+		
+		try {
+			Iterator<Segment> iterator = this.segments.iterator();
+			
+			while (iterator.hasNext()) {
+				MemorySegment segment = (MemorySegment)iterator.next();
+				
+				if (segment != this.currentSegment && segment.isZombieSegment()) {
+					segment.deleteLog();
+					iterator.remove();
+				}
+			}
+		} finally {
+			this.writeLock.unlock();
+		}
+	}
 	
 	static record DocId(Table table, Key key) {
 		

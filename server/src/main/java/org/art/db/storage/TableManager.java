@@ -123,7 +123,6 @@ public class TableManager implements Closeable{
 					default:
 						logger.info("bad op " + entry);
 						break;
-
 					}
 				} catch (Exception exc) {
 					Metrics.getInstance().logAlert("There was an error recovering a log entry");
