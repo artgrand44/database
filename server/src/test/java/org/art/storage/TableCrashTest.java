@@ -3,14 +3,17 @@ package org.art.storage;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.commons.io.FileUtils;
 import org.art.db.common.Configuration;
 import org.art.db.common.Document;
+import org.art.db.common.GUID;
 import org.art.db.common.Key;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
@@ -89,6 +92,7 @@ public class TableCrashTest  {
 			
 			Random random = new Random();
 			int nextCrash = random.nextInt(200);
+			Set<String> deleted = new HashSet<>();
 			
 			for (int idx = 0; idx < 250; idx++) {
 				Document doc1 = createDocument(idx);
@@ -98,6 +102,11 @@ public class TableCrashTest  {
 				}
 				
 				manager.insert(doc1, true);
+				
+				if (idx %4 == 0) {
+					manager.remove(doc1, false);
+					deleted.add(doc1.get("id", String.class));
+				}
 				
 				if (idx % 200 == nextCrash) {
 					logger.info("****crash " + idx);
@@ -111,12 +120,15 @@ public class TableCrashTest  {
 						Key key = new Key("Key" + jdx);
 						Document doc = manager.get(key);
 						
-						if (doc == null) {
-							logger.info("no doc for " + key);
-							doc = manager.get(key);
-							logger.info("second get " + key + " " + doc);
+						if (deleted.contains("Key" + jdx)) {
+							Assertions.assertThat(doc == null).isTrue();
+						} else {
+							if (doc == null) {
+								logger.info("no doc for " + key + " deleted " + deleted);
+							}
+							Assertions.assertThat(doc != null).isTrue();
+							Assertions.assertThat(checkDocument(doc, jdx)).isTrue();
 						}
-						Assertions.assertThat(checkDocument(doc, jdx)).isTrue();
 					}
 				}
 			}		
