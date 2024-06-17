@@ -113,8 +113,6 @@ public class MemorySegment extends Segment {
 	
 	private final ScheduledFuture<?> timeoutHandler;
 	
-	private final boolean isQueue;
-	
 	/**
 	 * Lock for logging
 	 */
@@ -149,12 +147,9 @@ public class MemorySegment extends Segment {
 		this.logDelay = interval.toMillis();
 		this.broadcastHandler = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::broadcastTimer, 1,  1,  TimeUnit.SECONDS);
 		this.id = "Mem" + nextId.incrementAndGet();		
-		this.isQueue = isQueue;
 		this.timeoutHandler = isQueue ? Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutLeases, 10, 10, TimeUnit.SECONDS) : null;
 		
-		this.setMetadata(Metadata.getMetadata(table));
-		
-		
+		this.setMetadata(Metadata.getMetadata(table));		
 		
 	}
 	
@@ -299,9 +294,10 @@ public class MemorySegment extends Segment {
 		return this.zombieCount.get() == this.documents.size();
 	}
 	
-	public synchronized DocumentSet lease(String owner, int count) {
+	public synchronized DocumentSet lease(String owner, int count, long timeout) {
 		DocumentSet result = new DocumentSet();
 		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
+		long expirationTime = System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout);
 		
 		for (int idx = 0; idx < count && iterator.hasNext(); idx++) {
 			Map.Entry<Key, Document> nextEntry = iterator.next();
@@ -310,7 +306,7 @@ public class MemorySegment extends Segment {
 			Document nextValue = nextEntry.getValue();
 			
 			if (this.leases.get(nextKey) == null && !nextValue.isZombie()) {
-				this.leases.put(nextKey, new Lease(owner, System.currentTimeMillis() + 10000));
+				this.leases.put(nextKey, new Lease(owner, expirationTime));
 				result.add(nextValue);
 			}
 		}

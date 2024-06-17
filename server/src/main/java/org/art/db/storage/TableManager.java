@@ -240,8 +240,8 @@ public class TableManager implements Closeable{
 		
 	}
 	
-	public DocumentSet lease(String owner, int count) {
-		return this.table.lease(owner, count);
+	public DocumentSet lease(String owner, int count, long timeout) {
+		return this.table.lease(owner, count, timeout);
 	}
 	
 	/**

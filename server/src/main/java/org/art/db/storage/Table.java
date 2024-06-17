@@ -189,14 +189,14 @@ public class Table implements Closeable {
 	}
 	
 	
-	public synchronized DocumentSet lease(String owner, int count) {
+	public synchronized DocumentSet lease(String owner, int count, long timeout) {
 		DocumentSet result = new DocumentSet();
 		Iterator<Segment> iterator = this.segments.reversed().iterator();
 		
 		while (result.size() < count && iterator.hasNext()) {
 			MemorySegment mem = (MemorySegment)iterator.next();
 			
-			result.addAll(mem.lease(owner, count - result.size()));
+			result.addAll(mem.lease(owner, count - result.size(), timeout));
 		}
 		
 		return result;
