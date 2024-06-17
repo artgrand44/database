@@ -241,6 +241,7 @@ public class MemorySegment extends Segment {
 		try {
 			LogEntry entry = new LogEntry(op, key, value, System.currentTimeMillis(), propagate);
 			
+			//logger.info("write " + this.logFile + op + " " + key);
 			if (this.closed) {
 				logger.info("log after close " + this);
 			}
@@ -299,7 +300,7 @@ public class MemorySegment extends Segment {
 		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
 		long expirationTime = System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout);
 		
-		for (int idx = 0; idx < count && iterator.hasNext(); idx++) {
+		while (result.size() < count && iterator.hasNext()) {
 			Map.Entry<Key, Document> nextEntry = iterator.next();
 			
 			Key nextKey = nextEntry.getKey();

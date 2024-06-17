@@ -386,6 +386,7 @@ public class Table implements Closeable {
 	}
 	
 	private void timeoutSegments() {
+		/*
 		this.writeLock.lock();
 		
 		try {
@@ -401,7 +402,7 @@ public class Table implements Closeable {
 			}
 		} finally {
 			this.writeLock.unlock();
-		}
+		}*/
 	}
 	
 	static record DocId(Table table, Key key) {
