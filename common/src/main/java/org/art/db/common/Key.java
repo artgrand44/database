@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 public class Key extends Serializable<Key> implements Comparable<Key> {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Key.class);
 	
 	public static final String MIN = "min".intern();

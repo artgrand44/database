@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 public class QueryTest extends BaseSQLTest {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(QueryTest.class);
 	
 	private static String[] colors = new String[] {"red", "blue", "green", "white", "black" };

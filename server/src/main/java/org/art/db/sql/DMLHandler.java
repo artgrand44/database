@@ -44,7 +44,6 @@ import net.sf.jsqlparser.statement.update.UpdateSet;
 
 public class DMLHandler {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(DMLHandler.class);
 	
 	
