@@ -111,7 +111,7 @@ public class QueryTest extends BaseSQLTest {
 			TableManager manager = StorageManager.getInstance().getTableManager("SYS.SYS.test");
 			
 			for (int idx = 0; idx < 10; idx++) {
-				manager.insert(this.getDocument(idx), true);
+				manager.insert(this.getDocument(idx), true, true);
 			}
 					    
 			doQuery(manager,

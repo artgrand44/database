@@ -68,7 +68,8 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	
 	public void addAll(DocumentSet set) {
 		for (Document doc : set) {
-			this.add(doc);
+			this.list.add(doc);
+			
 		}
 	}
 	

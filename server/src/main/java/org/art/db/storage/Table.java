@@ -188,7 +188,7 @@ public class Table implements Closeable {
 	}
 	
 	
-	public synchronized DocumentSet lease(String owner, int count, long timeout) {
+	public DocumentSet lease(String owner, int count, long timeout) {
 		DocumentSet result = new DocumentSet();
 		Iterator<Segment> iterator = this.segments.reversed().iterator();
 		
@@ -263,11 +263,11 @@ public class Table implements Closeable {
 	}
 		
 
-	public void insert(Key key, Document value, boolean propagate) throws Exception {
+	public void insert(Key key, Document value, boolean propagate, boolean log) throws Exception {
 		this.readLock.lock();
 		
 		try {
-			this.currentSegment.insert(key, value, propagate);	
+			this.currentSegment.insert(key, value, propagate, log);	
 			
 			cache.put(new DocId(this, key), value);
 		} finally {
@@ -283,7 +283,7 @@ public class Table implements Closeable {
 		}
 	}
 	
-	public void remove(Key key, boolean propagate) throws Exception {
+	public void remove(Key key, boolean propagate, boolean log) throws Exception {
 		this.readLock.lock();
 		
 		try {
@@ -291,10 +291,10 @@ public class Table implements Closeable {
 			
 			if (this.isQueue) {
 				for (Segment segment : this.segments) {
-					((MemorySegment)segment).remove(key, segment == this.currentSegment && propagate);
+					((MemorySegment)segment).remove(key, segment == this.currentSegment && propagate, log);
 				}
 			} else {
-				this.currentSegment.remove(key, propagate);
+				this.currentSegment.remove(key, propagate, log);
 			}			
 		} finally {
 			this.readLock.unlock();
@@ -371,11 +371,11 @@ public class Table implements Closeable {
 		}
 	}
 	
-	public void update(Key key, Document value, boolean propagate) throws Exception {
+	public void update(Key key, Document value, boolean propagate, boolean log) throws Exception {
 		this.readLock.lock();
 		
 		try {
-			this.currentSegment.update(key, value, propagate);	
+			this.currentSegment.update(key, value, propagate, log);	
 			
 			cache.put(new DocId(this, key), value);
 		} finally {
@@ -385,7 +385,7 @@ public class Table implements Closeable {
 	}
 	
 	private void timeoutSegments() {
-		/*
+		
 		this.writeLock.lock();
 		
 		try {
@@ -401,7 +401,7 @@ public class Table implements Closeable {
 			}
 		} finally {
 			this.writeLock.unlock();
-		}*/
+		}
 	}
 	
 	static record DocId(Table table, Key key) {

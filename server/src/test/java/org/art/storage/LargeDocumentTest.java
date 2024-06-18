@@ -41,7 +41,7 @@ public class LargeDocumentTest extends BaseSQLTest {
 			doc.put("text", text);
 			doc.put("text1", text);
 			
-			manager.insert(doc, false);
+			manager.insert(doc, false, true);
 			
 			DocumentSet docs = super.executeSelect("select * from largedoc where id = 'key'");
 			

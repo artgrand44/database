@@ -12,7 +12,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -74,7 +76,7 @@ public class MemorySegment extends Segment {
 	private final ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
 	
 	
-	private final ConcurrentSkipListMap<Key, Lease> leases = new ConcurrentSkipListMap<>();
+	private final ConcurrentMap<Key, Lease> leases = new ConcurrentHashMap<>();
 	
 	/**
 	 * The rest client for sending snapshots
@@ -236,16 +238,13 @@ public class MemorySegment extends Segment {
 	 * @throws Exception
 	 */
 	
-	private void log(Operation op, Key key, Document value, boolean propagate) throws Exception {
+	private void log(Operation op, Key key, Document value, boolean propagate, boolean log) throws Exception {
 		this.lock.lock();
 		
 		try {
 			LogEntry entry = new LogEntry(op, key, value, System.currentTimeMillis(), propagate);
 			
-			if (TableManager.applying.get()) {
-				//logger.info("recover " + this.logFile.getName() + " " + op + " " + key);
-			} else {
-				//logger.info("log " + this.logFile.getName() + " " + op + " " + key);
+			if (log) {
 				this.log.write(entry);
 			}
 			
@@ -270,8 +269,8 @@ public class MemorySegment extends Segment {
 	/**
 	 * Intercept puts to log the update
 	 */
-	public void insert(Key key, Document doc, boolean propagate) throws Exception {
-		this.log(Operation.INSERT,  key, doc, propagate);
+	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
+		this.log(Operation.INSERT,  key, doc, propagate, log);
 		
 		this.documents.put(key, doc);
 		this.getBloomFilter().set(this.getHash(key));
@@ -300,8 +299,9 @@ public class MemorySegment extends Segment {
 		DocumentSet result = new DocumentSet();
 		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
 		long expirationTime = System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout);
+		int total = 0;
 		
-		while (result.size() < count && iterator.hasNext()) {
+		for (int idx = 0; idx < count && iterator.hasNext(); idx++) {
 			Map.Entry<Key, Document> nextEntry = iterator.next();
 			
 			Key nextKey = nextEntry.getKey();
@@ -310,6 +310,7 @@ public class MemorySegment extends Segment {
 			if (this.leases.get(nextKey) == null && !nextValue.isZombie()) {
 				this.leases.put(nextKey, new Lease(owner, expirationTime));
 				result.add(nextValue);
+				total++;
 			}
 		}
 		
@@ -320,8 +321,8 @@ public class MemorySegment extends Segment {
 	/**
 	 * Intercept a remove to log the updates
 	 */
-	public void remove(Key key, boolean propagate) throws Exception {
-		this.log(Operation.REMOVE, key, null, propagate);
+	public void remove(Key key, boolean propagate, boolean log) throws Exception {
+		this.log(Operation.REMOVE, key, null, propagate, log);
 		this.documents.put(key, Document.ZOMBIE);
 		this.zombieCount.incrementAndGet();		
 	}
@@ -343,8 +344,8 @@ public class MemorySegment extends Segment {
 	/**
 	 * Intercept puts to log the update
 	 */
-	public void update(Key key, Document doc, boolean propagate) throws Exception {
-		this.log(Operation.UPDATE,  key, doc, propagate);
+	public void update(Key key, Document doc, boolean propagate, boolean log) throws Exception {
+		this.log(Operation.UPDATE,  key, doc, propagate, log);
 		
 		this.documents.put(key, doc);
 		this.getBloomFilter().set(this.getHash(key));

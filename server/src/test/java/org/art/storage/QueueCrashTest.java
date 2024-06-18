@@ -95,14 +95,14 @@ public class QueueCrashTest  {
 				Document doc1 = createDocument(idx);
 				
 				inserted.add(doc1.get("id", GUID.class));
-				manager.insert(doc1, true);
+				manager.insert(doc1, true, true);
 			}
 			
 			for (int idx = 500; idx < 1000; idx++) {
 				Document doc1 = createDocument(idx);
 				
 				
-				manager.insert(doc1, true);
+				manager.insert(doc1, true, true);
 				inserted.add(doc1.get("id", GUID.class));
 				
 				DocumentSet set = manager.lease("test", 1, 0);
@@ -118,7 +118,7 @@ public class QueueCrashTest  {
 				Assertions.assertThat(doc2.get("id") != null).isTrue();
 				
 				if (idx %4 == 0) {
-					manager.remove(doc2, false);
+					manager.remove(doc2, false, true);
 					deleted.add(doc2.get("id", GUID.class));
 				}
 				

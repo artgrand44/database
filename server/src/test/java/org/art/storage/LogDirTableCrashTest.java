@@ -99,7 +99,7 @@ public class LogDirTableCrashTest extends BaseTest {
 					logger.info("***insert " + idx);
 				}
 				
-				manager.insert(doc1, true);
+				manager.insert(doc1, true, true);
 				
 				if (idx % 200 == nextCrash) {
 					logger.info("****crash " + idx);

@@ -95,10 +95,7 @@ public class TableManager implements Closeable{
 		this.checkConstraints = true;
 	}
 	
-	public static ThreadLocal<Boolean> applying = ThreadLocal.withInitial(() -> false);
-	
 	public void applySnapshot(InputStream stream, boolean checkTimestamps, File file) {
-		applying.set(true);
 		try (LogInputStream log = new LogInputStream(stream)) {
 			LogEntry entry;
 			
@@ -119,13 +116,13 @@ public class TableManager implements Closeable{
 				try {
 					switch (entry.getOp()) {
 					case INSERT:
-						this.insert(entry.getDocument(), false);
+						this.insert(entry.getDocument(), false, false);
 						break;
 					case REMOVE:
-						this.remove(this.table.get(entry.getKey()), false);
+						this.remove(this.table.get(entry.getKey()), false, false);
 						break;
 					case UPDATE:
-						this.update(this.table.get(entry.getKey()), entry.getDocument(), false);
+						this.update(this.table.get(entry.getKey()), entry.getDocument(), false, false);
 						break;
 					default:
 						logger.info("bad op " + entry);
@@ -141,9 +138,7 @@ public class TableManager implements Closeable{
 			Metrics.getInstance().logAlert("There was an error recovering the log");
 			logger.info("There was an exception recovering the log " + exc.getMessage());
 			exc.printStackTrace();
-		} finally {
-			applying.set(false);
-		}
+		} 
 		
 	}
 	
@@ -218,7 +213,7 @@ public class TableManager implements Closeable{
 		return this.metadata;
 	}
 	
-	public void insert(Document doc, boolean propagate) throws Exception {
+	public void insert(Document doc, boolean propagate, boolean log) throws Exception {
 		
 		try {
 			Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
@@ -242,7 +237,7 @@ public class TableManager implements Closeable{
 			}
 			
 			this.timestamps.put(primaryKey, System.currentTimeMillis());
-			this.table.insert(primaryKey, doc, propagate);
+			this.table.insert(primaryKey, doc, propagate, log);
 			this.updateIndices(null, doc, primaryKey);
 		} finally {
 			this.alternateKeyLockManager.unlockAll();
@@ -251,6 +246,9 @@ public class TableManager implements Closeable{
 	}
 	
 	public DocumentSet lease(String owner, int count, long timeout) {
+		if (!this.metadata.isQueue()) {
+			throw new DBRuntimeException("The lease() function is only supported for queue tables");
+		}
 		return this.table.lease(owner, count, timeout);
 	}
 	
@@ -406,11 +404,11 @@ public class TableManager implements Closeable{
 		}
 	}
 	
-	public void remove(Document doc, boolean propagate) throws Exception {
+	public void remove(Document doc, boolean propagate, boolean log) throws Exception {
 		Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
 		
 		this.timestamps.put(primaryKey, System.currentTimeMillis());
-		this.table.remove(primaryKey, propagate);
+		this.table.remove(primaryKey, propagate, log);
 		this.updateIndices(doc, null, primaryKey);
 	}
 	
@@ -429,7 +427,7 @@ public class TableManager implements Closeable{
 		}
 	}
 	
-	public void update(Document oldDoc, Document newDoc, boolean propagate) throws Exception {
+	public void update(Document oldDoc, Document newDoc, boolean propagate, boolean log) throws Exception {
 		try {
 			Key primaryKey = this.buildKey(newDoc, this.metadata.primaryKeyFields());
 
@@ -446,7 +444,7 @@ public class TableManager implements Closeable{
 			}
 			
 			this.timestamps.put(primaryKey, System.currentTimeMillis());
-			this.table.update(primaryKey, newDoc, propagate);			
+			this.table.update(primaryKey, newDoc, propagate, log);			
 			this.updateIndices(oldDoc, newDoc, primaryKey);
 		} finally {
 			this.alternateKeyLockManager.unlockAll();

@@ -101,10 +101,10 @@ public class TableCrashTest  {
 					logger.info("test inserting " + idx);
 				}
 				
-				manager.insert(doc1, true);
+				manager.insert(doc1, true, true);
 				
 				if (idx %4 == 0) {
-					manager.remove(doc1, false);
+					manager.remove(doc1, false, true);
 					deleted.add(doc1.get("id", String.class));
 				}
 				

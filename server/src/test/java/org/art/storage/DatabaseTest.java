@@ -64,7 +64,7 @@ public class DatabaseTest extends BaseTreeTest {
 			TableManager manager = StorageManager.getInstance().getTableManager("test1");
 			
 			for (int idx = 0; idx < 10; idx++) {
-				manager.insert(this.getDocument(String.valueOf(idx), "Name" + idx), true);
+				manager.insert(this.getDocument(String.valueOf(idx), "Name" + idx), true, true);
 			}
 					                       
 			for (int idx = 0; idx < 10; idx++) {
