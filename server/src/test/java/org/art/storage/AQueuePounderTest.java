@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
-import org.art.db.common.GUID;
 import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,32 +17,32 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	private static final Logger logger = LoggerFactory.getLogger(AQueuePounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 100;
+	private static int NLOOPS = 1000000;
 	private static int NTHREADS = 150;
 	
 	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);
 	
 	AtomicInteger totalFailures = new AtomicInteger();
 
-	private ConcurrentHashMap<GUID, Long> released = new ConcurrentHashMap<GUID, Long>();
+	private ConcurrentHashMap<Long, Long> released = new ConcurrentHashMap<>();
 	
-	private ConcurrentHashMap<GUID, Long> leased = new ConcurrentHashMap<GUID, Long>();
+	private ConcurrentHashMap<Long, Long> leased = new ConcurrentHashMap<>();
 	public AQueuePounderTest() {
 		super("./bigcache.properties", NITEMS, NTHREADS);
 	}
 
 
 	private void insert(Client client, int idx) throws Exception {
-		String insert = "insert into queue (id, name, value) values (UID(), ?, ?)";
+		String insert = "insert into queue (id, name, value) values (?, ?, ?)";
 		
-		client.execute(insert, "name" + idx, "vaue" + idx);
+		client.execute(insert, idx, "name" + idx, "vaue" + idx);
 		
 	}
 	
 	private DocumentSet lease(Client client, String owner) throws Exception {
-		String lease = "update queue set owner=? where owner is null limit 10 returning *";
+		String lease = "update queue set owner=? where owner is null limit 1 returning *";
 		
-		DocumentSet result = client.executeQuery(lease, owner, GUID.MINIMUM);
+		DocumentSet result = client.executeQuery(lease, owner);
 		
 		for (Document doc : result) {
 			if (!doc.get("owner").equals(owner)) {
@@ -58,7 +57,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	@Override
 	protected void loadDabase() throws Exception {
 		Client client = new Client("cluster", "admin", "admin").batch(false);
-		String create = "CREATE TABLE queue (id guid NOT NULL PRIMARY KEY, name varchar(255), value varchar(255), owner varchar(255))";
+		String create = "CREATE TABLE queue (id int NOT NULL PRIMARY KEY, name varchar(255), value varchar(255), owner varchar(255))";
 		String createIndex = "CREATE INDEX index ON queue(owner)";
 		
 		
@@ -79,7 +78,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 		super.waitForAllStarted();
 		try {
 			Client client = new Client("cluster", "admin", "admin");
-			Set<GUID> threadReleased = new HashSet<>();
+			Set<Long> threadReleased = new HashSet<>();
 			
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				String owner = "art" + index;
@@ -87,10 +86,10 @@ public class AQueuePounderTest extends BaseQueryPounder {
 				this.addRead();
 				
 				DocumentSet set = this.lease(client, owner);
-				Set<GUID> keys = new HashSet<>();
+				Set<Long> keys = new HashSet<>();
 				
 				for (Document doc : set) {
-					GUID guid = doc.get("id", GUID.class);
+					Long guid = doc.get("id", Long.class);
 
 					Assertions.assertThat(doc.get("owner").equals(owner)).isTrue();
 					
@@ -106,7 +105,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 				}
 				
 				for (Document doc : set) {
-					GUID guid = doc.get("id", GUID.class);
+					Long guid = doc.get("id", Long.class);
 					
 					Assertions.assertThat(doc.get("owner").equals(owner)).isTrue();
 					Assertions.assertThat(guid != null).isTrue();
@@ -146,7 +145,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	}
 	
 
-	private boolean remove(Client client, String owner, GUID guid) throws Exception {
+	private boolean remove(Client client, String owner, Long guid) throws Exception {
 		/*DocumentSet locked =  client.executeQuery("select * from queue where id = ? and owner = ?", guid, owner);
 		DocumentSet all =  client.executeQuery("select * from queue where id > ?", GUID.MINIMUM);
 		
