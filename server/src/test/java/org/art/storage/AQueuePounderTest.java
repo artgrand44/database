@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
-import org.art.db.common.GUID;
 import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,18 +24,18 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	
 	AtomicInteger totalFailures = new AtomicInteger();
 
-	private ConcurrentHashMap<GUID, Long> released = new ConcurrentHashMap<GUID, Long>();
+	private ConcurrentHashMap<Long, Long> released = new ConcurrentHashMap<>();
 	
-	private ConcurrentHashMap<GUID, String> leased = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<Long, String> leased = new ConcurrentHashMap<>();
 	public AQueuePounderTest() {
 		super("./bigcache.properties", NITEMS, NTHREADS);
 	}
 
 
 	private void insert(Client client, int idx) throws Exception {
-		String insert = "insert into queue (id, name, value) values (UID(), ?, ?)";
+		String insert = "insert into queue (id, name, value) values (?, ?, ?)";
 		
-		client.execute(insert, "name" + idx, "vaue" + idx);
+		client.execute(insert, idx, "name" + idx, "vaue" + idx);
 		
 	}
 	
@@ -47,7 +46,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	@Override
 	protected void loadDabase() throws Exception {
 		Client client = new Client("cluster", "admin", "admin").batch(false);
-		String create = "CREATE QUEUE TABLE queue (id guid NOT NULL PRIMARY KEY, name varchar(255), value varchar(255))";
+		String create = "CREATE QUEUE TABLE queue (id int NOT NULL PRIMARY KEY, name varchar(255), value varchar(255))";
 		
 		client.execute(create);
 		
@@ -65,7 +64,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 		super.waitForAllStarted();
 		try {
 			Client client = new Client("cluster", "admin", "admin");
-			Set<GUID> threadReleased = new HashSet<>();
+			Set<Long> threadReleased = new HashSet<>();
 			
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				String owner = "art" + index;
@@ -73,10 +72,10 @@ public class AQueuePounderTest extends BaseQueryPounder {
 				this.addRead();
 				
 				DocumentSet set = this.lease(client, owner);
-				Set<GUID> keys = new HashSet<>();
+				Set<Long> keys = new HashSet<>();
 				
 				for (Document doc : set) {
-					GUID guid = doc.get("id", GUID.class);
+					Long guid = doc.get("id", Long.class);
 					
 					if (guid == null) {
 						logger.info("no guid " + set);
@@ -98,7 +97,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 				}
 				
 				for (Document doc : set) {
-					GUID guid = doc.get("id", GUID.class);
+					Long guid = doc.get("id", Long.class);
 					
 					Assertions.assertThat(!threadReleased.contains(guid)).isTrue();
 					
@@ -138,7 +137,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	}
 	
 
-	private boolean remove(Client client,GUID guid) throws Exception {
+	private boolean remove(Client client, Long guid) throws Exception {
 		String delete = "delete from queue where id = ? returning *";
 		DocumentSet set = client.executeQuery(delete, guid);
 		

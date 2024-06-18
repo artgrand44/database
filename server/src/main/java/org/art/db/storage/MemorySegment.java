@@ -65,6 +65,8 @@ public class MemorySegment extends Segment {
 	 */
 	private final String table;
 	
+	private final boolean isQueue;
+	
 	/**
 	 * Has the segment been closed
 	 */
@@ -148,6 +150,7 @@ public class MemorySegment extends Segment {
 		this.table = table;
 		this.discoveryHandler = discoveryHandler;
 		this.logDelay = interval.toMillis();
+		this.isQueue = isQueue;
 		this.broadcastHandler = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::broadcastTimer, 1,  1,  TimeUnit.SECONDS);
 		this.id = "Mem" + nextId.incrementAndGet();		
 		this.timeoutHandler = isQueue ? Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutLeases, 10, 10, TimeUnit.SECONDS) : null;
@@ -295,13 +298,15 @@ public class MemorySegment extends Segment {
 		return this.zombieCount.get() == this.documents.size();
 	}
 	
+	private Key lastLease = new Key();
+	
 	public synchronized DocumentSet lease(String owner, int count, long timeout) {
 		DocumentSet result = new DocumentSet();
 		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
 		long expirationTime = System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout);
 		int total = 0;
 		
-		for (int idx = 0; idx < count && iterator.hasNext(); idx++) {
+		while (total == 0 && iterator.hasNext()) {
 			Map.Entry<Key, Document> nextEntry = iterator.next();
 			
 			Key nextKey = nextEntry.getKey();
@@ -310,9 +315,14 @@ public class MemorySegment extends Segment {
 			if (this.leases.get(nextKey) == null && !nextValue.isZombie()) {
 				this.leases.put(nextKey, new Lease(owner, expirationTime));
 				result.add(nextValue);
+				this.lastLease = nextKey;
 				total++;
 			}
 		}
+		
+		if (result.size() == 0) {
+			logger.info("oops");
+		} 
 		
 		return result;
 	}
@@ -323,7 +333,13 @@ public class MemorySegment extends Segment {
 	 */
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.REMOVE, key, null, propagate, log);
-		this.documents.put(key, Document.ZOMBIE);
+		
+		if (this.isQueue) {
+			this.documents.remove(key);
+			this.leases.remove(key);
+		} else {
+			this.documents.put(key, Document.ZOMBIE);
+		}
 		this.zombieCount.incrementAndGet();		
 	}
 	

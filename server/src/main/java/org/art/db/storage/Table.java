@@ -162,7 +162,7 @@ public class Table implements Closeable {
 		Document result = cache.getIfPresent(id); 
 
 		if (result != null) {
-			//return result;
+			return result;
 		}
 
 		this.readLock.lock();
