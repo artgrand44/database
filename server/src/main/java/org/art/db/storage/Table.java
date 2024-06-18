@@ -64,7 +64,6 @@ public class Table implements Closeable {
 		this.isQueue = meta.isQueue();
 		this.maxSegmentSize = Integer.parseInt(this.config.getProperty("org.art.db.maxSegmentSize", this.config.getDefault("org.art.db.maxSegmentSize")));
 		
-		logger.info("table = " + table + "max seg = " + this.maxSegmentSize);
 		this.currentSegment = new MemorySegment(table, this.discoveryHandler, this.config, this.isQueue);
 		
 		this.segments.add(this.currentSegment);
@@ -163,7 +162,7 @@ public class Table implements Closeable {
 		Document result = cache.getIfPresent(id); 
 
 		if (result != null) {
-			return result;
+			//return result;
 		}
 
 		this.readLock.lock();

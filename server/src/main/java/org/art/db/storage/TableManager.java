@@ -83,24 +83,22 @@ public class TableManager implements Closeable{
 			List<File> list = Arrays.asList(logs);
 			
 			
-			Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
+			Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
 
-			logger.info("*** Recover " + list.size());
 			for (File file : list) {
 				if (file.length() != 0) {
-					logger.info("           apply snapshot for " + file);
-					this.applySnapshot(new FileInputStream(file), false);
+					this.applySnapshot(new FileInputStream(file), false, file);
 				} 
 			}
 		}
 		
-		logs =  Files.listTableLogs(tableName);
-		logger.info("**** end open count = " + logs.length);
 		this.checkConstraints = true;
 	}
 	
-	public void applySnapshot(InputStream stream, boolean checkTimestamps) {
-		
+	public static ThreadLocal<Boolean> applying = ThreadLocal.withInitial(() -> false);
+	
+	public void applySnapshot(InputStream stream, boolean checkTimestamps, File file) {
+		applying.set(true);
 		try (LogInputStream log = new LogInputStream(stream)) {
 			LogEntry entry;
 			
@@ -115,6 +113,8 @@ public class TableManager implements Closeable{
 				}
 				
 				//logger.info("apply " + entry.getOp() + " " + entry.getKey());
+				
+				Document doc;
 				
 				try {
 					switch (entry.getOp()) {
@@ -141,6 +141,8 @@ public class TableManager implements Closeable{
 			Metrics.getInstance().logAlert("There was an error recovering the log");
 			logger.info("There was an exception recovering the log " + exc.getMessage());
 			exc.printStackTrace();
+		} finally {
+			applying.set(false);
 		}
 		
 	}

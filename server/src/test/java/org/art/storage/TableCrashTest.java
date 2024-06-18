@@ -92,6 +92,7 @@ public class TableCrashTest  {
 			
 			Random random = new Random();
 			int nextCrash = random.nextInt(200);
+			Set<String> deleted = new HashSet<>();
 			
 			for (int idx = 0; idx < 250; idx++) {
 				Document doc1 = createDocument(idx);
@@ -99,8 +100,6 @@ public class TableCrashTest  {
 				if (idx % 50 == 0) {
 					logger.info("test inserting " + idx);
 				}
-				
-				Set<String> deleted = new HashSet<>();
 				
 				manager.insert(doc1, true);
 				
@@ -124,10 +123,10 @@ public class TableCrashTest  {
 						if (deleted.contains("Key" + jdx)) {
 							Assertions.assertThat(doc == null).isTrue();
 						} else {
-							if (!checkDocument(doc, jdx)) {
-								logger.info("check failed " + doc + " " + doc.get("id"));
-								logger.info(" ");
+							if (doc == null) {
+								logger.info("no doc for " + key + " deleted " + deleted);
 							}
+							Assertions.assertThat(doc != null).isTrue();
 							Assertions.assertThat(checkDocument(doc, jdx)).isTrue();
 						}
 					}

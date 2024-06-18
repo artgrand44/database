@@ -84,6 +84,7 @@ public class MemorySegment extends Segment {
 	private static AtomicLong nextId = new AtomicLong();
 	
 	private final String id;
+
 		
 	/**
 	 * The batches that need to be broadcast
@@ -241,12 +242,12 @@ public class MemorySegment extends Segment {
 		try {
 			LogEntry entry = new LogEntry(op, key, value, System.currentTimeMillis(), propagate);
 			
-			//logger.info("write " + this.logFile + op + " " + key);
-			if (this.closed) {
-				logger.info("log after close " + this);
+			if (TableManager.applying.get()) {
+				//logger.info("recover " + this.logFile.getName() + " " + op + " " + key);
+			} else {
+				//logger.info("log " + this.logFile.getName() + " " + op + " " + key);
+				this.log.write(entry);
 			}
-			
-			this.log.write(entry);
 			
 			if (propagate) {
 				this.currentBroadcastBatch.add(entry);

@@ -314,7 +314,7 @@ public class Dispatcher {
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				String table = stream.readUTF();
 				
-				StorageManager.getInstance().getTableManager(table).applySnapshot(stream, true);
+				StorageManager.getInstance().getTableManager(table).applySnapshot(stream, true, null);
 			
 				return new byte[0];
 			}
