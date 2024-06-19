@@ -27,16 +27,34 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	public Key(Comparable<?> ... keys) {
 		Objects.requireNonNull(keys);
 		
+		int totalSlots = 0;
+		
 		for (Comparable<?> key : keys) {
 			Objects.requireNonNull(key);
+			
+			totalSlots += (key instanceof Key k ? k.keys.length : 1);
 		}
 		
-		this.setKeys(keys);
+		Comparable<?>[] flattened = new Comparable<?>[totalSlots];
+		int slot = 0;
+				
+		for (Comparable<?> key : keys) {
+			if (key instanceof Key k) {
+				System.arraycopy(k.keys, 0, flattened, slot, k.keys.length);
+				slot += k.keys.length;
+			} else {
+				flattened[slot++] = key;
+			}
+		}
+				
+		this.setKeys(flattened);
 	
 	}
+	
+	
 
 	public Key(List<Comparable<?>> keys) {
-		this(keys.toArray(new Comparable<?>[keys.size()]));
+		this(keys.toArray(new Comparable<?>[keys.size()]));	
 	}
 	
 	
@@ -51,7 +69,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 		if (that == null) {
 			logger.info("null key");
 		}
-		try {
+		
 		final int length = Math.min(this.keys.length, that.keys.length);
 		
 		for (int idx = 0; idx < length; idx++) {
@@ -78,10 +96,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 		}
 		
 		return this.keys.length - that.keys.length;
-		} catch (Throwable exc) {
-			logger.info("bad key types " + this + " " + that);
-			throw exc;
-		}
+
 	}
 	
 	@Override
@@ -116,7 +131,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	
 	@Override
 	public boolean equals(Object obj) {
-		return obj instanceof Key key ? this.compareTo(key) == 0 : false;
+		return obj instanceof Key that ? Arrays.equals(this.keys, that.keys) : false;			
 	}
 	
 	public void serialize(TypedOutputStream stream) throws IOException {

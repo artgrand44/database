@@ -101,11 +101,12 @@ public class AQueuePounderTest extends BaseQueryPounder {
 					
 					Assertions.assertThat(!threadReleased.contains(guid)).isTrue();
 					
-					if (released.contains(guid)) {
-						logger.info("guid " + guid + " already released by "  + released.get(guid) + " current thread = "  + Thread.currentThread().threadId());
+					Long releasedBy = released.get(guid);
+					if (releasedBy != null) {
+						logger.info("guid " + guid + " already released by "  + released.get(guid) + " rb = " + releasedBy + " current thread = "  + Thread.currentThread().threadId());
 						logger.info("");
 					}
-					Assertions.assertThat(!released.containsKey(guid)).isTrue();
+					Assertions.assertThat(releasedBy == null).isTrue();
 					
 					leased.remove(guid);
 					
@@ -118,11 +119,8 @@ public class AQueuePounderTest extends BaseQueryPounder {
 					this.addDelete();
 					
 					this.insert(client, -(this.deleteNextId.incrementAndGet()));
-					this.addWrite();
-					
-				}
-				
-				
+					this.addWrite();					
+				}							
 			}
 		} catch (InterruptedException exc) {
 			

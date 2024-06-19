@@ -336,7 +336,7 @@ public class MemorySegment extends Segment {
 		
 		if (this.isQueue) {
 			this.documents.remove(key);
-			this.leases.remove(key);
+			//this.leases.remove(key);
 		} else {
 			this.documents.put(key, Document.ZOMBIE);
 		}
