@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 class TreeNode {
 	
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(TreeNode.class);
 	
 	private List<Entry> entries = new ArrayList<>();
@@ -88,19 +89,7 @@ class TreeNode {
 	}
 	
 	int binarySearch(Key key) {
-		try {
-			return Collections.binarySearch(this.entries, new Entry(key, null));
-		} catch (Exception exc) {
-			logger.info("exception " + exc.getMessage());
-			try {
-				int index = Collections.binarySearch(this.entries, new Entry(key, null));
-				logger.info("second time worked!!!!!!!!");
-				return index;
-			} catch (Exception exc1) {
-				logger.info("second exception " + exc1.getMessage());
-			}
-			throw exc;
-		}
+		return Collections.binarySearch(this.entries, new Entry(key, null));
 	}
 	
 	Key firstKey() {
@@ -108,15 +97,11 @@ class TreeNode {
 	}
 	
 	
-	int getChildIndex(Key key) {
-		try {
-			int index = this.binarySearch(key);
+	int getChildIndex(Key key) {		
+		int index = this.binarySearch(key);
 			
-			return index >= 0 ? index : Math.max(0,Math.abs(index) - 2);		
-		} catch (Exception exc) {
-			logger.info("getChildException key " + key + " node = " + this + " " + exc.getMessage());
-			throw new IllegalStateException(exc);
-		}
+		return index >= 0 ? index : Math.max(0,Math.abs(index) - 2);		
+		
 	}
 	
 	public int getEntrySize(int index) {
@@ -133,14 +118,10 @@ class TreeNode {
 	
 
 	int getInsertionPoint(Key key) {
-		try {
-			int index = this.binarySearch(key);
+		int index = this.binarySearch(key);
 			
-			return index >= 0 ? index : Math.max(0, Math.abs(index) - 1);
-		} catch (Exception exc) {
-			logger.info("getChildException key " + key + " node = " + this + " " + exc.getMessage());
-			throw new IllegalStateException(exc);
-		}
+		return index >= 0 ? index : Math.max(0, Math.abs(index) - 1);
+
 	}
 	
 	Key getKey(int idx) {

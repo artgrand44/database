@@ -145,7 +145,7 @@ public class DMLHandler {
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
-			throw new DBRuntimeException("The delete failed", exc);
+			throw new DBRuntimeException("The delete failed" + exc.getMessage(), exc);
 		} finally {
 			QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
 			
@@ -239,7 +239,7 @@ public class DMLHandler {
 			throw exc;
 		} catch (Exception exc) {
 			exc.printStackTrace();
-			throw new DBRuntimeException("The insert failed", exc);
+			throw new DBRuntimeException("The insert failed " + exc.getMessage(), exc);
 		}
 		
 	}
@@ -499,7 +499,7 @@ public class DMLHandler {
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
-			throw new DBRuntimeException("The update failed", exc);
+			throw new DBRuntimeException("The update failed " + exc.getMessage(), exc);
 		} finally {
 			QueryManager.getInstance().unlockPrimaryAllKeys(table, newDocs);
 			

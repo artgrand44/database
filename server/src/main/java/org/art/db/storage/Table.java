@@ -275,12 +275,6 @@ public class Table implements Closeable {
 
 	}
 	
-	@SuppressWarnings("unused")
-	private void printStats() {
-		for (Map.Entry<String, Index> entry : this.indices.entrySet()) {
-			logger.info(String.format("%20s   %s", entry.getKey(), entry.getValue().getStats()));
-		}
-	}
 	
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
 		this.readLock.lock();

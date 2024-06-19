@@ -298,13 +298,12 @@ public class MemorySegment extends Segment {
 		return this.zombieCount.get() == this.documents.size();
 	}
 	
-	@SuppressWarnings("resource")
 	public synchronized DocumentSet lease(String owner, long timeout) {
 		DocumentSet result = new DocumentSet();
 		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
 		long expirationTime = System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout);
 		
-		for (;;) {
+		while (iterator.hasNext()) {
 			Map.Entry<Key, Document> nextEntry = iterator.next();
 			
 			Key nextKey = nextEntry.getKey();

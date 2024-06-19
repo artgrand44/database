@@ -184,7 +184,7 @@ public class DDLHandler {
 			throw exc;
 		} catch (Exception exc) {
 			logger.info(exc.getMessage());
-			throw new DBRuntimeException("Create Index failed ", exc);
+			throw new DBRuntimeException("Create Index failed " + exc.getMessage(), exc);
 		}	
 
 	}

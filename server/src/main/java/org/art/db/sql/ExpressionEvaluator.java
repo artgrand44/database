@@ -211,6 +211,8 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 						
 				if (expression == null) {
 					value = null;
+				} else if (expression instanceof NullValue) {
+					value = DBNull.NULL;
 				} else if (expression instanceof List list) {
 					value =  list.stream().map(x-> this.evaluate((Expression)x, type)).toList();
 				} else {
@@ -228,7 +230,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
-			throw new DBRuntimeException("Select failed", exc);
+			throw new DBRuntimeException("Select failed " + exc.getMessage(), exc);
 		}
 	}
 	

@@ -109,10 +109,6 @@ public class TableManager implements Closeable{
 					}
 				}
 				
-				//logger.info("apply " + entry.getOp() + " " + entry.getKey());
-				
-				Document doc;
-				
 				try {
 					switch (entry.getOp()) {
 					case INSERT:

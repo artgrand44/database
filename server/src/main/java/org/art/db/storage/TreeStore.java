@@ -562,15 +562,6 @@ public class TreeStore implements Closeable, BlobStore {
 		return this.file.getReadCount();
 	}
 	
-	public String getStats() {
-		return (String.format("Gets: %10d Hits: %10d Updates: %10d Writes: %10d",
-			    this.getCount.get(),
-			    this.hitCount.get(),
-			    this.updateCount.get(),
-			    this.writeCount.get()));
-	
-	
-	}
 	
 	public long getWriteCount() {
 		return this.file.getWriteCount();
@@ -578,14 +569,6 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public long getRoot() {
 		return this.header.root;
-	}
-	
-	public long getSearchCount() {
-		return this.header.searchCount;
-	}
-	
-	public long getResultCount() {
-		return this.header.resultCount;
 	}
 	
 	
@@ -644,13 +627,6 @@ public class TreeStore implements Closeable, BlobStore {
 		
 		this.writeHeader();		
 		
-	}
-	
-	public void setStatistics(long searchCount, long resultCount) throws Exception {
-		this.header.searchCount = searchCount;
-		this.header.resultCount = resultCount;
-		
-		this.writeHeader();
 	}
 	
 
@@ -760,8 +736,6 @@ public class TreeStore implements Closeable, BlobStore {
 		long highGUID = -1;
 		long metadataOffset = -1;
 		int metadataSize = 0;
-		long searchCount;
-		long resultCount;
 		boolean flushed = false;
 		long createTime = 0;
 		int mergeLevel = 0;
@@ -778,8 +752,6 @@ public class TreeStore implements Closeable, BlobStore {
 			this.highGUID = stream.readLong();
 			this.metadataOffset = stream.readLong();
 			this.metadataSize = stream.readInt();
-			this.searchCount = stream.readLong();
-			this.resultCount = stream.readLong();
 			this.flushed = stream.readBoolean();
 			this.createTime = stream.readLong();
 			this.mergeLevel = stream.readInt();
@@ -799,8 +771,6 @@ public class TreeStore implements Closeable, BlobStore {
 				stream.writeLong(this.highGUID);
 				stream.writeLong(this.metadataOffset);
 				stream.writeInt(this.metadataSize);
-				stream.writeLong(this.searchCount);
-				stream.writeLong(this.resultCount);
 				stream.writeBoolean(this.flushed);
 				stream.writeLong(this.createTime);
 				stream.writeInt(this.mergeLevel);

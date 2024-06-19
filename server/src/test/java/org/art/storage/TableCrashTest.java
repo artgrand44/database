@@ -13,7 +13,6 @@ import java.util.TreeMap;
 import org.apache.commons.io.FileUtils;
 import org.art.db.common.Configuration;
 import org.art.db.common.Document;
-import org.art.db.common.GUID;
 import org.art.db.common.Key;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
