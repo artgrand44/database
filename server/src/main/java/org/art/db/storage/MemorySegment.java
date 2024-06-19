@@ -298,15 +298,13 @@ public class MemorySegment extends Segment {
 		return this.zombieCount.get() == this.documents.size();
 	}
 	
-	private Key lastLease = new Key();
-	
-	public synchronized DocumentSet lease(String owner, int count, long timeout) {
+	@SuppressWarnings("resource")
+	public synchronized DocumentSet lease(String owner, long timeout) {
 		DocumentSet result = new DocumentSet();
 		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
 		long expirationTime = System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout);
-		int total = 0;
 		
-		while (total == 0 && iterator.hasNext()) {
+		for (;;) {
 			Map.Entry<Key, Document> nextEntry = iterator.next();
 			
 			Key nextKey = nextEntry.getKey();
@@ -315,14 +313,9 @@ public class MemorySegment extends Segment {
 			if (this.leases.get(nextKey) == null && !nextValue.isZombie()) {
 				this.leases.put(nextKey, new Lease(owner, expirationTime));
 				result.add(nextValue);
-				this.lastLease = nextKey;
-				total++;
+				break;
 			}
 		}
-		
-		if (result.size() == 0) {
-			logger.info("oops");
-		} 
 		
 		return result;
 	}

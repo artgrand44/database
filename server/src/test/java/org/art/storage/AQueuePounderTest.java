@@ -40,7 +40,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	}
 	
 	private DocumentSet lease(Client client, String owner) throws Exception {
-		return client.executeQuery("select * from queue where lease(?, 5)", owner);
+		return client.executeQuery("select * from queue where lease(?)", owner);
 	}
 	
 	@Override

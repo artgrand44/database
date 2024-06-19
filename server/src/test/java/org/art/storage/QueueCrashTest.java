@@ -105,7 +105,7 @@ public class QueueCrashTest  {
 				manager.insert(doc1, true, true);
 				inserted.add(doc1.get("id", GUID.class));
 				
-				DocumentSet set = manager.lease("test", 1, 0);
+				DocumentSet set = manager.lease("test", 0);
 				
 				if (set.size() == 0) {
 					logger.info("set " + set);

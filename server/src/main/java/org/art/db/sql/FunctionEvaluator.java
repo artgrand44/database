@@ -70,10 +70,9 @@ public class FunctionEvaluator {
 
 			case "lease":
 				String owner = validate(name, parameters, 0, String.class);
-				Number count = validate(name, parameters, 1, Number.class);
-				Number timeout = parameters.size() == 3 ? validate(name, parameters, 2, Number.class) : 0;
+				Number timeout = parameters.size() == 2 ? validate(name, parameters, 1, Number.class) : 0;
 				
-				return StorageManager.getInstance().getTableManager(table).lease(owner, count.intValue(), timeout.longValue());
+				return StorageManager.getInstance().getTableManager(table).lease(owner, timeout.longValue());
 				
 			case "max":
 				first = validate(name, parameters, 0, Number.class);
