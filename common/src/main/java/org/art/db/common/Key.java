@@ -69,6 +69,12 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 				return -1;
 			} else if (thatKey instanceof DBNull && ! (thisKey instanceof DBNull)) {
 				return +1;
+			} else if (thisKey instanceof String thisStr && thatKey instanceof String thatStr) {
+				return thisStr.compareTo(thatStr);
+			} else if (thisKey instanceof Long thisLong && thatKey instanceof Long thatLong) {
+				return thisLong.compareTo(thatLong);
+			} else if (thisKey instanceof Key lKey && thatKey instanceof Key rKey) {
+				return lKey.compareTo(rKey);
 			} else {
 				final int comp = this.compareKey(thisKey, thatKey, thisKey.getClass());
 				
@@ -117,7 +123,21 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	
 	@Override
 	public boolean equals(Object obj) {
-		return obj instanceof Key key ? this.compareTo(key) == 0 : false;
+		if (obj instanceof Key that) {
+			if (this.keys.length != that.keys.length) {
+				return false;
+			}
+			
+			for (int idx = 0; idx < this.keys.length; idx++) {
+				if (!Objects.equals(this.keys[idx], that.keys[idx])) {
+					return false;
+				}
+			}
+			
+			return true;
+		}
+
+		return false;
 	}
 	
 	public void serialize(TypedOutputStream stream) throws IOException {
