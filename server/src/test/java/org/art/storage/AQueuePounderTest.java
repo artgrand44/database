@@ -111,11 +111,12 @@ public class AQueuePounderTest extends BaseQueryPounder {
 					Assertions.assertThat(guid != null).isTrue();
 					Assertions.assertThat(!threadReleased.contains(guid)).isTrue();
 					
-					if (released.contains(guid)) {
-						logger.info("guid " + guid + " already released by "  + released.get(guid) + " current thread = "  + Thread.currentThread().threadId());
+					Long releasedBy = released.get(guid);
+					if (releasedBy != null) {
+						logger.info("guid " + guid + " already released by "  + released.get(guid) + " rb = " + releasedBy + " current thread = "  + Thread.currentThread().threadId());
 						logger.info("");
 					}
-					Assertions.assertThat(!released.containsKey(guid)).isTrue();
+					Assertions.assertThat(releasedBy == null).isTrue();
 					
 					if (!this.remove(client, owner, guid)) {
 						logger.info("remove failure");
