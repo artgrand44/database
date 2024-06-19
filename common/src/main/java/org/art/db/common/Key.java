@@ -1,6 +1,7 @@
 package org.art.db.common;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -10,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 public class Key extends Serializable<Key> implements Comparable<Key> {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Key.class);
 	
 	public static final String MIN = "min".intern();
@@ -28,16 +28,34 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	public Key(Comparable<?> ... keys) {
 		Objects.requireNonNull(keys);
 		
+		int totalSlots = 0;
+		
 		for (Comparable<?> key : keys) {
 			Objects.requireNonNull(key);
+			
+			totalSlots += (key instanceof Key k ? k.keys.length : 1);
 		}
 		
-		this.setKeys(keys);
+		Comparable<?>[] flattened = new Comparable<?>[totalSlots];
+		int slot = 0;
+				
+		for (Comparable<?> key : keys) {
+			if (key instanceof Key k) {
+				System.arraycopy(k.keys, 0, flattened, slot, k.keys.length);
+				slot += k.keys.length;
+			} else {
+				flattened[slot++] = key;
+			}
+		}
+				
+		this.setKeys(flattened);
 	
 	}
+	
+	
 
 	public Key(List<Comparable<?>> keys) {
-		this(keys.toArray(new Comparable<?>[keys.size()]));
+		this(keys.toArray(new Comparable<?>[keys.size()]));	
 	}
 	
 	
@@ -52,7 +70,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 		if (that == null) {
 			logger.info("null key");
 		}
-		try {
+		
 		final int length = Math.min(this.keys.length, that.keys.length);
 		
 		for (int idx = 0; idx < length; idx++) {
@@ -69,12 +87,6 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 				return -1;
 			} else if (thatKey instanceof DBNull && ! (thisKey instanceof DBNull)) {
 				return +1;
-			} else if (thisKey instanceof String thisStr && thatKey instanceof String thatStr) {
-				return thisStr.compareTo(thatStr);
-			} else if (thisKey instanceof Long thisLong && thatKey instanceof Long thatLong) {
-				return thisLong.compareTo(thatLong);
-			} else if (thisKey instanceof Key lKey && thatKey instanceof Key rKey) {
-				return lKey.compareTo(rKey);
 			} else {
 				final int comp = this.compareKey(thisKey, thatKey, thisKey.getClass());
 				
@@ -85,10 +97,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 		}
 		
 		return this.keys.length - that.keys.length;
-		} catch (Throwable exc) {
-			logger.info("bad key types " + this + " " + that);
-			throw exc;
-		}
+
 	}
 	
 	@Override
@@ -123,21 +132,7 @@ public class Key extends Serializable<Key> implements Comparable<Key> {
 	
 	@Override
 	public boolean equals(Object obj) {
-		if (obj instanceof Key that) {
-			if (this.keys.length != that.keys.length) {
-				return false;
-			}
-			
-			for (int idx = 0; idx < this.keys.length; idx++) {
-				if (!Objects.equals(this.keys[idx], that.keys[idx])) {
-					return false;
-				}
-			}
-			
-			return true;
-		}
-
-		return false;
+		return obj instanceof Key that ? Arrays.equals(this.keys, that.keys) : false;			
 	}
 	
 	public void serialize(TypedOutputStream stream) throws IOException {
