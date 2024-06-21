@@ -50,6 +50,8 @@ public class Table implements Closeable {
 	
 	private static final LinkedBlockingQueue<MergeQueueEntry> mergeQueue =  new LinkedBlockingQueue<>();
 	
+	private static final long ONE_GIG = 1024 * 1024 * 1024;
+	
 	static {
 		Scheduler.DEFAULT.submit(Table::mergerLoop);
 	}
@@ -127,6 +129,9 @@ public class Table implements Closeable {
 		MemorySegment segment = this.currentSegment;
 		boolean saving = false;
 		
+		if (this.isQueue) {
+			logger.info("flushing queue");
+		}
 		this.writeLock.lock();
 		
 		try {
@@ -189,14 +194,21 @@ public class Table implements Closeable {
 	
 	
 	public DocumentSet lease(String owner, long timeout) {
+		this.readLock.lock();
+		
 		DocumentSet result = new DocumentSet();
-		Iterator<Segment> iterator = this.segments.reversed().iterator();
 		
-		while (iterator.hasNext()) {
-			MemorySegment mem = (MemorySegment)iterator.next();
-			result.addAll(mem.lease(owner, timeout));
+		try {
+			Iterator<Segment> iterator = this.segments.reversed().iterator();
+
+			while (iterator.hasNext()) {
+				MemorySegment mem = (MemorySegment)iterator.next();
+				result.addAll(mem.lease(owner, timeout));
+			}
+		} finally {
+			this.readLock.unlock();
 		}
-		
+
 		return result;
 	}
 	
@@ -205,6 +217,9 @@ public class Table implements Closeable {
 	private void merge(File file) {
 
 		try {
+			if (this.isQueue) {
+				logger.info("**** merging queue");
+			}
 			String[] tokens = file.getName().split("_");
 			String size = tokens[1].split("\\.")[0];
 
@@ -300,6 +315,10 @@ public class Table implements Closeable {
 			File file  = Files.getDiskSegment(this.table, 1);
 
 			logger.info("save segment");
+			
+			if (this.isQueue) {
+				logger.info("saving queue");
+			}
 			DiskSegment saved = segment.save(file);
 
 			this.writeLock.lock();
@@ -358,6 +377,9 @@ public class Table implements Closeable {
 			if (this.currentSegment.size() > this.maxSegmentSize && this.prevSegment == null && !this.closed) {
 				logger.info("calling switch " + this.currentSegment.size());
 				switchSegments();
+			} else if (this.isQueue && this.currentSegment.getLogSize() > ONE_GIG) {
+				logger.info("calling switch due to log size" + this.currentSegment.getLogSize());
+				switchSegments();
 			}
 		} finally {
 			this.writeLock.unlock();
@@ -387,7 +409,7 @@ public class Table implements Closeable {
 			while (iterator.hasNext()) {
 				MemorySegment segment = (MemorySegment)iterator.next();
 				
-				if (segment != this.currentSegment && segment.isZombieSegment()) {
+				if (segment != this.currentSegment && segment.size() == 0) {
 					segment.deleteLog();
 					iterator.remove();
 				}

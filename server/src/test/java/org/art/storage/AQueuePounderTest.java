@@ -17,7 +17,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	private static final Logger logger = LoggerFactory.getLogger(AQueuePounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 10000;
+	private static int NLOOPS = 1000000;
 	private static int NTHREADS = 150;
 	
 	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);
@@ -28,7 +28,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	
 	private ConcurrentHashMap<Long, String> leased = new ConcurrentHashMap<>();
 	public AQueuePounderTest() {
-		super("./bigcache.properties", NITEMS, NTHREADS);
+		super("./queuepounder.properties", NITEMS, NTHREADS);
 	}
 
 

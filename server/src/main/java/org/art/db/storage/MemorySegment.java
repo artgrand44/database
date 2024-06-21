@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -99,17 +98,13 @@ public class MemorySegment extends Segment {
 	/**
 	 * The current batch being build up
 	 */
-	private List<LogEntry> currentBroadcastBatch = new ArrayList<>();
+	private ConcurrentLinkedDeque<LogEntry> currentBroadcastBatch = new ConcurrentLinkedDeque<>();
 	
 	/**
 	 * Has the segment been saved
 	 */
 	private boolean isSaved = false;
 	
-	/**
-	 * The number of zombies in the segment
-	 */
-	private AtomicInteger zombieCount = new AtomicInteger();
 	
 	/**
 	 * The timer for async broadcasts
@@ -119,9 +114,9 @@ public class MemorySegment extends Segment {
 	private final ScheduledFuture<?> timeoutHandler;
 	
 	/**
-	 * Lock for logging
+	 * Lock for queuing up broadcasts
 	 */
-	private final ReentrantLock lock = new ReentrantLock();
+	private final ReentrantLock broadcastLock = new ReentrantLock();
 	
 	/**
 	 * Discovery handler for sending snapshots
@@ -164,7 +159,7 @@ public class MemorySegment extends Segment {
 	 */
 	private void broadcastTimer() {
 
-		this.lock.lock();
+		this.broadcastLock.lock();
 
 		try {
 			if (this.currentBroadcastBatch.size() != 0) {
@@ -172,7 +167,7 @@ public class MemorySegment extends Segment {
 				this.currentBroadcastBatch.clear();
 			}
 		} finally {
-			this.lock.unlock();
+			this.broadcastLock.unlock();
 		}
 		
 		Collection<URI> peers;
@@ -205,8 +200,6 @@ public class MemorySegment extends Segment {
 	
 	
 	public void close() throws IOException {
-		this.lock.lock();
-		
 		if (this.closed) {
 			new Exception().printStackTrace();
 		}
@@ -225,7 +218,6 @@ public class MemorySegment extends Segment {
 			this.logFile.delete();
 		} finally {
 			this.closed = true;
-			this.lock.unlock();
 		}
 	}
 	
@@ -242,20 +234,15 @@ public class MemorySegment extends Segment {
 	 */
 	
 	private void log(Operation op, Key key, Document value, boolean propagate, boolean log) throws Exception {
-		this.lock.lock();
-		
-		try {
-			LogEntry entry = new LogEntry(op, key, value, System.currentTimeMillis(), propagate);
-			
-			if (log) {
-				this.log.write(entry);
-			}
-			
-			if (propagate) {
-				this.currentBroadcastBatch.add(entry);
-			}
-		} finally {
-			this.lock.unlock();
+
+		LogEntry entry = new LogEntry(op, key, value, System.currentTimeMillis(), propagate);
+
+		if (log) {
+			this.log.write(entry);
+		}
+
+		if (propagate) {
+			this.currentBroadcastBatch.add(entry);
 		}
 	
 	}
@@ -269,6 +256,10 @@ public class MemorySegment extends Segment {
 		return this.documents.get(key);
 	}
 
+	public long getLogSize() {
+		return this.log.getLength();
+	}
+	
 	/**
 	 * Intercept puts to log the update
 	 */
@@ -292,10 +283,6 @@ public class MemorySegment extends Segment {
 	
 	public boolean isClosed() {
 		return this.closed;
-	}
-	
-	public boolean isZombieSegment() {
-		return this.zombieCount.get() == this.documents.size();
 	}
 	
 	public synchronized DocumentSet lease(String owner, long timeout) {
@@ -324,15 +311,17 @@ public class MemorySegment extends Segment {
 	 * Intercept a remove to log the updates
 	 */
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
-		this.log(Operation.REMOVE, key, null, propagate, log);
 		
 		if (this.isQueue) {
-			this.documents.remove(key);
-			//this.leases.remove(key);
+			if (this.documents.containsKey(key)) {
+				this.log(Operation.REMOVE, key, null, propagate, log);
+				
+				this.documents.put(key, Document.ZOMBIE);
+			}
 		} else {
+			this.documents.remove(key);
 			this.documents.put(key, Document.ZOMBIE);
-		}
-		this.zombieCount.incrementAndGet();		
+		}	
 	}
 	
 	

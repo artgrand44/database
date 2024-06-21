@@ -146,6 +146,8 @@ public class HeartbeatListener {
 					if (trace) logger.info(this.port + " adding " + uri + " = " + serviceName);
 					
 					this.cache.put(uri, serviceName);
+					
+					Thread.sleep(500);
 				}
 			} catch (Exception exc) {
 				logger.info("***********poll exception " + exc.getMessage());
