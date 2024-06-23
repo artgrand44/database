@@ -66,7 +66,9 @@ public class Table implements Closeable {
 		this.isQueue = meta.isQueue();
 		this.maxSegmentSize = Integer.parseInt(this.config.getProperty("org.art.db.maxSegmentSize", this.config.getDefault("org.art.db.maxSegmentSize")));
 		
-		this.currentSegment = new MemorySegment(table, this.discoveryHandler, this.config, this.isQueue);
+		this.currentSegment = this.isQueue
+				              ? new QueueSegment(this.table, this.discoveryHandler, this.config)
+				              : new MemorySegment(table, this.discoveryHandler, this.config, false);
 		
 		this.segments.add(this.currentSegment);
 			
@@ -118,7 +120,10 @@ public class Table implements Closeable {
 	public void crash() throws Exception {
 		if (this.currentSegment != null) {
 			this.currentSegment.crash();
-			this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config, this.isQueue);
+			this.currentSegment = this.isQueue
+					              ? new QueueSegment(this.table, this.discoveryHandler, this.config)
+					              : new MemorySegment(this.table, this.discoveryHandler, this.config, false);
+			
 		}
 	}
 	
@@ -202,8 +207,8 @@ public class Table implements Closeable {
 			Iterator<Segment> iterator = this.segments.reversed().iterator();
 
 			while (iterator.hasNext()) {
-				MemorySegment mem = (MemorySegment)iterator.next();
-				result.addAll(mem.lease(owner, timeout));
+				QueueSegment segment = (QueueSegment)iterator.next();
+				result.addAll(segment.lease(owner, timeout));
 			}
 		} finally {
 			this.readLock.unlock();
@@ -357,12 +362,16 @@ public class Table implements Closeable {
 				index.flush();
 			}
 
-			if (!this.isQueue) {
-				this.prevSegment = this.currentSegment;
+			this.prevSegment = this.currentSegment;
+			
+			if (this.isQueue) {
+				this.currentSegment = new QueueSegment(this.table, this.discoveryHandler, this.config);
+			} else {
+				
 				Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null; });
+				this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config, true);
 			}
 			
-			this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config, this.isQueue);
 			this.segments.addFirst(this.currentSegment);
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error switching database segments");

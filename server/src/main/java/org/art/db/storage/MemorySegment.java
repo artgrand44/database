@@ -12,22 +12,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.art.db.common.Blob;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
-import org.art.db.common.DocumentSet;
 import org.art.db.common.GUID;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry;
@@ -46,9 +42,7 @@ import org.slf4j.LoggerFactory;
 public class MemorySegment extends Segment {
 	private static final Logger logger = LoggerFactory.getLogger(MemorySegment.class);
 	
-	static record Lease(String owner, long expiration) {
-		
-	}
+	
 	
 	/**
 	 * The log file
@@ -65,8 +59,6 @@ public class MemorySegment extends Segment {
 	 */
 	private final String table;
 	
-	private final boolean isQueue;
-	
 	/**
 	 * Has the segment been closed
 	 */
@@ -75,10 +67,8 @@ public class MemorySegment extends Segment {
 	/**
 	 * The documents in this segment
 	 */
-	private volatile ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
+	protected volatile ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
 	
-	
-	private final ConcurrentMap<Key, Lease> leases = new ConcurrentHashMap<>();
 	
 	/**
 	 * The rest client for sending snapshots
@@ -106,25 +96,18 @@ public class MemorySegment extends Segment {
 	 */
 	private boolean isSaved = false;
 	
-	/**
-	 * The number of calls to remove().  Used to decide when to compact the documents map.
-	 */
-	private AtomicLong removeCount = new AtomicLong();
-	
 	
 	/**
 	 * The timer for async broadcasts
 	 */
 	private final ScheduledFuture<?> broadcastHandler;
 	
-	private final ScheduledFuture<?> timeoutHandler;
-	
+
 	/**
 	 * Lock for queuing up broadcasts
 	 */
 	private final ReentrantLock broadcastLock = new ReentrantLock();
 	
-	private final ReentrantReadWriteLock documentsLock = new ReentrantReadWriteLock();
 	
 	/**
 	 * Discovery handler for sending snapshots
@@ -153,10 +136,8 @@ public class MemorySegment extends Segment {
 		this.table = table;
 		this.discoveryHandler = discoveryHandler;
 		this.logDelay = interval.toMillis();
-		this.isQueue = isQueue;
 		this.broadcastHandler = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::broadcastTimer, 1,  1,  TimeUnit.SECONDS);
 		this.id = "Mem" + nextId.incrementAndGet();		
-		this.timeoutHandler = isQueue ? Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutLeases, 10, 10, TimeUnit.SECONDS) : null;
 		
 		this.setMetadata(Metadata.getMetadata(table));		
 		
@@ -211,10 +192,6 @@ public class MemorySegment extends Segment {
 		}
 		
 		try {
-			if (this.timeoutHandler != null) {
-				this.timeoutHandler.cancel(true);
-			}
-			
 			if (this.broadcastHandler != null) {
 				this.broadcastHandler.cancel(true);
 			}
@@ -239,7 +216,7 @@ public class MemorySegment extends Segment {
 	 * @throws Exception
 	 */
 	
-	private void log(Operation op, Key key, Document value, boolean propagate, boolean log) throws Exception {
+	protected void log(Operation op, Key key, Document value, boolean propagate, boolean log) throws Exception {
 
 		LogEntry entry = new LogEntry(op, key, value, System.currentTimeMillis(), propagate);
 
@@ -259,13 +236,7 @@ public class MemorySegment extends Segment {
 	
 	@Override
 	public Document get(Key key) throws Exception {
-		this.documentsLock.readLock().lock();
-		
-		Document result = this.documents.get(key);
-		
-		this.documentsLock.readLock().unlock();
-		
-		return result;
+		return this.documents.get(key);
 	}
 
 	public long getLogSize() {
@@ -278,9 +249,7 @@ public class MemorySegment extends Segment {
 	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.INSERT,  key, doc, propagate, log);
 		
-		this.documentsLock.readLock().lock();
 		this.documents.put(key, doc);
-		this.documentsLock.readLock().unlock();
 		
 		this.getBloomFilter().set(this.getHash(key));
 		
@@ -300,49 +269,13 @@ public class MemorySegment extends Segment {
 		return this.closed;
 	}
 	
-	public synchronized DocumentSet lease(String owner, long timeout) {
-		DocumentSet result = new DocumentSet();
-		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
-		long expirationTime = System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout);
-		
-		while (iterator.hasNext()) {
-			Map.Entry<Key, Document> nextEntry = iterator.next();
-			
-			Key nextKey = nextEntry.getKey();
-			Document nextValue = nextEntry.getValue();
-			
-			if (this.leases.get(nextKey) == null && !nextValue.isZombie()) {
-				this.leases.put(nextKey, new Lease(owner, expirationTime));
-				result.add(nextValue);
-				break;
-			}
-		}
-		
-		return result;
-	}
 	
-
 	/**
 	 * Intercept a remove to log the updates
 	 */
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
-		this.documentsLock.readLock().lock();
-		
-		try {
-			if (this.isQueue) {
-				if (this.documents.containsKey(key)) {
-					this.log(Operation.REMOVE, key, null, propagate, log);
-
-					this.documents.remove(key);
-					this.removeCount.incrementAndGet();
-				}
-			} else {
-				this.documents.remove(key);
-				this.documents.put(key, Document.ZOMBIE);
-			}
-		} finally {
-			this.documentsLock.readLock().unlock();
-		}
+		this.documents.remove(key);
+		this.documents.put(key, Document.ZOMBIE);	
 	}
 	
 	
@@ -365,8 +298,6 @@ public class MemorySegment extends Segment {
 	public void update(Key key, Document doc, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.UPDATE,  key, doc, propagate, log);
 		
-		this.documentsLock.readLock().lock();
-		
 		this.documents.put(key, doc);
 		this.getBloomFilter().set(this.getHash(key));
 		
@@ -376,33 +307,8 @@ public class MemorySegment extends Segment {
 			this.setHighGUID(guid);
 		}
 		
-		this.documentsLock.readLock().unlock();
 	}
 
-	private void timeoutLeases() {
-		this.documentsLock.readLock().lock();
-		
-		Iterator<Map.Entry<Key, Lease>> iterator = this.leases.entrySet().iterator();
-		
-		while (iterator.hasNext()) {
-			Map.Entry<Key, Lease> entry = iterator.next();
-			Key key = entry.getKey();
-			Lease lease = entry.getValue();
-			
-			if (System.currentTimeMillis() > lease.expiration || this.documents.get(key) == null) {
-				iterator.remove();
-			}			
-		}
-		
-		this.documentsLock.readLock().unlock();
-		
-		if (this.removeCount.get() > 10000) {
-			logger.info("*** compacting");
-			this.documentsLock.writeLock().lock();
-			this.documents = new ConcurrentSkipListMap<>(this.documents);
-			this.documentsLock.writeLock().unlock();
-		}
-	}
 	
 	@Override
 	public String toString() {
