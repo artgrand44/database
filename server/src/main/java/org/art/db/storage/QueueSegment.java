@@ -65,10 +65,48 @@ public class QueueSegment extends MemorySegment {
 	}
 	
 	
+	/**
+	 * Find document that is not currently leased, obtain a lease
+	 * for it, and return the document.
+	 * 
+	 * This method makes two passes over the documents.  During the
+	 * first pass, it only examines documents whose keys have the same
+	 * hash code as the current instance.  During the second pass, it
+	 * looks at all of the documents.  This minimizes the chance that
+	 * two instances will give out leases for the same document at the
+	 * same time.
+	 * 
+	 * @param owner The owner for the new lease
+	 * @param timeout The timeout for the new lease
+	 * @return
+	 */
 	public synchronized DocumentSet lease(String owner, long timeout) {
 		DocumentSet result = new DocumentSet();
+		Document doc = this.lease(owner, timeout, true);
+		
+		if (doc == null) {
+			doc = this.lease(owner, timeout, false);
+		}
+		
+		if (doc != null) {
+			result.add(doc);
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * Private method to obtain a lease.
+	 * @param owner  The owner for the new lease
+	 * @param timeout The timeout for the new lease
+	 * @param localOnly True if we should only consider keys who's hash matches the local instance
+	 * @return
+	 */
+	private Document lease(String owner, long timeout, boolean localOnly) {
 		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
 		long expirationTime = System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout);
+		int instanceCount = this.discoveryHandler.getLocalInstanceCount();
+		int localHash = this.discoveryHandler.getLocalInstance().hashCode() % instanceCount;
 		
 		while (iterator.hasNext()) {
 			Map.Entry<Key, Document> nextEntry = iterator.next();
@@ -76,16 +114,18 @@ public class QueueSegment extends MemorySegment {
 			Key nextKey = nextEntry.getKey();
 			Document nextValue = nextEntry.getValue();
 			
+			if (localOnly && nextKey.hashCode() % instanceCount != localHash) {
+				continue;
+			}
+			
 			if (this.leases.get(nextKey) == null) {
 				this.leases.put(nextKey, new Lease(owner, expirationTime));
-				result.add(nextValue);
-				break;
+				return nextValue;
 			}
 		}
 		
-		return result;
+		return null;
 	}
-	
 
 	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
 		this.readLock.lock();

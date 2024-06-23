@@ -112,7 +112,7 @@ public class MemorySegment extends Segment {
 	/**
 	 * Discovery handler for sending snapshots
 	 */
-	private final DiscoveryHandler discoveryHandler;
+	protected final DiscoveryHandler discoveryHandler;
 	
 	private final long logDelay;
 	
