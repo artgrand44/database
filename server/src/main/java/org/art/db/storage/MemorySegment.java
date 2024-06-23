@@ -21,6 +21,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.art.db.common.Blob;
 import org.art.db.common.Configuration;
@@ -74,7 +75,7 @@ public class MemorySegment extends Segment {
 	/**
 	 * The documents in this segment
 	 */
-	private final ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
+	private volatile ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
 	
 	
 	private final ConcurrentMap<Key, Lease> leases = new ConcurrentHashMap<>();
@@ -105,6 +106,11 @@ public class MemorySegment extends Segment {
 	 */
 	private boolean isSaved = false;
 	
+	/**
+	 * The number of calls to remove().  Used to decide when to compact the documents map.
+	 */
+	private AtomicLong removeCount = new AtomicLong();
+	
 	
 	/**
 	 * The timer for async broadcasts
@@ -117,6 +123,8 @@ public class MemorySegment extends Segment {
 	 * Lock for queuing up broadcasts
 	 */
 	private final ReentrantLock broadcastLock = new ReentrantLock();
+	
+	private final ReentrantReadWriteLock documentsLock = new ReentrantReadWriteLock();
 	
 	/**
 	 * Discovery handler for sending snapshots
@@ -197,8 +205,6 @@ public class MemorySegment extends Segment {
 				
 	}
 	
-	
-	
 	public void close() throws IOException {
 		if (this.closed) {
 			new Exception().printStackTrace();
@@ -253,7 +259,13 @@ public class MemorySegment extends Segment {
 	
 	@Override
 	public Document get(Key key) throws Exception {
-		return this.documents.get(key);
+		this.documentsLock.readLock().lock();
+		
+		Document result = this.documents.get(key);
+		
+		this.documentsLock.readLock().unlock();
+		
+		return result;
 	}
 
 	public long getLogSize() {
@@ -266,7 +278,10 @@ public class MemorySegment extends Segment {
 	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.INSERT,  key, doc, propagate, log);
 		
+		this.documentsLock.readLock().lock();
 		this.documents.put(key, doc);
+		this.documentsLock.readLock().unlock();
+		
 		this.getBloomFilter().set(this.getHash(key));
 		
 		GUID guid;
@@ -311,17 +326,23 @@ public class MemorySegment extends Segment {
 	 * Intercept a remove to log the updates
 	 */
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
+		this.documentsLock.readLock().lock();
 		
-		if (this.isQueue) {
-			if (this.documents.containsKey(key)) {
-				this.log(Operation.REMOVE, key, null, propagate, log);
-				
+		try {
+			if (this.isQueue) {
+				if (this.documents.containsKey(key)) {
+					this.log(Operation.REMOVE, key, null, propagate, log);
+
+					this.documents.remove(key);
+					this.removeCount.incrementAndGet();
+				}
+			} else {
+				this.documents.remove(key);
 				this.documents.put(key, Document.ZOMBIE);
 			}
-		} else {
-			this.documents.remove(key);
-			this.documents.put(key, Document.ZOMBIE);
-		}	
+		} finally {
+			this.documentsLock.readLock().unlock();
+		}
 	}
 	
 	
@@ -344,6 +365,8 @@ public class MemorySegment extends Segment {
 	public void update(Key key, Document doc, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.UPDATE,  key, doc, propagate, log);
 		
+		this.documentsLock.readLock().lock();
+		
 		this.documents.put(key, doc);
 		this.getBloomFilter().set(this.getHash(key));
 		
@@ -352,9 +375,13 @@ public class MemorySegment extends Segment {
 		if (key.isGUID() && (guid = key.getGUID()).compareTo(this.getHighGUID()) > 0) {
 			this.setHighGUID(guid);
 		}
+		
+		this.documentsLock.readLock().unlock();
 	}
 
 	private void timeoutLeases() {
+		this.documentsLock.readLock().lock();
+		
 		Iterator<Map.Entry<Key, Lease>> iterator = this.leases.entrySet().iterator();
 		
 		while (iterator.hasNext()) {
@@ -364,8 +391,16 @@ public class MemorySegment extends Segment {
 			
 			if (System.currentTimeMillis() > lease.expiration || this.documents.get(key) == null) {
 				iterator.remove();
-			}
-			
+			}			
+		}
+		
+		this.documentsLock.readLock().unlock();
+		
+		if (this.removeCount.get() > 10000) {
+			logger.info("*** compacting");
+			this.documentsLock.writeLock().lock();
+			this.documents = new ConcurrentSkipListMap<>(this.documents);
+			this.documentsLock.writeLock().unlock();
 		}
 	}
 	
