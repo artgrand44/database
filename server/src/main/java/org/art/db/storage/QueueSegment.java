@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.art.db.common.Configuration;
@@ -34,7 +35,7 @@ public class QueueSegment extends MemorySegment {
 		
 	}
 	
-	private ConcurrentMap<Key, Lease> leases = new ConcurrentHashMap<>();
+	private ConcurrentMap<Key, AtomicReference<Lease>> leases = new ConcurrentHashMap<>();
 	
 	private final ScheduledFuture<?> timeoutHandler;
 	
@@ -80,7 +81,7 @@ public class QueueSegment extends MemorySegment {
 	 * @param timeout The timeout for the new lease
 	 * @return
 	 */
-	public synchronized DocumentSet lease(String owner, long timeout) {
+	public DocumentSet lease(String owner, long timeout) {
 		DocumentSet result = new DocumentSet();
 		Document doc = this.lease(owner, timeout, true);
 		
@@ -118,10 +119,12 @@ public class QueueSegment extends MemorySegment {
 				continue;
 			}
 			
-			if (this.leases.get(nextKey) == null) {
-				this.leases.put(nextKey, new Lease(owner, expirationTime));
+			AtomicReference<Lease> ref = this.leases.computeIfAbsent(nextKey, x -> new AtomicReference<>());
+			
+			if (ref.compareAndSet(null, new Lease(owner, expirationTime))) {
 				return nextValue;
 			}
+			
 		}
 		
 		return null;
@@ -165,12 +168,12 @@ public class QueueSegment extends MemorySegment {
 	private void timeoutLeases() {
 		this.readLock.lock();
 		
-		Iterator<Map.Entry<Key, Lease>> iterator = this.leases.entrySet().iterator();
+		Iterator<Map.Entry<Key, AtomicReference<Lease>>> iterator = this.leases.entrySet().iterator();
 		
 		while (iterator.hasNext()) {
-			Map.Entry<Key, Lease> entry = iterator.next();
+			Map.Entry<Key, AtomicReference<Lease>> entry = iterator.next();
 			Key key = entry.getKey();
-			Lease lease = entry.getValue();
+			Lease lease = entry.getValue().get();
 			
 			if (System.currentTimeMillis() > lease.expiration || this.documents.get(key) == null) {
 				iterator.remove();
