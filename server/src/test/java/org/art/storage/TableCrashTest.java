@@ -61,7 +61,7 @@ public class TableCrashTest  {
 	}
 	
 	//@Test
-	@RepeatedTest(50)
+	@RepeatedTest(1)
 	public void test() {
 		try {
 			File directory = new File("./atest");
@@ -117,9 +117,16 @@ public class TableCrashTest  {
 					logger.info("test reopened" + idx);
 					for (int jdx = 0; jdx <= idx; jdx++) {
 						Key key = new Key("Key" + jdx);
+						
+						if (deleted.contains("Key" + jdx)) {
+							logger.info("getting " + ("Key" + jdx));
+						}
 						Document doc = manager.get(key);
 						
 						if (deleted.contains("Key" + jdx)) {
+							if (doc != null) {
+								logger.info("got doc " + doc);
+							}
 							Assertions.assertThat(doc == null).isTrue();
 						} else {
 							if (doc == null) {
