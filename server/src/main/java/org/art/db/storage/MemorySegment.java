@@ -43,7 +43,6 @@ public class MemorySegment extends Segment {
 	private static final Logger logger = LoggerFactory.getLogger(MemorySegment.class);
 	
 	
-	
 	/**
 	 * The log file
 	 */
@@ -123,6 +122,9 @@ public class MemorySegment extends Segment {
 	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Configuration config, boolean isQueue) throws Exception {
 		super();
 		
+		if (discoveryHandler == null) {
+			logger.info("no handler");
+		}
 		Interval interval;
 		
 		try {
@@ -274,6 +276,7 @@ public class MemorySegment extends Segment {
 	 * Intercept a remove to log the updates
 	 */
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
+		this.log(Operation.REMOVE, key, null, propagate, log);
 		this.documents.remove(key);
 		this.documents.put(key, Document.ZOMBIE);	
 	}
