@@ -72,7 +72,7 @@ public class QueueTest  extends BaseIntegrationTest {
 	}
 
 	private void setup(int count) throws Exception {
-		String create = "CREATE TABLE queue (id guid NOT NULL PRIMARY KEY, name varchar(255), value varchar(255), owner varchar(255))";
+		String create = "CREATE QUEUE TABLE queue (id guid NOT NULL PRIMARY KEY, name varchar(255), value varchar(255), owner varchar(255))";
 		String createIndex = "CREATE INDEX index ON queue(id)";
 		
 		client.execute(create);

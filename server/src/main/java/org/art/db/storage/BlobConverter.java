@@ -19,11 +19,7 @@ public class BlobConverter {
 				
 		try (TypedInputStream stream = new TypedInputStream(bytes)) {
 			for (String column : metadata.columns().keySet()) {
-				try {
-					doc.put(column, stream.readObject());
-				} catch (Exception exc) {
-					throw exc;
-				}
+				doc.put(column, stream.readObject());
 			}
 		}
 		

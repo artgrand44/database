@@ -82,11 +82,12 @@ public class TableManager implements Closeable{
 		if (logs != null) {
 			List<File> list = Arrays.asList(logs);
 			
-			Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
+			
+			Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
 
 			for (File file : list) {
 				if (file.length() != 0) {
-					this.applySnapshot(new FileInputStream(file), false);
+					this.applySnapshot(new FileInputStream(file), false, file);
 				} 
 			}
 		}
@@ -94,8 +95,7 @@ public class TableManager implements Closeable{
 		this.checkConstraints = true;
 	}
 	
-	public void applySnapshot(InputStream stream, boolean checkTimestamps) {
-		
+	public void applySnapshot(InputStream stream, boolean checkTimestamps, File file) {
 		try (LogInputStream log = new LogInputStream(stream)) {
 			LogEntry entry;
 			
@@ -112,18 +112,17 @@ public class TableManager implements Closeable{
 				try {
 					switch (entry.getOp()) {
 					case INSERT:
-						this.insert(entry.getDocument(), false);
+						this.insert(entry.getDocument(), false, false);
 						break;
 					case REMOVE:
-						this.remove(this.table.get(entry.getKey()), false);
+						this.remove(this.table.get(entry.getKey()), false, false);
 						break;
 					case UPDATE:
-						this.update(this.table.get(entry.getKey()), entry.getDocument(), false);
+						this.update(this.table.get(entry.getKey()), entry.getDocument(), false, false);
 						break;
 					default:
 						logger.info("bad op " + entry);
 						break;
-
 					}
 				} catch (Exception exc) {
 					Metrics.getInstance().logAlert("There was an error recovering a log entry");
@@ -134,7 +133,8 @@ public class TableManager implements Closeable{
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error recovering the log");
 			logger.info("There was an exception recovering the log " + exc.getMessage());
-		}
+			exc.printStackTrace();
+		} 
 		
 	}
 	
@@ -209,7 +209,7 @@ public class TableManager implements Closeable{
 		return this.metadata;
 	}
 	
-	public void insert(Document doc, boolean propagate) throws Exception {
+	public void insert(Document doc, boolean propagate, boolean log) throws Exception {
 		
 		try {
 			Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
@@ -233,12 +233,19 @@ public class TableManager implements Closeable{
 			}
 			
 			this.timestamps.put(primaryKey, System.currentTimeMillis());
-			this.table.insert(primaryKey, doc, propagate);
+			this.table.insert(primaryKey, doc, propagate, log);
 			this.updateIndices(null, doc, primaryKey);
 		} finally {
 			this.alternateKeyLockManager.unlockAll();
 		}
 		
+	}
+	
+	public DocumentSet lease(String owner,long timeout) {
+		if (!this.metadata.isQueue()) {
+			throw new DBRuntimeException("The lease() function is only supported for queue tables");
+		}
+		return this.table.lease(owner, timeout);
 	}
 	
 	/**
@@ -393,11 +400,11 @@ public class TableManager implements Closeable{
 		}
 	}
 	
-	public void remove(Document doc, boolean propagate) throws Exception {
+	public void remove(Document doc, boolean propagate, boolean log) throws Exception {
 		Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
 		
 		this.timestamps.put(primaryKey, System.currentTimeMillis());
-		this.table.remove(primaryKey, propagate);
+		this.table.remove(primaryKey, propagate, log);
 		this.updateIndices(doc, null, primaryKey);
 	}
 	
@@ -416,7 +423,7 @@ public class TableManager implements Closeable{
 		}
 	}
 	
-	public void update(Document oldDoc, Document newDoc, boolean propagate) throws Exception {
+	public void update(Document oldDoc, Document newDoc, boolean propagate, boolean log) throws Exception {
 		try {
 			Key primaryKey = this.buildKey(newDoc, this.metadata.primaryKeyFields());
 
@@ -433,7 +440,7 @@ public class TableManager implements Closeable{
 			}
 			
 			this.timestamps.put(primaryKey, System.currentTimeMillis());
-			this.table.update(primaryKey, newDoc, propagate);			
+			this.table.update(primaryKey, newDoc, propagate, log);			
 			this.updateIndices(oldDoc, newDoc, primaryKey);
 		} finally {
 			this.alternateKeyLockManager.unlockAll();

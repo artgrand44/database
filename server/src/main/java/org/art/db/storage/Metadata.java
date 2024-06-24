@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public record Metadata(String name, List<String> primaryKeyFields, SortedMap<String, ColumnInfo> columns, List<IndexInfo> indices)  {
+public record Metadata(String name, List<String> primaryKeyFields, SortedMap<String, ColumnInfo> columns, List<IndexInfo> indices, boolean isQueue)  {
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Metadata.class);
@@ -24,11 +24,11 @@ public record Metadata(String name, List<String> primaryKeyFields, SortedMap<Str
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	public Metadata(Metadata from) {
-		this(from.name, new ArrayList<>(from.primaryKeyFields), new TreeMap<>(from.columns), new ArrayList<>(from.indices));		
+		this(from.name, new ArrayList<>(from.primaryKeyFields), new TreeMap<>(from.columns), new ArrayList<>(from.indices), from.isQueue);		
 	}
 	
 	public Metadata(String name) {
-		this(name, new ArrayList<>(), new TreeMap<>(), new ArrayList<>());
+		this(name, new ArrayList<>(), new TreeMap<>(), new ArrayList<>(), false);
 	}
 	
 	public ColumnInfo column(String name) {

@@ -13,7 +13,6 @@ import java.util.TreeMap;
 import org.apache.commons.io.FileUtils;
 import org.art.db.common.Configuration;
 import org.art.db.common.Document;
-import org.art.db.common.GUID;
 import org.art.db.common.Key;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
@@ -84,7 +83,7 @@ public class TableCrashTest  {
 			columns.put("value", valueInfo);
 			columns.put("id", idInfo);
 			
-			Metadata metadata = new Metadata("test", Collections.singletonList("id"), columns, Collections.emptyList());
+			Metadata metadata = new Metadata("test", Collections.singletonList("id"), columns, Collections.emptyList(), false);
 			
 			Metadata.setMetadata(metadata);
 			
@@ -101,10 +100,10 @@ public class TableCrashTest  {
 					logger.info("test inserting " + idx);
 				}
 				
-				manager.insert(doc1, true);
+				manager.insert(doc1, true, true);
 				
 				if (idx %4 == 0) {
-					manager.remove(doc1, false);
+					manager.remove(doc1, false, true);
 					deleted.add(doc1.get("id", String.class));
 				}
 				
@@ -118,9 +117,16 @@ public class TableCrashTest  {
 					logger.info("test reopened" + idx);
 					for (int jdx = 0; jdx <= idx; jdx++) {
 						Key key = new Key("Key" + jdx);
+						
+						if (deleted.contains("Key" + jdx)) {
+							logger.info("getting " + ("Key" + jdx));
+						}
 						Document doc = manager.get(key);
 						
 						if (deleted.contains("Key" + jdx)) {
+							if (doc != null) {
+								logger.info("got doc " + doc);
+							}
 							Assertions.assertThat(doc == null).isTrue();
 						} else {
 							if (doc == null) {

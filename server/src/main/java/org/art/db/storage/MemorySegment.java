@@ -12,8 +12,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 public class MemorySegment extends Segment {
 	private static final Logger logger = LoggerFactory.getLogger(MemorySegment.class);
 	
+	
 	/**
 	 * The log file
 	 */
@@ -65,7 +66,8 @@ public class MemorySegment extends Segment {
 	/**
 	 * The documents in this segment
 	 */
-	private final ConcurrentHashMap<Key, Document> documents = new ConcurrentHashMap<>(10000);
+	protected volatile ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
+	
 	
 	/**
 	 * The rest client for sending snapshots
@@ -75,6 +77,7 @@ public class MemorySegment extends Segment {
 	private static AtomicLong nextId = new AtomicLong();
 	
 	private final String id;
+
 		
 	/**
 	 * The batches that need to be broadcast
@@ -85,27 +88,30 @@ public class MemorySegment extends Segment {
 	/**
 	 * The current batch being build up
 	 */
-	private List<LogEntry> currentBroadcastBatch = new ArrayList<>();
+	private ConcurrentLinkedDeque<LogEntry> currentBroadcastBatch = new ConcurrentLinkedDeque<>();
 	
 	/**
 	 * Has the segment been saved
 	 */
 	private boolean isSaved = false;
 	
+	
 	/**
 	 * The timer for async broadcasts
 	 */
-	private final ScheduledFuture<?> timer;
+	private final ScheduledFuture<?> broadcastHandler;
 	
+
 	/**
-	 * Lock for logging
+	 * Lock for queuing up broadcasts
 	 */
-	private final ReentrantLock lock = new ReentrantLock();
+	private final ReentrantLock broadcastLock = new ReentrantLock();
+	
 	
 	/**
 	 * Discovery handler for sending snapshots
 	 */
-	private final DiscoveryHandler discoveryHandler;
+	protected final DiscoveryHandler discoveryHandler;
 	
 	private final long logDelay;
 	
@@ -113,9 +119,12 @@ public class MemorySegment extends Segment {
 	private static ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("MemSeg", 5);
 	
 
-	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Configuration config) throws Exception {
+	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Configuration config, boolean isQueue) throws Exception {
 		super();
 		
+		if (discoveryHandler == null) {
+			logger.info("no handler");
+		}
 		Interval interval;
 		
 		try {
@@ -129,10 +138,10 @@ public class MemorySegment extends Segment {
 		this.table = table;
 		this.discoveryHandler = discoveryHandler;
 		this.logDelay = interval.toMillis();
-		this.timer = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::broadcastTimer, 1,  1,  TimeUnit.SECONDS);
+		this.broadcastHandler = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::broadcastTimer, 1,  1,  TimeUnit.SECONDS);
 		this.id = "Mem" + nextId.incrementAndGet();		
 		
-		this.setMetadata(Metadata.getMetadata(table));
+		this.setMetadata(Metadata.getMetadata(table));		
 		
 	}
 	
@@ -141,7 +150,7 @@ public class MemorySegment extends Segment {
 	 */
 	private void broadcastTimer() {
 
-		this.lock.lock();
+		this.broadcastLock.lock();
 
 		try {
 			if (this.currentBroadcastBatch.size() != 0) {
@@ -149,7 +158,7 @@ public class MemorySegment extends Segment {
 				this.currentBroadcastBatch.clear();
 			}
 		} finally {
-			this.lock.unlock();
+			this.broadcastLock.unlock();
 		}
 		
 		Collection<URI> peers;
@@ -179,18 +188,14 @@ public class MemorySegment extends Segment {
 				
 	}
 	
-	
-	
 	public void close() throws IOException {
-		this.lock.lock();
-		
 		if (this.closed) {
 			new Exception().printStackTrace();
 		}
 		
 		try {
-			if (this.timer != null) {
-				this.timer.cancel(true);
+			if (this.broadcastHandler != null) {
+				this.broadcastHandler.cancel(true);
 			}
 
 			this.broadcastTimer();
@@ -198,7 +203,6 @@ public class MemorySegment extends Segment {
 			this.logFile.delete();
 		} finally {
 			this.closed = true;
-			this.lock.unlock();
 		}
 	}
 	
@@ -214,39 +218,41 @@ public class MemorySegment extends Segment {
 	 * @throws Exception
 	 */
 	
-	private void log(Operation op, Key key, Document value, boolean propagate) throws Exception {
-		this.lock.lock();
-		
-		try {
-			LogEntry entry = new LogEntry(op, key, value, System.currentTimeMillis(), propagate);
-			
-			if (this.closed) {
-				logger.info("log after close " + this);
-			}
+	protected void log(Operation op, Key key, Document value, boolean propagate, boolean log) throws Exception {
+
+		LogEntry entry = new LogEntry(op, key, value, System.currentTimeMillis(), propagate);
+
+		if (log) {
 			this.log.write(entry);
-			
-			if (propagate) {
-				this.currentBroadcastBatch.add(entry);
-			}
-		} finally {
-			this.lock.unlock();
+		}
+
+		if (propagate) {
+			this.currentBroadcastBatch.add(entry);
 		}
 	
 	}
 	
+	public void deleteLog() {
+		this.logFile.delete();
+	}
 	
 	@Override
 	public Document get(Key key) throws Exception {
 		return this.documents.get(key);
 	}
 
+	public long getLogSize() {
+		return this.log.getLength();
+	}
+	
 	/**
 	 * Intercept puts to log the update
 	 */
-	public void insert(Key key, Document doc, boolean propagate) throws Exception {
-		this.log(Operation.INSERT,  key, doc, propagate);
+	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
+		this.log(Operation.INSERT,  key, doc, propagate, log);
 		
 		this.documents.put(key, doc);
+		
 		this.getBloomFilter().set(this.getHash(key));
 		
 		GUID guid;
@@ -265,14 +271,16 @@ public class MemorySegment extends Segment {
 		return this.closed;
 	}
 	
+	
 	/**
 	 * Intercept a remove to log the updates
 	 */
-	public void remove(Key key, boolean propagate) throws Exception {
-		this.log(Operation.REMOVE, key, null, propagate);
-		
-		this.documents.put(key, Document.ZOMBIE);
+	public void remove(Key key, boolean propagate, boolean log) throws Exception {
+		this.log(Operation.REMOVE, key, null, propagate, log);
+		this.documents.remove(key);
+		this.documents.put(key, Document.ZOMBIE);	
 	}
+	
 	
 	public DiskSegment save(File file) throws Exception {
 		SegmentBuilder.build(this, file, DISK_BLOCK_SIZE);
@@ -290,8 +298,8 @@ public class MemorySegment extends Segment {
 	/**
 	 * Intercept puts to log the update
 	 */
-	public void update(Key key, Document doc, boolean propagate) throws Exception {
-		this.log(Operation.UPDATE,  key, doc, propagate);
+	public void update(Key key, Document doc, boolean propagate, boolean log) throws Exception {
+		this.log(Operation.UPDATE,  key, doc, propagate, log);
 		
 		this.documents.put(key, doc);
 		this.getBloomFilter().set(this.getHash(key));
@@ -301,8 +309,10 @@ public class MemorySegment extends Segment {
 		if (key.isGUID() && (guid = key.getGUID()).compareTo(this.getHighGUID()) > 0) {
 			this.setHighGUID(guid);
 		}
+		
 	}
 
+	
 	@Override
 	public String toString() {
 		return "MemorySegment [logFile=" + logFile.getName() + ", closed=" + closed + ", id=" + id +  "]";

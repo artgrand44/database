@@ -144,9 +144,9 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		return result;
 	}    
 	
-	Object evaluate(Expression exp, Class<?> clazz) { 
+	<T> T evaluate(Expression exp, Class<T> clazz) { 
 		try {
-			return Converter.convert(this.evaluate(exp), clazz);
+			return clazz.cast(Converter.convert(this.evaluate(exp), clazz));
 		} catch (Exception exc) {
 			throw new DBRuntimeException("There was an error converting " + exp + " to " + clazz.getSimpleName());
 		}
@@ -161,9 +161,9 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	}
 	
 	
-	Object evaluate(Expression exp, Document document, List<Comparable<?>> parameters, Class<?> clazz) {
+	<T> T evaluate(Expression exp, Document document, List<Comparable<?>> parameters, Class<T> clazz) {
 		try {
-			return Converter.convert(this.evaluate(exp, document, parameters), clazz);
+			return clazz.cast(Converter.convert(this.evaluate(exp, document, parameters), clazz));
 		} catch (Exception exc) {
 			throw new DBRuntimeException("There was an error converting " + exp + " to " + clazz.getSimpleName());
 		}
@@ -211,6 +211,8 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 						
 				if (expression == null) {
 					value = null;
+				} else if (expression instanceof NullValue) {
+					value = DBNull.NULL;
 				} else if (expression instanceof List list) {
 					value =  list.stream().map(x-> this.evaluate((Expression)x, type)).toList();
 				} else {
@@ -228,7 +230,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
-			throw new DBRuntimeException("Select failed", exc);
+			throw new DBRuntimeException("Select failed " + exc.getMessage(), exc);
 		}
 	}
 	
@@ -276,7 +278,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 			}
 		}
 		
-		this.result = FunctionEvaluator.evaluate(function.getName(), values);
+		this.result = FunctionEvaluator.evaluate(this.table, this.document, function.getName(), values);
 		
 	}
 

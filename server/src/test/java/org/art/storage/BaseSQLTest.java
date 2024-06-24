@@ -62,7 +62,7 @@ public abstract class BaseSQLTest extends BaseTest {
 			}
 		}
 		
-		Metadata info = new Metadata(name, primaryKeyList, fieldMap, indexList);
+		Metadata info = new Metadata(name, primaryKeyList, fieldMap, indexList, false);
 		
 		Metadata.setMetadata(info);
 		

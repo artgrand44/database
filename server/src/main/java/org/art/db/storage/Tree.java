@@ -72,11 +72,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	private final AtomicLong removeCount = new AtomicLong();
 
 	/**
-	 * The last time the statistics were saved on dish
-	 */
-	private long lastStatsTime = System.currentTimeMillis();
-
-	/**
 	 * The total number of searches over the lifetime of the index
 	 */
 	private final AtomicLong resultCount = new AtomicLong();
@@ -118,8 +113,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			this.treeStore.saveRoot(root.getId());
 		} else {
 			this.root = this.getNode(rootId);
-			this.getCount.set(this.treeStore.getSearchCount());
-			this.resultCount.set(this.treeStore.getResultCount());
 		}
 
 		this.commit();
@@ -214,8 +207,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 				Trace.clear();
 			} while (!this.commit());
 
-			this.updateStatistics(1, result.size());
-
 			return result;
 		} finally {
 			this.lockManager.unlockAll();
@@ -250,8 +241,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			} while (!this.commit());
 
 
-			this.updateStatistics(1, result.size());
-
 			return result;
 		} finally {
 			this.lockManager.unlockAll();
@@ -277,8 +266,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 				visits.get().clear();
 				Trace.clear();
 			} while (!this.commit());
-
-			this.updateStatistics(1, result.size());
 
 			return result;
 		} finally {
@@ -539,12 +526,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		long results = this.resultCount.get();
 
 		return searches == 0 ? 1 : (int) (results / searches);
-	}
-
-	public String getStats() {
-		return String.format("Gets: %10d Puts: %10d Removes: %10d %s", this.getCount.get(), this.putCount.get(),
-				this.removeCount.get(), this.treeStore.getStats());
-
 	}
 
 	@Override
@@ -863,19 +844,6 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 
 	private void saveNode(TreeNode node) throws Exception {
 		this.treeStore.saveNode(node);
-	}
-
-	private void updateStatistics(long searches, long results) {
-		this.getCount.addAndGet(searches);
-		this.resultCount.addAndGet(results);
-
-		if (System.currentTimeMillis() > this.lastStatsTime + 60 * 60 * 1000) {
-			try {
-				this.treeStore.setStatistics(this.getCount.get(), this.resultCount.get());
-			} catch (Exception exc) {
-				logger.info("Exception saving statistics " + exc.getMessage());
-			}
-		}
 	}
 
 	public long size() {

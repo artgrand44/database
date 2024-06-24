@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
+import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
@@ -40,25 +42,33 @@ public class Table implements Closeable {
 	private final Configuration config;
 	private final int maxSegmentSize;
 	private final ScheduledFuture<?> switcher;
+	private final ScheduledFuture<?> timer;
+	private final boolean isQueue;
 	private boolean closed;
 	
 	final static private DocumentCache cache = new DocumentCache();
 	
 	private static final LinkedBlockingQueue<MergeQueueEntry> mergeQueue =  new LinkedBlockingQueue<>();
 	
+	private static final long ONE_GIG = 1024 * 1024 * 1024;
+	
 	static {
 		Scheduler.DEFAULT.submit(Table::mergerLoop);
 	}
 	
 	public Table(String table, Map<String, Index> indices) throws Exception {
+		Metadata meta = Metadata.getMetadata(table);
+		
 		this.table = table;
 		this.indices = indices;
 		this.discoveryHandler = DiscoveryHandler.getServerInstance();
 		this.config = Configuration.getInstance();
+		this.isQueue = meta.isQueue();
 		this.maxSegmentSize = Integer.parseInt(this.config.getProperty("org.art.db.maxSegmentSize", this.config.getDefault("org.art.db.maxSegmentSize")));
 		
-		logger.info("table = " + table + "max seg = " + this.maxSegmentSize);
-		this.currentSegment = new MemorySegment(table, this.discoveryHandler, this.config);
+		this.currentSegment = this.isQueue
+				              ? new QueueSegment(this.table, this.discoveryHandler, this.config)
+				              : new MemorySegment(table, this.discoveryHandler, this.config, false);
 		
 		this.segments.add(this.currentSegment);
 			
@@ -74,6 +84,7 @@ public class Table implements Closeable {
 		}
 		
 		this.switcher = Scheduler.DEFAULT.scheduleAtFixedRate(this::switchSegmentIfNeeded, 5, 10, TimeUnit.MILLISECONDS);
+		this.timer = this.isQueue ? Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutSegments, 5, 5,  TimeUnit.MINUTES) : null;
 
 	}
 	
@@ -84,14 +95,18 @@ public class Table implements Closeable {
 		try {
 			this.closed = true;
 			
-			while (this.prevSegment != null) {
-				this.writeLock.unlock();
-				Thread.sleep(1000);
-				this.writeLock.lock();
-			}
-			
-			if (!this.currentSegment.isClosed() && this.currentSegment.size() != 0) {
-				this.save(this.currentSegment);
+			if (this.isQueue) {
+				this.timer.cancel(true);
+			} else {
+				while (this.prevSegment != null) {
+					this.writeLock.unlock();
+					Thread.sleep(1000);
+					this.writeLock.lock();
+				}
+
+				if (!this.currentSegment.isClosed() && this.currentSegment.size() != 0) {
+					this.save(this.currentSegment);
+				}
 			}
 			
 			this.switcher.cancel(false);
@@ -105,7 +120,10 @@ public class Table implements Closeable {
 	public void crash() throws Exception {
 		if (this.currentSegment != null) {
 			this.currentSegment.crash();
-			this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config);
+			this.currentSegment = this.isQueue
+					              ? new QueueSegment(this.table, this.discoveryHandler, this.config)
+					              : new MemorySegment(this.table, this.discoveryHandler, this.config, false);
+			
 		}
 	}
 	
@@ -116,6 +134,9 @@ public class Table implements Closeable {
 		MemorySegment segment = this.currentSegment;
 		boolean saving = false;
 		
+		if (this.isQueue) {
+			logger.info("flushing queue");
+		}
 		this.writeLock.lock();
 		
 		try {
@@ -176,9 +197,34 @@ public class Table implements Closeable {
 		}
 	}
 	
+	
+	public DocumentSet lease(String owner, long timeout) {
+		this.readLock.lock();
+		
+		DocumentSet result = new DocumentSet();
+		
+		try {
+			Iterator<Segment> iterator = this.segments.reversed().iterator();
+
+			while (iterator.hasNext()) {
+				QueueSegment segment = (QueueSegment)iterator.next();
+				result.addAll(segment.lease(owner, timeout));
+			}
+		} finally {
+			this.readLock.unlock();
+		}
+
+		return result;
+	}
+	
+
+	
 	private void merge(File file) {
 
 		try {
+			if (this.isQueue) {
+				logger.info("**** merging queue");
+			}
 			String[] tokens = file.getName().split("_");
 			String size = tokens[1].split("\\.")[0];
 
@@ -236,11 +282,11 @@ public class Table implements Closeable {
 	}
 		
 
-	public void insert(Key key, Document value, boolean propagate) throws Exception {
+	public void insert(Key key, Document value, boolean propagate, boolean log) throws Exception {
 		this.readLock.lock();
 		
 		try {
-			this.currentSegment.insert(key, value, propagate);	
+			this.currentSegment.insert(key, value, propagate, log);	
 			
 			cache.put(new DocId(this, key), value);
 		} finally {
@@ -249,31 +295,35 @@ public class Table implements Closeable {
 
 	}
 	
-	@SuppressWarnings("unused")
-	private void printStats() {
-		for (Map.Entry<String, Index> entry : this.indices.entrySet()) {
-			logger.info(String.format("%20s   %s", entry.getKey(), entry.getValue().getStats()));
-		}
-	}
 	
-	public void remove(Key key, boolean propagate) throws Exception {
+	public void remove(Key key, boolean propagate, boolean log) throws Exception {
 		this.readLock.lock();
 		
 		try {
-			this.currentSegment.remove(key, propagate);
 			cache.invalidate(new DocId(this, key));
+			
+			if (this.isQueue) {
+				for (Segment segment : this.segments) {
+					((MemorySegment)segment).remove(key, segment == this.currentSegment && propagate, log);
+				}
+			} else {
+				this.currentSegment.remove(key, propagate, log);
+			}			
 		} finally {
 			this.readLock.unlock();
 		}
 		
 	}
 	
-		
 	private void save(MemorySegment segment) {
 		try {
 			File file  = Files.getDiskSegment(this.table, 1);
 
 			logger.info("save segment");
+			
+			if (this.isQueue) {
+				logger.info("saving queue");
+			}
 			DiskSegment saved = segment.save(file);
 
 			this.writeLock.lock();
@@ -313,9 +363,15 @@ public class Table implements Closeable {
 			}
 
 			this.prevSegment = this.currentSegment;
-			Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null; });
-
-			this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config);
+			
+			if (this.isQueue) {
+				this.currentSegment = new QueueSegment(this.table, this.discoveryHandler, this.config);
+			} else {
+				
+				Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null; });
+				this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config, true);
+			}
+			
 			this.segments.addFirst(this.currentSegment);
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error switching database segments");
@@ -330,17 +386,20 @@ public class Table implements Closeable {
 			if (this.currentSegment.size() > this.maxSegmentSize && this.prevSegment == null && !this.closed) {
 				logger.info("calling switch " + this.currentSegment.size());
 				switchSegments();
+			} else if (this.isQueue && this.currentSegment.getLogSize() > ONE_GIG) {
+				logger.info("calling switch due to log size" + this.currentSegment.getLogSize());
+				switchSegments();
 			}
 		} finally {
 			this.writeLock.unlock();
 		}
 	}
 	
-	public void update(Key key, Document value, boolean propagate) throws Exception {
+	public void update(Key key, Document value, boolean propagate, boolean log) throws Exception {
 		this.readLock.lock();
 		
 		try {
-			this.currentSegment.update(key, value, propagate);	
+			this.currentSegment.update(key, value, propagate, log);	
 			
 			cache.put(new DocId(this, key), value);
 		} finally {
@@ -349,6 +408,25 @@ public class Table implements Closeable {
 		
 	}
 	
+	private void timeoutSegments() {
+		
+		this.writeLock.lock();
+		
+		try {
+			Iterator<Segment> iterator = this.segments.iterator();
+			
+			while (iterator.hasNext()) {
+				MemorySegment segment = (MemorySegment)iterator.next();
+				
+				if (segment != this.currentSegment && segment.size() == 0) {
+					segment.deleteLog();
+					iterator.remove();
+				}
+			}
+		} finally {
+			this.writeLock.unlock();
+		}
+	}
 	
 	static record DocId(Table table, Key key) {
 		

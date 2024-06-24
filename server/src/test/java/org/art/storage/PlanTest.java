@@ -143,7 +143,7 @@ public class PlanTest {
 			indexList.add(info);
 		}
 		
-		Metadata metadata = new Metadata(name, primaryKeyList, fieldMap, indexList);
+		Metadata metadata = new Metadata(name, primaryKeyList, fieldMap, indexList, false);
 		
 		Metadata.setMetadata(metadata);
 		
@@ -158,7 +158,7 @@ public class PlanTest {
 			TableManager manager = StorageManager.getInstance().getTableManager("test");
 			
 			for (int idx = 0; idx < 10; idx++) {
-				manager.insert(this.getDocument(idx), true);
+				manager.insert(this.getDocument(idx), true, true);
 			}
 					                       
 			doQuery(manager,

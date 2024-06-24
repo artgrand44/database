@@ -74,9 +74,6 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 		return this.tree.getSelectivity();
 	}
 	
-	public String getStats() {
-		return this.tree.getStats();
-	}
 	
 	@Override
 	public Iterator<Entry<Key, Key>> iterator() {

@@ -68,8 +68,10 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	
 	public void addAll(DocumentSet set) {
 		for (Document doc : set) {
-			this.list.add(doc);
+			this.list.add(doc);		
 		}
+		
+		this.size += set.size;
 	}
 	
 	public static byte[] fetch(String fileName, int index, int size) throws IOException {

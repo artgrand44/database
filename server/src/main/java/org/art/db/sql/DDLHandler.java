@@ -184,7 +184,7 @@ public class DDLHandler {
 			throw exc;
 		} catch (Exception exc) {
 			logger.info(exc.getMessage());
-			throw new DBRuntimeException("Create Index failed ", exc);
+			throw new DBRuntimeException("Create Index failed " + exc.getMessage(), exc);
 		}	
 
 	}
@@ -235,7 +235,10 @@ public class DDLHandler {
 			throw new DBRuntimeException("The table must have at least one primary key field");
 		}
 		
-		Metadata metadata = new Metadata(SQLUtils.getFQN(table, database), primaryKeyFields, columns, indices);
+		List<String> options = createTable.getCreateOptionsStrings();
+		boolean isQueue = options != null && options.stream().anyMatch(x -> x.equalsIgnoreCase("queue"));
+		
+		Metadata metadata = new Metadata(SQLUtils.getFQN(table, database), primaryKeyFields, columns, indices, isQueue);
 		
 		try {
 			Metadata.setMetadata(metadata);

@@ -102,7 +102,6 @@ import net.sf.jsqlparser.statement.select.Select;
 
 public class ExpressionNormalizer implements ExpressionVisitor {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(ExpressionNormalizer.class);
 	
 	private static Map<String, String> inverseOperators =

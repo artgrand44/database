@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 public class QueryTest extends BaseSQLTest {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(QueryTest.class);
 	
 	private static String[] colors = new String[] {"red", "blue", "green", "white", "black" };
@@ -112,7 +111,7 @@ public class QueryTest extends BaseSQLTest {
 			TableManager manager = StorageManager.getInstance().getTableManager("SYS.SYS.test");
 			
 			for (int idx = 0; idx < 10; idx++) {
-				manager.insert(this.getDocument(idx), true);
+				manager.insert(this.getDocument(idx), true, true);
 			}
 					    
 			doQuery(manager,

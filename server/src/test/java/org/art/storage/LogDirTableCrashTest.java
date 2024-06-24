@@ -83,7 +83,7 @@ public class LogDirTableCrashTest extends BaseTest {
 			columns.put("value", valueInfo);
 			columns.put("id", idInfo);
 			
-			Metadata metadata = new Metadata("test", Collections.singletonList("id"), columns, Collections.emptyList());
+			Metadata metadata = new Metadata("test", Collections.singletonList("id"), columns, Collections.emptyList(), false);
 			
 			Metadata.setMetadata(metadata);
 			
@@ -99,7 +99,7 @@ public class LogDirTableCrashTest extends BaseTest {
 					logger.info("***insert " + idx);
 				}
 				
-				manager.insert(doc1, true);
+				manager.insert(doc1, true, true);
 				
 				if (idx % 200 == nextCrash) {
 					logger.info("****crash " + idx);

@@ -31,7 +31,7 @@ public class QueryManager {
 	public void insert(String table, Document doc) throws Exception {
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
-		manager.insert(doc, true);
+		manager.insert(doc, true, true);
 	}
 	
 	@SuppressWarnings("resource")
@@ -95,7 +95,7 @@ public class QueryManager {
 	public void remove(String table, Document doc) throws Exception {
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
-		manager.remove(doc, true);
+		manager.remove(doc, true, true);
 		
 	}
 	
@@ -115,7 +115,7 @@ public class QueryManager {
 	public void update(String table, Document oldDoc, Document newDoc) throws Exception {
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
-		manager.update(oldDoc, newDoc, true);
+		manager.update(oldDoc, newDoc, true, true);
 	}
 	
 }
