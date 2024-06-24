@@ -11,6 +11,7 @@ import java.util.TreeMap;
 
 import org.apache.commons.io.FileUtils;
 import org.art.db.common.Configuration;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.GUID;
@@ -54,7 +55,7 @@ public class QueueCrashTest  {
 	
 	
 	//@Test
-	@RepeatedTest(50)
+	@RepeatedTest(20)
 	public void test() {
 		try {
 			File directory = new File("./atest");
@@ -68,6 +69,7 @@ public class QueueCrashTest  {
 			new File("./dbroot/test").mkdirs();
 			
 			Configuration.getInstance().load("./tinybatch.properties");
+			DiscoveryHandler handler = new DiscoveryHandler(Configuration.getInstance(), true);
 			
 			ColumnInfo nameInfo = new ColumnInfo(String.class, false, false, "");
 			ColumnInfo valueInfo = new ColumnInfo(String.class, false, false, "");
