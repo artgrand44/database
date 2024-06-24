@@ -61,7 +61,7 @@ public class TableCrashTest  {
 	}
 	
 	//@Test
-	@RepeatedTest(1)
+	@RepeatedTest(50)
 	public void test() {
 		try {
 			File directory = new File("./atest");
