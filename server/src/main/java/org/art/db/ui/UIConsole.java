@@ -51,12 +51,16 @@ public class UIConsole {
 	}
 
 	public void start() {
-		this.publisher.start();
-		this.poller.start();
+		if (Configuration.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
+			this.publisher.start();
+			this.poller.start();
+		}
 	}
 	
 	public void stop() {
-		this.publisher.stop();
-		this.poller.stop();
+		if (Configuration.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
+			this.publisher.stop();
+			this.poller.stop();
+		}
 	}
 }

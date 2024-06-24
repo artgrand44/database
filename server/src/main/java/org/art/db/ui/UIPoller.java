@@ -139,6 +139,8 @@ public class UIPoller {
 					
 					this.statsCache.put(key, stats);	
 				}
+				
+				Thread.sleep(500);
 			} catch (Exception exc) {
 				logger.info("poll exception " + exc.getMessage());
 				break;
