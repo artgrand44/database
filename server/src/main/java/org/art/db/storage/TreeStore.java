@@ -493,11 +493,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	
 	public GUID getHighGUID()throws IOException {
-		GUID guid = new GUID();
-		
-		guid.setValue(this.header.highGUID);
-		
-		return guid;
+		return this.header.highGUID;
 	}
 	
 	public int getMergeLevel() {
@@ -607,7 +603,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void setHighGUID(GUID guid) throws Exception {
 		try (TypedOutputStream stream = new TypedOutputStream()) {
-			this.header.highGUID = guid.getValue();
+			this.header.highGUID = guid;
 			this.writeHeader();
 		}
 	}
@@ -733,7 +729,7 @@ public class TreeStore implements Closeable, BlobStore {
 		long freeBlock = -1;
 		long bloomOffset = -1;
 		int bloomSize = 0;
-		long highGUID = -1;
+		GUID highGUID = GUID.MINIMUM;
 		long metadataOffset = -1;
 		int metadataSize = 0;
 		boolean flushed = false;
@@ -749,12 +745,13 @@ public class TreeStore implements Closeable, BlobStore {
 			this.freeBlock = stream.readLong();
 			this.bloomOffset = stream.readLong();
 			this.bloomSize = stream.readInt();
-			this.highGUID = stream.readLong();
 			this.metadataOffset = stream.readLong();
 			this.metadataSize = stream.readInt();
 			this.flushed = stream.readBoolean();
 			this.createTime = stream.readLong();
 			this.mergeLevel = stream.readInt();
+			this.highGUID = new GUID().deserialize(stream);
+			
 			
 			if (!this.magic.equals("MAGIC")) {
 				throw new Exception("Bad magic number");
@@ -768,12 +765,14 @@ public class TreeStore implements Closeable, BlobStore {
 				stream.writeLong(this.freeBlock);
 				stream.writeLong(this.bloomOffset);
 				stream.writeInt(this.bloomSize);
-				stream.writeLong(this.highGUID);
+				
 				stream.writeLong(this.metadataOffset);
 				stream.writeInt(this.metadataSize);
 				stream.writeBoolean(this.flushed);
 				stream.writeLong(this.createTime);
 				stream.writeInt(this.mergeLevel);
+				
+				this.highGUID.serialize(stream);
 				
 				return stream.toByteArray();
 			}			

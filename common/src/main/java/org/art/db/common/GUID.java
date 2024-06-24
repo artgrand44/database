@@ -1,56 +1,92 @@
 package org.art.db.common;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class GUID extends  Serializable<GUID> implements Comparable<GUID> {
 	
+	@SuppressWarnings("unused")
+	private static final Logger logger = LoggerFactory.getLogger(GUID.class);
+	
 	public static final GUID MINIMUM = new GUID(0);
 	
-	private long value;
+	private long time;
+	private long counter;
+	private byte[] address;
 	
-	public GUID() {
-		this.value = GUIDGenerator.getInstance().generateValue();
+	private static final byte[] localAddress;
+	private static final AtomicLong next = new AtomicLong();
+	
+	static {
+		try {
+			localAddress =  InetAddress.getLocalHost().getAddress();
+		} catch (Exception exc) {
+			throw new IllegalStateException(exc);
+		}
 	}
 	
+	public GUID() {
+		this.time = System.currentTimeMillis();
+		this.counter = next.incrementAndGet();
+		this.address = localAddress;
+
+	} 
+	
 	private GUID(long value) {
-		this.value = value;
+		this.time = 0;
+		this.counter = 0;
+		this.address = new byte[4];
 	}
 	
 	@Override
 	public int compareTo(GUID that) {
-		long diff = this.value - that.value;
-		
-		if (diff == 0) {
-			return 0;
-		} else if (diff < 0) {
-			return -1;
-		} else {
-			return +1;
+		if (this.time != that.time) {
+			return (int)(this.time - that.time);
 		}
+		
+		if (this.counter != that.counter) {
+			return (int)(this.counter - that.counter);
+		}
+		
+		return Arrays.compare(this.address, that.address);
 	}
 
 	@Override
 	public void serialize(TypedOutputStream stream) throws IOException {
-		stream.writeLong(this.value);
+		stream.writeLong(this.time);
+		stream.writeLong(this.counter);
+		stream.writeInt(this.address.length);
+		stream.write(this.address);
 		
 	}
 
 	@Override
 	public GUID deserialize(TypedInputStream stream) throws IOException {
-		this.value = stream.readLong();
+		this.time = stream.readLong();
+		this.counter = stream.readLong();
+		this.address = new byte[stream.readInt()];
+		
+		stream.read(this.address);
+		
 		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(value);
-	}
-
-	@Override
-	public String toString() {
-		return "GUID [value=" + value + "]";
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(address);
+		result = prime * result + Objects.hash(counter, time);
+		return result;
 	}
 
 	@Override
@@ -62,19 +98,15 @@ public class GUID extends  Serializable<GUID> implements Comparable<GUID> {
 		if (getClass() != obj.getClass())
 			return false;
 		GUID other = (GUID) obj;
-		return value == other.value;
+		return Arrays.equals(address, other.address) && counter == other.counter && time == other.time;
 	}
 
-
-
-	public long getValue() {
-		return value;
+	@Override
+	public String toString() {
+		return "GUID [time=" + time + ", counter=" + counter + ", address=" + Arrays.toString(address) + "]";
 	}
 
+	
 
-
-	public void setValue(long value) {
-		this.value = value;
-	}
 
 }

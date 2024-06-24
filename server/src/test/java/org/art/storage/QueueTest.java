@@ -27,21 +27,6 @@ public class QueueTest  extends BaseIntegrationTest {
 
 	@BeforeEach
 	public void beforeEach() throws Exception  {
-		GUID p = GUID.MINIMUM;
-		
-		for (int idx = 0; idx < 100000; idx++) {
-			GUID guid = new GUID();
-			
-			if (guid.compareTo(p) <= 0) {
-				long guidValue = guid.getValue();
-				long pvalue = p.getValue();
-				
-				int comp = Long.valueOf(guidValue).compareTo(Long.valueOf(pvalue));
-				
-				logger.info("bad guid idx = " + idx + " guid" + guid + " p " + p + " values" + comp);
-				logger.info("");
-			}
-		}
 		super.beforeEach();
 		
 		startInternal("./application.properties");
