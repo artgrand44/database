@@ -18,6 +18,8 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry.Operation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.art.db.common.Scheduler;
 
 /**
@@ -30,6 +32,8 @@ import org.art.db.common.Scheduler;
  * the map.
  */
 public class QueueSegment extends MemorySegment {
+	
+	private static final Logger logger = LoggerFactory.getLogger(QueueSegment.class);
 	
 	static record Lease(String owner, long expiration) {
 		
@@ -148,8 +152,17 @@ public class QueueSegment extends MemorySegment {
 				this.log(Operation.REMOVE, key, null, propagate, log);
 
 				this.documents.remove(key);
+				this.removeCount.incrementAndGet();
 			} finally {
 				this.readLock.unlock();
+			}
+			
+
+			if (this.removeCount.get() > 10000) {
+				this.writeLock.lock();
+				this.documents = new ConcurrentSkipListMap<>(this.documents);
+				this.removeCount.set(0);
+				this.writeLock.unlock();
 			}
 		}
 	}
@@ -182,11 +195,6 @@ public class QueueSegment extends MemorySegment {
 		
 		this.readLock.unlock();
 		
-		if (this.removeCount.get() > 10000) {
-			this.writeLock.lock();
-			this.documents = new ConcurrentSkipListMap<>(this.documents);
-			this.writeLock.unlock();
-		}
 	}
 	
 	

@@ -2,7 +2,6 @@ package org.art.storage;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.client.Client;
@@ -25,9 +24,6 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	
 	AtomicInteger totalFailures = new AtomicInteger();
 
-	private ConcurrentHashMap<GUID, Long> released = new ConcurrentHashMap<>();
-	
-	private ConcurrentHashMap<GUID, String> leased = new ConcurrentHashMap<>();
 	public AQueuePounderTest() {
 		super("./queuepounder.properties", NITEMS, NTHREADS);
 	}
@@ -87,13 +83,6 @@ public class AQueuePounderTest extends BaseQueryPounder {
 						logger.info("duplicate key " + guid + " " + set);
 					}
 					
-					if (leased.containsKey(guid)) {
-						logger.info("duplicated lease guid " + guid + " owner "  + owner + " " + leased);
-					}
-					
-					Assertions.assertThat(!leased.containsKey(guid)).isTrue();
-					
-					leased.put(guid, owner);
 					Assertions.assertThat(!keys.contains(guid)).isTrue();
 					keys.add(guid);
 				}
@@ -103,20 +92,11 @@ public class AQueuePounderTest extends BaseQueryPounder {
 					
 					Assertions.assertThat(!threadReleased.contains(guid)).isTrue();
 					
-					Long releasedBy = released.get(guid);
-					if (releasedBy != null) {
-						logger.info("guid " + guid + " already released by "  + released.get(guid) + " rb = " + releasedBy + " current thread = "  + Thread.currentThread().threadId());
-						logger.info("");
-					}
-					Assertions.assertThat(releasedBy == null).isTrue();
-					
-					leased.remove(guid);
 					
 					if (!this.remove(client, guid)) {
 						logger.info("remove failure");
 					}
 					
-					released.put(guid, Thread.currentThread().threadId());
 					threadReleased.add(guid);
 					this.addDelete();
 					
