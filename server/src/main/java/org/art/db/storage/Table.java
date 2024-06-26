@@ -22,6 +22,7 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
 import org.art.db.common.Scheduler;
+import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -420,6 +421,7 @@ public class Table implements Closeable {
 				
 				if (segment != this.currentSegment && segment.size() == 0) {
 					segment.deleteLog();
+					Utils.closeSafely(segment);
 					iterator.remove();
 				}
 			}

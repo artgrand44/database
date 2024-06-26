@@ -3,9 +3,7 @@ package org.art.db.common;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;

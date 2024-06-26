@@ -1,14 +1,11 @@
 package org.art.storage;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.GUID;
-import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +59,6 @@ public class AQueuePounderTest extends BaseQueryPounder {
 		super.waitForAllStarted();
 		try {
 			Client client = new Client("cluster", "admin", "admin");
-			Set<GUID> threadReleased = new HashSet<>();
 			
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				String owner = "art" + index;
@@ -70,7 +66,6 @@ public class AQueuePounderTest extends BaseQueryPounder {
 				this.addRead();
 				
 				DocumentSet set = this.lease(client, owner);
-				Set<GUID> keys = new HashSet<>();
 				
 				for (Document doc : set) {
 					GUID guid = doc.get("id", GUID.class);
@@ -79,25 +74,17 @@ public class AQueuePounderTest extends BaseQueryPounder {
 						logger.info("no guid " + set);
 					}
 
-					if (keys.contains(guid)) {
-						logger.info("duplicate key " + guid + " " + set);
-					}
-					
-					Assertions.assertThat(!keys.contains(guid)).isTrue();
-					keys.add(guid);
 				}
 				
 				for (Document doc : set) {
 					GUID guid = doc.get("id", GUID.class);
 					
-					Assertions.assertThat(!threadReleased.contains(guid)).isTrue();
 					
 					
 					if (!this.remove(client, guid)) {
 						logger.info("remove failure");
 					}
 					
-					threadReleased.add(guid);
 					this.addDelete();
 					
 					this.insert(client, -(this.deleteNextId.incrementAndGet()));

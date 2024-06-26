@@ -201,6 +201,7 @@ public class MemorySegment extends Segment {
 			this.broadcastTimer();
 			this.log.close();
 			this.logFile.delete();
+			this.documents = null;
 		} finally {
 			this.closed = true;
 		}

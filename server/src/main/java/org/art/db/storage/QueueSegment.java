@@ -33,6 +33,7 @@ import org.art.db.common.Scheduler;
  */
 public class QueueSegment extends MemorySegment {
 	
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(QueueSegment.class);
 	
 	static record Lease(String owner, long expiration) {
