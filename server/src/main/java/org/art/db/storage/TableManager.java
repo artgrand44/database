@@ -31,6 +31,7 @@ import org.art.db.common.LogEntry;
 import org.art.db.common.RestClient;
 import org.art.db.common.RestException;
 import org.art.db.common.Scheduler;
+import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -344,7 +345,7 @@ public class TableManager implements Closeable{
 					}
 
 					while (inProgress.get() != 0) {
-						Thread.sleep(10);
+						Utils.sleepSafely(10);
 					}
 
 					mergeLevel = segment.getMergeLevel();

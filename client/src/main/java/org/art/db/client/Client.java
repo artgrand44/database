@@ -20,6 +20,7 @@ import org.art.db.common.RestException;
 import org.art.db.common.Router;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
+import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -205,7 +206,7 @@ public class Client {
 				return;
 			} catch (RestException exc) {
 				if (exc.getCause() instanceof ConnectException) {
-					Thread.sleep(2000);
+					Utils.sleepSafely(2000);
 				}
 			}
 		}

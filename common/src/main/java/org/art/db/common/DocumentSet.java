@@ -261,12 +261,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	}
 
 	private static void onRemoval(@Nullable File key, @Nullable TypedInputStream stream, RemovalCause cause) {
-		try {
-			stream.close();
-		} catch (Exception exc) {
-			throw new IllegalStateException(exc);
-		}
-		
+		Utils.closeSafely(stream);
 	}
 
 	@Override

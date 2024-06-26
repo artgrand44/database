@@ -51,7 +51,7 @@ public class HeartbeatPublisher {
 		try {
 			publish();
 
-			Thread.sleep(5000);
+			Utils.sleepSafely(5000);
 			
 			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
 		} catch (Exception exc) {

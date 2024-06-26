@@ -16,6 +16,7 @@ import java.util.function.Function;
 import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.MultiValueMap;
+import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -140,7 +141,7 @@ public class UIPoller {
 					this.statsCache.put(key, stats);	
 				}
 				
-				Thread.sleep(500);
+				Utils.sleepSafely(500);
 			} catch (Exception exc) {
 				logger.info("poll exception " + exc.getMessage());
 				break;

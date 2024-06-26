@@ -13,6 +13,7 @@ import org.art.db.common.Configuration;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestClient;
+import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,12 +31,7 @@ public class StorageManager  {
 	
 	public void closeAll()  {		
 		for (Map.Entry<String, TableManager> entry : this.tableManagers.entrySet()) {
-			try {
-				entry.getValue().close();
-			} catch (Exception exc) {
-				Metrics.getInstance().logAlert("There was an error closing the database");
-				logger.info("There was an error closing " + entry.getKey() + " " + exc.getMessage());
-			}
+			Utils.closeSafely(entry.getValue());			
 		}
 		
 		this.tableManagers.clear();

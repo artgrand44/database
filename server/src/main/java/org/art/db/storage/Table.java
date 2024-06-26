@@ -101,7 +101,7 @@ public class Table implements Closeable {
 			} else {
 				while (this.prevSegment != null) {
 					this.writeLock.unlock();
-					Thread.sleep(1000);
+					Utils.sleepSafely(1000);
 					this.writeLock.lock();
 				}
 
@@ -155,7 +155,7 @@ public class Table implements Closeable {
 					return;				
 				} else {
 					this.writeLock.unlock();
-					Thread.sleep(1000);
+					Utils.sleepSafely(1000);
 					this.writeLock.lock();
 				}
 			}

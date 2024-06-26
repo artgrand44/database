@@ -66,11 +66,7 @@ public class DocumentSetSorter {
 			}
 		} finally {
 			for (TypedInputStream input : inputs) {
-				try {
-					input.close();
-				} catch (Exception exc) {
-					throw exc;
-				}
+				Utils.closeSafely(input);
 			}
 		}
 

@@ -66,11 +66,7 @@ public class HeartbeatListener {
 		for (int idx = 0; idx < 5; idx++) {
 			this.publisher.publish();
 			
-			try {
-				Thread.sleep(1000);
-			} catch (Exception exc) {
-				
-			}
+			Utils.sleepSafely(1000);
 		}
 	}
 	
@@ -147,7 +143,7 @@ public class HeartbeatListener {
 					
 					this.cache.put(uri, serviceName);
 					
-					Thread.sleep(500);
+					Utils.sleepSafely(500);
 				}
 			} catch (Exception exc) {
 				logger.info("***********poll exception " + exc.getMessage());
@@ -155,7 +151,7 @@ public class HeartbeatListener {
 			}
 		}
 		
-		this.recieveSocket.close();
+		Utils.closeSafely(this.recieveSocket);
 		logger.info("poller existing for port " + this.port);
 	}
 

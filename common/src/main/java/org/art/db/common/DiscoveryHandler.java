@@ -75,7 +75,7 @@ public class DiscoveryHandler {
 		
 		this.plugin.initialize(this.localInstance, this.cluster, this.localShard, this.isServer);
 		
-		Thread.sleep(300);
+		Utils.sleepSafely(300);
 		
 		this.loadEnvironment();
 		
@@ -196,7 +196,7 @@ public class DiscoveryHandler {
 			String shard = null;
 
 			if ((shardFinder = this.shardFinder.get()) == null || (shard = shardFinder.getShard(key)) == null) {
-				sleep(1000);
+				Utils.sleepSafely(1000);
 				this.loadEnvironment();
 				continue;
 			}
@@ -204,7 +204,7 @@ public class DiscoveryHandler {
 			List<URI> list = this.instances.get().get(shard);
 
 			if (list == null || list.isEmpty()) {
-				sleep(1000);
+				Utils.sleepSafely(1000);
 				this.plugin.clear();
 				logger.info("*** clear plugin");
 				this.loadEnvironment();
@@ -317,13 +317,6 @@ public class DiscoveryHandler {
 				+ instances + ", shardMap=" + shardFinder + "]";
 	}
 	
-
-	private static void sleep(long millis) {
-		try {
-			Thread.sleep(millis);
-		} catch (Exception exc) {
-		}
-	}
 	
 	public void waitInstanceCount(int desiredCount, long timeout) throws Exception {
 		
@@ -334,7 +327,7 @@ public class DiscoveryHandler {
 				throw new Exception("Unable to find services on " + this.port + " timeout " + timeout);
 			}
 			
-			sleep(Math.min(timeout, 1000));
+			Utils.sleepSafely(Math.min(timeout, 1000));
 			this.loadEnvironment();
 		}
 	
