@@ -51,7 +51,7 @@ public class Table implements Closeable {
 	
 	private static final LinkedBlockingQueue<MergeQueueEntry> mergeQueue =  new LinkedBlockingQueue<>();
 	
-	private static final long ONE_GIG = 1024 * 1024 * 1024;
+	private static final long MAX_LOG_SIZE = 1024 * 1024 * 512;
 	
 	static {
 		Scheduler.DEFAULT.submit(Table::mergerLoop);
@@ -387,7 +387,7 @@ public class Table implements Closeable {
 			if (this.currentSegment.size() > this.maxSegmentSize && this.prevSegment == null && !this.closed) {
 				logger.info("calling switch " + this.currentSegment.size());
 				switchSegments();
-			} else if (this.isQueue && this.currentSegment.getLogSize() > ONE_GIG) {
+			} else if (this.isQueue && this.currentSegment.getLogSize() > MAX_LOG_SIZE) {
 				logger.info("calling switch due to log size" + this.currentSegment.getLogSize());
 				switchSegments();
 			}
