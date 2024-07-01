@@ -68,7 +68,7 @@ public class QueueCrashTest  {
 			
 			new File("./dbroot/test").mkdirs();
 			
-			Configuration.getInstance().load("./tinybatch.properties");
+			Configuration.getInstance().load("./queuecrashtest.properties");
 			
 			@SuppressWarnings("unused")
 			DiscoveryHandler handler = new DiscoveryHandler(Configuration.getInstance(), true);

@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 import org.art.db.common.Blob;
 import org.art.db.common.Comparison;
 import org.art.db.common.DBNull;
@@ -32,6 +33,7 @@ import org.art.db.common.RestClient;
 import org.art.db.common.RestException;
 import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
+import org.art.db.common.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,20 +82,54 @@ public class TableManager implements Closeable{
 		File[] logs =  Files.listTableLogs(tableName);
 		this.table = new Table(tableName, this.indices);
 				
+		// If there are any logs for this table then apply them.  If this is a 
+		// queue then apply the oldest logs immediately and apply the rest in the
+		// background.  Logs for queues can be very large.  By applying the
+		// newer logs in the background, we allow the server to come up more quickly.
+		
+		int maxImmediate = Integer.parseInt(Configuration.getInstance().getPropertyWithDefault("org.art.db.queueRecovery"));
+		
 		if (logs != null) {
 			List<File> list = Arrays.asList(logs);
 			
-			
 			Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
+			
+			List<File> recoverImmediately;
+			List<File> deferred;
+			
+			if (this.metadata.isQueue() && list.size() > maxImmediate) {
+				recoverImmediately = list.subList(0, maxImmediate);
+				deferred = list.subList(maxImmediate, list.size());
+			} else {
+				recoverImmediately = list;
+				deferred = Collections.emptyList();
+			}
 
-			for (File file : list) {
+			for (File file : recoverImmediately) {
 				if (file.length() != 0) {
 					this.applySnapshot(new FileInputStream(file), false, file);
 				} 
 			}
+			
+			if (!deferred.isEmpty()) {
+				logger.info("background " + list.size() + " def " + deferred.size() + " immediate " + recoverImmediately.size());
+				Scheduler.DEFAULT.submit(() -> this.applyInBackground(deferred));
+			}
 		}
 		
 		this.checkConstraints = true;
+	}
+	
+	private void applyInBackground(List<File> files) {
+		for (File file : files) {
+			if (file.length() != 0) {
+				try {
+					this.applySnapshot(new FileInputStream(file), false, file);
+				} catch (Exception exc) {
+
+				}
+			} 
+		}
 	}
 	
 	public void applySnapshot(InputStream stream, boolean checkTimestamps, File file) {

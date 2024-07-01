@@ -24,7 +24,8 @@ public class Configuration {
 				   "org.art.db.documentCache",  "1M",
 				   "org.art.db.maxSegmentSize", "100000",
 				   "org.art.db.nodeCache",      "10M",
-				   "org.art.db.indexCache",     "10M");
+				   "org.art.db.indexCache",     "10M",
+				   "org.art.db.queueRecovery",  "3");
 
 	private static Configuration instance;
 	
@@ -148,6 +149,10 @@ public class Configuration {
 		String value = properties.get(key);
 		
 		return value == null ? dflt : value;
+	}
+	
+	public String getPropertyWithDefault(String key) {
+		return this.getProperty(key, this.getDefault(key));
 	}
 	
 	public String getShard() {
