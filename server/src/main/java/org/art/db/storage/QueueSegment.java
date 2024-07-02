@@ -111,6 +111,7 @@ public class QueueSegment extends MemorySegment {
 	private Document lease(String owner, long timeout, boolean localOnly) {
 		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
 		long expirationTime = System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout);
+		Lease lease = new Lease(owner, expirationTime);
 		int instanceCount = this.discoveryHandler.getLocalInstanceCount();
 		int localHash = this.discoveryHandler.getLocalInstance().hashCode() % instanceCount;
 		
@@ -126,7 +127,7 @@ public class QueueSegment extends MemorySegment {
 			
 			AtomicReference<Lease> ref = this.leases.computeIfAbsent(nextKey, x -> new AtomicReference<>());
 			
-			if (ref.compareAndSet(null, new Lease(owner, expirationTime))) {
+			if (ref.compareAndSet(null, lease)) {
 				return nextValue;
 			}
 			
