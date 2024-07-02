@@ -1,10 +1,10 @@
 package org.art.db.storage;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -13,14 +13,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.art.db.common.Configuration;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry.Operation;
+import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.art.db.common.Scheduler;
 
 /**
  * A specialized MemorySegment for queues.  QueueSegment adds a lease method,
@@ -40,7 +41,16 @@ public class QueueSegment extends MemorySegment {
 		
 	}
 	
-	private ConcurrentMap<Key, AtomicReference<Lease>> leases = new ConcurrentHashMap<>();
+	static record QueueEntry(Document doc, AtomicReference<Lease> lease) {
+		
+	}
+	private ConcurrentLinkedDeque<WeakReference<QueueEntry>> leases = new ConcurrentLinkedDeque<>();
+	
+	/**
+	 * The queue entries
+	 */
+	private volatile ConcurrentSkipListMap<Key, QueueEntry> entries = new ConcurrentSkipListMap<>();
+	
 	
 	private final ScheduledFuture<?> timeoutHandler;
 	
@@ -70,6 +80,12 @@ public class QueueSegment extends MemorySegment {
 		super.close();
 	}
 	
+	@Override
+	public Document get(Key key) throws Exception {
+		QueueEntry entry = this.entries.get(key);
+		
+		return entry == null ? null : entry.doc;
+	}
 	
 	/**
 	 * Find document that is not currently leased, obtain a lease
@@ -109,28 +125,26 @@ public class QueueSegment extends MemorySegment {
 	 * @return
 	 */
 	private Document lease(String owner, long timeout, boolean localOnly) {
-		Iterator<Map.Entry<Key, Document>> iterator = this.documents.entrySet().iterator();
-		long expirationTime = System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout);
-		Lease lease = new Lease(owner, expirationTime);
+		Iterator<Map.Entry<Key, QueueEntry>> iterator = this.entries.entrySet().iterator();
+		
+		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
 		int instanceCount = this.discoveryHandler.getLocalInstanceCount();
 		int localHash = this.discoveryHandler.getLocalInstance().hashCode() % instanceCount;
 		
 		while (iterator.hasNext()) {
-			Map.Entry<Key, Document> nextEntry = iterator.next();
+			Map.Entry<Key, QueueEntry> entry = iterator.next();
 			
-			Key nextKey = nextEntry.getKey();
-			Document nextValue = nextEntry.getValue();
+			Key key = entry.getKey();
+			QueueEntry qentry = entry.getValue();
 			
-			if (localOnly && nextKey.hashCode() % instanceCount != localHash) {
+			if (localOnly && key.hashCode() % instanceCount != localHash) {
 				continue;
 			}
 			
-			AtomicReference<Lease> ref = this.leases.computeIfAbsent(nextKey, x -> new AtomicReference<>());
-			
-			if (ref.compareAndSet(null, lease)) {
-				return nextValue;
-			}
-			
+			if (qentry.lease.compareAndSet(null, lease)) {
+				this.leases.add(new WeakReference<>(qentry));
+				return qentry.doc;
+			}			
 		}
 		
 		return null;
@@ -140,20 +154,22 @@ public class QueueSegment extends MemorySegment {
 		this.readLock.lock();
 		
 		try {
-			super.insert(key, doc, propagate, log);
+			this.log(Operation.INSERT,  key, doc, propagate, log);
+			
+			this.entries.put(key, new QueueEntry(doc, new AtomicReference<>()));
 		} finally {
 			this.readLock.unlock();
 		}
 	}
 	
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
-		if (this.documents.containsKey(key)) {
+		if (this.entries.containsKey(key)) {
 			this.readLock.lock();
 			
 			try {
 				this.log(Operation.REMOVE, key, null, propagate, log);
 
-				this.documents.remove(key);
+				this.entries.remove(key);
 				this.removeCount.incrementAndGet();
 			} finally {
 				this.readLock.unlock();
@@ -162,7 +178,7 @@ public class QueueSegment extends MemorySegment {
 
 			if (this.removeCount.get() > 10000) {
 				this.writeLock.lock();
-				this.documents = new ConcurrentSkipListMap<>(this.documents);
+				this.entries = new ConcurrentSkipListMap<>(this.entries);
 				this.removeCount.set(0);
 				this.writeLock.unlock();
 			}
@@ -170,32 +186,22 @@ public class QueueSegment extends MemorySegment {
 	}
 	
 	public void update(Key key, Document doc, boolean propagate, boolean log) throws Exception {
-		this.readLock.lock();
-		
-		try {
-			super.update(key, doc, propagate, log);
-		} finally {
-			this.readLock.unlock();
-		}
+		throw new DBRuntimeException("Queue entries cannot be updated");
 		
 	}
 	
 	private void timeoutLeases() {
-		this.readLock.lock();
-		
-		Iterator<Map.Entry<Key, AtomicReference<Lease>>> iterator = this.leases.entrySet().iterator();
+		Iterator<WeakReference<QueueEntry>> iterator = this.leases.iterator();
 		
 		while (iterator.hasNext()) {
-			Map.Entry<Key, AtomicReference<Lease>> entry = iterator.next();
-			Key key = entry.getKey();
-			Lease lease = entry.getValue().get();
+			QueueEntry entry = iterator.next().get();
+			Lease lease;
 			
-			if (System.currentTimeMillis() > lease.expiration || this.documents.get(key) == null) {
+			if (entry != null && (lease = entry.lease.get()) != null && System.currentTimeMillis() > lease.expiration) {
+				entry.lease.set(null);
 				iterator.remove();
 			}			
 		}
-		
-		this.readLock.unlock();
 		
 	}
 	

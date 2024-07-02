@@ -66,7 +66,7 @@ public class MemorySegment extends Segment {
 	/**
 	 * The documents in this segment
 	 */
-	protected volatile ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
+	private volatile ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
 	
 	
 	/**
