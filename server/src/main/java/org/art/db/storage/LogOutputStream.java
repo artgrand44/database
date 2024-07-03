@@ -72,7 +72,7 @@ public class LogOutputStream  implements Closeable{
 				offset += this.channel.write(buffer, currentPosition + offset);
 			}
 
-			this.channel.force(false);
+			this.channel.force(true);
 			
 			this.channel.position(currentPosition);		
 			this.lastOSBlock = lastBlock;			
@@ -102,6 +102,7 @@ public class LogOutputStream  implements Closeable{
 			
 			this.insureEOF(bytes.length + 5);
 			this.fileStream.write(bytes);
+			this.fileStream.flush();
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error writing to the log");
 			throw exc;
