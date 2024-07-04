@@ -58,8 +58,8 @@ public class RecoveryTest extends BaseIntegrationTest {
 			
 			logger.info("Stopped internal");
 			
-			File internalDir = new File("/Users/artgrand/repros/database/server/dbroot/SYS.SYS.pounder");
-			File externalDir = new File("/Users/artgrand/repros/database/server/secondroot/SYS.SYS.pounder");
+			File internalDir = new File("./dbroot/SYS.SYS.pounder");
+			File externalDir = new File("./secondroot/SYS.SYS.pounder");
 			File[] files = new File[0];
 			int count = 0;
 			
