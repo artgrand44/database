@@ -26,6 +26,10 @@ public class LogOutputStream  implements Closeable{
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(LogOutputStream.class);
 	
+	/**
+	 * The offset for the next record
+	 */
+	
 	private long nextOffset = 0;
 	
 	/**
@@ -33,8 +37,9 @@ public class LogOutputStream  implements Closeable{
 	 */
 	private long lastOSBlock = -1;
 	
+	
 	/**
-	 * The offset for the next record
+	 * The underlying file stream
 	 */
 	private final FileOutputStream fileStream;
 	
