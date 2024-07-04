@@ -12,6 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.art.db.common.LogEntry;
 import org.art.db.common.TypedOutputStream;
+import org.art.db.common.ZipUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,14 +27,20 @@ public class LogOutputStream  implements Closeable{
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(LogOutputStream.class);
 	
+	/**
+	 * The offset for the next record
+	 */
+	
+	private long nextOffset = 0;
 	
 	/**
-	 * The last block as recorded in the file system
+	 * The size as recorded in the file system
 	 */
 	private long lastOSBlock = -1;
 	
+	
 	/**
-	 * The underlying data stream
+	 * The underlying file stream
 	 */
 	private final FileOutputStream fileStream;
 	
@@ -42,7 +49,11 @@ public class LogOutputStream  implements Closeable{
 	 */
 	private final FileChannel channel;
 	
+	/**
+	 * The lock for extending the file
+	 */
 	private final ReentrantLock lock = new ReentrantLock();
+	
 	
 	/**
 	 * The block size for extending the file
@@ -54,30 +65,29 @@ public class LogOutputStream  implements Closeable{
 		this.channel = this.fileStream.getChannel();
 	}
 	
-	private void insureEOF(int count) throws IOException {
-		long currentPosition = this.channel.position();
-		long lastBlock = (currentPosition + count) / BLOCK_SIZE;
+	private long getOffset(int length) throws IOException {
+		this.lock.lock();
+			
+		long result = this.nextOffset;
+		nextOffset += length;
 		
-		if (lastBlock > this.lastOSBlock) {
-			byte[] fill = new byte[BLOCK_SIZE];
+		try {
+			long lastBlock = (result + length) / BLOCK_SIZE;
 			
-			this.channel.position(lastBlock);
-			
-			Arrays.fill(fill, (byte)-1);
-			
-			ByteBuffer buffer = ByteBuffer.wrap(fill);
-			int offset = 0;
-			
-			while (buffer.position() < buffer.limit()) {
-				offset += this.channel.write(buffer, currentPosition + offset);
-			}
-
-			this.channel.force(true);
-			
-			this.channel.position(currentPosition);		
-			this.lastOSBlock = lastBlock;			
+			if (lastBlock > this.lastOSBlock) {
+				byte[] fill = new byte[BLOCK_SIZE];
+				
+				Arrays.fill(fill, (byte)-1);
+				
+				this.write(fill, this.lastOSBlock + BLOCK_SIZE);
+				this.lastOSBlock = lastBlock;
+				this.channel.force(false);
+			}			
+		} finally {
+			this.lock.unlock();
 		}
-
+		
+		return result;
 	}
 	
 	@Override
@@ -89,27 +99,24 @@ public class LogOutputStream  implements Closeable{
 		return this.lastOSBlock * BLOCK_SIZE;
 	}
 	
-	public void write(LogEntry entry) throws Exception {
-		boolean locked = false;
+	private void write(byte[] bytes, long offset) throws IOException {
+		ByteBuffer buffer = ByteBuffer.wrap(bytes);
 		
+		while (buffer.position() < buffer.limit()) {
+			offset += this.channel.write(buffer, offset);
+		}
+	}
+	
+	public void write(LogEntry entry) throws Exception {
 		try (TypedOutputStream stream = new TypedOutputStream()) {
 			stream.writeObject(entry);
-			
+						
 			byte[] bytes = stream.toByteArray();
+			long offset = this.getOffset(bytes.length + 4);
 			
-			this.lock.lock();
-			locked = true;
-			
-			this.insureEOF(bytes.length + 5);
-			this.fileStream.write(bytes);
-			this.fileStream.flush();
+			this.write(bytes, offset);
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error writing to the log");
-			throw exc;
-		} finally {
-			if (locked) {
-				this.lock.unlock();
-			}
+			Metrics.getInstance().logAlert("There was an error writing to the log");		
 		}
 	}
 
