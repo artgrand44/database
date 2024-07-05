@@ -65,12 +65,17 @@ public class TableManager implements Closeable{
 		
 		RandomAccessFile lockFile = new RandomAccessFile(Files.getLockFile(this.tableName), "rw");
 		
+		File lock = Files.getLockFile(this.tableName);
+		
+		logger.info("lock = " + lock.getAbsolutePath() + " " + lock.exists());
+		
 		this.lock = lockFile.getChannel().tryLock(0, Long.MAX_VALUE, false);
 		
 		if (this.lock == null) {
 			throw new DBRuntimeException(tableName + " is locked by another serve");
 		}
 		
+		logger.info(this.tableName + " got lock");
 		for (IndexInfo info : this.indexInfo) {
 			String name = info.name();
 			File indexFile = Files.getIndex(tableName, name);
@@ -544,10 +549,6 @@ public class TableManager implements Closeable{
 			}
 		}
 		
-		if (this.lock != null) {
-			this.lock.release();
-		}
-
 	}
 	
 	public void setMetadata(Metadata info) throws Exception {
@@ -563,9 +564,19 @@ public class TableManager implements Closeable{
 			entry.getValue().close();
 		}
 		
+		logger.info(this.tableName + " closing " + lock);
+		if (this.lock != null) {
+			this.lock.release();
+		}
+		
 	}
 	
 	public void crash() throws Exception {
 		this.table.crash();
+		
+		if (this.lock != null) {
+			this.lock.release();
+		}
+
 	}
 }
