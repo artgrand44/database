@@ -49,17 +49,7 @@ public class Files {
 		
 	}
 	
-	public static File getLogRoot() {
-		Configuration config = Configuration.getInstance();
-		String root;
-		
-		if (config != null && (root = config.getProperty("org.art.db.logroot")) != null) {
-			return new File(root);
-		}
-		
-		return getRoot();
-		
-	}
+	
 	
 	public static File getRoot() {
 		Configuration config = Configuration.getInstance();
@@ -89,7 +79,7 @@ public class Files {
 	
 	private static File getLogFile(String template, Object ...args) {
 		
-		File file = new File(getLogRoot(), String.format(template, args));
+		File file = new File(getRoot(), String.format(template, args));
 		
 		file.getParentFile().mkdirs();
 		
@@ -155,13 +145,13 @@ public class Files {
 	}
 	
 	public static File[] listFiles(String table, String type) {
-		File tableDir = new File(getLogRoot(), table);
+		File tableDir = new File(getRoot(), table);
 		
 		return tableDir.listFiles((dir, name) -> name.endsWith(type));
 	}
 	
 	public static File[] listTableLogs(String table) {
-		File tableDir = new File(getLogRoot(), table);
+		File tableDir = new File(getRoot(), table);
 		
 		return tableDir.listFiles((dir, name) -> name.endsWith(".log"));
 	}

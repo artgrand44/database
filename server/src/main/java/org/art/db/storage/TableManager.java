@@ -341,7 +341,6 @@ public class TableManager implements Closeable{
 		
 		for (int idx = 0; idx < 10; idx++) {
 			try {				
-				handler.waitInstanceCount(2, 1000);
 				peer = handler.getRandomPeer();
 				String type;
 				

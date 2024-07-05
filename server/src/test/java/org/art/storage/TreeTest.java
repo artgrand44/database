@@ -436,8 +436,6 @@ public class TreeTest extends BaseTreeTest {
 	public void logDirCrashTest() {
 		logger.info("Start crash");
 
-		Configuration.getInstance().setProperty("org.art.db.logroot", "./dblogs");
-		
 		
 		try {
 			this.doClear();
@@ -476,9 +474,7 @@ public class TreeTest extends BaseTreeTest {
 		} catch(Exception exc) {
 			exc.printStackTrace();
 			Assertions.fail(exc.getMessage());
-		} finally {
-			Configuration.getInstance().removeProperty("org.art.db.logroot");
-		}
+		} 
 	}
 
 

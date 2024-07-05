@@ -18,16 +18,12 @@ public class BaseTest {
 		System.setProperty("org.art.db.dbroot", "./dbroot");
 		
 		File dbRoot = new File("./dbroot");
-		File logRoot = new File("./dblogs");
 		File cluster2Root = new File("./cluster2root");
 		
 		if (dbRoot.exists()) {
 			FileUtils.cleanDirectory(dbRoot);	
 		}
 		
-		if (logRoot.exists()) {
-			FileUtils.cleanDirectory(logRoot);
-		}
 		if (cluster2Root.exists()) {
 			FileUtils.cleanDirectory(cluster2Root);
 		}
