@@ -111,8 +111,7 @@ public class RestClient {
 			return result;
 		} catch (ExecutionException exc) {
 			Throwable cause = exc.getCause();
-			exc.printStackTrace();
-			logger.info("Exception for " + uri + " " + cause);
+			
 			if (cause instanceof ConnectException) {
 				throw new RestException(RestException.NO_CONNECTION, "", cause);
 			} else  if (cause instanceof RestException rest){
@@ -175,7 +174,7 @@ public class RestClient {
 		}
 	}
 	
-	public void getFile(URI uri, File file) throws Exception {
+	public String getFile(URI uri, File file) throws Exception {
 		try {
 			HttpRequest.Builder builder = HttpRequest.newBuilder()	
 					.uri(uri)
@@ -201,6 +200,9 @@ public class RestClient {
 			if (status != 200) {
 				throw new RestException(status, "There was a network errror");
 			}
+			
+			return response.headers().firstValue("filename").orElse(null);
+			
 		} catch(Exception exc) {
 			throw new RestException(500, exc.getMessage());
 		}

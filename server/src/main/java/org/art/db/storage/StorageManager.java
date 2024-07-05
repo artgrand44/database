@@ -53,10 +53,12 @@ public class StorageManager  {
 		}
 	}
 	
-	public File getNextFile(String table, long timestamp) {
-		File[] files = Files.listDiskSegments(table);
+	public File getNextFile(String table, long timestamp, String type) {
+		
+		File[] files = Files.listFiles(table, type);
 		
 		if (files == null) {
+			logger.info("no files for " + type);
 			return null;
 		}
 		
@@ -64,16 +66,14 @@ public class StorageManager  {
 		Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
 
 		for (File file : list) {
-			String name = file.getName();
-			int dash = name.indexOf('_');
-			long fileTimeStamp = Long.parseLong(name.substring(0, dash));
+			long fileTimeStamp = Files.getTimestampFromFile(file.getName());
 			
 			if (fileTimeStamp > timestamp) {
 				return file;
-			}
+			} 
 		}
 		
-		return null;
+		return null;	
 	}
 
 

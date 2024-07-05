@@ -72,6 +72,12 @@ public class Files {
 		
 	}
 	
+	public static long getTimestampFromFile(String fileName) {
+		String[] tokens = fileName.split("[_.]");
+		
+		return Long.parseLong(tokens[0]);
+	}
+	
 	private static File getFile(String template, Object ...args) {
 		
 		File file = new File(getRoot(), String.format(template, args));
@@ -146,6 +152,12 @@ public class Files {
 		File tableDir = new File(getRoot(), table);
 		
 		return tableDir.listFiles((dir, name) -> name.endsWith(".seg"));
+	}
+	
+	public static File[] listFiles(String table, String type) {
+		File tableDir = new File(getLogRoot(), table);
+		
+		return tableDir.listFiles((dir, name) -> name.endsWith(type));
 	}
 	
 	public static File[] listTableLogs(String table) {

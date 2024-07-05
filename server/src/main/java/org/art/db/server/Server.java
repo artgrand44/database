@@ -140,7 +140,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 			if (response instanceof byte[] bytes) {
 				exchange.getOutputStream().write(bytes);
-			} else {
+			} else if (response != null){
 				File file = (File)response;
 				
 				try (FileInputStream inputStream = new FileInputStream(file)) {

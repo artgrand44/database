@@ -19,9 +19,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 import org.art.db.common.Blob;
 import org.art.db.common.Comparison;
+import org.art.db.common.Configuration;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
@@ -33,7 +33,6 @@ import org.art.db.common.RestClient;
 import org.art.db.common.RestException;
 import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
-import org.art.db.common.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +50,7 @@ public class TableManager implements Closeable{
 	private final Map<String, Index> indices = new HashMap<>();
 	private final LockManager<Key> primaryKeyLockManager = new LockManager<>();
 	private final LockManager<Key> alternateKeyLockManager = new LockManager<>();
-	private final boolean checkConstraints;
+	private boolean checkConstraints;
 	private final RestClient restClient = new RestClient();
 	private final FileLock lock;
 	private Metadata metadata;
@@ -238,6 +237,12 @@ public class TableManager implements Closeable{
 		return doc;
 	}
 	
+	private String getNextRemoteFile(URI peer, File localFile, String type, long timestamp) throws Exception{
+		URI uri = this.restClient.buildURI(peer, "/db/getnextfile?table=%s&type=%s&timestamp=%s", this.tableName, type, timestamp);
+		
+		return this.restClient.getFile(uri, localFile);
+	}
+	
 	public int getSelectivity(String indexName) {
 		return this.indices.get(indexName).getSelectivity();
 	}
@@ -295,29 +300,30 @@ public class TableManager implements Closeable{
 	 * @throws Exception
 	 */
 	public void recover(DiscoveryHandler handler) throws Exception {
-		
-		
-		File[] files = Files.listDiskSegments(this.tableName);
 		long timestamp;
-		int mergeLevel;
-		DiskSegment segment;
 		
-		// Find the timestamp and merge level for the newest segment on this
-		// server
 		
-		if (files == null || files.length == 0) {			
-			logger.info("No segments");
+		if (this.metadata.isQueue()) {
 			timestamp = 0;
-			mergeLevel = 1;
 		} else {
-			List<File> list = Arrays.asList(files);
-			Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
-			
-			segment = new DiskSegment(list.get(0));
-			timestamp = segment.getCreateTime();
-			mergeLevel = segment.getMergeLevel();
+			File[] files = Files.listDiskSegments(this.tableName);
+
+			DiskSegment segment;
+
+			// Find the timestamp and merge level for the newest segment on this
+			// server
+
+			if (files == null || files.length == 0) {			
+				logger.info("No segments");
+				timestamp = 0;
+			} else {
+				List<File> list = Arrays.asList(files);
+				Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
+
+				segment = new DiskSegment(list.get(0));
+				timestamp = segment.getCreateTime();;
+			}		
 		}
-		
 		
 		// Pick a random instance in this shard and try to copy its segments.
 		// We try up to 10 instances before giving up.  If an instance goes
@@ -325,17 +331,26 @@ public class TableManager implements Closeable{
 		// segments and try again.
 		
 		List<File> filesCreated = new ArrayList<>();
-		File downloadFile = Files.getDiskSegment(this.tableName, 0);
+		File downloadFile = null;
+		URI peer = null;
 		
 		for (int idx = 0; idx < 10; idx++) {
-			URI peer = handler.getRandomPeer();
-
-			if (peer == null) {
-				logger.info("no peers");
-				return;
-			}
-			
-			try {
+			try {				
+				handler.waitInstanceCount(2, 1000);
+				peer = handler.getRandomPeer();
+				String type;
+				
+				if (peer == null) {
+					return;
+				}
+				
+				if (this.metadata.isQueue()) {
+					downloadFile = Files.getTableLog(this.tableName);
+					type = ".log";
+				} else {
+					downloadFile = Files.getDiskSegment(this.tableName, 0);
+					type = ".seg";
+				}
 				
 				// Tell the peer to flush its current segment and to begin sending broadcasts to this
 				// instance.  The peer will continue sending the broadcasts until this instance is up
@@ -347,56 +362,24 @@ public class TableManager implements Closeable{
 
 				this.restClient.getFile(restClient.buildURI(peer, "/db/getmetadata?table=%s", this.tableName, timestamp), Files.getMetadata(this.tableName));
 
-				// Process the missing segments from oldest to newest.  Continue until we get an empty file.
+				// Process the missing logs/segments from oldest to newest.  Continue until we get an empty file.
 				// The empty file acts as a "no more segments" indicator.
 			
-
 				for (;;) {
-					this.restClient.getFile(restClient.buildURI(peer, "/db/getnextfile?table=%s&timestamp=%s", this.tableName, timestamp), downloadFile);
-
+					String remoteFile = this.getNextRemoteFile(peer, downloadFile, type, timestamp);
+					
 					if (downloadFile.length() == 0) {
-						logger.info("Empty file");
 						downloadFile.delete();
 						return;
 					}
-
-					// Load the segments
-
-					segment = new DiskSegment(downloadFile);
-
-					// Iterate over the segments and update the index entries for each
-					// document.  This process is i/o intensive, so we process several
-					// documents in parallel.
-
-					Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
-					AtomicInteger inProgress = new AtomicInteger();
-
-					while (iterator.hasNext()) {
-						Map.Entry<Key, Blob> entry = iterator.next();
-						Key key = entry.getKey();
-						Blob blob = entry.getValue();
-
-						inProgress.incrementAndGet();
-						Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(key, blob, inProgress));
+					
+					if (this.metadata.isQueue()) {
+						this.recoverQueueLog(downloadFile, remoteFile, filesCreated);
+					} else {
+						this.recoverSegment(downloadFile, remoteFile, filesCreated);
 					}
-
-					while (inProgress.get() != 0) {
-						Utils.sleepSafely(10);
-					}
-
-					mergeLevel = segment.getMergeLevel();
-					timestamp = segment.getCreateTime();
-
-					segment.close();
-
-					// Rename the segment to match the name on the peer
-
-					File renamed = Files.getDiskSegment(this.tableName, timestamp, mergeLevel);
-
-					downloadFile.renameTo(renamed);
-					filesCreated.add(renamed);
-
-					logger.info("processed  " + renamed.getAbsolutePath());
+					
+					timestamp = Files.getTimestampFromFile(remoteFile);
 				}				
 			} catch (RestException exc) {
 				for (File file : filesCreated) {
@@ -404,19 +387,76 @@ public class TableManager implements Closeable{
 				}
 				
 				if (exc.getStatus() == RestException.NO_CONNECTION || exc.getStatus() == RestException.SERVER_DOWN) {
-					logger.info("doCall got fail on " + peer);
+					logger.info("doCall got fail on " + peer + " exc " + exc);
 					handler.removeInstance(peer);
 				} else {
 					throw exc;
 				}
 			} finally {
-				downloadFile.delete();
+				if (downloadFile != null) {
+					downloadFile.delete();
+				}
 			}
 
 		}		
 		
 	}
 	
+	private void recoverSegment(File downloadFile, String remoteFileName, List<File> filesCreated) throws Exception {
+		DiskSegment segment = new DiskSegment(downloadFile);
+
+		// Iterate over the segments and update the index entries for each
+		// document.  This process is i/o intensive, so we process several
+		// documents in parallel.
+
+		Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
+		AtomicInteger inProgress = new AtomicInteger();
+
+		while (iterator.hasNext()) {
+			Map.Entry<Key, Blob> entry = iterator.next();
+			Key key = entry.getKey();
+			Blob blob = entry.getValue();
+
+			inProgress.incrementAndGet();
+			Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(key, blob, inProgress));
+		}
+
+		while (inProgress.get() != 0) {
+			Utils.sleepSafely(10);
+		}
+				
+		segment.close();
+		
+		File renamed = new File(downloadFile.getParentFile(), remoteFileName);
+		
+		downloadFile.renameTo(renamed);
+		filesCreated.add(renamed);
+		
+		logger.info("processed  " + renamed.getAbsolutePath());
+		
+	}
+	
+	private void recoverQueueLog(File downloadFile, String remoteFileName, List<File> filesCreated) throws Exception {
+		
+		logger.info("got file");
+		
+		boolean save = this.checkConstraints;
+		this.checkConstraints = false;
+		
+		try (FileInputStream stream = new FileInputStream(downloadFile)) {
+			this.applySnapshot(stream, false, downloadFile);
+		} catch (Exception exc) {
+			this.checkConstraints = save;
+		}
+		
+		File renamed = new File(downloadFile.getParentFile(), remoteFileName);
+		
+		downloadFile.renameTo(renamed);
+		filesCreated.add(renamed);
+		
+		logger.info("processed  queue" + downloadFile.getAbsolutePath() + " " + renamed.getAbsolutePath());
+				
+	}
 	/**
 	 * Update the index entries for a recovered document
 	 * @param key

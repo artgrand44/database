@@ -35,6 +35,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderValues;
+import io.undertow.util.HttpString;
 
 public class Dispatcher {
 
@@ -270,10 +271,19 @@ public class Dispatcher {
 			checkServer(exchange);
 			
 			String table = parameters.get("table");
+			String type = parameters.get("type");
 			long timestamp = Long.parseLong(parameters.get("timestamp"));
-			File file = StorageManager.getInstance().getNextFile(table, timestamp);
+			File file = StorageManager.getInstance().getNextFile(table, timestamp, type);
 
-			return file == null ? new byte[0] : file;
+			if (file == null) {
+				logger.info("returning null");
+				exchange.getResponseHeaders().add(new HttpString("filename"), "");
+				return null;
+			}
+			
+			exchange.getResponseHeaders().add(new HttpString("filename"), file.getName());
+			
+			return file;
 		}
 
 	}
