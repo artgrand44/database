@@ -90,15 +90,17 @@ public class LogOutputStream  implements Closeable{
 	}
 	
 	public void write(LogEntry entry) throws Exception {
-		boolean locked = false;
+		byte[] bytes = null;
 		
 		try (TypedOutputStream stream = new TypedOutputStream()) {
 			stream.writeObject(entry);
 			
-			byte[] bytes = stream.toByteArray();
+			bytes = stream.toByteArray();
+		}
 			
-			this.lock.lock();
-			locked = true;
+		this.lock.lock();
+		
+		try {
 			
 			this.insureEOF(bytes.length + 5);
 			this.fileStream.write(bytes);
@@ -107,9 +109,7 @@ public class LogOutputStream  implements Closeable{
 			Metrics.getInstance().logAlert("There was an error writing to the log");
 			throw exc;
 		} finally {
-			if (locked) {
-				this.lock.unlock();
-			}
+			this.lock.unlock();
 		}
 	}
 
