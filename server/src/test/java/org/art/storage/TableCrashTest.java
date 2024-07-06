@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class TableCrashTest  {
+public class TableCrashTest extends BaseTest {
 	
 	private static final Logger logger = LoggerFactory.getLogger(TableCrashTest.class);
 	
@@ -40,6 +40,7 @@ public class TableCrashTest  {
 	
 	@BeforeEach
 	public void beforeEach() throws Exception {
+		super.beforeEach();
 		File[] files = new File("./test").listFiles();
 		
 		if (files != null) {

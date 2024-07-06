@@ -6,7 +6,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
-public class SecurityManagerTest {
+public class SecurityManagerTest extends BaseTest{
 
 	@Test
 	public void test() {

@@ -10,7 +10,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
-public class BlockFileTest {
+public class BlockFileTest extends BaseTest{
 
 	private static final String BLOCK_0 = "Hello Block 0";
 	private static final String BLOCK_1 = "Hello Block 1";

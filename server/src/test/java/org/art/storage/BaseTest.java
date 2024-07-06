@@ -11,26 +11,34 @@ import org.slf4j.LoggerFactory;
 public class BaseTest {
 	private static final Logger logger = LoggerFactory.getLogger(BaseTest.class);
 	
+	private static final File[] DATA_DIRECTORIES = new File[] {
+		new File("./dbroot"),
+		new File("./cluster2root"),
+		new File("./atest"),
+		new File("./secondroot"),
+	};
+	
 	@BeforeEach
 	public void beforeEach() throws Exception {
 		logger.info("Start test " + this.getClass().getSimpleName());
 		
-		System.setProperty("org.art.db.dbroot", "./dbroot");
-		
-		File dbRoot = new File("./dbroot");
-		File cluster2Root = new File("./cluster2root");
-		
-		if (dbRoot.exists()) {
-			FileUtils.cleanDirectory(dbRoot);	
-		}
-		
-		if (cluster2Root.exists()) {
-			FileUtils.cleanDirectory(cluster2Root);
-		}
+		this.cleanDataDirectories();
 	}
 	
 	@AfterEach
 	public void afterEach() {
-		//StorageManager.getInstance().stop();
+		this.cleanDataDirectories();
+	}
+	
+	private void cleanDataDirectories() {
+		for (File dir : DATA_DIRECTORIES) {
+			if (dir.exists()) {
+				try {
+					FileUtils.cleanDirectory(dir);
+				} catch (Exception exc) {
+					logger.info("There was an error clearing " + dir.getAbsolutePath() + " " + exc.getMessage());
+				}
+			}
+		}
 	}
 }

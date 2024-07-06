@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class QueueCrashTest  {
+public class QueueCrashTest extends BaseTest {
 	
 	private static final Logger logger = LoggerFactory.getLogger(QueueCrashTest.class);
 	
@@ -43,6 +43,7 @@ public class QueueCrashTest  {
 	
 	@BeforeEach
 	public void beforeEach() throws Exception {
+		super.beforeEach();
 		File[] files = new File("./test").listFiles();
 		
 		if (files != null) {

@@ -1,6 +1,5 @@
 package org.art.storage;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,7 +19,6 @@ import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
 import org.art.db.storage.TableManager;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
@@ -30,25 +28,11 @@ public class PlanTest {
 	
 	private static final Logger logger = LoggerFactory.getLogger(PlanTest.class);
 	
-	private File dbDir = new File("./dbroot");
-	
 	private static String[] colors = new String[] {"red", "blue", "green", "white", "black" };
 	
 	private static String[] models = new String[] {"ford", "gm", "dodge", "toyoya", "honda" };
 	
-	@BeforeEach
-	public void beforeEach() throws Exception {
-		this.dbDir.mkdir();
-		
-		File[] files = this.dbDir.listFiles();
-		
-		if (files != null) {
-			for (File file : files) {
-				file.delete();
-			}
-		}
-		
-	}
+	
 	
 	private Document getDocument(int idx) throws Exception {
 		
