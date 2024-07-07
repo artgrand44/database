@@ -496,10 +496,6 @@ public class TreeStore implements Closeable, BlobStore {
 		return this.header.highGUID;
 	}
 	
-	public int getMergeLevel() {
-		return this.header.mergeLevel;
-	}
-	
 	public Metadata getMetadata() throws IOException {
 		if (this.header.metadataOffset == -1 || this.header.metadataSize == 0) {
 			throw new IllegalStateException("The metadata is missing");
@@ -606,14 +602,6 @@ public class TreeStore implements Closeable, BlobStore {
 			this.header.highGUID = guid;
 			this.writeHeader();
 		}
-	}
-	
-	
-	
-	public void setMergeLevel(int mergeLevel) throws Exception {
-		this.header.mergeLevel = mergeLevel;
-		
-		this.writeHeader();
 	}
 	
 	public void setMetadata(Metadata metadata) throws Exception {
@@ -734,7 +722,6 @@ public class TreeStore implements Closeable, BlobStore {
 		int metadataSize = 0;
 		boolean flushed = false;
 		long createTime = 0;
-		int mergeLevel = 0;
 		
 		Header() {
 		}
@@ -749,7 +736,6 @@ public class TreeStore implements Closeable, BlobStore {
 			this.metadataSize = stream.readInt();
 			this.flushed = stream.readBoolean();
 			this.createTime = stream.readLong();
-			this.mergeLevel = stream.readInt();
 			this.highGUID = new GUID().deserialize(stream);
 			
 			
@@ -770,7 +756,6 @@ public class TreeStore implements Closeable, BlobStore {
 				stream.writeInt(this.metadataSize);
 				stream.writeBoolean(this.flushed);
 				stream.writeLong(this.createTime);
-				stream.writeInt(this.mergeLevel);
 				
 				this.highGUID.serialize(stream);
 				

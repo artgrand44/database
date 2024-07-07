@@ -90,14 +90,7 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 		return file;
 	}
 
- 	public int getMergeLevel() {
- 		return this.treeStore.getMergeLevel();
- 	}
- 	
- 	public void setMergeLevel(int createLevel) throws Exception {
- 		
- 	}
-	@Override
+ 	@Override
 	public String toString() {
 		return "DiskSegment [" + file + "]";
 	}

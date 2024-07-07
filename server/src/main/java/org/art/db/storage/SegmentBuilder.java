@@ -177,12 +177,9 @@ public class SegmentBuilder {
 			
 			String name = segment.getName();
 			int dash = name.indexOf('_');
-			int dot = name.indexOf('.');
 			long createTime = Long.parseLong(name.substring(0, dash));
-			int mergeLevel = Integer.parseInt(name.substring(dash + 1, dot));
 			
 			store.setCreateTime(createTime);
-			store.setMergeLevel(mergeLevel);
 			
 			if (highKey == null) {
 				logger.info("no high key " + count);
