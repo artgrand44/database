@@ -65,10 +65,6 @@ public class TableManager implements Closeable{
 		
 		RandomAccessFile lockFile = new RandomAccessFile(Files.getLockFile(this.tableName), "rw");
 		
-		File lock = Files.getLockFile(this.tableName);
-		
-		logger.info("lock = " + lock.getAbsolutePath() + " " + lock.exists());
-		
 		this.lock = lockFile.getChannel().tryLock(0, Long.MAX_VALUE, false);
 		
 		if (this.lock == null) {
@@ -563,7 +559,6 @@ public class TableManager implements Closeable{
 			entry.getValue().close();
 		}
 		
-		logger.info(this.tableName + " closing " + lock);
 		if (this.lock != null) {
 			this.lock.release();
 		}
