@@ -45,6 +45,7 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 	private final int nthreads;
 	private int started = 0;
 	private final int countDownTo;
+	private final String profile;
 	
 	Thread timer = null;
 
@@ -53,15 +54,18 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 		this.nitems = nitems;
 		this.nthreads = nthreads;
 		this.countDownTo = nthreads - (nthreads / 5);
+		this.profile = profile;
 		this.exitLatch = new CountDownLatch(this.countDownTo);
 	
-		this.startInternal(profile);
 	}
 
 
 	@BeforeEach
 	public void beforeEach() throws Exception  {
 		super.beforeEach();
+		
+
+		this.startInternal(this.profile);
 
 	}
 	
