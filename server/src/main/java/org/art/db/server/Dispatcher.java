@@ -83,7 +83,7 @@ public class Dispatcher {
 		
 		if (handler == null) {
 			logger.info("Can't find handler " + url + " in " + HANDLERS.keySet());
-			return new byte[0];
+			return "Hello".getBytes();
 		}
 		
 		return handler.handle(exchange, parameters, body);
