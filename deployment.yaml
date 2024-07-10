@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: artdb-deployment
+  labels:
+    app: artdb
+spec:
+  selector:
+    matchLabels:
+      app: artdb
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: artdb
+    spec:
+      containers:
+      - name: artdb
+        image: db:v1 
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: "80m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: artdb
+spec:
+  selector:
+    app: artdb
+  ports:
+    - name: app 
+      protocol: TCP
+      port: 80
+      targetPort: 8000
+    - name: management 
+      protocol: UDP
+      port: 4445
+      targetPort: 4445
