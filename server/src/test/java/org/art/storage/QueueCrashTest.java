@@ -72,7 +72,7 @@ public class QueueCrashTest extends BaseTest {
 			Configuration.getInstance().load("./queuecrashtest.properties");
 			
 			@SuppressWarnings("unused")
-			DiscoveryHandler handler = new DiscoveryHandler(Configuration.getInstance(), true, false);
+			DiscoveryHandler handler = new DiscoveryHandler(Configuration.getInstance(), true);
 			
 			ColumnInfo nameInfo = new ColumnInfo(String.class, false, false, "");
 			ColumnInfo valueInfo = new ColumnInfo(String.class, false, false, "");

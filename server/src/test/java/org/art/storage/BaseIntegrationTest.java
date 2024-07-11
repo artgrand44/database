@@ -50,7 +50,7 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	
 	public void startInternal(String path) {
 		DiscoveryHandler.clear();
-		Server.start(path, false);
+		Server.start(path);
 		
 	}
 	

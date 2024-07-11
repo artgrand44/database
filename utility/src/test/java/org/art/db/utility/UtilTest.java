@@ -52,7 +52,7 @@ public class UtilTest {
 	
 	public void startInternal(String path) {
 		DiscoveryHandler.clear();
-		Server.start(path, false);
+		Server.start(path);
 		
 	}
 }

@@ -62,13 +62,16 @@ public class DiscoveryHandler {
 	private static DiscoveryHandler serverInstance;
 	
 	
-	public DiscoveryHandler(Configuration config, boolean isServer, boolean kubernetes) throws Exception {
+	public DiscoveryHandler(Configuration config, boolean isServer) throws Exception {
 		this.localInstance = config.toURI();
 		this.cluster = config.getCluster();
 		this.localShard = config.getShard();
 		this.port = config.getPort();
 		this.isServer = isServer;
-		this.plugin = kubernetes ? new KubernetesDiscoveryPlugin() : new DiscoveryPluginImpl();
+		
+		String kubernetes = System.getenv("KUBERNETES_SERVICE_HOST");
+		
+		this.plugin = kubernetes == null || kubernetes.isEmpty() ? new DiscoveryPluginImpl() : new KubernetesDiscoveryPlugin();
 		
 		logger.info(" kub = " + kubernetes + " created plugin " + this.plugin.getClass().getSimpleName());
 		
@@ -101,7 +104,7 @@ public class DiscoveryHandler {
 	public static DiscoveryHandler getHandler(Configuration config) {
 		return handlers.computeIfAbsent(config, name -> {
 			try {
-				return  new DiscoveryHandler(config, false, false);
+				return  new DiscoveryHandler(config, false);
 			} catch (Exception exc) {
 				throw new IllegalStateException(exc);
 			}
