@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.net.InetAddress;
 import java.security.CodeSource;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,13 +52,13 @@ public class Server implements HttpHandler, FullBytesCallback {
 	
 	private static Server instance;
 	
-	public Server() throws Exception {
+	public Server(boolean kubernetes) throws Exception {
 		Configuration config = Configuration.getInstance();
 		
 		this.port = Integer.valueOf(config.getPort());
-		this.handler =  new DiscoveryHandler(config, true);
+		this.handler =  new DiscoveryHandler(config, true, kubernetes);
 		
-		logger.info("start server on " + port + " process " + ProcessHandle.current().pid());
+		logger.info("start server on " + port + " process " + ProcessHandle.current().pid() + " kubernetes " + kubernetes);
 		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);
@@ -164,20 +165,32 @@ public class Server implements HttpHandler, FullBytesCallback {
 	
 	public static void main(String[] args) {
 		String properties = args.length == 0 ? "application.properties" : args[0];
-		boolean monitor;
+		boolean monitor = false;
+		boolean kubernetes = false;
+		
+		logger.info("main " + Arrays.asList(args));
 		
 		if (args.length == 0) {
 			properties = "application.properties";
 			monitor = false;
 		} else {
 			properties = args[0];
-			monitor = args.length == 2 && args[1].equals("-monitor");
+			
+			for (int idx = 0; idx < args.length; idx++) {
+				if (args[idx].equals("-monitor")) {
+					monitor = true;
+				} if (args[idx].equals("-kubernetes")) {
+					kubernetes = true;
+				}
+			}
+			
+			logger.info("got args monitor = " + monitor + " kubernetes " + kubernetes);
 		}
 		
 		if (monitor) {
 			monitor(properties);
 		} else {
-			start(properties);
+			start(properties, kubernetes);
 		}
     }
 	
@@ -218,7 +231,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 		}
 	}
 		
-	public static void start(String properties) {
+	public static void start(String properties, boolean kubernetes) {
 		try {
 			logger.info("start with " + System.getProperty("java.home"));
 			
@@ -226,7 +239,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 			logger.info("starting server with " + file.getAbsolutePath());
 			Configuration.getInstance().load(properties);
-			instance = new Server();
+			instance = new Server(true);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}		

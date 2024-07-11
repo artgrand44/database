@@ -46,6 +46,8 @@ public class RestClient {
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}	
+		
+		
 	}
 	public RestClient() {
 		

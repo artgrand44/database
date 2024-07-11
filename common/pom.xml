@@ -25,6 +25,13 @@
     		<artifactId>jsqlparser</artifactId>
     		<version>4.7</version>
 	</dependency>
+	<!-- https://mvnrepository.com/artifact/io.fabric8/kubernetes-client -->
+<dependency>
+    <groupId>io.fabric8</groupId>
+    <artifactId>kubernetes-client</artifactId>
+    <version>6.13.1</version>
+</dependency>
+
 	<!-- https://mvnrepository.com/artifact/org.thymeleaf/thymeleaf -->
 	<!-- https://mvnrepository.com/artifact/io.micrometer/micrometer-core -->
 <dependency>

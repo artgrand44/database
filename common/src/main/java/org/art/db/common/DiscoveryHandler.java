@@ -28,7 +28,7 @@ public class DiscoveryHandler {
 	
 	private static final ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("Discovery", 1);
 	
-	private DiscoveryPlugin plugin = new PluginLoader().getPlugin(DiscoveryPlugin.class);
+	private final DiscoveryPlugin plugin;
 	
 	
 	private AtomicReference<MultiValueMap<String, URI>> instances = new AtomicReference<MultiValueMap<String, URI>>(new MultiValueMap<String, URI>());
@@ -62,12 +62,15 @@ public class DiscoveryHandler {
 	private static DiscoveryHandler serverInstance;
 	
 	
-	public DiscoveryHandler(Configuration config, boolean isServer) throws Exception {
+	public DiscoveryHandler(Configuration config, boolean isServer, boolean kubernetes) throws Exception {
 		this.localInstance = config.toURI();
 		this.cluster = config.getCluster();
 		this.localShard = config.getShard();
 		this.port = config.getPort();
 		this.isServer = isServer;
+		this.plugin = kubernetes ? new KubernetesDiscoveryPlugin() : new DiscoveryPluginImpl();
+		
+		logger.info(" kub = " + kubernetes + " created plugin " + this.plugin.getClass().getSimpleName());
 		
 		if (isServer) {
 			serverInstance = this;
@@ -98,7 +101,7 @@ public class DiscoveryHandler {
 	public static DiscoveryHandler getHandler(Configuration config) {
 		return handlers.computeIfAbsent(config, name -> {
 			try {
-				return  new DiscoveryHandler(config, false);
+				return  new DiscoveryHandler(config, false, false);
 			} catch (Exception exc) {
 				throw new IllegalStateException(exc);
 			}
@@ -241,6 +244,7 @@ public class DiscoveryHandler {
 			Set<InetAddress> hosts = new HashSet<>();
 			ShardFinder oldFinder = this.shardFinder.get();
 			
+			logger.info("loadinstance got " + map);
 			for (Map.Entry<URI, String> entry : map.entrySet()) {
 				URI uri = entry.getKey();
 				String shard = entry.getValue();

@@ -8,6 +8,7 @@
 # docker build . --tag db:v1 
 # 
 
+#kubectl create clusterrolebinding default-pod --clusterrole cluster-admin --serviceaccount=default:default
 # kubectl create -f helloworld.yaml
 # $ kubectl expose deployment helloworld --type=NodePort
 # $ minikube service helloworld

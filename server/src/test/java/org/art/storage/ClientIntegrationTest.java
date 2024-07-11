@@ -16,7 +16,7 @@ public class ClientIntegrationTest extends BaseIntegrationTest {
 	
 	@Test
 	public void test() {
-		Server.start("./application.properties");
+		Server.start("./application.properties", false);
 		
 		try {
 			Configuration.getInstance().load("./application.properties");

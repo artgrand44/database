@@ -58,7 +58,7 @@ public class ShardTest extends BaseIntegrationTest {
 				String insertTemplare = "insert into sharded (id, color, make, count) values ('%s', 'red', 'toyota', '1')";
 				String queryTemplate = "select * from sharded where id = '%s'";
 				
-				DiscoveryHandler handler = new DiscoveryHandler(shard1, false);
+				DiscoveryHandler handler = new DiscoveryHandler(shard1, false, false);
 				handler.waitInstanceCount(2, 10 * 1000);
 				
 				for (int idx = 0; idx < 10; idx++) {

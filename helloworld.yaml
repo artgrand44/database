@@ -2,6 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: helloworld
+  labels: {
+    "shards" : "1",
+  }
 spec:
   selector:
     matchLabels:
