@@ -68,7 +68,6 @@ public class HeartbeatPublisher {
 			DatagramPacket packet = new DatagramPacket(buf, buf.length, group, 4445);
 			
 			this.sendSocket.send(packet);
-			logger.info("sent message ");
 		} catch (Exception exc) {
 		}
 		

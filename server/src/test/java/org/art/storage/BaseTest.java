@@ -35,7 +35,7 @@ public class BaseTest {
 		logger.info("Start test " + this.getClass().getSimpleName());
 		
 		this.cleanDataDirectories();
-		
+		/*
 		try (KubernetesClient client = new KubernetesClientBuilder().build()) {
 			ServiceList svcList = client.services().withField("metadata.name", "helloworld").list();
 			
@@ -92,7 +92,7 @@ public class BaseTest {
 			exc.printStackTrace();
 		}
 		
-		logger.info("done");
+		logger.info("done");*/
 
 	}
 	

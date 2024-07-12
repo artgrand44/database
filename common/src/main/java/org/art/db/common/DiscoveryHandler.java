@@ -73,8 +73,6 @@ public class DiscoveryHandler {
 		
 		this.plugin = kubernetes == null || kubernetes.isEmpty() ? new DiscoveryPluginImpl() : new KubernetesDiscoveryPlugin();
 		
-		logger.info(" kub = " + kubernetes + " created plugin " + this.plugin.getClass().getSimpleName());
-		
 		if (isServer) {
 			serverInstance = this;
 		}
@@ -247,7 +245,6 @@ public class DiscoveryHandler {
 			Set<InetAddress> hosts = new HashSet<>();
 			ShardFinder oldFinder = this.shardFinder.get();
 			
-			logger.info("loadinstance got " + map);
 			for (Map.Entry<URI, String> entry : map.entrySet()) {
 				URI uri = entry.getKey();
 				String shard = entry.getValue();
