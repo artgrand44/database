@@ -15,6 +15,8 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 	
 	private HeartbeatListener listener;
 	
+	private String port;
+	
 	public DiscoveryPluginImpl() {
 		
 	}
@@ -29,14 +31,19 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 		return this.listener.getInstances();
 	}
 
-	public void initialize(URI localInstance, String cluster, String localShard, boolean isServer) { 
-		this.listener = new HeartbeatListener(this.publisher, cluster, localInstance);
+	public String getLocalPort() {
+		return this.port;
+	}
+	
+	public void initialize(Configuration config, boolean isServer) { 
+		this.listener = new HeartbeatListener(this.publisher, config.getCluster(), config.toURI());
+		this.port = config.getPort();
 		
 		this.listener.intialize();
 		this.listener.start();
 		
 		if (isServer) {
-			this.publisher = new HeartbeatPublisher(cluster, localShard, localInstance.getPort());
+			this.publisher = new HeartbeatPublisher(config.getCluster(), config.getShard(), config.toURI().getPort());
 			this.publisher.initialize();
 			this.listener.setPublisher(this.publisher);
 		}	

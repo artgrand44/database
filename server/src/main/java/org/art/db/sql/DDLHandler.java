@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.art.db.client.Client;
 import org.art.db.common.Converter;
@@ -299,7 +300,14 @@ public class DDLHandler {
 				SQLUtils.broadcastAll(database, drop.toString(), user, password);
 			}
 		} else if (type.equalsIgnoreCase("TABLE")) {
-			Files.remove(SQLUtils.getFQN(drop.getName(), database));
+			String table = SQLUtils.getFQN(drop.getName(), database);
+			File tableDir = Files.getTableDirectory(table);
+			
+			if (tableDir.exists()) {
+				FileUtils.deleteDirectory(tableDir);
+			} else if (!drop.isIfExists()) {
+				throw new DBRuntimeException("Table " + table + " does not exist");
+			}
 		} else {
 			throw new UnsupportedSyntaxException("Drop " + type + " is not supported.");
 		}

@@ -55,7 +55,7 @@ public class SQLUtils {
 		
 		if (handler != null) {
 			for (String shard : handler.getInstances().keySet()) {
-				if (!shard.equals(handler.getlocalShard())) {
+				if (!shard.equals(handler.getLocalShard())) {
 					forwardExecute(database, shard, statement, user, password, parameters);
 				}
 			}
@@ -88,7 +88,7 @@ public class SQLUtils {
 
 		if (handler != null) {
 			for (String shard : handler.getInstances().keySet()) {
-				if (!shard.equals(handler.getlocalShard())) {
+				if (!shard.equals(handler.getLocalShard())) {
 					try {
 						result.add(forwardExecuteQuery(database, shard, statement, user, password, parameters));
 					} catch (Exception exc) {
@@ -113,7 +113,7 @@ public class SQLUtils {
 					break;
 					
 				}
-				if (!shard.equals(handler.getlocalShard())) {
+				if (!shard.equals(handler.getLocalShard())) {
 					try {
 						
 						if (limitClause != null) {
@@ -245,7 +245,7 @@ public class SQLUtils {
 	static boolean isShardLocal(String shard) {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
-		return handler == null || shard.equals(handler.getlocalShard()) || shard.equals(Client.WILDCARD);
+		return handler == null || shard.equals(handler.getLocalShard()) || shard.equals(Client.WILDCARD);
 	}
 
 

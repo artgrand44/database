@@ -124,6 +124,10 @@ public class Files {
 		return getFile(SECURITY);
 	}
 	
+	public static File getTableDirectory(String table) {
+		return getFile(TABLE_DIRECTORY, table);
+	}
+	
 	public static List<String> listTables() {
 		List<String> result = new ArrayList<>();
 		File[] dirs = getRoot().listFiles((x, y) -> new File(x, y).isDirectory());
@@ -138,6 +142,7 @@ public class Files {
 		
 		return result;
 	}
+	
 	public static File[] listDiskSegments(String table) {
 		File tableDir = new File(getRoot(), table);
 		
@@ -161,10 +166,5 @@ public class Files {
 		return tableDir.listFiles(filter);
 	}
 	
-	public static void remove(String table) throws IOException {
-		File dir = getFile(TABLE_DIRECTORY, table);
-		
-		FileUtils.deleteDirectory(dir);
-	}
 	
 }

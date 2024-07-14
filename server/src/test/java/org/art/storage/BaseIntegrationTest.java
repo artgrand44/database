@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 
+import org.art.db.client.Client;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.server.Server;
 import org.junit.jupiter.api.AfterEach;
@@ -49,8 +50,10 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	}
 	
 	public void startInternal(String path) {
-		DiscoveryHandler.clear();
-		Server.start(path);
+		if (System.getProperty("org.art.db.serviceURI") == null) {
+			DiscoveryHandler.clear();
+			Server.start(path);
+		}
 		
 	}
 	
@@ -62,8 +65,18 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	}
 	
 	public void stopInternal() {
-		Server.stop();
-		
+		if (System.getProperty("org.art.db.serviceURI") == null) {
+			Server.stop();
+		}	
 	}
 	
+	public Client getClient() throws Exception {
+		String uri = System.getProperty("org.art.db.serviceURI");
+		
+		if (uri == null) {
+			return new Client("cluster", "admin", "admin");
+		} else {
+			return new Client(new URI(uri), "cluster", "admin", "admin");
+		}
+	}
 }

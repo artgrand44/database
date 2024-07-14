@@ -11,9 +11,12 @@ public interface DiscoveryPlugin {
 		
 	public void start();
 	
-	default void initialize(URI localInstance, String cacheName, String localShard, boolean isServer) { }
+	public String getLocalPort();
+	
+	default void initialize(Configuration config, boolean isServer) { }
 	
 	default void clear() { }
+	
 	
 	void stop();
 }

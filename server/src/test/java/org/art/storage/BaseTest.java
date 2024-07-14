@@ -1,7 +1,6 @@
 package org.art.storage;
 
 import java.io.File;
-import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -14,9 +13,6 @@ import io.fabric8.kubernetes.api.model.EndpointPort;
 import io.fabric8.kubernetes.api.model.EndpointSubset;
 import io.fabric8.kubernetes.api.model.Endpoints;
 import io.fabric8.kubernetes.api.model.EndpointsList;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.api.model.Service;
-import io.fabric8.kubernetes.api.model.ServiceList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 
@@ -35,40 +31,10 @@ public class BaseTest {
 		logger.info("Start test " + this.getClass().getSimpleName());
 		
 		this.cleanDataDirectories();
-		/*
-		try (KubernetesClient client = new KubernetesClientBuilder().build()) {
-			ServiceList svcList = client.services().withField("metadata.name", "helloworld").list();
-			
-			for (Service service: svcList.getItems()) {
-				logger.info(service.toString());
-				ObjectMeta metadata = service.getMetadata();
-				Map<String, String> labels = metadata.getLabels();
-				
-				logger.info("shards = " + labels.get("shards"));
-				
-				logger.info(metadata.toString());
-			}
-			
+		
+		/*try (KubernetesClient client = new KubernetesClientBuilder().build()) {
 			EndpointsList endpointList;
-			endpointList = client.endpoints().list();
-			
-			logger.info("shpoing all");
-			
-
-			for (Endpoints endpoints : endpointList.getItems()) {
-				for (EndpointSubset subset : endpoints.getSubsets()) {
-					if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
-						EndpointAddress address = subset.getAddresses().get(0);
-						EndpointPort port = subset.getPorts().get(0);
 						
-						
-						logger.info("ip " + address.getIp() + ":" + port.getPort() + " " + port);
-					}
-					
-				}
-				logger.info(endpoints.toString());
-			}
-			
 			endpointList = client.endpoints().withField("metadata.name", "helloworld").list();
 			
 			logger.info("count " + endpointList.getItems().size());
@@ -90,9 +56,9 @@ public class BaseTest {
 			
 		} catch (Exception exc) {
 			exc.printStackTrace();
-		}
+		}*/
 		
-		logger.info("done");*/
+		logger.info("done");
 
 	}
 	

@@ -69,7 +69,8 @@ public class Client {
 	 * @throws Exception
 	 */
 	public Client(URI uri, String shard, String user, String password) throws Exception {
-		Configuration config = new Configuration(uri.getHost(), String.valueOf(uri.getPort()), shard, "cluster", "./dbroot", user, password);
+		String host = uri == null ? null : uri.getHost();
+		Configuration config = new Configuration(host, String.valueOf(uri.getPort()), shard, "cluster", "./dbroot", user, password);
 		
 		this.handler = DiscoveryHandler.getHandler(config);
 		this.router = Router.getRouter(handler, user, password);

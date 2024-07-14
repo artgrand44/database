@@ -23,8 +23,10 @@ public class QueryPounderTest extends BaseQueryPounder {
 	
 	public QueryPounderTest() {
 		super("./bigcache.properties", NITEMS, NTHREADS);
+		
+		
 	}
-
+	
 	private String getName(int idx) {
 		return "Name" + idx;
 	}
@@ -32,6 +34,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 	private int getId(int idx) {
 		return idx;
 	}
+	
 	
 	@Override
 	protected void pound(int index, int mainLoop) {	
@@ -46,11 +49,12 @@ public class QueryPounderTest extends BaseQueryPounder {
 	
 	protected void doSelects(int index) {	
 		try {
+			logger.info("start selects");
 			String nameQuery = "select * from pounder where FirstName = ?";
 			String idQuery = "select * from pounder where ID = ?";
 			String update = "update pounder set Age = '2' where ID = ? limit 1";
 			Random random = new Random(index);
-			Client client = new Client("cluster", "admin", "admin");
+			Client client = this.getClient();
 
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				int idx = super.getRandom(random);
@@ -59,6 +63,10 @@ public class QueryPounderTest extends BaseQueryPounder {
 				
 				DocumentSet ids = client.executeQuery(idQuery, id);
 				DocumentSet names = client.executeQuery(nameQuery, name);
+				
+				if (loop == 0) {
+					logger.info("after first select");
+				}
 				
 				this.addRead();
 				this.addRead();
@@ -94,7 +102,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 	protected void doUpdates(int index) {	
 		try {
 
-			Client client = new Client("cluster", "admin", "admin");
+			Client client = this.getClient();
 
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				int id = -(this.deleteNextId.incrementAndGet());
@@ -119,11 +127,12 @@ public class QueryPounderTest extends BaseQueryPounder {
 
 	@Override
 	protected void loadDabase() throws Exception {
-		Client client = new Client("cluster", "admin", "admin").batch(false);
+		Client client = this.getClient();
+		String drop = "drop table if exists pounder";
 		String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 		String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
 		
-		
+		client.execute(drop);
 		client.execute(create);
 		client.execute(createIndex);
 		

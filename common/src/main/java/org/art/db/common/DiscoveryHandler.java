@@ -65,19 +65,32 @@ public class DiscoveryHandler {
 	public DiscoveryHandler(Configuration config, boolean isServer) throws Exception {
 		this.localInstance = config.toURI();
 		this.cluster = config.getCluster();
-		this.localShard = config.getShard();
+		this.localShard = "Shard1";
 		this.port = config.getPort();
 		this.isServer = isServer;
 		
 		String kubernetes = System.getenv("KUBERNETES_SERVICE_HOST");
+		DiscoveryPlugin plugin;
+		URI serviceURI = config.getServiceURI();
+		String testURI = System.getProperty("org.art.db.serviceURI");
 		
-		this.plugin = kubernetes == null || kubernetes.isEmpty() ? new DiscoveryPluginImpl() : new KubernetesDiscoveryPlugin();
+		if (serviceURI != null && !this.isServer) {
+			plugin = new SingletonDiscoveryPlugin(serviceURI);
+		} else if (testURI != null) {
+			plugin = new SingletonDiscoveryPlugin(new URI(testURI));
+		} else if (kubernetes == null || kubernetes.isEmpty()) {
+			plugin = new DiscoveryPluginImpl();
+		} else {
+			plugin = new KubernetesDiscoveryPlugin();
+		}
+				
+		this.plugin = plugin;
 		
 		if (isServer) {
 			serverInstance = this;
 		}
 		
-		this.plugin.initialize(this.localInstance, this.cluster, this.localShard, this.isServer);
+		this.plugin.initialize(config, this.isServer);
 		
 		Utils.sleepSafely(300);
 		
@@ -99,7 +112,7 @@ public class DiscoveryHandler {
 		serverInstance = null;
 	}
 	
-	public static DiscoveryHandler getHandler(Configuration config) {
+	public synchronized static DiscoveryHandler getHandler(Configuration config) {
 		return handlers.computeIfAbsent(config, name -> {
 			try {
 				return  new DiscoveryHandler(config, false);
@@ -114,7 +127,7 @@ public class DiscoveryHandler {
 	}
 	
 	public String getLocalPort() {
-		return this.port;
+		return this.plugin.getLocalPort();
 	}
 
 	
@@ -136,7 +149,7 @@ public class DiscoveryHandler {
 		return this.instances.get();
 	}
 	
-	public String getlocalShard() {
+	public String getLocalShard() {
 		return this.localShard;
 	}
 	
@@ -155,7 +168,7 @@ public class DiscoveryHandler {
 	}
 	
 	public int getLocalInstanceCount() {
-		return  this.instances.get().get(this.localShard).size();
+		return  this.instances.get().get(this.getLocalShard()).size();
 	}
 	
 	/**
@@ -168,11 +181,11 @@ public class DiscoveryHandler {
 		
 		if (instances == null) {
 			logger.info("no instances");
-		} else if (instances.get(this.localShard) == null) {
-			logger.info("np instances for service " + this.localShard + " in " + instances);
+		} else if (instances.get(this.getLocalShard()) == null) {
+			logger.info("np instances for service " + this.getLocalShard() + " in " + instances);
 		}
 		
-		Set<URI> peers = new HashSet<>(instances.get(this.localShard));
+		Set<URI> peers = new HashSet<>(instances.get(this.getLocalShard()));
 		
 		peers.remove(localInstance);
 		peers.addAll(this.recoveringInstances.keySet());
@@ -188,7 +201,7 @@ public class DiscoveryHandler {
 			return null;
 		}
 			
-		AtomicLong counter = this.lastUsed.get(this.getlocalShard());
+		AtomicLong counter = this.lastUsed.get(this.getLocalShard());
 		int index = (int) Math.abs(counter.incrementAndGet() % peers.size());
 		return peers.get(index);
 	}
@@ -255,7 +268,7 @@ public class DiscoveryHandler {
 			}
 			
 			if (this.localInstance != null && !map.containsKey(this.localInstance)) {
-				instances.add(this.localShard, this.localInstance);
+				instances.add(this.getLocalShard(), this.localInstance);
 				hosts.add(InetAddress.getByName(this.localInstance.getHost()));
 			}
 			
@@ -305,7 +318,7 @@ public class DiscoveryHandler {
 	}
 	
 	public void start() {
-		logger.info("Warmup completed on " + this.port);
+		logger.info("Warmup completed");
 		
 		this.plugin.start();
 	}
@@ -317,7 +330,7 @@ public class DiscoveryHandler {
 	
 	@Override
 	public String toString() {
-		return "DiscoveryHandler [port=" + port +", localShard=" +localShard + ", instances="
+		return "DiscoveryHandler [port=" + port +", localShard=" + getLocalShard() + ", instances="
 				+ instances + ", shardMap=" + shardFinder + "]";
 	}
 	
@@ -328,7 +341,7 @@ public class DiscoveryHandler {
 		
 		while (this.getInstanceCount(this.instances.get()) < desiredCount) {
 			if (totalTime >= timeout) {
-				throw new Exception("Unable to find services on " + this.port + " timeout " + timeout);
+				throw new Exception("Unable to find services on " + this.plugin.getLocalPort() + " timeout " + timeout);
 			}
 			
 			Utils.sleepSafely(Math.min(timeout, 1000));
@@ -337,5 +350,31 @@ public class DiscoveryHandler {
 	
 	}
 	
+	static class SingletonDiscoveryPlugin implements DiscoveryPlugin {
+		private final Map<URI, String> instances;
+		
+		SingletonDiscoveryPlugin(URI uri) {
+			this.instances = Map.of(uri, "shard1");
+		}
+		
+		@Override
+		public Map<URI, String> getInstances() {
+			return this.instances;
+		}
+
+		@Override
+		public void start() {		
+		}
+
+		@Override
+		public void stop() {
+		}
+
+		@Override
+		public String getLocalPort() {
+			return "8080";
+		}
+		
+	}
 		
 }
