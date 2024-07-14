@@ -13,6 +13,8 @@ public interface DiscoveryPlugin {
 	
 	public String getLocalPort();
 	
+	public String getLocalShard();
+	
 	default void initialize(Configuration config, boolean isServer) { }
 	
 	default void clear() { }

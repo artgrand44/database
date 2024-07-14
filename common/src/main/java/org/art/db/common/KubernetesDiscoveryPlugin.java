@@ -81,6 +81,10 @@ public class KubernetesDiscoveryPlugin implements DiscoveryPlugin {
 		return this.localPort;
 	}
 	
+	public String getLocalShard() {
+		return "Shard1";			
+	}
+	
 	@Override
 	public void start() {
 		

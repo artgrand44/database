@@ -40,8 +40,6 @@ public class DiscoveryHandler {
 	
 	private String port;
 	
-	private final String localShard;
-	
 	private final URI localInstance;
 	
 	private String cluster;
@@ -65,7 +63,6 @@ public class DiscoveryHandler {
 	public DiscoveryHandler(Configuration config, boolean isServer) throws Exception {
 		this.localInstance = config.toURI();
 		this.cluster = config.getCluster();
-		this.localShard = "Shard1";
 		this.port = config.getPort();
 		this.isServer = isServer;
 		
@@ -150,7 +147,7 @@ public class DiscoveryHandler {
 	}
 	
 	public String getLocalShard() {
-		return this.localShard;
+		return this.plugin.getLocalShard();
 	}
 	
 	
@@ -184,6 +181,8 @@ public class DiscoveryHandler {
 		} else if (instances.get(this.getLocalShard()) == null) {
 			logger.info("np instances for service " + this.getLocalShard() + " in " + instances);
 		}
+		
+		logger.info("local shard " + this.getLocalShard() + " " + instances.get(this.getLocalShard()));
 		
 		Set<URI> peers = new HashSet<>(instances.get(this.getLocalShard()));
 		
@@ -375,6 +374,9 @@ public class DiscoveryHandler {
 			return "8080";
 		}
 		
+		public String getLocalShard() {
+			return "shard1";			
+		}
 	}
 		
 }

@@ -49,7 +49,6 @@ public class QueryPounderTest extends BaseQueryPounder {
 	
 	protected void doSelects(int index) {	
 		try {
-			logger.info("start selects");
 			String nameQuery = "select * from pounder where FirstName = ?";
 			String idQuery = "select * from pounder where ID = ?";
 			String update = "update pounder set Age = '2' where ID = ? limit 1";
@@ -63,10 +62,6 @@ public class QueryPounderTest extends BaseQueryPounder {
 				
 				DocumentSet ids = client.executeQuery(idQuery, id);
 				DocumentSet names = client.executeQuery(nameQuery, name);
-				
-				if (loop == 0) {
-					logger.info("after first select");
-				}
 				
 				this.addRead();
 				this.addRead();
@@ -127,7 +122,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 
 	@Override
 	protected void loadDabase() throws Exception {
-		Client client = this.getClient();
+		Client client = this.getClient().batch(false);
 		String drop = "drop table if exists pounder";
 		String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 		String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
@@ -150,8 +145,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 	private void insert(Client client, int idx) throws Exception {
 		String insert = "insert into pounder (ID, FirstName, LastName, Age) values (?, ?, 'grand', '1')";
 		
-		client.execute(insert, getId(idx), getName(idx));
-		
+		client.execute(insert, getId(idx), getName(idx));		
 	}
 	
 	private void remove(Client client, int idx) throws Exception {
