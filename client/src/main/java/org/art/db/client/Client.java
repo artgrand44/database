@@ -60,6 +60,36 @@ public class Client {
 		this.shard = "*";
 	}
 	
+	public Client(URI uri, String user, String password) throws Exception {
+		String cluster;
+		String shard;
+		String host;
+		URI serverURI;
+		String port;
+		
+		if (uri.getScheme().equalsIgnoreCase("database")) {
+			cluster = uri.getHost();
+			shard = uri.getPath().isEmpty() ? "*" : uri.getPath().substring(1);
+			serverURI = null;
+			host = null;
+			port = "0";
+		} else {
+			cluster = uri.getPath().substring(1);
+			shard = "*";
+			serverURI = new URI(String.format("%s://%s:%s", uri.getScheme(), uri.getHost(), uri.getPort()));
+			host = uri.getHost();
+			port = String.valueOf(uri.getPort());
+		}
+		
+		Configuration config = new Configuration(host, port, shard, cluster, "./dbroot", user, password);
+		
+		this.handler = DiscoveryHandler.getHandler(config);
+		this.router = Router.getRouter(handler, user, password);
+		this.client = new RestClient(user, password);
+		this.uri = serverURI;
+		this.shard = "*";	
+	}
+	
 	/**
 	 * Used by tests that need to talk to a particular instance.
 	 * @param uri

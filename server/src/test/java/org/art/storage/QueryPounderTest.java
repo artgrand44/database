@@ -26,7 +26,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 		
 		
 	}
-	
+
 	private String getName(int idx) {
 		return "Name" + idx;
 	}

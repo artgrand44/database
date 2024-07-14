@@ -74,9 +74,9 @@ public class BaseIntegrationTest extends BaseSQLTest {
 		String uri = System.getProperty("org.art.db.serviceURI");
 		
 		if (uri == null) {
-			return new Client("cluster", "admin", "admin");
+			return new Client(new URI("database://cluster"), "admin", "admin");
 		} else {
-			return new Client(new URI(uri), "cluster", "admin", "admin");
+			return new Client(new URI(uri.toString() + "/cluster"), "admin", "admin");
 		}
 	}
 }

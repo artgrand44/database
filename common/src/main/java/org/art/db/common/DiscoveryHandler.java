@@ -182,8 +182,6 @@ public class DiscoveryHandler {
 			logger.info("np instances for service " + this.getLocalShard() + " in " + instances);
 		}
 		
-		logger.info("local shard " + this.getLocalShard() + " " + instances.get(this.getLocalShard()));
-		
 		Set<URI> peers = new HashSet<>(instances.get(this.getLocalShard()));
 		
 		peers.remove(localInstance);
