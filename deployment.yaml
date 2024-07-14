@@ -4,6 +4,7 @@ metadata:
   name: artdb
   labels: {
     "cluster" : "cluster",
+    "shard" : "shard1"
   }
 spec:
   selector:

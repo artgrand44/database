@@ -13,6 +13,7 @@ import io.fabric8.kubernetes.api.model.EndpointPort;
 import io.fabric8.kubernetes.api.model.EndpointSubset;
 import io.fabric8.kubernetes.api.model.Endpoints;
 import io.fabric8.kubernetes.api.model.EndpointsList;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 
@@ -21,6 +22,8 @@ public class KubernetesDiscoveryPlugin implements DiscoveryPlugin {
 			
 	private final KubernetesClient client;
 	private String localPort;
+	private String localShard;
+	private String cluster;
 	
 	public KubernetesDiscoveryPlugin() {
 		
@@ -46,21 +49,35 @@ public class KubernetesDiscoveryPlugin implements DiscoveryPlugin {
 		Map<URI, String> result = new HashMap<>();
 
 		try {
-			EndpointsList endpointList = client.endpoints().withField("metadata.name", "helloworld").list();
+			EndpointsList endpointList = client.endpoints().withField("metadata.name", "artdb").list();
 			String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
-
+			
 			for (Endpoints endpoints : endpointList.getItems()) {
+				ObjectMeta meta = endpoints.getMetadata();
+				Map<String, String> labels = meta.getLabels();
+				String cluster = labels.get("cluster");
+				String shard = labels.get("shard");
+				
+				logger.info("endpoint labels " + labels);
+				
+				if (!cluster.equalsIgnoreCase(this.cluster)) {
+					logger.info("skip endpoint cluster = " + cluster + " local " + this.cluster);
+				}
+				
 				for (EndpointSubset subset : endpoints.getSubsets()) {
+					 
 					if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
 						EndpointAddress address = subset.getAddresses().get(0);
 						EndpointPort port = subset.getPorts().get(0);
 						URI uri = new URI(String.format("http://%s:%s", address.getIp(), port.getPort()));
 						
-						result.put(uri, "Shard1");
+						result.put(uri, shard);
 						
 						if (address.getIp().equals(localHostAddress)) {
 							this.localPort = port.getPort().toString();
+							this.localShard = shard;
 							logger.info("set local port to " + this.localPort);
+							logger.info("set local shard to " + this.localShard);
 						}
 					}
 				}
@@ -82,7 +99,13 @@ public class KubernetesDiscoveryPlugin implements DiscoveryPlugin {
 	}
 	
 	public String getLocalShard() {
-		return "Shard1";			
+		return this.localShard;			
+	}
+	
+	public void initialize(Configuration config, boolean isServer) {
+		this.cluster = config.getCluster();
+		
+		logger.info("init set local cluster to " + this.cluster);
 	}
 	
 	@Override
