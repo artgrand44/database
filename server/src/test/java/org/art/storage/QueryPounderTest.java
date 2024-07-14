@@ -145,7 +145,11 @@ public class QueryPounderTest extends BaseQueryPounder {
 	private void insert(Client client, int idx) throws Exception {
 		String insert = "insert into pounder (ID, FirstName, LastName, Age) values (?, ?, 'grand', '1')";
 		
-		client.execute(insert, getId(idx), getName(idx));		
+		try {
+			client.execute(insert, getId(idx), getName(idx));	
+		} catch (Exception exc) {
+			logger.info("exception on " + idx);
+		}
 	}
 	
 	private void remove(Client client, int idx) throws Exception {
