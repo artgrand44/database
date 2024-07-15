@@ -5,7 +5,7 @@ import java.util.Map;
 
 
 public interface DiscoveryPlugin {
-	Map<URI, String> getInstances();
+	Map<URI, String> getServerInstances();
 	
 	default void removeInstance(URI instance) {}
 		

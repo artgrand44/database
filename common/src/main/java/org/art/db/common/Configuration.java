@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +76,10 @@ public class Configuration {
 			for (PropertyChangeListener listener : instance.pcs.getPropertyChangeListeners()) {
 				this.pcs.addPropertyChangeListener(listener);
 			}
+		}
+		
+		if (KubernetesPlugin.isKubernetes()) {
+			Scheduler.DEFAULT.scheduleAtFixedRate(this::loadFromKubernetes, 1, 30, TimeUnit.SECONDS);
 		}
 		
 	}
@@ -160,6 +165,10 @@ public class Configuration {
 				&& Objects.equals(shard, other.shard);
 	}
 
+	private void loadFromKubernetes() {
+		this.properties.putAll(KubernetesPlugin.getInstance().getConfigurationProperies());
+	}
+	
 	public void load(String propertyPath) throws Exception {
 		try (InputStream stream = Configuration.class.getClassLoader().getResourceAsStream(propertyPath)) {
 			Properties properties = new Properties();

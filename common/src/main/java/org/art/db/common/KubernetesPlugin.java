@@ -2,6 +2,7 @@ package org.art.db.common;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,35 +18,62 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 
-public class KubernetesDiscoveryPlugin implements DiscoveryPlugin {
-	private static final Logger logger = LoggerFactory.getLogger(KubernetesDiscoveryPlugin.class);
+public class KubernetesPlugin implements DiscoveryPlugin {
+	private static final Logger logger = LoggerFactory.getLogger(KubernetesPlugin.class);
 			
 	private final KubernetesClient client;
 	private String localPort;
 	private String localShard;
 	private String cluster;
 	
-	public KubernetesDiscoveryPlugin() {
-		
+	private static final KubernetesPlugin instance = new KubernetesPlugin();
+	
+	private KubernetesPlugin() {
 		try {
 			logger.info("Getting client");
 			
 			this.client = new KubernetesClientBuilder().build();
-			logger.info("Got client");
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
-			logger.info("Exception creating Kubernetes plugin " + exc.getMessage());
-			exc.printStackTrace();
 			throw new DBRuntimeException(exc);
+		}		
+	}
+	
+	public Map<String, String> getConfigurationProperies() {
+		try {
+			EndpointsList endpointList = client.endpoints().withField("metadata.name", "artdb").list();
+			String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
+			
+			for (Endpoints endpoints : endpointList.getItems()) {
+				ObjectMeta meta = endpoints.getMetadata();
+				Map<String, String> labels = meta.getLabels();
+
+				for (EndpointSubset subset : endpoints.getSubsets()) {					 
+					if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
+						EndpointAddress address = subset.getAddresses().get(0);
+						
+						if (address.getIp().equals(localHostAddress)) {
+							return labels;
+						}
+					}
+				}
+				
+			}
+		} catch (Exception exc) {
+			logger.info("There was an exception getting the config properties");
 		}
 		
+		return Collections.emptyMap();
+	}
+	
+	public static KubernetesPlugin getInstance() {
+		return instance;
 	}
 	
 	
-	
 	@Override
-	public Map<URI, String> getInstances() {
+	public Map<URI, String> getServerInstances() {
 		Map<URI, String> result = new HashMap<>();
 
 		try {
@@ -58,34 +86,31 @@ public class KubernetesDiscoveryPlugin implements DiscoveryPlugin {
 				String cluster = labels.get("cluster");
 				String shard = labels.get("shard");
 				
-				logger.info("endpoint labels " + labels);
-				
-				if (!cluster.equalsIgnoreCase(this.cluster)) {
-					logger.info("skip endpoint cluster = " + cluster + " local " + this.cluster);
-				}
-				
-				for (EndpointSubset subset : endpoints.getSubsets()) {
-					 
-					if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
-						EndpointAddress address = subset.getAddresses().get(0);
-						EndpointPort port = subset.getPorts().get(0);
-						URI uri = new URI(String.format("http://%s:%s", address.getIp(), port.getPort()));
-						
-						result.put(uri, shard);
-						
-						if (address.getIp().equals(localHostAddress)) {
-							this.localPort = port.getPort().toString();
-							this.localShard = shard;
-							logger.info("set local port to " + this.localPort);
-							logger.info("set local shard to " + this.localShard);
+				if (cluster.equalsIgnoreCase(this.cluster)) {				
+					for (EndpointSubset subset : endpoints.getSubsets()) {					 
+						if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
+							EndpointAddress address = subset.getAddresses().get(0);
+							EndpointPort port = subset.getPorts().get(0);
+							URI uri = new URI(String.format("http://%s:%s", address.getIp(), port.getPort()));
+
+							result.put(uri, shard);
+
+							if (address.getIp().equals(localHostAddress)) {
+								this.localPort = port.getPort().toString();
+								this.localShard = shard;
+								logger.info("set local port to " + this.localPort);
+								logger.info("set local shard to " + this.localShard);
+								logger.info("props are " + labels);
+							}
 						}
 					}
 				}
-
+				
 				logger.info("instances " + result);
 				logger.info("local host name" + InetAddress.getLocalHost().getHostName() + " hostaddress " +   InetAddress.getLocalHost().getHostAddress());
 				logger.info("local  "  + InetAddress.getLocalHost());
 			}
+			
 		} catch (Exception exc) {
 			logger.info("there was an error getting the instances " + exc.getLocalizedMessage());
 			exc.printStackTrace();
@@ -107,6 +132,13 @@ public class KubernetesDiscoveryPlugin implements DiscoveryPlugin {
 		
 		logger.info("init set local cluster to " + this.cluster);
 	}
+	
+	public static boolean isKubernetes() {
+		String kubernetes = System.getenv("KUBERNETES_SERVICE_HOST");
+		
+		return kubernetes != null && !kubernetes.isEmpty();
+	}
+	
 	
 	@Override
 	public void start() {

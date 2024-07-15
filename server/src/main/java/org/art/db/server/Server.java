@@ -51,7 +51,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 	
 	private static Server instance;
 	
-	public Server() throws Exception {
+	public Server(String properties) throws Exception {
 		Configuration config = Configuration.getInstance();
 		
 		this.port = Integer.valueOf(config.getPort());
@@ -225,7 +225,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 			logger.info("starting server with " + file.getAbsolutePath());
 			Configuration.getInstance().load(properties);
-			instance = new Server();
+			instance = new Server(properties);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}		

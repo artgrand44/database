@@ -28,7 +28,7 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 	}
 	
 	@Override
-	public Map<URI, String> getInstances() {
+	public Map<URI, String> getServerInstances() {
 		return this.listener.getInstances();
 	}
 

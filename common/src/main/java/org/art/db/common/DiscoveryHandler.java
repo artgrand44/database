@@ -63,11 +63,10 @@ public class DiscoveryHandler {
 		this.port = config.getPort();
 		this.isServer = isServer;
 		
-		String kubernetes = System.getenv("KUBERNETES_SERVICE_HOST");
 		DiscoveryPlugin plugin;
 		
-		if (kubernetes != null && !kubernetes.isEmpty()) {
-			plugin = new KubernetesDiscoveryPlugin();
+		if (KubernetesPlugin.isKubernetes()) {
+			plugin = KubernetesPlugin.getInstance();
 		} else if (isServer || config.getHost() == null || config.getHost().equals(InetAddress.getLocalHost().getHostAddress())) {
 			plugin = new DiscoveryPluginImpl();
 		} else {
@@ -244,7 +243,7 @@ public class DiscoveryHandler {
 	public synchronized void loadEnvironment()  {
 		try {
 			MultiValueMap<String, URI> instances = new MultiValueMap<>();			
-			Map<URI, String> map = this.plugin.getInstances();
+			Map<URI, String> map = this.plugin.getServerInstances();
 			Set<InetAddress> hosts = new HashSet<>();
 			ShardFinder oldFinder = this.shardFinder.get();
 			
@@ -348,7 +347,7 @@ public class DiscoveryHandler {
 		}
 		
 		@Override
-		public Map<URI, String> getInstances() {
+		public Map<URI, String> getServerInstances() {
 			return this.instances;
 		}
 
