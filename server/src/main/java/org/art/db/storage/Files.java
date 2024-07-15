@@ -48,8 +48,6 @@ public class Files {
 		
 	}
 	
-	
-	
 	public static File getRoot() {
 		Configuration config = Configuration.getInstance();
 		

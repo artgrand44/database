@@ -191,7 +191,6 @@ public class DDLHandler {
 	}
 	
 	static void createTable(CreateTable createTable, String targetShard, String database, String user, String password) throws Exception {
-		
 		if (!SecurityHandler.getInstance().isAdmin(user, password)) {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
@@ -252,6 +251,7 @@ public class DDLHandler {
 		} catch (Exception exc) {
 			throw new DBRuntimeException("Create Table failed " + exc.getMessage(), exc);
 		}
+		
 	}
 	
 	static void createUser(String sql, String targetShard, String database, String user, String password, String newUser, String newPassword) throws Exception {
@@ -304,6 +304,7 @@ public class DDLHandler {
 			File tableDir = Files.getTableDirectory(table);
 			
 			if (tableDir.exists()) {
+				StorageManager.getInstance().closeTable(table);
 				FileUtils.deleteDirectory(tableDir);
 			} else if (!drop.isIfExists()) {
 				throw new DBRuntimeException("Table " + table + " does not exist");

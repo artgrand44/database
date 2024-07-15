@@ -71,7 +71,6 @@ public class TableManager implements Closeable{
 			throw new DBRuntimeException(tableName + " is locked by another serve");
 		}
 		
-		logger.info(this.tableName + " got lock");
 		for (IndexInfo info : this.indexInfo) {
 			String name = info.name();
 			File indexFile = Files.getIndex(tableName, name);
@@ -80,6 +79,7 @@ public class TableManager implements Closeable{
 		}
 		
 		File[] logs =  Files.listTableLogs(tableName);
+		
 		this.table = new Table(tableName, this.indices);
 				
 		// If there are any logs for this table then apply them.  If this is a 
@@ -253,7 +253,6 @@ public class TableManager implements Closeable{
 	}
 	
 	public void insert(Document doc, boolean propagate, boolean log) throws Exception {
-		
 		try {
 			Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
 

@@ -1,6 +1,7 @@
 package org.art.db.storage;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,6 +30,7 @@ public class StorageManager  {
 	public StorageManager() {
 	}
 	
+	
 	public void closeAll()  {		
 		for (Map.Entry<String, TableManager> entry : this.tableManagers.entrySet()) {
 			Utils.closeSafely(entry.getValue());			
@@ -36,6 +38,14 @@ public class StorageManager  {
 		
 		this.tableManagers.clear();
 		
+	}
+	
+	public void closeTable(String table) throws IOException {
+		TableManager manager = this.tableManagers.remove(table);
+		
+		if (manager != null) {
+			manager.close();
+		}
 	}
 	
 	public static StorageManager getInstance() {
@@ -78,9 +88,11 @@ public class StorageManager  {
 
 
 	public TableManager getTableManager(String table) throws DBRuntimeException {
-		return  this.tableManagers.computeIfAbsent(table, x -> this.createTableManager(x));
+		return this.tableManagers.computeIfAbsent(table, x -> this.createTableManager(x));
 	}
 
+	
+	
 	@SuppressWarnings("unchecked")
 	public void recover(DiscoveryHandler handler) {
 		
