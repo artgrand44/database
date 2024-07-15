@@ -64,15 +64,14 @@ public class DiscoveryHandler {
 		this.isServer = isServer;
 		
 		String kubernetes = System.getenv("KUBERNETES_SERVICE_HOST");
-		String testURI = System.getProperty("org.art.db.serviceURI");
 		DiscoveryPlugin plugin;
 		
-		if (testURI != null && !testURI.isEmpty()) {
-			plugin = new SingletonDiscoveryPlugin(config.toURI());
-		} else if (kubernetes == null || kubernetes.isEmpty()) {
+		if (kubernetes != null && !kubernetes.isEmpty()) {
+			plugin = new KubernetesDiscoveryPlugin();
+		} else if (isServer || config.getHost() == null || config.getHost().equals(InetAddress.getLocalHost().getHostAddress())) {
 			plugin = new DiscoveryPluginImpl();
 		} else {
-			plugin = new KubernetesDiscoveryPlugin();
+			plugin = new SingletonDiscoveryPlugin(config.toURI());
 		}
 				
 		this.plugin = plugin;
