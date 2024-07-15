@@ -40,7 +40,6 @@ public class Configuration {
 	private String port = "8080"; 
 	private String cluster = "cluster";
 	private String shard = "shard";
-	private URI serviceURI;
 	
 	private final Map<String, String> properties;
 	
@@ -48,20 +47,16 @@ public class Configuration {
 	
 	
 	public Configuration(String cluster) {
-		this(null, null, null, cluster, "*", new HashMap<>());
+		this(null, null, cluster, "*", new HashMap<>());
 	}
 	
-	public Configuration(URI serviceURI) {
-		this(serviceURI, null, null, null, "*", new HashMap<>());
-	}
 	
 	public Configuration(String host, String port, String shard, String cluster) {
-		this(null, host, port, cluster, shard, new HashMap<>());
+		this(host, port, cluster, shard, new HashMap<>());
 	}
 	
 
-	public Configuration(URI serviceURI, String host, String port, String cluster, String shard, Map<String, String> properties) {
-		this.serviceURI = serviceURI;
+	private Configuration(String host, String port, String cluster, String shard, Map<String, String> properties) {
 		this.host = host;
 		this.port = port;
 		this.cluster = cluster;
@@ -86,7 +81,7 @@ public class Configuration {
 	
 	
 	public Configuration(String host, String port, String shard, String cluster, String dbRoot, String user, String password) {
-		this(null, host, port, cluster, shard, new HashMap<>());
+		this(host, port, cluster, shard, new HashMap<>());
 		
 		this.properties.put("org.art.db.dbroot", "./dbroot");
 		this.properties.put("org.art.db.user", user);
@@ -149,10 +144,6 @@ public class Configuration {
 		return this.getProperty(key, this.getDefault(key));
 	}
 	
-	public URI getServiceURI() {
-		return serviceURI;
-	}
-
 	public String getShard() {
 		return shard;
 	}
@@ -161,7 +152,7 @@ public class Configuration {
 	
 	@Override
 	public int hashCode() {
-		return Objects.hash(cluster, host, port, properties, serviceURI, shard);
+		return Objects.hash(cluster, host, port, properties,  shard);
 	}
 
 	@Override
@@ -174,7 +165,7 @@ public class Configuration {
 			return false;
 		Configuration other = (Configuration) obj;
 		return Objects.equals(cluster, other.cluster) && Objects.equals(host, other.host)
-				&& Objects.equals(properties, other.properties) && Objects.equals(serviceURI, other.serviceURI)
+				&& Objects.equals(properties, other.properties)
 				&& Objects.equals(shard, other.shard);
 	}
 
@@ -185,10 +176,8 @@ public class Configuration {
 			properties.load(stream);
 			
 			String host = properties.getProperty("org.art.db.host", "localhost");
-			String serviceURI = properties.getProperty("org.art.db.serviceURI", null);
 			
 			this.host = host.contains("localhost") ? InetAddress.getLocalHost().getHostAddress() : host;
-			this.serviceURI = serviceURI == null || serviceURI.isEmpty() ? null : new URI(serviceURI);
 			this.port = properties.getProperty("org.art.db.port", "8080");
 			this.cluster = properties.getProperty("org.art.db.cluster", "cluster");
 			this.shard = properties.getProperty("org.art.db.shard",  "shard");

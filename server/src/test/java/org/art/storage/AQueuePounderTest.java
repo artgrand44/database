@@ -39,7 +39,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	
 	@Override
 	protected void loadDabase() throws Exception {
-		Client client = new Client("cluster", "admin", "admin").batch(false);
+		Client client = this.getClient().batch(false);
 		String create = "CREATE QUEUE TABLE queue (id GUID NOT NULL PRIMARY KEY, name varchar(255), value varchar(255))";
 		
 		client.execute(create);
@@ -58,7 +58,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	protected void pound(int index, int mainLoop) {	
 		super.waitForAllStarted();
 		try {
-			Client client = new Client("cluster", "admin", "admin");
+			Client client = this.getClient();
 			
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				String owner = "art" + index;

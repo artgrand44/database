@@ -42,8 +42,6 @@ public class DiscoveryHandler {
 	
 	private final URI localInstance;
 	
-	private String cluster;
-	
 	private ScheduledFuture<?> poller;
 	
 	private final boolean isServer;
@@ -62,19 +60,15 @@ public class DiscoveryHandler {
 	
 	public DiscoveryHandler(Configuration config, boolean isServer) throws Exception {
 		this.localInstance = config.toURI();
-		this.cluster = config.getCluster();
 		this.port = config.getPort();
 		this.isServer = isServer;
 		
 		String kubernetes = System.getenv("KUBERNETES_SERVICE_HOST");
-		DiscoveryPlugin plugin;
-		URI serviceURI = config.getServiceURI();
 		String testURI = System.getProperty("org.art.db.serviceURI");
+		DiscoveryPlugin plugin;
 		
-		if (serviceURI != null && !this.isServer) {
-			plugin = new SingletonDiscoveryPlugin(serviceURI);
-		} else if (testURI != null) {
-			plugin = new SingletonDiscoveryPlugin(new URI(testURI));
+		if (testURI != null && !testURI.isEmpty()) {
+			plugin = new SingletonDiscoveryPlugin(config.toURI());
 		} else if (kubernetes == null || kubernetes.isEmpty()) {
 			plugin = new DiscoveryPluginImpl();
 		} else {

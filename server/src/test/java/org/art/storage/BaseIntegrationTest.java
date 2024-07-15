@@ -71,12 +71,16 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	}
 	
 	public Client getClient() throws Exception {
+		return this.getClient("cluster", "admin", "admin");
+	}
+	
+	public Client getClient(String cluster, String user, String password) throws Exception {
 		String uri = System.getProperty("org.art.db.serviceURI");
 		
 		if (uri == null) {
-			return new Client(new URI("database://cluster"), "admin", "admin");
+			return new Client(new URI("database:/" + cluster), user, password);
 		} else {
-			return new Client(new URI(uri.toString() + "/cluster"), "admin", "admin");
+			return new Client(new URI(uri.toString() + "/" + cluster), user, password);
 		}
 	}
 }

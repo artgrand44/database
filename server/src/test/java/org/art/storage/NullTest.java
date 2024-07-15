@@ -24,7 +24,7 @@ public class NullTest extends BaseIntegrationTest {
 			try  {
 				startInternal("./application.properties");
 				
-				Client client = new Client("cluster", "admin", "admin").batch(false);
+				Client client = this.getClient().batch(false);
 				
 				String create = "CREATE TABLE nulls (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255))";
 				String createIndex = "CREATE INDEX nulls ON nulls(first)";

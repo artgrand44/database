@@ -16,7 +16,7 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 	private HeartbeatListener listener;
 	
 	private String localPort;
-	private String locahShard;
+	private String localShard;
 	
 	public DiscoveryPluginImpl() {
 		
@@ -37,13 +37,13 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 	}
 	
 	public String getLocalShard() {
-		return this.locahShard;
+		return this.localShard;
 	}
 	
 	public void initialize(Configuration config, boolean isServer) { 
 		this.listener = new HeartbeatListener(this.publisher, config.getCluster(), config.toURI());
 		this.localPort = config.getPort();
-		this.locahShard = config.getShard();
+		this.localShard = config.getShard();
 		
 		this.listener.intialize();
 		this.listener.start();

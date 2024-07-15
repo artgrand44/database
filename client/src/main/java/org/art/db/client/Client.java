@@ -40,26 +40,6 @@ public class Client {
 	public static final String WILDCARD = "*";
 	
 	
-	/**
-	 * Main constructor for applications
-	 * @param cluster
-	 * @param user
-	 * @param password
-	 * @throws Exception
-	 */
-	public Client(String cluster, String user, String password) throws Exception { 
-		Objects.requireNonNull(cluster, "You must supply a cluster name,");
-		Objects.requireNonNull(user, "You must supply a user name");
-		Objects.requireNonNull(password, "You must supply a password");
-		
-		Configuration config = new Configuration(cluster).withProperty("org.art.db.user", user).withProperty("org.art.db.password", password);
-		this.handler = DiscoveryHandler.getHandler(config);
-		this.router = Router.getRouter(handler, user, password);
-		this.client = new RestClient(user, password);
-		this.uri = null;
-		this.shard = "*";
-	}
-	
 	public Client(URI uri, String user, String password) throws Exception {
 		String cluster;
 		String shard;
@@ -68,7 +48,7 @@ public class Client {
 		String port;
 		
 		if (uri.getScheme().equalsIgnoreCase("database")) {
-			cluster = uri.getHost();
+			cluster = uri.getPath().substring(1);
 			shard = uri.getPath().isEmpty() ? "*" : uri.getPath().substring(1);
 			serverURI = null;
 			host = null;

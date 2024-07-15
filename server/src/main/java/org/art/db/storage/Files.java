@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
 import org.art.db.common.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

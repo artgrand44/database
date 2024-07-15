@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -106,7 +107,7 @@ public class Sql {
 			}
 			
 			try {
-				client = new Client(cluster, user, password);
+				client = new Client(new URI("database:/" + cluster), user, password);
 			} catch (Exception exc) {
 				throw new Exception("There was an error connecting to the database.");
 			}

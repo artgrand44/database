@@ -30,7 +30,7 @@ public class LimitTest  extends BaseIntegrationTest {
 		
 		startInternal("./application.properties");
 		
-		this.client = new Client("cluster", "admin", "admin").batch(false);
+		this.client = this.getClient().batch(false);
 		
 	}
 	

@@ -35,7 +35,7 @@ public class DAOTest  extends BaseIntegrationTest {
 		
 		startInternal("./application.properties");
 		
-		this.client = new Client("cluster", "admin", "admin").batch(false);
+		this.client = this.getClient().batch(false);
 		
 		try {
 			this.dao = client.getDAO(ItemDAO.class);
