@@ -61,7 +61,7 @@ public class Client {
 			port = String.valueOf(uri.getPort());
 		}
 		
-		Configuration config = new Configuration(host, port, shard, cluster, "./dbroot", user, password);
+		Configuration config = new Configuration(host, port, shard, cluster);
 		
 		this.handler = DiscoveryHandler.getHandler(config);
 		this.router = Router.getRouter(handler, user, password);
@@ -80,7 +80,7 @@ public class Client {
 	 */
 	public Client(URI uri, String shard, String user, String password) throws Exception {
 		String host = uri == null ? null : uri.getHost();
-		Configuration config = new Configuration(host, String.valueOf(uri.getPort()), shard, "cluster", "./dbroot", user, password);
+		Configuration config = new Configuration(host, String.valueOf(uri.getPort()), shard, "cluster");
 		
 		this.handler = DiscoveryHandler.getHandler(config);
 		this.router = Router.getRouter(handler, user, password);
