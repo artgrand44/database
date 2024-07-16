@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.art.db.common.Configuration;
+import org.art.db.common.KubernetesPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +50,17 @@ public class Files {
 	}
 	
 	public static File getRoot() {
+		if (KubernetesPlugin.isKubernetes()) {
+			String root = KubernetesPlugin.getInstance().getRoot();
+			
+			if (root == null || root.isEmpty()) {
+				logger.info("No kub root");
+				new Exception().printStackTrace();
+			}
+			
+			return new File(root);
+		}
+		
 		Configuration config = Configuration.getInstance();
 		
 		if (config == null) {
