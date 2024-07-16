@@ -135,9 +135,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 							if (address.getIp().equals(localHostAddress)) {
 								this.localPort = port.getPort().toString();
 								this.localShard = shard;
-								logger.info("set local port to " + this.localPort);
-								logger.info("set local shard to " + this.localShard);
-								logger.info("props are " + labels);
 							}
 						}
 					}
@@ -159,51 +156,32 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	public void initialize(Configuration config, boolean isServer) {
 		this.cluster = config.getCluster();
 		
-		logger.info("init set local cluster to " + this.cluster);
-		
-		LeaderElector elector = null;
-		boolean locked = false;
-		
-		// See if there is an abandoned root directory that this instance can use.
-		// If not, create a new one.
-		
 		try {
 			
 			// Obtain an exclusive lock on the top level directory then call initializeRoot
-			
-			LeaseLock lock = new LeaseLock("default", "artdb", generateId().toString());
 			
 			LeaderElectionConfig leaderConfig = new LeaderElectionConfigBuilder()
 					                                	.withName("artdb")
 					                                	.withLeaseDuration(Duration.ofMinutes(2))
 					                                	.withReleaseOnCancel()
-					                                	.withLock(lock)
-					                                	.withLeaderCallbacks(new LeaderCallbacks(this::initializeRoot, () -> {logger.info("stop");}, x-> {logger.info(x);}))
+					                                	.withLock(new LeaseLock("default", "artdb", generateId().toString()))
+					                                	.withLeaderCallbacks(new LeaderCallbacks(this::initializeRoot, () -> {}, x-> {}))
 					                                	.withRenewDeadline(Duration.ofSeconds(10L))
 					                                    .withRetryPeriod(Duration.ofSeconds(2L))
 					                                	.build();
 			
-			elector = new LeaderElector(this.client, leaderConfig, Scheduler.DEFAULT);
-
-			logger.info("Getting lock");
-			
-			CompletableFuture<?> future = elector.start();
+			CompletableFuture<?> future = new LeaderElector(this.client, leaderConfig, Scheduler.DEFAULT).start();
 			
 			while (this.root == null) {
 				Thread.sleep(500);
 			}
 			
 	        future.cancel(true);
-	        
-			logger.info("Got lock");
 
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("There was an error finding the root " + exc.getMessage());
 		} finally {
-			if (locked) {
-				elector.release();
-			}
 		}
 
 	}
@@ -213,43 +191,31 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		// Open the cluster.dat file in the directory.  This file is a csv file mapping
 		// host names into their root directories.
 
-		logger.info("****init root");
-		
 		try {
 			File mountDir = new File("./mount");
 			
-			logger.info("mountDir " + mountDir.getAbsolutePath() + " " + mountDir.exists());
 			mountDir.mkdir();
-
-			logger.info("created mount dir");
 
 			File rootList = new File(mountDir, this.cluster + ".dat");
 			
-			this.writeCSV(Map.of("0.0.0.x", "olddir"), rootList);
 			Map<String, String> roots = this.readCSV(rootList);
-
-			logger.info("Got roots " + roots);
 			
-						// Iterator over the entries in cluster.dat looking for an abandoned 
+			// Iterator over the entries in cluster.dat looking for an abandoned 
 			// root directory.  If you find one then update the cluster.dat file,
 			// set this.root, and return.
 
 			String localHost = InetAddress.getLocalHost().getHostAddress();
 			Set<String> hosts = new HashSet<>();
 
-			logger.info("in init " + this.getServerInstances());
 			for (URI uri : this.getServerInstances().keySet()) {
 				hosts.add(uri.getHost());
 			}
-
-			logger.info("got hosts " + hosts);
 
 			for (Map.Entry<String, String> entry : roots.entrySet()) {
 				String uri = entry.getKey();
 				String root = entry.getValue();
 
 				if (!hosts.contains(entry.getKey())) {
-					logger.info("replacing abandoned entry " + entry.getKey() + " " + entry.getValue());
 					roots.remove(uri);
 					roots.put(localHost, root);
 					this.writeCSV(roots, rootList);
