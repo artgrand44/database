@@ -123,6 +123,8 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 				String cluster = labels.get("cluster");
 				String shard = labels.get("shard");
 				
+				logger.info("labels " + labels + " shard = " + shard);
+				
 				if (cluster.equalsIgnoreCase(this.cluster)) {				
 					for (EndpointSubset subset : endpoints.getSubsets()) {					 
 						if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
