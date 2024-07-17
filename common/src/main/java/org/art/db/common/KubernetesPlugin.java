@@ -11,7 +11,6 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.URI;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -62,39 +61,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			exc.printStackTrace();
 			throw new DBRuntimeException(exc);
 		}		
-	}
-	
-	public Map<String, String> getConfigurationProperies() {
-		Map<String, String> result = new HashMap<>();
-		
-		result.putAll(System.getenv());
-		
-		try {
-			EndpointsList endpointList = client.endpoints().withField("metadata.name", this.cluster).list();
-			String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
-			
-			for (Endpoints endpoints : endpointList.getItems()) {
-				ObjectMeta meta = endpoints.getMetadata();
-				Map<String, String> labels = meta.getLabels();
-
-				for (EndpointSubset subset : endpoints.getSubsets()) {					 
-					if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
-						EndpointAddress address = subset.getAddresses().get(0);
-						
-						if (address.getIp().equals(localHostAddress)) {
-							result.putAll(labels);
-							break;
-						}
-					}
-				}
-				
-			}
-		} catch (Exception exc) {
-			logger.info("There was an exception getting the config properties");
-			exc.printStackTrace();
-		}
-		
-		return result;
 	}
 	
 	@Override

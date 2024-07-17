@@ -86,7 +86,6 @@ public class DiscoveryHandler {
 		this.port = this.plugin.getLocalPort();
 		this.localCluster = this.plugin.getCluster();
 		this.localInstance = this.plugin.getLocalInstance();
-		logger.info("in cons " + this.getLocalInstance());
 			
 		if (isServer) {
 			serverInstance = this;
