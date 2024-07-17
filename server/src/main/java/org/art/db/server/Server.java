@@ -54,8 +54,9 @@ public class Server implements HttpHandler, FullBytesCallback {
 	public Server(String properties) throws Exception {
 		Configuration config = Configuration.getInstance();
 		
-		this.port = Integer.valueOf(config.getPort());
 		this.handler =  new DiscoveryHandler(config, true);
+		this.port = Integer.valueOf(this.handler.getLocalPort());
+		
 		
 		logger.info("start server on " + port + " process " + ProcessHandle.current().pid());
 		
@@ -151,6 +152,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			exchange.getResponseHeaders().put(Headers.WWW_AUTHENTICATE, "Basic realm=Database");
 			exchange.setStatusCode(RestException.UNAUTHORIZED);
 		} catch (Exception exc) {
+			exc.printStackTrace();
 			exchange.setStatusCode(RestException.TEA_POT);
 			
 			String warning = String.format("Warning: 199 - %s", exc.getMessage());

@@ -42,6 +42,12 @@ public class DiscoveryHandler {
 	
 	private final URI localInstance;
 	
+	private final String localCluster;
+	
+	public String getLocalCluster() {
+		return localCluster;
+	}
+
 	private ScheduledFuture<?> poller;
 	
 	private final boolean isServer;
@@ -60,10 +66,9 @@ public class DiscoveryHandler {
 	
 	public DiscoveryHandler(Configuration config, boolean isServer) throws Exception {
 		try {
-		this.localInstance = config.toURI();
-		this.port = config.getPort();
-		this.isServer = isServer;
 		
+		// Create the plugin, initialize it, and wait while it discovers the other instances.
+			
 		DiscoveryPlugin plugin;
 		
 		if (KubernetesPlugin.isKubernetes()) {
@@ -75,14 +80,20 @@ public class DiscoveryHandler {
 		}
 				
 		this.plugin = plugin;
+					
+		this.plugin.initialize(config, isServer);
 		
+		Utils.sleepSafely(300);
+		
+		this.isServer = isServer;
+		this.port = this.plugin.getLocalPort();
+		this.localCluster = this.plugin.getCluster();
+		this.localInstance = this.plugin.getLocalInstance();
+			
 		if (isServer) {
 			serverInstance = this;
 		}
 		
-		this.plugin.initialize(config, this.isServer);
-		
-		Utils.sleepSafely(300);
 		
 		this.loadEnvironment();
 		
@@ -185,9 +196,11 @@ public class DiscoveryHandler {
 			logger.info("np instances for service " + this.getLocalShard() + " in " + instances);
 		}
 		
+		logger.info("getLocalPeers instances " + instances + " shard " + this.getLocalShard() + " peers " + instances.get(this.getLocalShard()));
 		Set<URI> peers = new HashSet<>(instances.get(this.getLocalShard()));
 		
-		peers.remove(localInstance);
+		logger.info("local = " + this.localInstance + " contains = " + peers.contains(this.localInstance));
+		peers.remove(this.localInstance);
 		peers.addAll(this.recoveringInstances.keySet());
 		
 		return new ArrayList<>(peers);
@@ -353,9 +366,11 @@ public class DiscoveryHandler {
 	
 	static class SingletonDiscoveryPlugin implements DiscoveryPlugin {
 		private final Map<URI, String> instances;
+		private final URI localURI;
 		
 		SingletonDiscoveryPlugin(URI uri) {
 			this.instances = Map.of(uri, "shard1");
+			this.localURI = uri;
 		}
 		
 		@Override
@@ -378,6 +393,16 @@ public class DiscoveryHandler {
 		
 		public String getLocalShard() {
 			return "shard1";			
+		}
+
+		@Override
+		public String getCluster() {
+			return "none";
+		}
+
+		@Override
+		public URI getLocalInstance() {
+			return this.localURI;
 		}
 	}
 		

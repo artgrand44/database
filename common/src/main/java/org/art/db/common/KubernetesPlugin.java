@@ -45,6 +45,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	private String localPort;
 	private String localShard;
 	private String cluster;
+	private URI localInstance;
 	private AtomicReference<Map<URI, String>> serverInstances = new AtomicReference<Map<URI,String>>();
 	private AtomicBoolean loading = new AtomicBoolean();
 	private long ttl;
@@ -55,8 +56,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		try {
 			this.client = new KubernetesClientBuilder().build();
 			this.cluster = System.getenv("cluster");
-			
-			logger.info("Got cluster from environment " + this.cluster);
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -94,11 +93,18 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		return Collections.emptyMap();
 	}
 	
-	
+	@Override
+	public String getCluster() {
+		return this.cluster;
+	}
 	public String getLocalPort() { 
 		return this.localPort;
 	}
 	
+	@Override
+	public URI getLocalInstance() {
+		return this.localInstance;
+	}
 	public String getLocalShard() {
 		return this.localShard;			
 	}
@@ -109,8 +115,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	
 	@Override
 	public Map<URI, String> getServerInstances() {
-		
-		logger.info("entry tp getServerInstances");
 		
 		if ((this.serverInstances.get() == null || System.currentTimeMillis() > this.ttl) && this.loading.compareAndSet(false, true)) {
 			try {
@@ -126,7 +130,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 					String cluster = labels.get("cluster");
 					String shard = labels.get("shard");
 
-					logger.info("labels " + labels + " shard = " + shard);
+					logger.info("labels " + labels + " shard = " + shard + " cluster " + cluster + " this.cl " + this.cluster);
 
 					if (cluster.equalsIgnoreCase(this.cluster)) {				
 						for (EndpointSubset subset : endpoints.getSubsets()) {					 
@@ -140,15 +144,20 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 								if (address.getIp().equals(localHostAddress)) {
 									this.localPort = port.getPort().toString();
 									this.localShard = shard;
+									this.localInstance = uri;
 								}
 							}
 						}
+					} else {
+						logger.info("skip " + meta);
 					}
 				}
 
 				logger.info("instances " + result);
 				logger.info("local host name" + InetAddress.getLocalHost().getHostName() + " hostaddress " +   InetAddress.getLocalHost().getHostAddress());
-				logger.info("local  "  + InetAddress.getLocalHost());
+				logger.info("local host IP "  + InetAddress.getLocalHost());
+				logger.info("local shard "  + this.localShard);
+				logger.info("local instance "  + this.localInstance);
 
 				this.ttl = System.currentTimeMillis() + 10 * 1000;
 				this.serverInstances.set(result);
@@ -166,14 +175,17 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	public void initialize(Configuration config, boolean isServer) {
 		
 		try {
+			logger.info("*** entry to init");
 			
-			// Obtain an exclusive lock on the top level directory then call initializeRoot
+			// Lock the cluster, call initializeRoot, and release the lock.
+			// initializeRoot will set this.root to a new directory or to
+			// an existing directory for an instance that has crashed.
 			
 			LeaderElectionConfig leaderConfig = new LeaderElectionConfigBuilder()
-					                                	.withName("artdb")
+					                                	.withName(this.cluster)
 					                                	.withLeaseDuration(Duration.ofMinutes(2))
+					                                	.withLock(new LeaseLock("default", this.cluster, generateId().toString()))
 					                                	.withReleaseOnCancel()
-					                                	.withLock(new LeaseLock("default", "artdb", generateId().toString()))
 					                                	.withLeaderCallbacks(new LeaderCallbacks(this::initializeRoot, () -> {}, x-> {}))
 					                                	.withRenewDeadline(Duration.ofSeconds(10L))
 					                                    .withRetryPeriod(Duration.ofSeconds(2L))
@@ -182,11 +194,17 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			CompletableFuture<?> future = new LeaderElector(this.client, leaderConfig, Scheduler.DEFAULT).start();
 			
 			while (this.root == null) {
-				Thread.sleep(500);
+				Thread.sleep(5000);
 			}
 			
+			logger.info("after spin " + this.root);
 	        future.cancel(true);
 
+	        // Call getServerInstances.  This will initialize the list of instances
+	        // and set currentInstance, etc.  This guarantees that the entire plugin
+	        // is initialized before we return.
+	        
+	        this.getServerInstances();
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("There was an error finding the root " + exc.getMessage());
@@ -202,6 +220,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 
 		try {
 			File mountDir = new File("./mount");
+			logger.info("********* initializing root");
 			
 			mountDir.mkdir();
 
@@ -300,5 +319,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		
 		return kubernetes != null && !kubernetes.isEmpty();
 	}
+
+	
 
 }

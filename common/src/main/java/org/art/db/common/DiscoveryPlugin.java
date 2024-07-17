@@ -15,6 +15,10 @@ public interface DiscoveryPlugin {
 	
 	public String getLocalShard();
 	
+	public String getCluster();
+	
+	public URI getLocalInstance();
+	
 	default void initialize(Configuration config, boolean isServer) { }
 	
 	default void clear() { }

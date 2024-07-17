@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 public class Files {
 		
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Files.class);
 	
 	private final static String META_DATA = "%s/meta.dat";

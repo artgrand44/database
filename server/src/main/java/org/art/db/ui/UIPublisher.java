@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.art.db.common.Configuration;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Scheduler;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.MetricsPublisher;
@@ -50,8 +51,9 @@ public class UIPublisher implements MetricsPublisher {
 		this.config = config;
 		
 		try {
-			this.cluster = this.config.getCluster();
-			this.shard =  this.config.getShard();
+			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
+			this.cluster = handler.getLocalCluster();
+			this.shard =  handler.getLocalShard();
 			this.server = InetAddress.getLocalHost().getHostAddress() + ":" + this.config.getPort();
 			this.sendSocket = new DatagramSocket();
 			this.group = InetAddress.getByName("230.0.0.0");

@@ -17,6 +17,8 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 	
 	private String localPort;
 	private String localShard;
+	private String localCluster;
+	private URI localInstance;
 	
 	public DiscoveryPluginImpl() {
 		
@@ -32,6 +34,17 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 		return this.listener.getInstances();
 	}
 
+
+	@Override
+	public String getCluster() {
+		return this.localCluster;
+	}
+	
+	@Override
+	public URI getLocalInstance() {
+		return this.localInstance;
+	}
+	
 	public String getLocalPort() {
 		return this.localPort;
 	}
@@ -44,6 +57,8 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 		this.listener = new HeartbeatListener(this.publisher, config.getCluster(), config.toURI());
 		this.localPort = config.getPort();
 		this.localShard = config.getShard();
+		this.localCluster = config.getCluster();
+		this.localInstance = config.toURI();
 		
 		this.listener.intialize();
 		this.listener.start();
@@ -80,5 +95,8 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 			this.publisher = null;
 		}
 	}
+
+	
+
 
 }
