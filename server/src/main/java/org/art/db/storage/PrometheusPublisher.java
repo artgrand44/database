@@ -39,7 +39,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 	private PrometheusPublisher() {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
-		this.tags = new String[] { "shard", "foo", "bar" };		
+		this.tags = new String[] { "shard", handler.getLocalShard(), "instance", handler.getLocalInstance().toString() };		
 	}
 	
 	private Counter createCounter(String name) {
