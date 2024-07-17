@@ -1,6 +1,6 @@
 #! /bin/bash
 kubectl delete deployment.apps/artdb service/artdb
-mvn clean package  -DskipTests=true
+mvn clean package  -DskipTests=true -q
 docker build . --tag db:v1
 kubectl create -f deployment.yaml
 kubectl expose deployment artdb --type=NodePort --port=8080

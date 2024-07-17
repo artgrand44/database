@@ -1,5 +1,7 @@
 package org.art.db.common;
 
+import static io.fabric8.kubernetes.client.utils.Utils.generateId;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -12,14 +14,11 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +36,6 @@ import io.fabric8.kubernetes.client.extended.leaderelection.LeaderElectionConfig
 import io.fabric8.kubernetes.client.extended.leaderelection.LeaderElectionConfigBuilder;
 import io.fabric8.kubernetes.client.extended.leaderelection.LeaderElector;
 import io.fabric8.kubernetes.client.extended.leaderelection.resourcelock.LeaseLock;
-import static io.fabric8.kubernetes.client.utils.Utils.generateId;
 
 public class KubernetesPlugin implements DiscoveryPlugin {
 	private static final Logger logger = LoggerFactory.getLogger(KubernetesPlugin.class);
@@ -55,7 +53,10 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	
 	private KubernetesPlugin() {
 		try {
-			this.client = new KubernetesClientBuilder().build();			
+			this.client = new KubernetesClientBuilder().build();
+			this.cluster = System.getenv("cluster");
+			
+			logger.info("Got cluster from environment " + this.cluster);
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -67,7 +68,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	public Map<String, String> getConfigurationProperies() {
 		
 		try {
-			EndpointsList endpointList = client.endpoints().withField("metadata.name", "artdb").list();
+			EndpointsList endpointList = client.endpoints().withField("metadata.name", this.cluster).list();
 			String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
 			
 			for (Endpoints endpoints : endpointList.getItems()) {
@@ -115,10 +116,8 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			try {
 				logger.info("starting services scan " + this.cluster);
 										
-				// Find the cluster for this instance
-				
 				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
-				EndpointsList endpointList = client.endpoints().withField("metadata.name", "artdb").list();
+				EndpointsList endpointList = client.endpoints().withField("metadata.name", this.cluster).list();
 				Map<URI, String> result = new HashMap<>();
 				
 				for (Endpoints endpoints : endpointList.getItems()) {
@@ -168,29 +167,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		
 		try {
 			
-			// Find the cluster for this instance
-			
-			String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
-			EndpointsList endpointList = client.endpoints().withField("metadata.name", "artdb").list();
-				
-			for (Endpoints endpoints : endpointList.getItems()) {
-				ObjectMeta meta = endpoints.getMetadata();
-				Map<String, String> labels = meta.getLabels();
-				
-				for (EndpointSubset subset : endpoints.getSubsets()) {					 
-					if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
-						EndpointAddress address = subset.getAddresses().get(0);
-						
-						if (address.getIp().equals(localHostAddress)) {
-							this.cluster = labels.get("cluster");
-						}
-					}
-				}
-			}
-			
-			if (this.cluster == null) {
-				logger.info("****no cluster");
-			}
 			// Obtain an exclusive lock on the top level directory then call initializeRoot
 			
 			LeaderElectionConfig leaderConfig = new LeaderElectionConfigBuilder()

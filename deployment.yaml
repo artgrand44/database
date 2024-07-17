@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: artdb
   labels: {
-    "cluster" : "cluster",
+    "cluster" : "artdb",
     "shard" : "shard1"
   }
 spec:
@@ -19,6 +19,9 @@ spec:
       containers:
       - name: artdb
         image: db:v1 
+        env:
+           - name: cluster
+             value: "artdb"
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080

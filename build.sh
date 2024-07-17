@@ -29,13 +29,12 @@ if [ -z "${shard}" ]; then
 	fi
 fi
 echo "Shard is $shard"
-cp template.yaml temp.yaml
+cp sample.yaml temp.yaml
 ls temp.yaml
 
 echo ""
 echo ""
 
-set -x
 sed  s/"shardname"/"$shard"/g temp.yaml |tee out1.yaml
 sed  s/"clustername"/"$cluster"/g out1.yaml |tee out2.yaml
 
@@ -43,10 +42,10 @@ echo ""
 echo ""
 
 
-mvn clean package  -DskipTests=true
-kubectl delete deployment.apps/artdb service/artdb
+mvn clean package  -DskipTests=true -q
+kubectl delete deployment.apps/${cluster} service/${cluster}
 docker build . --tag db:v1
 kubectl create -f out2.yaml
-kubectl expose deployment artdb --type=NodePort --port=8080
+kubectl expose deployment ${cluster} --type=NodePort --port=8080
 sleep 5
-minikube service artdb hello-minikube1 --url
+minikube service ${cluster} hello-minikube1 --url
