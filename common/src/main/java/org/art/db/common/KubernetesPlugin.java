@@ -12,9 +12,14 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,28 +47,19 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	private String localPort;
 	private String localShard;
 	private String cluster;
+	private AtomicReference<Map<URI, String>> serverInstances = new AtomicReference<Map<URI,String>>();
+	private AtomicBoolean loading = new AtomicBoolean();
+	private long ttl;
 	
 	private volatile String root;
 	
 	private KubernetesPlugin() {
 		try {
-			
-			// Open the client then spin until Kubernetes is aware of this instance
-			
-			this.client = new KubernetesClientBuilder().build();
-			
-			/*Map<URI, String>  instances = null;
-			
-			for (int idx = 0; idx < 100 && (instances = getServerInstances()).isEmpty(); idx++) {
-				Utils.sleepSafely(100);
-			}
-			
-			if (instances.isEmpty()) {
-				throw new Exception("There was an error initializing the adapter");
-			}*/
+			this.client = new KubernetesClientBuilder().build();			
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
+			exc.printStackTrace();
 			throw new DBRuntimeException(exc);
 		}		
 	}
@@ -91,6 +87,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			}
 		} catch (Exception exc) {
 			logger.info("There was an exception getting the config properties");
+			exc.printStackTrace();
 		}
 		
 		return Collections.emptyMap();
@@ -111,55 +108,89 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	
 	@Override
 	public Map<URI, String> getServerInstances() {
-		Map<URI, String> result = new HashMap<>();
-
-		try {
-			EndpointsList endpointList = client.endpoints().withField("metadata.name", "artdb").list();
-			String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
-			
-			for (Endpoints endpoints : endpointList.getItems()) {
-				ObjectMeta meta = endpoints.getMetadata();
-				Map<String, String> labels = meta.getLabels();
-				String cluster = labels.get("cluster");
-				String shard = labels.get("shard");
+		
+		logger.info("entry tp getServerInstances");
+		
+		if ((this.serverInstances.get() == null || System.currentTimeMillis() > this.ttl) && this.loading.compareAndSet(false, true)) {
+			try {
+				logger.info("starting services scan " + this.cluster);
+										
+				// Find the cluster for this instance
 				
-				logger.info("labels " + labels + " shard = " + shard);
+				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
+				EndpointsList endpointList = client.endpoints().withField("metadata.name", "artdb").list();
+				Map<URI, String> result = new HashMap<>();
 				
-				if (cluster.equalsIgnoreCase(this.cluster)) {				
-					for (EndpointSubset subset : endpoints.getSubsets()) {					 
-						if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
-							EndpointAddress address = subset.getAddresses().get(0);
-							EndpointPort port = subset.getPorts().get(0);
-							URI uri = new URI(String.format("http://%s:%s", address.getIp(), port.getPort()));
+				for (Endpoints endpoints : endpointList.getItems()) {
+					ObjectMeta meta = endpoints.getMetadata();
+					Map<String, String> labels = meta.getLabels();
+					String cluster = labels.get("cluster");
+					String shard = labels.get("shard");
 
-							result.put(uri, shard);
+					logger.info("labels " + labels + " shard = " + shard);
 
-							if (address.getIp().equals(localHostAddress)) {
-								this.localPort = port.getPort().toString();
-								this.localShard = shard;
+					if (cluster.equalsIgnoreCase(this.cluster)) {				
+						for (EndpointSubset subset : endpoints.getSubsets()) {					 
+							if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
+								EndpointAddress address = subset.getAddresses().get(0);
+								EndpointPort port = subset.getPorts().get(0);
+								URI uri = new URI(String.format("http://%s:%s", address.getIp(), port.getPort()));
+
+								result.put(uri, shard);
+
+								if (address.getIp().equals(localHostAddress)) {
+									this.localPort = port.getPort().toString();
+									this.localShard = shard;
+								}
 							}
 						}
 					}
 				}
-				
+
 				logger.info("instances " + result);
 				logger.info("local host name" + InetAddress.getLocalHost().getHostName() + " hostaddress " +   InetAddress.getLocalHost().getHostAddress());
 				logger.info("local  "  + InetAddress.getLocalHost());
+
+				this.ttl = System.currentTimeMillis() + 10 * 1000;
+				this.serverInstances.set(result);
+			} catch (Exception exc) {
+				logger.info("there was an error getting the instances " + exc.getLocalizedMessage());
+				exc.printStackTrace();
+			} finally {
+				this.loading.set(false);
 			}
-			
-		} catch (Exception exc) {
-			logger.info("there was an error getting the instances " + exc.getLocalizedMessage());
-			exc.printStackTrace();
 		}
 
-		return result;
+		return this.serverInstances.get();
 	}
 	
 	public void initialize(Configuration config, boolean isServer) {
-		this.cluster = config.getCluster();
 		
 		try {
 			
+			// Find the cluster for this instance
+			
+			String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
+			EndpointsList endpointList = client.endpoints().withField("metadata.name", "artdb").list();
+				
+			for (Endpoints endpoints : endpointList.getItems()) {
+				ObjectMeta meta = endpoints.getMetadata();
+				Map<String, String> labels = meta.getLabels();
+				
+				for (EndpointSubset subset : endpoints.getSubsets()) {					 
+					if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
+						EndpointAddress address = subset.getAddresses().get(0);
+						
+						if (address.getIp().equals(localHostAddress)) {
+							this.cluster = labels.get("cluster");
+						}
+					}
+				}
+			}
+			
+			if (this.cluster == null) {
+				logger.info("****no cluster");
+			}
 			// Obtain an exclusive lock on the top level directory then call initializeRoot
 			
 			LeaderElectionConfig leaderConfig = new LeaderElectionConfigBuilder()

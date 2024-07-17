@@ -59,6 +59,7 @@ public class DiscoveryHandler {
 	
 	
 	public DiscoveryHandler(Configuration config, boolean isServer) throws Exception {
+		try {
 		this.localInstance = config.toURI();
 		this.port = config.getPort();
 		this.isServer = isServer;
@@ -88,6 +89,10 @@ public class DiscoveryHandler {
 		this.poller = SCHEDULER.scheduleAtFixedRate(this::loadEnvironment, 1, 20, TimeUnit.SECONDS);
 			
 		this.waitInstanceCount(1,  300);
+		} catch (Exception exc) {
+			exc.printStackTrace();
+			throw exc;
+		}
 		
 	}
 	
@@ -139,7 +144,13 @@ public class DiscoveryHandler {
 	}
 	
 	public String getLocalShard() {
-		return this.plugin.getLocalShard();
+		String shard = this.plugin.getLocalShard();
+		
+		if (shard == null || shard.isEmpty()) {
+			new Exception().printStackTrace();
+		}
+		
+		return shard;
 	}
 	
 	
@@ -278,6 +289,7 @@ public class DiscoveryHandler {
 				this.pcs.firePropertyChange(SHARDS_CHANGED, oldFinder, finder);
 			}
 		} catch (Exception exc) {
+			exc.printStackTrace();
 			logger.error(exc.getMessage());
 		}
 	
