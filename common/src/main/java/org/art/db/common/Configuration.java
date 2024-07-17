@@ -166,7 +166,9 @@ public class Configuration {
 	}
 
 	private void loadFromKubernetes() {
-		this.properties.putAll(KubernetesPlugin.getInstance().getConfigurationProperies());
+		for (Map.Entry<String, String> entry : KubernetesPlugin.getInstance().getConfigurationProperies().entrySet()) {
+			this.setProperty(entry.getKey(), entry.getValue());
+		}
 	}
 	
 	public void load(String propertyPath) throws Exception {
