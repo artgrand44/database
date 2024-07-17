@@ -50,8 +50,6 @@ public class DiscoveryHandler {
 
 	private ScheduledFuture<?> poller;
 	
-	private final boolean isServer;
-	
 	protected AtomicReference<ShardFinder> shardFinder = new AtomicReference<>();
 	
 	private Map<String, AtomicLong> lastUsed = new ConcurrentHashMap<>();
@@ -85,16 +83,15 @@ public class DiscoveryHandler {
 		
 		Utils.sleepSafely(300);
 		
-		this.isServer = isServer;
 		this.port = this.plugin.getLocalPort();
 		this.localCluster = this.plugin.getCluster();
 		this.localInstance = this.plugin.getLocalInstance();
+		logger.info("in cons " + this.getLocalInstance());
 			
 		if (isServer) {
 			serverInstance = this;
 		}
-		
-		
+				
 		this.loadEnvironment();
 		
 		this.poller = SCHEDULER.scheduleAtFixedRate(this::loadEnvironment, 1, 20, TimeUnit.SECONDS);
@@ -196,10 +193,8 @@ public class DiscoveryHandler {
 			logger.info("np instances for service " + this.getLocalShard() + " in " + instances);
 		}
 		
-		logger.info("getLocalPeers instances " + instances + " shard " + this.getLocalShard() + " peers " + instances.get(this.getLocalShard()));
 		Set<URI> peers = new HashSet<>(instances.get(this.getLocalShard()));
 		
-		logger.info("local = " + this.localInstance + " contains = " + peers.contains(this.localInstance));
 		peers.remove(this.localInstance);
 		peers.addAll(this.recoveringInstances.keySet());
 		

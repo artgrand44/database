@@ -65,6 +65,9 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	}
 	
 	public Map<String, String> getConfigurationProperies() {
+		Map<String, String> result = new HashMap<>();
+		
+		result.putAll(System.getenv());
 		
 		try {
 			EndpointsList endpointList = client.endpoints().withField("metadata.name", this.cluster).list();
@@ -79,7 +82,8 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 						EndpointAddress address = subset.getAddresses().get(0);
 						
 						if (address.getIp().equals(localHostAddress)) {
-							return labels;
+							result.putAll(labels);
+							break;
 						}
 					}
 				}
@@ -90,7 +94,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			exc.printStackTrace();
 		}
 		
-		return Collections.emptyMap();
+		return result;
 	}
 	
 	@Override
@@ -200,11 +204,24 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			logger.info("after spin " + this.root);
 	        future.cancel(true);
 
-	        // Call getServerInstances.  This will initialize the list of instances
-	        // and set currentInstance, etc.  This guarantees that the entire plugin
-	        // is initialized before we return.
+	        // Spin until we are able to find the instances and the local port, shard, and instance.
 	        
-	        this.getServerInstances();
+	        Map<URI, String> instances = new HashMap<>();
+	        
+	        for (int idx = 0; idx < 1000; idx++) {
+	        	
+	        	instances = this.getServerInstances();
+	        	
+	        	if (instances.isEmpty()) {
+	        		Utils.sleepSafely(100);
+	        	} else {
+	        		break;
+	        	}
+	        }
+	        
+	        if (instances.isEmpty()) {
+	        	throw new DBRuntimeException("There was a timeout starting the server");
+	        }	        
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("There was an error finding the root " + exc.getMessage());
