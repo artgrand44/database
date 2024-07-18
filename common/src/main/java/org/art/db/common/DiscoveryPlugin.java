@@ -19,7 +19,7 @@ public interface DiscoveryPlugin {
 	
 	public URI getLocalInstance();
 	
-	default void initialize(Configuration config, boolean isServer) { }
+	void initialize(ConnectionInfo config, boolean isServer);
 	
 	default void clear() { }
 	

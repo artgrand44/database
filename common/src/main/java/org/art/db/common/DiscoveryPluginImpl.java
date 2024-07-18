@@ -53,18 +53,18 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 		return this.localShard;
 	}
 	
-	public void initialize(Configuration config, boolean isServer) { 
-		this.listener = new HeartbeatListener(this.publisher, config.getCluster(), config.toURI());
-		this.localPort = config.getPort();
-		this.localShard = config.getShard();
-		this.localCluster = config.getCluster();
-		this.localInstance = config.toURI();
+	public void initialize(ConnectionInfo info, boolean isServer) { 
+		this.listener = new HeartbeatListener(this.publisher, info.getCluster(), info.toURI());
+		this.localPort = info.getPort();
+		this.localShard = info.getShard();
+		this.localCluster = info.getCluster();
+		this.localInstance = info.toURI();
 		
 		this.listener.intialize();
 		this.listener.start();
 		
 		if (isServer) {
-			this.publisher = new HeartbeatPublisher(config.getCluster(), config.getShard(), config.toURI().getPort());
+			this.publisher = new HeartbeatPublisher(info.getCluster(), info.getShard(), info.toURI().getPort());
 			this.publisher.initialize();
 			this.listener.setPublisher(this.publisher);
 		}	

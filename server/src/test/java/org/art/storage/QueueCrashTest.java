@@ -11,6 +11,7 @@ import java.util.TreeMap;
 
 import org.apache.commons.io.FileUtils;
 import org.art.db.common.Configuration;
+import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
@@ -72,7 +73,7 @@ public class QueueCrashTest extends BaseTest {
 			Configuration.getInstance().load("./queuecrashtest.properties");
 			
 			@SuppressWarnings("unused")
-			DiscoveryHandler handler = new DiscoveryHandler(Configuration.getInstance(), true);
+			DiscoveryHandler handler = new DiscoveryHandler(new ConnectionInfo("./queuecrashtest.properties"), true);
 			
 			ColumnInfo nameInfo = new ColumnInfo(String.class, false, false, "");
 			ColumnInfo valueInfo = new ColumnInfo(String.class, false, false, "");

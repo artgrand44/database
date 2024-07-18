@@ -142,7 +142,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		return this.serverInstances.get();
 	}
 	
-	public void initialize(Configuration config, boolean isServer) {
+	public void initialize(ConnectionInfo info, boolean isServer) {
 		
 		try {
 			logger.info("*** entry to init");

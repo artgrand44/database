@@ -57,12 +57,12 @@ public class DiscoveryHandler {
 	
 	private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 	
-	private static ConcurrentHashMap<Configuration, DiscoveryHandler> handlers = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<ConnectionInfo, DiscoveryHandler> handlers = new ConcurrentHashMap<>();
 	
 	private static DiscoveryHandler serverInstance;
 	
 	
-	public DiscoveryHandler(Configuration config, boolean isServer) throws Exception {
+	public DiscoveryHandler(ConnectionInfo config, boolean isServer) throws Exception {
 		try {
 		
 		// Create the plugin, initialize it, and wait while it discovers the other instances.
@@ -113,10 +113,10 @@ public class DiscoveryHandler {
 		serverInstance = null;
 	}
 	
-	public synchronized static DiscoveryHandler getHandler(Configuration config) {
-		return handlers.computeIfAbsent(config, name -> {
+	public synchronized static DiscoveryHandler getHandler(ConnectionInfo info) {
+		return handlers.computeIfAbsent(info, name -> {
 			try {
-				return  new DiscoveryHandler(config, false);
+				return  new DiscoveryHandler(info, false);
 			} catch (Exception exc) {
 				throw new IllegalStateException(exc);
 			}
@@ -397,6 +397,10 @@ public class DiscoveryHandler {
 		@Override
 		public URI getLocalInstance() {
 			return this.localURI;
+		}
+
+		@Override
+		public void initialize(ConnectionInfo config, boolean isServer) {
 		}
 	}
 		

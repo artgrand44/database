@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.art.db.client.dao.DAOCompiler;
-import org.art.db.common.Configuration;
+import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
@@ -61,9 +61,9 @@ public class Client {
 			port = String.valueOf(uri.getPort());
 		}
 		
-		Configuration config = new Configuration(host, port, shard, cluster);
+		ConnectionInfo info = new ConnectionInfo(host, port, shard, cluster);
 		
-		this.handler = DiscoveryHandler.getHandler(config);
+		this.handler = DiscoveryHandler.getHandler(info);
 		this.router = Router.getRouter(handler, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = serverURI;
@@ -80,9 +80,9 @@ public class Client {
 	 */
 	public Client(URI uri, String shard, String user, String password) throws Exception {
 		String host = uri == null ? null : uri.getHost();
-		Configuration config = new Configuration(host, String.valueOf(uri.getPort()), shard, "cluster");
+		ConnectionInfo info = new ConnectionInfo(host, String.valueOf(uri.getPort()), shard, "cluster");
 		
-		this.handler = DiscoveryHandler.getHandler(config);
+		this.handler = DiscoveryHandler.getHandler(info);
 		this.router = Router.getRouter(handler, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = uri;

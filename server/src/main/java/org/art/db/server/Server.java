@@ -13,6 +13,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.common.Configuration;
+import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
 import org.art.db.common.ZipUtils;
@@ -52,9 +53,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 	private static Server instance;
 	
 	public Server(String properties) throws Exception {
-		Configuration config = Configuration.getInstance();
-		
-		this.handler =  new DiscoveryHandler(config, true);
+		this.handler =  new DiscoveryHandler(new ConnectionInfo(properties), true);
 		this.port = Integer.valueOf(this.handler.getLocalPort());
 		
 		

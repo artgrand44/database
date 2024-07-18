@@ -1,9 +1,7 @@
 package org.art.storage;
 
-import java.net.InetAddress;
-
 import org.art.db.client.Client;
-import org.art.db.common.Configuration;
+import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
@@ -32,13 +30,6 @@ public class ShardTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				String host = InetAddress.getLocalHost().getHostAddress();
-				
-				Configuration shard1 = new Configuration(host, "8080", "averlongshardname", "cluster")
-						                                 .withProperty("org.art.db.dbroot", "./primaryroot")
-						                                 .withProperty("org.art.db.user", "admin")
-						                                 .withProperty("org.art.db.password", "admin");
-				
 				super.startInternal("./averlongshardname.properties");
 				super.startExternal("./cluster2.properties");
 				
@@ -58,7 +49,7 @@ public class ShardTest extends BaseIntegrationTest {
 				String insertTemplare = "insert into sharded (id, color, make, count) values ('%s', 'red', 'toyota', '1')";
 				String queryTemplate = "select * from sharded where id = '%s'";
 				
-				DiscoveryHandler handler = new DiscoveryHandler(shard1, false);
+				DiscoveryHandler handler = new DiscoveryHandler(new ConnectionInfo("./averlongshardname.properties"), false);
 				handler.waitInstanceCount(2, 10 * 1000);
 				
 				for (int idx = 0; idx < 10; idx++) {
