@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.art.db.common.Configuration;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
@@ -68,7 +67,7 @@ public class QueueSegment extends MemorySegment {
 	private final ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
 	
 	
-	public QueueSegment(String table, DiscoveryHandler discoveryHandler, Configuration config) throws Exception {
+	public QueueSegment(String table, DiscoveryHandler discoveryHandler, Environment config) throws Exception {
 		super(table, discoveryHandler, config, false);
 		
 		this.timeoutHandler = Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutLeases, 10, 10, TimeUnit.SECONDS);

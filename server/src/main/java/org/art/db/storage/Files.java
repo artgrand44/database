@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.art.db.common.Configuration;
 import org.art.db.common.KubernetesPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,12 +59,12 @@ public class Files {
 			return new File(root);
 		}
 		
-		Configuration config = Configuration.getInstance();
+		Environment config = Environment.getInstance();
 		
 		if (config == null) {
 			return new File(".dbroot");
 		} else {
-			return new File(Configuration.getInstance().getProperty("org.art.db.dbroot", "./dbroot"));
+			return new File(Environment.getInstance().getProperty("org.art.db.dbroot", "./dbroot"));
 		}
 		
 	}

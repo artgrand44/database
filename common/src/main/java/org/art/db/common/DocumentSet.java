@@ -209,13 +209,11 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 
 	@Override
 	public void serialize(TypedOutputStream stream) throws IOException {
-		Configuration config = Configuration.getInstance();
-		
-		if (this.hasFile() && config != null) {
+		if (this.hasFile()) {
 			stream.writeBoolean(true);
 			stream.writeInt(this.size);
 			stream.writeUTF(this.file.getAbsolutePath());
-			stream.writeUTF(config.toURI().toString());
+			stream.writeUTF(DiscoveryHandler.getServerInstance().getLocalInstance().toString());
 			
 			int count = 0;
 			

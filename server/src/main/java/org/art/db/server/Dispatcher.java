@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.client.ClientArgs;
-import org.art.db.common.Configuration;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
@@ -23,6 +22,7 @@ import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
+import org.art.db.storage.Environment;
 import org.art.db.storage.Files;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.PrometheusPublisher;
@@ -292,7 +292,7 @@ public class Dispatcher {
 		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			return MAPPER.writeValueAsBytes(Configuration.getInstance().getDynamicProperties());
+			return MAPPER.writeValueAsBytes(Environment.getInstance().getDynamicProperties());
 		}
 
 	}
@@ -381,7 +381,7 @@ public class Dispatcher {
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String[] params = new String(body).split("=");
 			
-			Configuration.getInstance().setProperty(params[0], params[1]);
+			Environment.getInstance().setProperty(params[0], params[1]);
 			
 			return new byte[0];
 		}

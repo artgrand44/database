@@ -3,7 +3,7 @@ package org.art.storage;
 import java.net.InetAddress;
 
 import org.art.db.client.Client;
-import org.art.db.common.Configuration;
+import org.art.db.common.ConnectionInfo;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.RestClient;
@@ -33,7 +33,7 @@ public class UITest extends BaseIntegrationTest {
 		
 			try  {
 				String host = InetAddress.getLocalHost().getHostAddress();
-				Configuration primary = new Configuration(host, "8080", "cluster", "shard1").withProperty("org.art.db.dbroot", "./primaryroot");
+				ConnectionInfo primary = new ConnectionInfo(host, "8080", "cluster", "shard1");
 				
 				startInternal("./application.properties");
 				

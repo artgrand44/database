@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
 import org.art.db.common.Comparison;
-import org.art.db.common.Configuration;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
@@ -87,7 +86,7 @@ public class TableManager implements Closeable{
 		// background.  Logs for queues can be very large.  By applying the
 		// newer logs in the background, we allow the server to come up more quickly.
 		
-		int maxImmediate = Integer.parseInt(Configuration.getInstance().getPropertyWithDefault("org.art.db.queueRecovery"));
+		int maxImmediate = Integer.parseInt(Environment.getInstance().getPropertyWithDefault("org.art.db.queueRecovery"));
 		
 		if (logs != null) {
 			List<File> list = Arrays.asList(logs);

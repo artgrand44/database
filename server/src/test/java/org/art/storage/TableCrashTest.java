@@ -11,10 +11,10 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.commons.io.FileUtils;
-import org.art.db.common.Configuration;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.storage.ColumnInfo;
+import org.art.db.storage.Environment;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
 import org.assertj.core.api.Assertions;
@@ -75,7 +75,7 @@ public class TableCrashTest extends BaseTest {
 			
 			new File("./dbroot/test").mkdirs();
 			
-			Configuration.getInstance().load("./tinybatch.properties");
+			Environment.getInstance().load("./tinybatch.properties");
 			
 			ColumnInfo valueInfo = new ColumnInfo(String.class, false, false, "");
 			ColumnInfo idInfo = new ColumnInfo(String.class, false, false, "");

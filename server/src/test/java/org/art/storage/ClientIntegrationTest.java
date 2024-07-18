@@ -1,10 +1,10 @@
 package org.art.storage;
 
 import org.art.db.client.Client;
-import org.art.db.common.Configuration;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.server.Server;
+import org.art.db.storage.Environment;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
@@ -19,9 +19,9 @@ public class ClientIntegrationTest extends BaseIntegrationTest {
 		Server.start("./application.properties");
 		
 		try {
-			Configuration.getInstance().load("./application.properties");
-			Configuration.getInstance().setProperty("org.art.db.user", "admin");
-			Configuration.getInstance().setProperty("org.art.db.password", "admin");
+			Environment.getInstance().load("./application.properties");
+			Environment.getInstance().setProperty("org.art.db.user", "admin");
+			Environment.getInstance().setProperty("org.art.db.password", "admin");
 			
 			try {
 				logger.info("start");

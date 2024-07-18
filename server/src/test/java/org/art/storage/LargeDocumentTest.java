@@ -4,9 +4,9 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 
 import org.apache.commons.io.IOUtils;
-import org.art.db.common.Configuration;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
+import org.art.db.storage.Environment;
 import org.art.db.storage.StorageManager;
 import org.art.db.storage.TableManager;
 import org.assertj.core.api.Assertions;
@@ -26,7 +26,7 @@ public class LargeDocumentTest extends BaseSQLTest {
 		try {
 			registerMetadata("SYS.SYS.largedoc", "id,text", "id", "");
 			
-			Configuration.getInstance().setProperty("org.art.db.documentCache", "0M");
+			Environment.getInstance().setProperty("org.art.db.documentCache", "0M");
 			
 			TableManager manager = StorageManager.getInstance().getTableManager("SYS.SYS.largedoc");
 			String text;
@@ -67,7 +67,7 @@ public class LargeDocumentTest extends BaseSQLTest {
 			exc.printStackTrace();
 			Assertions.fail(exc.getMessage());
 		} finally {
-			Configuration.getInstance().removeProperty("org.art.db.documentCache");
+			Environment.getInstance().removeProperty("org.art.db.documentCache");
 		}
 	}
 		

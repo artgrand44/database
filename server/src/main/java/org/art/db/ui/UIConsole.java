@@ -1,24 +1,21 @@
 package org.art.db.ui;
 
-import org.art.db.common.Configuration;;
+import org.art.db.common.ConnectionInfo;
+import org.art.db.storage.Environment;;
 
 public class UIConsole {
 	
-	private final UIPublisher publisher;
-	private final UIPoller poller;
-	private final UIController controller;
+	private UIPublisher publisher;
+	private UIPoller poller;
+	private UIController controller;
 	
 	private final static UIConsole instance = new UIConsole();
 	
-	private UIConsole() {
-		Configuration config = Configuration.getInstance();
-		this.publisher = new UIPublisher(config);
-		this.poller = new UIPoller(config);
-		this.controller = new UIController(poller);		
+	private UIConsole() {	
 	}
 
 	public String buildHtml(String currentPage, boolean isAdmin) throws Exception {
-		return this.controller.buildHtml(currentPage, isAdmin);
+		return this.controller == null ? "" : this.controller.buildHtml(currentPage, isAdmin);
 	}
 	
 	public static UIConsole getInstance() {
@@ -32,7 +29,6 @@ public class UIConsole {
 	public void logDelete() {
 		this.publisher.logDelete();
 	}
-
 	
 	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		this.publisher.logClient(clientName, sql, time, calls, matches);
@@ -50,15 +46,20 @@ public class UIConsole {
 		this.publisher.logSelect(queryString, time, matches);
 	}
 
-	public void start() {
-		if (Configuration.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
+	public void start(ConnectionInfo info) {
+		
+		if (Environment.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
+			this.publisher = new UIPublisher(info);
+			this.poller = new UIPoller(info);
+			this.controller = new UIController(poller);	
+			
 			this.publisher.start();
 			this.poller.start();
 		}
 	}
 	
 	public void stop() {
-		if (Configuration.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
+		if (Environment.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
 			this.publisher.stop();
 			this.poller.stop();
 		}

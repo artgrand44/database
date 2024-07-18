@@ -16,7 +16,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
-import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
@@ -40,7 +39,7 @@ public class Table implements Closeable {
 	private final ReadLock readLock = lock.readLock();
 	private final WriteLock writeLock = lock.writeLock();
 	private final DiscoveryHandler discoveryHandler;
-	private final Configuration config;
+	private final Environment config;
 	private final int maxSegmentSize;
 	private final ScheduledFuture<?> switcher;
 	private final ScheduledFuture<?> timer;
@@ -63,7 +62,7 @@ public class Table implements Closeable {
 		this.table = table;
 		this.indices = indices;
 		this.discoveryHandler = DiscoveryHandler.getServerInstance();
-		this.config = Configuration.getInstance();
+		this.config = Environment.getInstance();
 		this.isQueue = meta.isQueue();
 		this.maxSegmentSize = Integer.parseInt(this.config.getProperty("org.art.db.maxSegmentSize", this.config.getDefault("org.art.db.maxSegmentSize")));
 		
@@ -95,6 +94,7 @@ public class Table implements Closeable {
 		
 		try {
 			this.closed = true;
+			logger.info("closing " + this.table);
 			
 			if (this.isQueue) {
 				this.timer.cancel(true);
@@ -325,6 +325,7 @@ public class Table implements Closeable {
 			if (this.isQueue) {
 				logger.info("saving queue");
 			}
+			
 			DiskSegment saved = segment.save(file);
 
 			this.writeLock.lock();

@@ -37,8 +37,7 @@ public class BlockFile implements Closeable {
 		this.isNew = !file.exists();
 		this.file = new RandomAccessFile(file, "rwd");
 		this.rawFile = file;
-		this.channel = this.file.getChannel();
-				
+		this.channel = this.file.getChannel();			
 	}
 	
 	

@@ -4,7 +4,6 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.function.Predicate;
 
-import org.art.db.common.Configuration;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,19 +25,19 @@ public class ConfigurableCache<TKey, TValue> implements PropertyChangeListener, 
 	protected ConfigurableCache(String maxProperty) {
 		this.maxProperty = maxProperty;
 		
-		Configuration config = Configuration.getInstance();
+		Environment config = Environment.getInstance();
 		String dflt = config.getDefault(maxProperty);
 		Size size;
 		
 		try {
-			size = new Size(Configuration.getInstance().getProperty(maxProperty));
+			size = new Size(Environment.getInstance().getProperty(maxProperty));
 		} catch (Exception exc) {
 			size = new Size(dflt);
 		}
 		
 		this.cache = Caffeine.newBuilder().weigher(this).evictionListener(this).maximumWeight(size.getSize()).build(); 
 		
-		Configuration.getInstance().addPropertyChangeListener(this);
+		Environment.getInstance().addPropertyChangeListener(this);
 	}
 	
 	

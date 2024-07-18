@@ -9,10 +9,10 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.commons.io.FileUtils;
-import org.art.db.common.Configuration;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.storage.ColumnInfo;
+import org.art.db.storage.Environment;
 import org.art.db.storage.MemorySegment;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
@@ -74,7 +74,7 @@ public class LogDirTableCrashTest extends BaseTest {
 			
 			new File("./dbroot/test").mkdirs();
 			
-			Configuration.getInstance().load("./logdirtinybatch.properties");
+			Environment.getInstance().load("./logdirtinybatch.properties");
 			
 			ColumnInfo valueInfo = new ColumnInfo(String.class, false, false, "");
 			ColumnInfo idInfo = new ColumnInfo(String.class, false, false, "");

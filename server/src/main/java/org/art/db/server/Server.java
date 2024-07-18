@@ -12,12 +12,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.commons.io.IOUtils;
-import org.art.db.common.Configuration;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
+import org.art.db.storage.Environment;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.PrometheusPublisher;
 import org.art.db.storage.StorageManager;
@@ -53,16 +53,17 @@ public class Server implements HttpHandler, FullBytesCallback {
 	private static Server instance;
 	
 	public Server(String properties) throws Exception {
-		this.handler =  new DiscoveryHandler(new ConnectionInfo(properties), true);
+		ConnectionInfo info = new ConnectionInfo(properties);
+		
+		this.handler =  new DiscoveryHandler(info, true);
 		this.port = Integer.valueOf(this.handler.getLocalPort());
-		
-		
+				
 		logger.info("start server on " + port + " process " + ProcessHandle.current().pid());
 		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);
 			Metrics.getInstance().logStatus("Starting");
-			UIConsole.getInstance().start();
+			UIConsole.getInstance().start(info);
 			PrometheusPublisher.getInstance().start();
 			
 			StorageManager.getInstance().recover(handler);
@@ -225,7 +226,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			File file = new File(properties);
 			
 			logger.info("starting server with " + file.getAbsolutePath());
-			Configuration.getInstance().load(properties);
+			Environment.getInstance().load(properties);
 			instance = new Server(properties);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);

@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.art.db.common.Blob;
-import org.art.db.common.Configuration;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.GUID;
@@ -119,7 +118,7 @@ public class MemorySegment extends Segment {
 	private static ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("MemSeg", 5);
 	
 
-	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Configuration config, boolean isQueue) throws Exception {
+	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Environment config, boolean isQueue) throws Exception {
 		super();
 		
 		if (discoveryHandler == null) {

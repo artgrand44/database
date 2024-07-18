@@ -10,7 +10,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.commons.io.FileUtils;
-import org.art.db.common.Configuration;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
@@ -18,6 +17,7 @@ import org.art.db.common.DocumentSet;
 import org.art.db.common.GUID;
 import org.art.db.common.Key;
 import org.art.db.storage.ColumnInfo;
+import org.art.db.storage.Environment;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
 import org.assertj.core.api.Assertions;
@@ -70,7 +70,7 @@ public class QueueCrashTest extends BaseTest {
 			
 			new File("./dbroot/test").mkdirs();
 			
-			Configuration.getInstance().load("./queuecrashtest.properties");
+			Environment.getInstance().load("./queuecrashtest.properties");
 			
 			@SuppressWarnings("unused")
 			DiscoveryHandler handler = new DiscoveryHandler(new ConnectionInfo("./queuecrashtest.properties"), true);

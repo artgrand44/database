@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.function.Function;
 
 import  org.apache.commons.lang3.StringUtils;
-import org.art.db.common.Configuration;
 import org.art.db.common.Scheduler;
+import org.art.db.storage.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.thymeleaf.TemplateEngine;
@@ -101,7 +101,7 @@ public class UIController {
 	
 	
 	private String getSettings() throws Exception  {
-		Configuration config = Configuration.getInstance();
+		Environment config = Environment.getInstance();
 		List<Setting> result = new ArrayList<>();
 		
 		for (PropertyDescriptor prop :  DESCRIPTORS) {

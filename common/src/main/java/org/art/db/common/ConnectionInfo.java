@@ -20,7 +20,7 @@ public class ConnectionInfo {
 	}
 
 	public ConnectionInfo(String propertyPath) throws Exception {
-		try (InputStream stream = Configuration.class.getClassLoader().getResourceAsStream(propertyPath)) {
+		try (InputStream stream = ConnectionInfo.class.getClassLoader().getResourceAsStream(propertyPath)) {
 			Properties properties = new Properties();
 			
 			properties.load(stream);

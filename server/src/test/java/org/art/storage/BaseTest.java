@@ -16,40 +16,14 @@ public class BaseTest {
 		new File("./cluster2root"),
 		new File("./atest"),
 		new File("./secondroot"),
+		new File("./duptest"),
 	};
 	
 	@BeforeEach
 	public void beforeEach() throws Exception {
 		logger.info("Start test " + this.getClass().getSimpleName());
 		
-		this.cleanDataDirectories();
-		
-		/*try (KubernetesClient client = new KubernetesClientBuilder().build()) {
-			EndpointsList endpointList;
-						
-			endpointList = client.endpoints().withField("metadata.name", "helloworld").list();
-			
-			logger.info("count " + endpointList.getItems().size());
-			
-			for (Endpoints endpoints : endpointList.getItems()) {
-				for (EndpointSubset subset : endpoints.getSubsets()) {
-					if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
-						EndpointAddress address = subset.getAddresses().get(0);
-						EndpointPort port = subset.getPorts().get(0);
-						
-						logger.info(" by name ip " + address.getIp() + ":" + port.getPort() + " " + port);
-					}
-					
-				}
-				
-			}
-			
-			
-			
-		} catch (Exception exc) {
-			exc.printStackTrace();
-		}*/
-		
+		this.cleanDataDirectories();		
 		logger.info("done");
 
 	}

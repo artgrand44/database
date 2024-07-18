@@ -11,9 +11,10 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import org.art.db.common.Configuration;
+import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Scheduler;
+import org.art.db.storage.Environment;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.MetricsPublisher;
 import org.slf4j.Logger;
@@ -40,24 +41,21 @@ public class UIPublisher implements MetricsPublisher {
 	private Cache<String, Stats> statsCache = Caffeine.newBuilder().maximumSize(1000).build();
 	private final ServerStats serverStats;
 	
-	private final Configuration config;
 	private final String cluster;
 	private final String shard;
 	
 	private final String server;
 	
 	
-	public UIPublisher(Configuration config) {
-		this.config = config;
-		
+	public UIPublisher(ConnectionInfo info) {
 		try {
 			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 			this.cluster = handler.getLocalCluster();
 			this.shard =  handler.getLocalShard();
-			this.server = InetAddress.getLocalHost().getHostAddress() + ":" + this.config.getPort();
+			this.server = InetAddress.getLocalHost().getHostAddress() + ":" + info.getPort();
 			this.sendSocket = new DatagramSocket();
 			this.group = InetAddress.getByName("230.0.0.0");
-			this.serverStats = new ServerStats(this.config.getCluster(), this.config.getShard(), this.server);
+			this.serverStats = new ServerStats(info.getCluster(), info.getShard(), this.server);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}
@@ -148,7 +146,7 @@ public class UIPublisher implements MetricsPublisher {
      
 
 	public void start() {
-		if (Configuration.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
+		if (Environment.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
 			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
 			Metrics.getInstance().addPublisher(this);
 		}

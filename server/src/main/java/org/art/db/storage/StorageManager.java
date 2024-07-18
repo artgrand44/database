@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.art.db.common.Configuration;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestClient;
@@ -109,7 +108,7 @@ public class StorageManager  {
 				Map<String, String> properties = (Map<String, String>)new ObjectMapper().readValue(bytes, Map.class);
 				
 				for (Map.Entry<String, String> entry : properties.entrySet()) {
-					Configuration.getInstance().setProperty(entry.getKey(), entry.getValue());
+					Environment.getInstance().setProperty(entry.getKey(), entry.getValue());
 				}
 			} catch (Exception exc) {
 				Metrics.getInstance().logAlert("There was an error synchronizing the configuration.");

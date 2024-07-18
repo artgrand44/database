@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.art.db.common.Configuration;
+import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.MultiValueMap;
 import org.art.db.common.Utils;
@@ -38,7 +38,7 @@ public class UIPoller {
 	
 	private Cache<String,Stats> statsCache = Caffeine.newBuilder().maximumSize(1000).build();
 	
-	public UIPoller(Configuration config) {
+	public UIPoller(ConnectionInfo config) {
 		this.cluster = config.getCluster();
 		
 		try {
