@@ -1,4 +1,4 @@
-package org.art.kubernetes;
+package org.art.storage;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.art.storage.Integration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,8 +18,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
 
-public class TestRunner {
-	private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);
+public class KubeTester {
+	private static final Logger logger = LoggerFactory.getLogger(KubeTester.class);
 	
 	private static int totalTests = 0;
 	private static int totalErrors = 0;

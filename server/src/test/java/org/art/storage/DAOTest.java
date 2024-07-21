@@ -66,8 +66,6 @@ public class DAOTest  extends BaseIntegrationTest {
 	
 	@Test
 	public void orderTest() {
-		logger.info("Start handlerTest");
-
 		try {
 			String drop = "drop table if exists orders";
 			String create = "CREATE TABLE orders (id VARCHAR(100) NOT NULL PRIMARY KEY, account varchar(255), items list)";
@@ -104,8 +102,6 @@ public class DAOTest  extends BaseIntegrationTest {
 	}
 	@Test
 	public void basicTest() {
-		logger.info("Start handlerTest");
-
 		try {
 			this.setup(10);
 			
@@ -195,8 +191,6 @@ public class DAOTest  extends BaseIntegrationTest {
 	
 	@Test
 	public void test() {
-		logger.info("Start test");
-
 		try {
 			this.setup(2);
 			

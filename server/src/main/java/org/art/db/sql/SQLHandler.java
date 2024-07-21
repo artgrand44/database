@@ -2,9 +2,8 @@ package org.art.db.sql;
 
 import java.util.List;
 
-import org.art.db.common.DocumentSet;
-import org.apache.commons.lang3.StringUtils;
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.DocumentSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
