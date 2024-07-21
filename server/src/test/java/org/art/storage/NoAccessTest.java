@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Integration
 public class NoAccessTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
@@ -20,6 +21,7 @@ public class NoAccessTest extends BaseIntegrationTest {
 			try  {
 				startInternal("./application.properties");
 				
+				String drop = "drop table if exists privtest";
 				String create = "CREATE TABLE privtest (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255))";
 				String insert = "insert into privtest (id, first, last ) values (?, 'art', ?)";
 				String createIndex = "CREATE INDEX privtest ON privtest(last)";
@@ -59,6 +61,7 @@ public class NoAccessTest extends BaseIntegrationTest {
 				}
 				Client adminClient = this.getClient().batch(false);
 				
+				adminClient.execute(drop);
 				adminClient.execute(create);
 				adminClient.execute(createIndex);
 				adminClient.execute(createUser);

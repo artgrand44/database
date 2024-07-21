@@ -8,6 +8,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Integration
 public class ExpressionTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
@@ -27,12 +28,13 @@ public class ExpressionTest extends BaseIntegrationTest {
 				
 				Client client = this.getClient().batch(false);
 				
+				String drop = "drop table if exists expressions";
 				String create = "CREATE TABLE expressions (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255), count int)";
 				String createIndex = "CREATE INDEX expressions ON expressions(first)";
 				
 				String insert = "insert into expressions (id, first, last, count ) values (?, 'art', 'grand', ?)";
 				
-				
+				client.execute(drop);
 				client.execute(create);
 				client.execute(createIndex);
 				

@@ -94,7 +94,6 @@ public class Table implements Closeable {
 		
 		try {
 			this.closed = true;
-			logger.info("closing " + this.table);
 			
 			if (this.isQueue) {
 				this.timer.cancel(true);

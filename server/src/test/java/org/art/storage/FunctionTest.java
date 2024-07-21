@@ -14,6 +14,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Integration
 public class FunctionTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
@@ -30,10 +31,12 @@ public class FunctionTest extends BaseIntegrationTest {
 				
 				String create = "CREATE TABLE func (id int NOT NULL PRIMARY KEY, str varchar(255), date Date, list LIST, count int)";
 				
+				String drop = "drop table if exists func";
 				String insert = "insert into func (id, str, date, list, count ) values ('1', 'art','2015-04-30', ?, 1)";//yyyy-[m]m-[d]d
 				String query1 = "select * from func where id = '1'";
 				List<String> list = new ArrayList<>();
 				
+				client.execute(drop);
 				client.execute(create);
 				
 				list.add("a");

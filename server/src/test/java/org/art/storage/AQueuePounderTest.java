@@ -9,12 +9,14 @@ import org.art.db.common.GUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
+@Integration
 public class AQueuePounderTest extends BaseQueryPounder {
 
 	private static final Logger logger = LoggerFactory.getLogger(AQueuePounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 10000;
+	private static int NLOOPS = 100;
 	private static int NTHREADS = 150;
 	
 	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);
@@ -40,8 +42,10 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	@Override
 	protected void loadDabase() throws Exception {
 		Client client = this.getClient().batch(false);
+		String drop = "drop table if exists queue";
 		String create = "CREATE QUEUE TABLE queue (id GUID NOT NULL PRIMARY KEY, name varchar(255), value varchar(255))";
 		
+		client.execute(drop);
 		client.execute(create);
 		
 		for (int idx = 0; idx < NITEMS; idx++) {

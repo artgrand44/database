@@ -35,6 +35,7 @@ public record Metadata(String name, List<String> primaryKeyFields, SortedMap<Str
 		return columns.get(name);
 	}
 	
+	
 	public static Metadata getMetadata(String table) {
 		
 		if (cache.containsKey(table)) {
@@ -59,6 +60,10 @@ public record Metadata(String name, List<String> primaryKeyFields, SortedMap<Str
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}
+	}
+	
+	public static void removeFromCache(String table) {
+		cache.remove(table);
 	}
 	
 	public static void setMetadata(Metadata meta) throws Exception {

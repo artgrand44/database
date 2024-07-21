@@ -21,10 +21,11 @@ public class BaseTest {
 	
 	@BeforeEach
 	public void beforeEach() throws Exception {
-		logger.info("Start test " + this.getClass().getSimpleName());
+		if (System.getProperty("org.art.db.serviceURI") == null) {
+			logger.info("Start test " + this.getClass().getSimpleName());
+		}
 		
-		this.cleanDataDirectories();		
-		logger.info("done");
+		this.cleanDataDirectories();
 
 	}
 	

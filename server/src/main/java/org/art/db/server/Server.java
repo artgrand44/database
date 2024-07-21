@@ -152,7 +152,6 @@ public class Server implements HttpHandler, FullBytesCallback {
 			exchange.getResponseHeaders().put(Headers.WWW_AUTHENTICATE, "Basic realm=Database");
 			exchange.setStatusCode(RestException.UNAUTHORIZED);
 		} catch (Exception exc) {
-			exc.printStackTrace();
 			exchange.setStatusCode(RestException.TEA_POT);
 			
 			String warning = String.format("Warning: 199 - %s", exc.getMessage());

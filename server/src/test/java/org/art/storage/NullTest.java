@@ -12,6 +12,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Integration
 public class NullTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
@@ -26,6 +27,7 @@ public class NullTest extends BaseIntegrationTest {
 				
 				Client client = this.getClient().batch(false);
 				
+				String drop = "drop table if exists nulls";
 				String create = "CREATE TABLE nulls (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255))";
 				String createIndex = "CREATE INDEX nulls ON nulls(first)";
 				
@@ -33,6 +35,7 @@ public class NullTest extends BaseIntegrationTest {
 				String update = "update nulls set first = NULL where id = '1'";
 				String query1 = "select * from nulls where id = '1'";
 				
+				client.execute(drop);
 				client.execute(create);
 				client.execute(createIndex);
 				

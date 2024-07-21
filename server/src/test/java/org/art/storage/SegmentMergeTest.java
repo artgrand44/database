@@ -9,6 +9,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+//@Integration
 public class SegmentMergeTest extends BaseIntegrationTest {
 	
 	private static final Logger logger = LoggerFactory.getLogger(BigSetTest.class);
@@ -22,11 +23,13 @@ public class SegmentMergeTest extends BaseIntegrationTest {
 				
 				Client client = this.getClient().batch(false);
 				
+				String drop = "drop table if exists segmentTest";
 				String create = "CREATE TABLE segmentTest (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255), count int)";
 				String insert = "insert into segmentTest (id, first, last, count ) values (?, 'art', ?, ?)";
 				String createIndex = "CREATE INDEX segmentTest ON segmentTest(count)";
 				String query = "select * from segmentTest where count < 5000 order by count";
 				
+				client.execute(drop);
 				client.execute(create);
 				client.execute(createIndex);
 				

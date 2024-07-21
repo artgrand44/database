@@ -61,5 +61,8 @@ kubectl delete deployment.apps/${cluster} service/${cluster}
 docker build . --tag db:v1
 kubectl create -f out3.yaml
 kubectl expose deployment ${cluster} --type=NodePort --port=$port
+
+rm out*.yaml
+
 sleep 5
 minikube service ${cluster} hello-minikube1 --url

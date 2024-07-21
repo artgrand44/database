@@ -8,6 +8,7 @@ import org.art.db.common.DBRuntimeException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Integration
 public class NegativeSQLTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
@@ -30,6 +31,8 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 		try {
 			this.client.executeQuery(statement);
 			Assertions.fail(statement + " did not throw an exception");
+		} catch (AssertionFailedError err) {
+			throw err;
 		} catch (DBRuntimeException exc) {
 			Assertions.assertThat(exc.getMessage().equals(message)).isTrue();
 		} catch (Exception exc) {
@@ -42,6 +45,7 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 			try  {
 				startInternal("./application.properties");
 				
+				String drop = "drop table if exists negative";
 				String create = "CREATE TABLE negative (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255))";
 				String createIndex = "CREATE INDEX negative ON negative(last)";
 				String insert = "insert into negative (id, first, last ) values (?, 'art', ?)";
@@ -51,6 +55,8 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 				
 				
 				this.client = this.getClient().batch(false);
+				
+				this.client.execute(drop);
 				
 				this.checkExecuteException(insert, "Table SYS.SYS.negative does not exist.");
 				this.checkExecuteException(update, "Table SYS.SYS.negative does not exist.");
@@ -77,6 +83,8 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 				
 		} catch (AssertionFailedError err) {
 			throw err;
+		} catch (AssertionError exc) {
+			throw exc;
 		} catch(Throwable exc) {
 			exc.printStackTrace();
 			Assertions.fail(exc.getMessage());

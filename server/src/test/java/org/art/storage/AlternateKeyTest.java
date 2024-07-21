@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+@Integration
 public class AlternateKeyTest extends BaseSQLTest {
 	
 	@SuppressWarnings("unused")
@@ -18,6 +19,7 @@ public class AlternateKeyTest extends BaseSQLTest {
 	@Test
 	public void test() {
 		try {
+			String drop = "drop table if exists alttest";
 			String create = "CREATE TABLE alttest (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 			String createIndex = "CREATE INDEX firstname ON alttest(FirstName)";
 			String insert = "insert into alttest (ID, FirstName, LastName, Age) values (?, ?, 'grand', '1')";
@@ -25,7 +27,7 @@ public class AlternateKeyTest extends BaseSQLTest {
 			
 			String query = "select * from alttest where FirstName = ?";
 			
-			
+			execute(drop);
 			execute(create);
 			execute(createIndex);
 			

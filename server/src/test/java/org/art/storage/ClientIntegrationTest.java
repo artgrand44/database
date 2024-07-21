@@ -11,12 +11,13 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Integration
 public class ClientIntegrationTest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(BaseIntegrationTest.class);
 	
 	@Test
 	public void test() {
-		Server.start("./application.properties");
+		startInternal("./application.properties");
 		
 		try {
 			Environment.getInstance().load("./application.properties");
@@ -28,9 +29,11 @@ public class ClientIntegrationTest extends BaseIntegrationTest {
 				Client client = this.getClient().batch(false);
 				
 				logger.info("Got client");
+				String drop = "drop table if exists insert";
 				String create = "CREATE TABLE insert (id int NOT NULL PRIMARY KEY, last varchar(255) NOT NULL, first varchar(255), count int)";
 				String createIndex = "CREATE INDEX name ON insert(first)";
 				
+				client.execute(drop);
 				client.execute(create);
 				client.execute(createIndex);
 				

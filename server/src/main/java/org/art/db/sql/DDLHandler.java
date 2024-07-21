@@ -306,6 +306,7 @@ public class DDLHandler {
 			if (tableDir.exists()) {
 				StorageManager.getInstance().closeTable(table);
 				FileUtils.deleteDirectory(tableDir);
+				Metadata.removeFromCache(table);
 				
 				logger.info("deleted tableDir " + tableDir.getAbsolutePath() + " " + tableDir.exists());
 			} else if (!drop.isIfExists()) {

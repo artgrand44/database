@@ -13,6 +13,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Integration
 public class DAOTest  extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(DAOTest.class);
 	
@@ -50,9 +51,11 @@ public class DAOTest  extends BaseIntegrationTest {
 	}
 	
 	private void setup(int count) throws Exception {
+		String drop = "drop table if exists items";
 		String create = "CREATE TABLE items (orderNo VARCHAR(100) NOT NULL PRIMARY KEY, account varchar(255), date varchar(255))";
 		String createIndex = "CREATE INDEX orderNp ON items(orderNo)";
 		
+		client.execute(drop);
 		client.execute(create);
 		client.execute(createIndex);
 		
@@ -66,10 +69,11 @@ public class DAOTest  extends BaseIntegrationTest {
 		logger.info("Start handlerTest");
 
 		try {
-
+			String drop = "drop table if exists orders";
 			String create = "CREATE TABLE orders (id VARCHAR(100) NOT NULL PRIMARY KEY, account varchar(255), items list)";
 			String createIndex = "CREATE INDEX orders ON orders(account)";
 			
+			client.execute(drop);
 			client.execute(create);
 			client.execute(createIndex);
 			

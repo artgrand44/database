@@ -12,7 +12,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
+@Integration
 public class DuplicateKeyTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
@@ -26,11 +26,12 @@ public class DuplicateKeyTest extends BaseIntegrationTest {
 			
 			Client client = this.getClient().batch(false);
 			
+			String drop = "drop table if exists duptest";
 			String create = "CREATE TABLE duptest (id GUID NOT NULL PRIMARY KEY, name varchar(255), color varchar(255))";
 			String createNameIndex = "CREATE UNIQUE INDEX name ON duptest(name)";
 			String createColorIndex = "CREATE INDEX name ON duptest(color)";
 			
-			
+			client.execute(drop);
 			client.execute(create);
 			client.execute(createNameIndex);
 			client.execute(createColorIndex);

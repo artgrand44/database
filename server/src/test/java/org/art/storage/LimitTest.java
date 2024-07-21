@@ -10,6 +10,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Integration
 public class LimitTest  extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(DAOTest.class);
 	
@@ -35,10 +36,11 @@ public class LimitTest  extends BaseIntegrationTest {
 	}
 	
 	private void load() throws Exception {
+		String drop = "drop table if exists sharded";
 		String create = "CREATE TABLE sharded (id  varchar(255) NOT NULL PRIMARY KEY, color varchar(255) NOT NULL, make varchar(255), count int)";
 		String createIndex = "CREATE INDEX name ON sharded(color)";
 		
-		
+		client.execute(drop);
 		client.execute(create);
 		client.execute(createIndex);
 		

@@ -230,7 +230,6 @@ public class Dispatcher {
 					return stream.toByteArray();
 				}
 			} catch (Exception exc) {
-				exc.printStackTrace();
 				throw exc;
 			}			
 		}

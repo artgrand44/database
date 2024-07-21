@@ -18,6 +18,7 @@ import org.art.db.query.QueryManager;
 import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
 import org.art.db.storage.ColumnInfo;
+import org.art.db.storage.Files;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.Metrics;
 import org.slf4j.Logger;
@@ -150,7 +151,7 @@ public class DMLHandler {
 		} catch (Exception exc) {
 			throw new DBRuntimeException("The delete failed" + exc.getMessage(), exc);
 		} finally {
-			if (lock) {
+			if (lock && docs != null) {
 				QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
 			}
 			
@@ -179,12 +180,18 @@ public class DMLHandler {
 	}
 	
 	static void insert(Insert insert, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) {
+		String table = SQLUtils.getFQN(insert.getTable(), database);
 		try {
-			String table = SQLUtils.getFQN(insert.getTable(), database);
+			//String table = SQLUtils.getFQN(insert.getTable(), database);
 			Metadata metadata = Metadata.getMetadata(table);
 			long start = System.currentTimeMillis();
 			
+			if (!Files.getTableDirectory(table).exists()) {
+				logger.info("**Missing before insert " + Files.getTableDirectory(table) + " " + sqlString);
+			}
+			
 			if (metadata == null) {
+				logger.info("No metadata " + sqlString);
 				throw new DBRuntimeException("Table " + insert.getTable().getName() + " does not exist");
 			}
 			
@@ -251,9 +258,8 @@ public class DMLHandler {
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
-			exc.printStackTrace();
 			throw new DBRuntimeException("The insert failed " + exc.getMessage(), exc);
-		}
+		} 
 		
 	}
 	
@@ -433,12 +439,19 @@ public class DMLHandler {
 		boolean lock = false;
 		
 		try {			
+			if (!Files.getTableDirectory(table).exists()) {
+				logger.info("****Missing before update " + Files.getTableDirectory(table) + " exists = " + Files.getTableDirectory(table).exists() + " " + sqlString);
+			}
+			
 			ReturningClause returnClause = update.getReturningClause();
 			Metadata metadata = Metadata.getMetadata(table);
 			
 			if (metadata == null) {
+				logger.info("No metadata " + sqlString);
 				throw new DBRuntimeException("Table " + update.getTable().getName() + " does not exist");
 			}
+			
+			logger.info("****after metdata check " + Files.getTableDirectory(table) + Files.getTableDirectory(table) + " exists = " + Files.getTableDirectory(table).exists() + " " + sqlString);
 			
 			// Validate the update clauses
 			
@@ -508,11 +521,12 @@ public class DMLHandler {
 				   : processSelectItems(newDocs, returnClause, evaluator, parameters);
 			
 		} catch (DBRuntimeException exc) {
+			logger.info("rethrow " + exc.getMessage());
 			throw exc;
 		} catch (Exception exc) {
 			throw new DBRuntimeException("The update failed " + exc.getMessage(), exc);
 		} finally {
-			if (lock) {
+			if (lock && docs != null) {
 				QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
 			}
 			

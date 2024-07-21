@@ -11,6 +11,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Integration
 public class NestedTest extends BaseIntegrationTest {
 	
 	@SuppressWarnings("unused")
@@ -25,6 +26,7 @@ public class NestedTest extends BaseIntegrationTest {
 				
 				Client client = this.getClient().batch(false);
 				
+				String drop = "drop table if exists nested";
 				String create = "CREATE TABLE nested (id int NOT NULL PRIMARY KEY, doc Document)";
 				String insert = "insert into nested (id, doc ) values ('1', ?)";
 				String update = "update nested set doc.hello = 'hi art' where id = '1'";
@@ -32,6 +34,7 @@ public class NestedTest extends BaseIntegrationTest {
 				String query2 = "select * from nested where id = '1' and doc.hello = 'hi art'";
 				
 				
+				client.execute(drop);
 				client.execute(create);
 				client.execute(insert, new Document());
 				client.execute(update);
