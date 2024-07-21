@@ -39,7 +39,7 @@ public class UIPoller {
 	private Cache<String,Stats> statsCache = Caffeine.newBuilder().maximumSize(1000).build();
 	
 	public UIPoller(ConnectionInfo config) {
-		this.cluster = config.getCluster();
+		this.cluster = config.getDatabase();
 		
 		try {
 			this.recieveSocket = new MulticastSocket(UIController.PORT);

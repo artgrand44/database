@@ -17,7 +17,7 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 	
 	private String localPort;
 	private String localShard;
-	private String localCluster;
+	private String localDatabase;
 	private URI localInstance;
 	
 	public DiscoveryPluginImpl() {
@@ -36,8 +36,8 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 
 
 	@Override
-	public String getCluster() {
-		return this.localCluster;
+	public String getDatabase() {
+		return this.localDatabase;
 	}
 	
 	@Override
@@ -54,17 +54,17 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 	}
 	
 	public void initialize(ConnectionInfo info, boolean isServer) { 
-		this.listener = new HeartbeatListener(this.publisher, info.getCluster(), info.toURI());
+		this.listener = new HeartbeatListener(this.publisher, info.getDatabase(), info.toURI());
 		this.localPort = info.getPort();
 		this.localShard = info.getShard();
-		this.localCluster = info.getCluster();
+		this.localDatabase = info.getDatabase();
 		this.localInstance = info.toURI();
 		
 		this.listener.intialize();
 		this.listener.start();
 		
 		if (isServer) {
-			this.publisher = new HeartbeatPublisher(info.getCluster(), info.getShard(), info.toURI().getPort());
+			this.publisher = new HeartbeatPublisher(info.getDatabase(), info.getShard(), info.toURI().getPort());
 			this.publisher.initialize();
 			this.listener.setPublisher(this.publisher);
 		}	

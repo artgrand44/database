@@ -41,27 +41,27 @@ public class Client {
 	
 	
 	public Client(URI uri, String user, String password) throws Exception {
-		String cluster;
+		String database;
 		String shard;
 		String host;
 		URI serverURI;
 		String port;
 		
 		if (uri.getScheme().equalsIgnoreCase("database")) {
-			cluster = uri.getPath().substring(1);
+			database = uri.getPath().substring(1);
 			shard = uri.getPath().isEmpty() ? "*" : uri.getPath().substring(1);
 			serverURI = null;
 			host = null;
 			port = "0";
 		} else {
-			cluster = uri.getPath().substring(1);
+			database = uri.getPath().substring(1);
 			shard = "*";
 			serverURI = new URI(String.format("%s://%s:%s", uri.getScheme(), uri.getHost(), uri.getPort()));
 			host = uri.getHost();
 			port = String.valueOf(uri.getPort());
 		}
 		
-		ConnectionInfo info = new ConnectionInfo(host, port, shard, cluster);
+		ConnectionInfo info = new ConnectionInfo(host, port, shard, database);
 		
 		this.handler = DiscoveryHandler.getHandler(info);
 		this.router = Router.getRouter(handler, user, password);

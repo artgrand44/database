@@ -9,13 +9,13 @@ import java.util.Properties;
 public class ConnectionInfo {
 	private final String host;
 	private final String port; 
-	private final String cluster;
+	private final String database;
 	private final String shard;
 	
-	public ConnectionInfo(String host, String port, String shard, String cluster) {
+	public ConnectionInfo(String host, String port, String shard, String datase) {
 		this.host = host;
 		this.port = port;
-		this.cluster = cluster;
+		this.database = datase;
 		this.shard = shard;	
 	}
 
@@ -29,7 +29,7 @@ public class ConnectionInfo {
 			
 			this.host = host.contains("localhost") ? InetAddress.getLocalHost().getHostAddress() : host;
 			this.port = properties.getProperty("org.art.db.port", "8080");
-			this.cluster = properties.getProperty("org.art.db.cluster", "cluster");
+			this.database = properties.getProperty("org.art.db.database", "cluster");
 			this.shard = properties.getProperty("org.art.db.shard",  "shard");
 		}
 	}
@@ -43,8 +43,8 @@ public class ConnectionInfo {
 		return port;
 	}
 
-	public String getCluster() {
-		return cluster;
+	public String getDatabase() {
+		return database;
 	}
 
 	public String getShard() {
@@ -66,7 +66,7 @@ public class ConnectionInfo {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(cluster, host, port, shard);
+		return Objects.hash(database, host, port, shard);
 	}
 
 	@Override
@@ -78,7 +78,7 @@ public class ConnectionInfo {
 		if (getClass() != obj.getClass())
 			return false;
 		ConnectionInfo other = (ConnectionInfo) obj;
-		return Objects.equals(cluster, other.cluster) && Objects.equals(host, other.host)
+		return Objects.equals(database, other.database) && Objects.equals(host, other.host)
 				&& Objects.equals(port, other.port) && Objects.equals(shard, other.shard);
 	}
 }

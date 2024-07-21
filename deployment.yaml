@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: artdb
   labels: {
-    "cluster" : "artdb",
+    "database" : "artdb",
     "shard" : "shard1"
   }
 spec:
@@ -20,8 +20,10 @@ spec:
       - name: artdb
         image: db:v1 
         env:
-           - name: cluster
+           - name: database
              value: "artdb"
+           - name: cloud
+             value: kubernetes
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080

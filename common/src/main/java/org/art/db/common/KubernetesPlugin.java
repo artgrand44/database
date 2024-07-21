@@ -64,7 +64,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	}
 	
 	@Override
-	public String getCluster() {
+	public String getDatabase() {
 		return this.database;
 	}
 	public String getLocalPort() { 
@@ -299,9 +299,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	}
 
 	public static boolean isKubernetes() {
-		String kubernetes = System.getenv("KUBERNETES_SERVICE_HOST");
-		
-		return kubernetes != null && !kubernetes.isEmpty();
+		return "kubernetes".equalsIgnoreCase(System.getenv("cloud"));
 	}
 
 	

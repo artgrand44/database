@@ -15,7 +15,7 @@ public interface DiscoveryPlugin {
 	
 	public String getLocalShard();
 	
-	public String getCluster();
+	public String getDatabase();
 	
 	public URI getLocalInstance();
 	

@@ -41,7 +41,7 @@ public class UIPublisher implements MetricsPublisher {
 	private Cache<String, Stats> statsCache = Caffeine.newBuilder().maximumSize(1000).build();
 	private final ServerStats serverStats;
 	
-	private final String cluster;
+	private final String database;
 	private final String shard;
 	
 	private final String server;
@@ -50,12 +50,12 @@ public class UIPublisher implements MetricsPublisher {
 	public UIPublisher(ConnectionInfo info) {
 		try {
 			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
-			this.cluster = handler.getLocalCluster();
+			this.database = handler.getLocalDatabase();
 			this.shard =  handler.getLocalShard();
 			this.server = InetAddress.getLocalHost().getHostAddress() + ":" + info.getPort();
 			this.sendSocket = new DatagramSocket();
 			this.group = InetAddress.getByName("230.0.0.0");
-			this.serverStats = new ServerStats(info.getCluster(), info.getShard(), this.server);
+			this.serverStats = new ServerStats(info.getDatabase(), info.getShard(), this.server);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}
@@ -74,7 +74,7 @@ public class UIPublisher implements MetricsPublisher {
 	public void logAlert(String message) {
 		
 		String key = escapeHtml4(message);
-		AlertStats stats = this.getStats(key, AlertStats.class, x -> new AlertStats(this.cluster, this.shard, this.server, x));
+		AlertStats stats = this.getStats(key, AlertStats.class, x -> new AlertStats(this.database, this.shard, this.server, x));
 		
 		stats.log(1);		
 	}
@@ -83,7 +83,7 @@ public class UIPublisher implements MetricsPublisher {
 	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		
 		String key = clientName + "|" + escapeHtml4(sql);
-		ClientStats stats = this.getStats(key, ClientStats.class, x -> new ClientStats(this.cluster, this.shard,this.server, clientName, sql));
+		ClientStats stats = this.getStats(key, ClientStats.class, x -> new ClientStats(this.database, this.shard,this.server, clientName, sql));
 	
 		stats.log(time, calls, matches);
 	
@@ -107,7 +107,7 @@ public class UIPublisher implements MetricsPublisher {
 		this.serverStats.logGet();
 		
 		String key = escapeHtml4(queryString);
-		QueryStats stats = this.getStats(key, QueryStats.class, x -> new QueryStats(this.cluster, this.shard, this.server, x));
+		QueryStats stats = this.getStats(key, QueryStats.class, x -> new QueryStats(this.database, this.shard, this.server, x));
 		
 		stats.log(1, time, matches);		
 	}

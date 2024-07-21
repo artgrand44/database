@@ -42,10 +42,10 @@ public class DiscoveryHandler {
 	
 	private final URI localInstance;
 	
-	private final String localCluster;
+	private final String localDatabase;
 	
-	public String getLocalCluster() {
-		return localCluster;
+	public String getLocalDatabase() {
+		return localDatabase;
 	}
 
 	private ScheduledFuture<?> poller;
@@ -84,7 +84,7 @@ public class DiscoveryHandler {
 		Utils.sleepSafely(300);
 		
 		this.port = this.plugin.getLocalPort();
-		this.localCluster = this.plugin.getCluster();
+		this.localDatabase = this.plugin.getDatabase();
 		this.localInstance = this.plugin.getLocalInstance();
 			
 		if (isServer) {
@@ -390,7 +390,7 @@ public class DiscoveryHandler {
 		}
 
 		@Override
-		public String getCluster() {
+		public String getDatabase() {
 			return "none";
 		}
 
