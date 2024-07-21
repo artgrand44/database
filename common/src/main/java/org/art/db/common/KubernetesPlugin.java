@@ -43,7 +43,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	private final KubernetesClient client;
 	private String localPort;
 	private String localShard;
-	private String cluster;
+	private String database;
 	private URI localInstance;
 	private AtomicReference<Map<URI, String>> serverInstances = new AtomicReference<Map<URI,String>>();
 	private AtomicBoolean loading = new AtomicBoolean();
@@ -54,7 +54,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	private KubernetesPlugin() {
 		try {
 			this.client = new KubernetesClientBuilder().build();
-			this.cluster = System.getenv("cluster");
+			this.database = System.getenv("database");
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -65,7 +65,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	
 	@Override
 	public String getCluster() {
-		return this.cluster;
+		return this.database;
 	}
 	public String getLocalPort() { 
 		return this.localPort;
@@ -88,21 +88,22 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		
 		if ((this.serverInstances.get() == null || System.currentTimeMillis() > this.ttl) && this.loading.compareAndSet(false, true)) {
 			try {
-				logger.info("starting services scan " + this.cluster);
+				logger.info("starting services scan " + this.database);
 										
 				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
-				EndpointsList endpointList = client.endpoints().withField("metadata.name", this.cluster).list();
+				EndpointsList endpointList = client.endpoints().withField("metadata.name", this.database).list();
 				Map<URI, String> result = new HashMap<>();
 				
 				for (Endpoints endpoints : endpointList.getItems()) {
 					ObjectMeta meta = endpoints.getMetadata();
 					Map<String, String> labels = meta.getLabels();
-					String cluster = labels.get("cluster");
+					String database = labels.get("database");
 					String shard = labels.get("shard");
 
-					logger.info("labels " + labels + " shard = " + shard + " cluster " + cluster + " this.cl " + this.cluster);
-
-					if (cluster.equalsIgnoreCase(this.cluster)) {				
+					
+					logger.info("labels " + labels + " shard = " + shard + " database " + database + " this.database " + this.database);
+					
+					if (database.equalsIgnoreCase(this.database)) {
 						for (EndpointSubset subset : endpoints.getSubsets()) {					 
 							if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
 								EndpointAddress address = subset.getAddresses().get(0);
@@ -124,7 +125,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 				}
 
 				logger.info("instances " + result);
-				logger.info("local host name" + InetAddress.getLocalHost().getHostName() + " hostaddress " +   InetAddress.getLocalHost().getHostAddress());
+				logger.info("local host name " + InetAddress.getLocalHost().getHostName() + " hostaddress " +   InetAddress.getLocalHost().getHostAddress());
 				logger.info("local host IP "  + InetAddress.getLocalHost());
 				logger.info("local shard "  + this.localShard);
 				logger.info("local instance "  + this.localInstance);
@@ -152,9 +153,9 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			// an existing directory for an instance that has crashed.
 			
 			LeaderElectionConfig leaderConfig = new LeaderElectionConfigBuilder()
-					                                	.withName(this.cluster)
+					                                	.withName(this.database)
 					                                	.withLeaseDuration(Duration.ofMinutes(2))
-					                                	.withLock(new LeaseLock("default", this.cluster, generateId().toString()))
+					                                	.withLock(new LeaseLock("default", this.database, generateId().toString()))
 					                                	.withReleaseOnCancel()
 					                                	.withLeaderCallbacks(new LeaderCallbacks(this::initializeRoot, () -> {}, x-> {}))
 					                                	.withRenewDeadline(Duration.ofSeconds(10L))
@@ -207,7 +208,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			
 			mountDir.mkdir();
 
-			File rootList = new File(mountDir, this.cluster + ".dat");
+			File rootList = new File(mountDir, this.database + ".dat");
 			
 			Map<String, String> roots = this.readCSV(rootList);
 			

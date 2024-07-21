@@ -1,26 +1,26 @@
 #! /bin/bash
 if [ "$#" -ge 1 ]; then
-    cluster=$1
+    database=$1
 fi
 
 
 
-if [ -z "${cluster}" ]; then 
-	read -p "Cluster?[cluster]" cluster
+if [ -z "${database}" ]; then 
+	read -p "Database?[database]" database
 
 
-	if [ -z "${cluster}" ]; then 
-		cluster="default"
+	if [ -z "${database}" ]; then 
+		database="default"
 	fi
 fi
-echo "Cluster is $cluster"
+echo "database is $database"
 
 if [ "$#" -ge 2 ]; then
     shard=$2
 fi
 
 if [ -z "${shard}" ]; then 
-	read -p "Shard?[cluster]" shard
+	read -p "Shard?[database]" shard
 
 
 	if [ -z "${shard}" ]; then 
@@ -49,7 +49,7 @@ echo ""
 echo ""
 
 sed  s/"shardname"/"$shard"/g temp.yaml |tee out1.yaml
-sed  s/"clustername"/"$cluster"/g out1.yaml |tee out2.yaml
+sed  s/"databasename"/"$database"/g out1.yaml |tee out2.yaml
 sed  s/"cport"/"$port"/g out2.yaml |tee out3.yaml
 
 echo ""
@@ -57,12 +57,12 @@ echo ""
 
 
 mvn clean package  -DskipTests=true -q
-kubectl delete deployment.apps/${cluster} service/${cluster}
+kubectl delete deployment.apps/${database} service/${database}
 docker build . --tag db:v1
 kubectl create -f out3.yaml
-kubectl expose deployment ${cluster} --type=NodePort --port=$port
+kubectl expose deployment ${database} --type=NodePort --port=$port
 
 rm out*.yaml
 
 sleep 5
-minikube service ${cluster} hello-minikube1 --url
+minikube service ${database} hello-minikube1 --url
