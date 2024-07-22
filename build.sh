@@ -1,6 +1,12 @@
 #! /bin/bash
+
+
 if [ "$#" -ge 1 ]; then
-    database=$1
+    service=$1
+fi
+
+if [ "$#" -ge 2 ]; then
+    database=$2
 fi
 
 
@@ -15,8 +21,8 @@ if [ -z "${database}" ]; then
 fi
 echo "database is $database"
 
-if [ "$#" -ge 2 ]; then
-    shard=$2
+if [ "$#" -ge 3 ]; then
+    shard=$3
 fi
 
 if [ -z "${shard}" ]; then 
@@ -29,8 +35,8 @@ if [ -z "${shard}" ]; then
 fi
 echo "Shard is $shard"
 
-if [ "$#" -ge 3 ]; then
-    port=$3
+if [ "$#" -ge 4 ]; then
+    port=$4
 fi
 
 if [ -z "${port}" ]; then 
@@ -41,14 +47,15 @@ if [ -z "${port}" ]; then
 		port="8080"
 	fi
 fi
-echo "***********Port is $port"
+
 cp sample.yaml temp.yaml
 ls temp.yaml
 
 echo ""
 echo ""
 
-sed  s/"shardname"/"$shard"/g temp.yaml |tee out1.yaml
+sed  s/"servicename"/"$service"/g temp.yaml |tee out0.yaml
+sed  s/"shardname"/"$shard"/g out0.yaml |tee out1.yaml
 sed  s/"databasename"/"$database"/g out1.yaml |tee out2.yaml
 sed  s/"cport"/"$port"/g out2.yaml |tee out3.yaml
 
@@ -57,12 +64,12 @@ echo ""
 
 
 mvn clean package  -DskipTests=true -q
-kubectl delete deployment.apps/${database} service/${database}
+kubectl delete deployment.apps/${service} service/${service}
 docker build . --tag db:v1
 kubectl create -f out3.yaml
-kubectl expose deployment ${database} --type=NodePort --port=$port
+kubectl expose deployment ${service} --type=NodePort --port=$port
 
-rm out*.yaml
+#rm out*.yaml
 
 sleep 5
-minikube service ${database} hello-minikube1 --url
+minikube service ${service} hello-minikube1 --url

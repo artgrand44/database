@@ -91,7 +91,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 				logger.info("starting services scan " + this.database);
 										
 				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
-				EndpointsList endpointList = client.endpoints().withField("metadata.name", this.database).list();
+				EndpointsList endpointList = client.endpoints().withLabel("database=" + this.database).list();
 				Map<URI, String> result = new HashMap<>();
 				
 				for (Endpoints endpoints : endpointList.getItems()) {
