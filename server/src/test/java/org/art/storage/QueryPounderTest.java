@@ -10,6 +10,7 @@ import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Integration
 public class QueryPounderTest extends BaseQueryPounder {
 
 	private static final Logger logger = LoggerFactory.getLogger(QueryPounderTest.class);
