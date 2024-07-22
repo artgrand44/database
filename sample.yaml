@@ -26,4 +26,4 @@ spec:
              value: kubernetes
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: cport
+        - containerPort: 8080
