@@ -69,7 +69,7 @@ docker build . --tag db:v1
 kubectl create -f out3.yaml
 kubectl expose deployment ${service} --type=NodePort --port=$port
 
-#rm out*.yaml
+rm out*.yaml
 
 sleep 5
 minikube service ${service} hello-minikube1 --url

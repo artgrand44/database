@@ -3,7 +3,6 @@ package org.art.storage;
 import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
-import org.art.db.server.Server;
 import org.art.db.storage.Environment;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;

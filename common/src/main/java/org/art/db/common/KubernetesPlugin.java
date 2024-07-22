@@ -106,16 +106,21 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 					if (database.equalsIgnoreCase(this.database)) {
 						for (EndpointSubset subset : endpoints.getSubsets()) {					 
 							if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
-								EndpointAddress address = subset.getAddresses().get(0);
-								EndpointPort port = subset.getPorts().get(0);
-								URI uri = new URI(String.format("http://%s:%s", address.getIp(), port.getPort()));
+								for (int idx = 0; idx < subset.getAddresses().size(); idx++) {
+									EndpointAddress address = subset.getAddresses().get(idx);
+									
+									for (int jdx = 0; jdx < subset.getPorts().size(); jdx++) {
+										EndpointPort port = subset.getPorts().get(jdx);
+										URI uri = new URI(String.format("http://%s:%s", address.getIp(), port.getPort()));
 
-								result.put(uri, shard);
-
-								if (address.getIp().equals(localHostAddress)) {
-									this.localPort = port.getPort().toString();
-									this.localShard = shard;
-									this.localInstance = uri;
+										result.put(uri, shard);
+										
+										if (address.getIp().equals(localHostAddress)) {
+											this.localPort = port.getPort().toString();
+											this.localShard = shard;
+											this.localInstance = uri;
+										}
+									}
 								}
 							}
 						}
@@ -179,14 +184,15 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	        	
 	        	instances = this.getServerInstances();
 	        	
-	        	if (instances.isEmpty()) {
+	        	if (instances.isEmpty() || this.localInstance == null) {
+	        		logger.info("sleep " + this.localInstance);
 	        		Utils.sleepSafely(100);
 	        	} else {
 	        		break;
 	        	}
 	        }
 	        
-	        if (instances.isEmpty()) {
+	        if (instances.isEmpty() || this.localInstance == null) {
 	        	throw new DBRuntimeException("There was a timeout starting the server");
 	        }	        
 		} catch (Exception exc) {

@@ -261,7 +261,9 @@ public class DDLHandler {
 		
 		SecurityHandler.getInstance().createUser(newUser, newUser, newPassword, false);
 		
-		SQLUtils.broadcastAll(database, sql, user, password);
+		if (targetShard.equals(Client.WILDCARD)) {
+			SQLUtils.broadcastAll(database, sql, user, password);
+		}
 		
 	}
 	
@@ -309,6 +311,10 @@ public class DDLHandler {
 				Metadata.removeFromCache(table);
 				
 				logger.info("deleted tableDir " + tableDir.getAbsolutePath() + " " + tableDir.exists());
+				
+				if (targetShard.equals(Client.WILDCARD)) {
+					SQLUtils.broadcastAll(database, drop.toString(), user, password);
+				}
 			} else if (!drop.isIfExists()) {
 				throw new DBRuntimeException("Table " + table + " does not exist");
 			}
@@ -342,7 +348,9 @@ public class DDLHandler {
 			SecurityHandler.getInstance().grant(grantee, table, grants);
 		}
 		
-		SQLUtils.broadcastAll(database, grant.toString(), user, password);
+		if (targetShard.equals(Client.WILDCARD)) {
+			SQLUtils.broadcastAll(database, grant.toString(), user, password);
+		}
 	}
 	
 	private static ColumnInfo getColumnInfo(ColumnDefinition col) throws Exception {
