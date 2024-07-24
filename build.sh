@@ -53,6 +53,7 @@ echo ""
 mvn clean package  -DskipTests=true -q
 kubectl delete deployment.apps/${service} service/${service}
 docker build . --tag db:v1
+kubectl apply -f volume.yaml
 kubectl create -f out2.yaml
 kubectl expose deployment ${service} --type=NodePort --port=$port
 

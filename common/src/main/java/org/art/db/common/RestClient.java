@@ -3,6 +3,7 @@ package org.art.db.common;
 import java.io.File;
 import java.net.ConnectException;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
@@ -116,6 +117,8 @@ public class RestClient {
 			
 			if (cause instanceof ConnectException) {
 				throw new RestException(RestException.NO_CONNECTION, "", cause);
+			} else if (cause instanceof SocketException) {
+				throw new RestException(500, "Socket exception " + uri + " " + cause.getMessage(), cause);
 			} else  if (cause instanceof RestException rest){
 				throw rest;
 			} else {

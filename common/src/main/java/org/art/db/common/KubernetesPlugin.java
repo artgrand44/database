@@ -51,6 +51,8 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	
 	private volatile String root;
 	
+	private final File ROOT_DIR = new File("/data/files");
+	
 	private KubernetesPlugin() {
 		try {
 			this.client = new KubernetesClientBuilder().build();
@@ -209,12 +211,9 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		// host names into their root directories.
 
 		try {
-			File mountDir = new File("./mount");
-			logger.info("********* initializing root");
+			logger.info("********* initializing root **********" + ROOT_DIR.getAbsolutePath() + " exosts "  + ROOT_DIR.exists());
 			
-			mountDir.mkdir();
-
-			File rootList = new File(mountDir, this.database + ".dat");
+			File rootList = new File(ROOT_DIR, this.database + ".dat");
 			
 			Map<String, String> roots = this.readCSV(rootList);
 			
@@ -237,7 +236,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 					roots.remove(uri);
 					roots.put(localHost, root);
 					this.writeCSV(roots, rootList);
-					this.root = new File(mountDir, entry.getValue()).getAbsolutePath();
+					this.root = new File(ROOT_DIR, entry.getValue()).getAbsolutePath();
 
 					logger.info("Using old " + this.root);
 					return;
@@ -249,7 +248,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			roots.put(localHost, localHost);
 			this.writeCSV(roots, rootList);
 
-			File newRoot = new File(mountDir, localHost);
+			File newRoot = new File(ROOT_DIR, localHost);
 
 			logger.info("using new " + newRoot.getAbsolutePath());
 

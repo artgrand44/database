@@ -25,5 +25,10 @@ spec:
            - name: cloud
              value: kubernetes
         imagePullPolicy: IfNotPresent
+        volumeMounts:
+            - name: pv0001
+              mountPath: /data/files
         ports:
         - containerPort: 8080
+      volumes:
+        - name: pv0001
