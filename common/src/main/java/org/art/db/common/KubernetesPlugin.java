@@ -19,6 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -187,7 +188,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	        	instances = this.getServerInstances();
 	        	
 	        	if (instances.isEmpty() || this.localInstance == null) {
-	        		logger.info("sleep " + this.localInstance);
 	        		Utils.sleepSafely(100);
 	        	} else {
 	        		break;
@@ -213,9 +213,19 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		try {
 			logger.info("********* initializing root **********" + ROOT_DIR.getAbsolutePath() + " exosts "  + ROOT_DIR.exists());
 			
+			// Load the map from uri's to directories.  If the list is corrupt then try loading it
+			// from the backup
+			
 			File rootList = new File(ROOT_DIR, this.database + ".dat");
+			File backup = new File(ROOT_DIR, this.database + ".bak");
 			
 			Map<String, String> roots = this.readCSV(rootList);
+			
+			if (roots == null && backup.exists()) {
+				FileUtils.copyFile(backup, rootList);
+				
+				roots = this.readCSV(rootList);
+			}
 			
 			// Iterator over the entries in cluster.dat looking for an abandoned 
 			// root directory.  If you find one then update the cluster.dat file,
@@ -243,9 +253,14 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 				}
 			}
 
-			// Create a new root directory using the host name
+			// Backup the old file and create a new root directory using the host name
 
 			roots.put(localHost, localHost);
+			
+			if (rootList.exists()) {
+				FileUtils.copyFile(rootList, backup);
+			}
+			
 			this.writeCSV(roots, rootList);
 
 			File newRoot = new File(ROOT_DIR, localHost);
@@ -268,11 +283,18 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 
 		if (file.exists()) {
 			try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-				String line;
-
+				String line = reader.readLine();
+				int hash = Integer.parseInt(line);
+								
 				while ((line = reader.readLine()) != null) {
 					String[] tokens = line.trim().split(",");
+					tokens = line.trim().split(",");
 					result.put(tokens[0], tokens[1]);
+				}
+				
+				if (result.hashCode() != hash) {
+					logger.info("Bad hash code");
+					return null;
 				}
 			}
 		}
@@ -292,7 +314,10 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	
 	private void writeCSV(Map<String, String> map, File file) throws IOException {
 		logger.info("writing to " + file.getAbsolutePath());
+		
 		try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
+			writer.println(String.valueOf(map.hashCode()));
+			
 			for (Map.Entry<String, String> entry : map.entrySet()) {
 				writer.println(entry.getKey() + "," + entry.getValue());
 			}
