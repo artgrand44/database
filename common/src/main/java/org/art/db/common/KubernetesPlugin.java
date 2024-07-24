@@ -156,6 +156,25 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		try {
 			logger.info("*** entry to init");
 			
+	        // Spin until we are able to find the instances and the local port, shard, and instance.
+	        
+	        Map<URI, String> instances = new HashMap<>();
+	        
+	        for (int idx = 0; idx < 1000; idx++) {
+	        	
+	        	instances = this.getServerInstances();
+	        	
+	        	if (instances.isEmpty() || this.localInstance == null) {
+	        		Utils.sleepSafely(100);
+	        	} else {
+	        		break;
+	        	}
+	        }
+	        
+	        if (instances.isEmpty() || this.localInstance == null) {
+	        	throw new DBRuntimeException("There was a timeout starting the server");
+	        }	        
+			
 			// Lock the cluster, call initializeRoot, and release the lock.
 			// initializeRoot will set this.root to a new directory or to
 			// an existing directory for an instance that has crashed.
@@ -178,25 +197,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			
 			logger.info("after spin " + this.root);
 	        future.cancel(true);
-
-	        // Spin until we are able to find the instances and the local port, shard, and instance.
-	        
-	        Map<URI, String> instances = new HashMap<>();
-	        
-	        for (int idx = 0; idx < 1000; idx++) {
-	        	
-	        	instances = this.getServerInstances();
-	        	
-	        	if (instances.isEmpty() || this.localInstance == null) {
-	        		Utils.sleepSafely(100);
-	        	} else {
-	        		break;
-	        	}
-	        }
-	        
-	        if (instances.isEmpty() || this.localInstance == null) {
-	        	throw new DBRuntimeException("There was a timeout starting the server");
-	        }	        
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("There was an error finding the root " + exc.getMessage());
@@ -211,13 +211,13 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		// host names into their root directories.
 
 		try {
-			logger.info("********* initializing root **********" + ROOT_DIR.getAbsolutePath() + " exosts "  + ROOT_DIR.exists());
+			logger.info("********* initializing root **********" + ROOT_DIR.getAbsolutePath() + " exists "  + ROOT_DIR.exists());
 			
 			// Load the map from uri's to directories.  If the list is corrupt then try loading it
 			// from the backup
 			
-			File rootList = new File(ROOT_DIR, this.database + ".dat");
-			File backup = new File(ROOT_DIR, this.database + ".bak");
+			File rootList = new File(ROOT_DIR, this.database + "-" + this.localShard + ".dat");
+			File backup = new File(ROOT_DIR, this.database  + "-" + this.localShard + ".bak");
 			
 			Map<String, String> roots = this.readCSV(rootList);
 			
