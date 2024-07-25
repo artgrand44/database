@@ -52,7 +52,9 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	
 	private volatile String root;
 	
-	private final File ROOT_DIR = new File("/data/files");
+	private final static File INDEX_DIR = new File("/data/files/index");
+	
+	private final static File ROOT_DIR = new File("/data/files/root");
 	
 	private KubernetesPlugin() {
 		try {
@@ -211,13 +213,14 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		// host names into their root directories.
 
 		try {
-			logger.info("********* initializing root **********" + ROOT_DIR.getAbsolutePath() + " exists "  + ROOT_DIR.exists());
+			logger.info("Index directory" + INDEX_DIR.getAbsolutePath() + " exists "  + INDEX_DIR.exists());
+			logger.info("Root directory" + ROOT_DIR.getAbsolutePath() + " exists "  + ROOT_DIR.exists());
 			
 			// Load the map from uri's to directories.  If the list is corrupt then try loading it
 			// from the backup
 			
-			File rootList = new File(ROOT_DIR, this.database + "-" + this.localShard + ".dat");
-			File backup = new File(ROOT_DIR, this.database  + "-" + this.localShard + ".bak");
+			File rootList = new File(INDEX_DIR, this.database + "-" + this.localShard + ".dat");
+			File backup = new File(INDEX_DIR, this.database  + "-" + this.localShard + ".bak");
 			
 			Map<String, String> roots = this.readCSV(rootList);
 			
@@ -246,7 +249,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 					roots.remove(uri);
 					roots.put(localHost, root);
 					this.writeCSV(roots, rootList);
-					this.root = new File(ROOT_DIR, entry.getValue()).getAbsolutePath();
+					this.root = new File(entry.getValue()).getAbsolutePath();
 
 					logger.info("Using old " + this.root);
 					return;
@@ -263,12 +266,9 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			
 			this.writeCSV(roots, rootList);
 
-			File newRoot = new File(ROOT_DIR, localHost);
+			logger.info("using new " + ROOT_DIR.getAbsolutePath());
 
-			logger.info("using new " + newRoot.getAbsolutePath());
-
-			newRoot.mkdir();
-			this.root = newRoot.getAbsolutePath();
+			this.root = ROOT_DIR.getAbsolutePath();
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("There was an error finding the root " + exc.getMessage());

@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: pv0001
+  name: volumname
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   capacity:
-    storage: 500Mi
+    storage: volumesize
   hostPath:
-    path: /data/pv0001/
+    path: /data/volumname/

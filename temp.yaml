@@ -26,9 +26,12 @@ spec:
              value: kubernetes
         imagePullPolicy: IfNotPresent
         volumeMounts:
-            - name: pv0001
-              mountPath: /data/files
+            - name: dbindex
+              mountPath: /data/files/index
+            - name: volumename
+              mountPath: /data/files/root
         ports:
         - containerPort: 8080
       volumes:
-        - name: pv0001
+        - name: dbindex
+        - name: volumename
