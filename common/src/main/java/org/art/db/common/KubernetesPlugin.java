@@ -330,8 +330,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 
 	public static boolean isKubernetes() {
 		return "kubernetes".equalsIgnoreCase(System.getenv("cloud"));
-	}
-
-	
+	}	
 
 }

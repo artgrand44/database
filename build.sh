@@ -42,9 +42,7 @@ ls temp.yaml
 echo ""
 echo ""
 
-sed  s/"servicename"/"$service"/g temp.yaml |tee out0.yaml
-sed  s/"shardname"/"$shard"/g out0.yaml |tee out1.yaml
-sed  s/"databasename"/"$database"/g out1.yaml |tee out2.yaml
+sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  temp.yaml |tee custom.yaml
 
 echo ""
 echo ""
@@ -54,7 +52,7 @@ mvn clean package  -DskipTests=true -q
 kubectl delete deployment.apps/${service} service/${service}
 docker build . --tag db:v1
 kubectl apply -f volume.yaml
-kubectl create -f out2.yaml
+kubectl create -f custom.yaml
 kubectl expose deployment ${service} --type=NodePort --port=$port
 
 rm out*.yaml
