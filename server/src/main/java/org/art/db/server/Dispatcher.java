@@ -63,6 +63,7 @@ public class Dispatcher {
 		   HANDLERS.put("/db/recovering",       new StartRecoveryHandler());
 		   HANDLERS.put("/db/close",            new CloseHandler());
 		   HANDLERS.put("/db/getmetadata",      new GetMetadataHandler());
+		   HANDLERS.put("/db/gettables",        new GetTablesHandler());
 		   HANDLERS.put("/db/getproperties",    new GetPropertiesHandler());
 		   HANDLERS.put("/db/stop" ,            new StopHandler());
 		   HANDLERS.put("/db/restart",          new RestartHandler());
@@ -111,6 +112,7 @@ public class Dispatcher {
 			throw new DBRuntimeException(exchange.getRequestURI() + " can only be invoked from database servers");
 		}	
 	}
+	
 	public static class BatchHandler implements Handler {
 
 		@Override
@@ -249,16 +251,29 @@ public class Dispatcher {
 		
 	}
 	
+	static class GetTablesHandler implements Handler {
+		
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			return String.join(",", Files.listTables()).getBytes();
+		}
+
+	}
+
+	
 	static class GetMetadataHandler implements Handler {
 		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			checkServer(exchange);
-			
-			String table = parameters.get("table");
-			File file = Files.getMetadata(table);
+			try {
+				String table = parameters.get("table");
+				File file = Files.getMetadata(table);
 
-			return file == null ? new byte[0] : file;
+				return file.exists() ? file : new byte[0];
+			} catch (Exception exc) {
+				exc.printStackTrace();
+				throw exc;
+			}
 		}
 
 	}

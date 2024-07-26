@@ -203,6 +203,7 @@ public class RestClient {
 			int status = response.statusCode();
 
 			if (status != 200) {
+				logger.info("getfile network error " + status);
 				throw new RestException(status, "There was a network errror");
 			}
 			

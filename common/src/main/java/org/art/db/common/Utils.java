@@ -20,7 +20,6 @@ public class Utils {
 		try {
 			Thread.sleep(millis);
 		} catch (Exception exc) {
-			logger.info("sleep got exception " + exc.getMessage());
 		}
 	}
 }

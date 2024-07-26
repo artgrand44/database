@@ -95,13 +95,13 @@ public class StorageManager  {
 	@SuppressWarnings("unchecked")
 	public void recover(DiscoveryHandler handler) {
 		
-		// If there is a peer then recover the settings for the configuration
 		URI peer = handler.getRandomPeer();
-		
 		
 		if (peer != null) {
 			try {
 				logger.info("Recovering configuration properties");
+				
+				
 				RestClient client = new RestClient();
 				byte[] bytes = client.get(client.buildURI(peer, "/db/getproperties"));
 				
@@ -109,6 +109,22 @@ public class StorageManager  {
 				
 				for (Map.Entry<String, String> entry : properties.entrySet()) {
 					Environment.getInstance().setProperty(entry.getKey(), entry.getValue());
+				}
+				
+				logger.info("Recovering table directories");
+				
+				String tables = new String(client.get(client.buildURI(peer, "/db/gettables")));
+				
+				if (!tables.isEmpty()) {
+					RestClient restClient = new RestClient();
+
+					for (String table : tables.split(",")) {
+						File file = Files.getMetadata(table);
+
+						if (!file.exists()) {
+							restClient.getFile(restClient.buildURI(peer, "/db/getmetadata?table=%s", table, 0), file);
+						}
+					}	
 				}
 			} catch (Exception exc) {
 				Metrics.getInstance().logAlert("There was an error synchronizing the configuration.");
