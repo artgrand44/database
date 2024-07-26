@@ -62,8 +62,8 @@ if [ -z "${size}" ]; then
 	fi
 fi
 
-diskname="$database""-""$shard""1"
-sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g volume.yaml |tee customvolume.yaml
+diskname="$database""-""$shard"
+
 
 cp sample.yaml temp.yaml
 ls temp.yaml
@@ -71,16 +71,35 @@ ls temp.yaml
 echo ""
 echo ""
 
-sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  -e s/"volumename"/"$diskname"/g temp.yaml |tee custom.yaml
+mnt=""
+vols="        - name: dbindex\n"
+mountPathBase="/data/files/root"
 
-echo ""
-echo ""
 
+echo "Loop"
+
+for ((num = 1; num <= "${replicas}"; num++))
+do
+	mnt="${mnt}""            \\- name: ""${diskname}"-"${num}""\n              mountPath: \/data\/files\/root""${num}""\n"
+	vols="${vols}""        \\- name: ""${diskname}"-"${num}""\n"
+	sed -e s/"volumname"/"$diskname""$num"/g  -e  s/"volumesize"/"$size"/g volume.yaml |tee customvolume.yaml
+	kubectl apply -f customvolume.yaml
+
+done
+echo "mnts"
+echo "${mnt}"
+echo "volumes"
+echo "${vols}"
+
+
+echo "run sed"
+sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  -e s/"volumename"/"$diskname"/g -e s/"mnt"/"$mnt"/ -e s/"vols"/"$vols"/ temp.yaml |tee custom.yaml
+
+echo "***Starting build"
 
 mvn clean package  -DskipTests=true -q
 kubectl delete deployment.apps/${service} service/${service}
 docker build . --tag db:v1
-kubectl apply -f customvolume.yaml
 kubectl apply -f indexvolume.yaml
 kubectl create -f custom.yaml
 kubectl expose deployment ${service} --type=NodePort --port=$port

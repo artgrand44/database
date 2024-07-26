@@ -28,10 +28,8 @@ spec:
         volumeMounts:
             - name: dbindex
               mountPath: /data/files/index
-            - name: volumename
-              mountPath: /data/files/root
+mnt
         ports:
         - containerPort: 8080
       volumes:
-        - name: dbindex
-        - name: volumename
+vols
