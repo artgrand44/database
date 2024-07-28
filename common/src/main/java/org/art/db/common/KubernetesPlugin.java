@@ -52,9 +52,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	
 	private volatile String root;
 	
-	private final static File INDEX_DIR = new File("/data/files/index");
-	
-	private final static File ROOT_DIR = new File("/data/files/");
+	private final File ROOT_DIR = new File("/data/files");
 	
 	private KubernetesPlugin() {
 		try {
@@ -213,13 +211,13 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		// host names into their root directories.
 
 		try {
-			logger.info("Index directory" + INDEX_DIR.getAbsolutePath() + " exists "  + INDEX_DIR.exists());
+			logger.info("********* initializing root **********" + ROOT_DIR.getAbsolutePath() + " exists "  + ROOT_DIR.exists());
 			
 			// Load the map from uri's to directories.  If the list is corrupt then try loading it
 			// from the backup
 			
-			File rootList = new File(INDEX_DIR, this.database + "-" + this.localShard + ".dat");
-			File backup = new File(INDEX_DIR, this.database  + "-" + this.localShard + ".bak");
+			File rootList = new File(ROOT_DIR, this.database + "-" + this.localShard + ".dat");
+			File backup = new File(ROOT_DIR, this.database  + "-" + this.localShard + ".bak");
 			
 			Map<String, String> roots = this.readCSV(rootList);
 			
@@ -235,7 +233,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 
 			String localHost = InetAddress.getLocalHost().getHostAddress();
 			Set<String> hosts = new HashSet<>();
-			Set<String> inUse = new HashSet<>();
 
 			for (URI uri : this.getServerInstances().keySet()) {
 				hosts.add(uri.getHost());
@@ -245,56 +242,33 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 				String uri = entry.getKey();
 				String root = entry.getValue();
 
-				if (hosts.contains(entry.getKey())) {
-					inUse.add(root);
-				} else {
+				if (!hosts.contains(entry.getKey())) {
 					roots.remove(uri);
 					roots.put(localHost, root);
 					this.writeCSV(roots, rootList);
-					this.root = new File(entry.getValue()).getAbsolutePath();
+					this.root = new File(ROOT_DIR, entry.getValue()).getAbsolutePath();
 
 					logger.info("Using old " + this.root);
 					return;
 				}
 			}
 
-			logger.info("root dir " + ROOT_DIR.getAbsolutePath() + " " + ROOT_DIR.exists());
+			// Backup the old file and create a new root directory using the host name
+
+			roots.put(localHost, localHost);
 			
-			File[] subs = ROOT_DIR.listFiles();
+			if (rootList.exists()) {
+				FileUtils.copyFile(rootList, backup);
+			}
 			
-			if (subs == null) {
-				logger.info("no subs");
-			} else {
-				logger.info("subs ");
-				
-				for (File file : subs) {
-					logger.info("    " + file.getAbsolutePath());
-				}
-			}
-			for (int idx = 1;; idx++) {
-				String path = ROOT_DIR.getAbsolutePath() + "/root"+ idx;
-				
-				logger.info("check path " + path + " " + new File(path).exists());
-				
-				if (inUse.contains(path)) {
-					continue;
-				} else if (new File(path).exists()) {
-					this.root = path;
-					
-					roots.put(localHost, path);
-					
-					if (rootList.exists()) {
-						FileUtils.copyFile(rootList, backup);
-					}
-					
-					logger.info("selected " + path);
-					this.writeCSV(roots, rootList);
-					return;
-				} else {
-					logger.info("No paths inUse " + inUse);
-					throw new DBRuntimeException("Could not find a free root");
-				}
-			}
+			this.writeCSV(roots, rootList);
+
+			File newRoot = new File(ROOT_DIR, localHost);
+
+			logger.info("using new " + newRoot.getAbsolutePath());
+
+			newRoot.mkdir();
+			this.root = newRoot.getAbsolutePath();
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("There was an error finding the root " + exc.getMessage());
