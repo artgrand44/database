@@ -54,7 +54,7 @@ if [ "$#" -ge 5 ]; then
 fi
 
 if [ -z "${size}" ]; then 
-	read -p "Size?[1]" size
+	read -p "Size?[4Gi]" size
 
 
 	if [ -z "${size}" ]; then 
@@ -62,6 +62,31 @@ if [ -z "${size}" ]; then
 	fi
 fi
 
+if [ "$#" -ge 5 ]; then
+    label=$5
+fi
+
+if [ -z "${label}" ]; then 
+	read -p "Node label?["kubernetes.io/hostname]" label
+
+
+	if [ -z "${label}" ]; then 
+		label="kubernetes.io/hostname"
+	fi
+fi
+
+if [ "$#" -ge 6 ]; then
+    value=$5
+fi
+
+if [ -z "${value}" ]; then 
+	read -p "Value?["minikube]" label
+
+
+	if [ -z "${value}" ]; then 
+		value="minikube"
+	fi
+fi
 diskname="$database""-""$shard"
 
 
@@ -82,7 +107,7 @@ for ((num = 1; num <= "${replicas}"; num++))
 do
 	mnt="${mnt}""            \\- name: ""${diskname}"-"${num}""\n              mountPath: \/data\/files\/root""${num}""\n"
 	vols="${vols}""        \\- name: ""${diskname}"-"${num}""\n"
-	sed -e s/"volumname"/"$diskname""$num"/g  -e  s/"volumesize"/"$size"/g volume.yaml |tee customvolume.yaml
+	sed -e s/"volumname"/"$diskname""$num"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g -e s/"thevalue"/"$value"/g volume.yaml |tee customvolume.yaml
 	kubectl apply -f customvolume.yaml
 
 done

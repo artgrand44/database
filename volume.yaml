@@ -7,5 +7,14 @@ spec:
     - ReadWriteMany
   capacity:
     storage: volumesize
-  hostPath:
-    path: /data/volumname/
+  storageClassName: local-storage
+  local:
+    path: /art/volumname/
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: thelabel
+          operator: In
+          values:
+          - thevalue
