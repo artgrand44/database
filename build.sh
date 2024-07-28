@@ -89,8 +89,6 @@ fi
 diskname="$database""-""$shard"
 
 
-cp sample.yaml temp.yaml
-
 echo ""
 echo ""
 
@@ -110,7 +108,7 @@ done
 
 
 
-sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  -e s/"volumename"/"$diskname"/g -e s/"mnt"/"$mnt"/ -e s/"vols"/"$vols"/ temp.yaml |tee custom.yaml
+sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  -e s/"volumename"/"$diskname"/g -e s/"mnt"/"$mnt"/ -e s/"vols"/"$vols"/ sample.yaml |tee custom.yaml
 
 echo "***Starting build"
 
@@ -120,7 +118,7 @@ docker build . --tag db:v1
 kubectl apply -f indexvolume.yaml
 kubectl create -f custom.yaml
 kubectl expose deployment ${service} --type=NodePort --port=$port
-
+rm customvolume.yaml custom.yaml 
 
 sleep 5
 minikube service ${service} hello-minikube1 --url
