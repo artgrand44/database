@@ -101,14 +101,14 @@ for ((num = 1; num <= "${replicas}"; num++))
 do
 	mnt="${mnt}""            \\- name: ""${diskname}"-"${num}""\n              mountPath: \/data\/files\/root""${num}""\n"
 	vols="${vols}""        \\- name: ""${diskname}"-"${num}""\n"
-	sed -e s/"volumname"/"$diskname""$num"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g -e s/"thevalue"/"$value"/g volume.yaml |tee customvolume.yaml
+	sed -e s/"volumname"/"$diskname""$num"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g -e s/"thevalue"/"$value"/g volume.yaml >customvolume.yaml
 	kubectl apply -f customvolume.yaml
 
 done
 
 
 
-sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  -e s/"volumename"/"$diskname"/g -e s/"mnt"/"$mnt"/ -e s/"vols"/"$vols"/ sample.yaml |tee custom.yaml
+sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  -e s/"volumename"/"$diskname"/g -e s/"mnt"/"$mnt"/ -e s/"vols"/"$vols"/ sample.yaml > custom.yaml
 
 echo "***Starting build"
 
