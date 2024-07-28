@@ -87,19 +87,10 @@ if [ -z "${value}" ]; then
 	fi
 fi
 
-cp sample.yaml temp.yaml
-ls temp.yaml
-
-echo ""
-echo ""
-
-echo "volume sed " "${label}"
-
 diskname="$database""-""$shard"
-sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g volume.yaml >customvolume.yaml
 
-echo "service sed"
-sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  temp.yaml > custom.yaml
+sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g volume.yaml >customvolume.yaml
+sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  sample.yaml > custom.yaml
 
 echo ""
 echo ""
