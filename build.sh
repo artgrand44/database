@@ -1,5 +1,6 @@
 #! /bin/bash
 
+#./build.sh service1 db2 shard1 3 1Gi kubernetes.io/hostname minikube
 
 if [ "$#" -ge 1 ]; then
     service=$1
@@ -19,7 +20,6 @@ if [ -z "${database}" ]; then
 		database="default"
 	fi
 fi
-echo "database is $database"
 
 if [ "$#" -ge 3 ]; then
     shard=$3
@@ -33,7 +33,6 @@ if [ -z "${shard}" ]; then
 		shard="shard1"
 	fi
 fi
-echo "Shard is $shard"
 
 
 if [ "$#" -ge 4 ]; then
@@ -91,7 +90,6 @@ diskname="$database""-""$shard"
 
 
 cp sample.yaml temp.yaml
-ls temp.yaml
 
 echo ""
 echo ""
@@ -101,8 +99,6 @@ vols="        - name: dbindex\n"
 mountPathBase="/data/files/root"
 
 
-echo "Loop"
-
 for ((num = 1; num <= "${replicas}"; num++))
 do
 	mnt="${mnt}""            \\- name: ""${diskname}"-"${num}""\n              mountPath: \/data\/files\/root""${num}""\n"
@@ -111,13 +107,9 @@ do
 	kubectl apply -f customvolume.yaml
 
 done
-echo "mnts"
-echo "${mnt}"
-echo "volumes"
-echo "${vols}"
 
 
-echo "run sed"
+
 sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  -e s/"volumename"/"$diskname"/g -e s/"mnt"/"$mnt"/ -e s/"vols"/"$vols"/ temp.yaml |tee custom.yaml
 
 echo "***Starting build"
