@@ -93,6 +93,12 @@ ls temp.yaml
 echo ""
 echo ""
 
+echo "volume sed " "${label}"
+
+diskname="$database""-""$shard"
+sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g volume.yaml >customvolume.yaml
+
+echo "service sed"
 sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  temp.yaml > custom.yaml
 
 echo ""
@@ -102,7 +108,7 @@ echo ""
 mvn clean package  -DskipTests=true -q
 kubectl delete deployment.apps/${service} service/${service}
 docker build . --tag db:v1
-kubectl apply -f volume.yaml
+kubectl apply -f customvolume.yaml
 kubectl create -f custom.yaml
 kubectl expose deployment ${service} --type=NodePort --port=$port
 
