@@ -4,7 +4,7 @@ metadata:
   name: volumname
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOncePod
   capacity:
     storage: volumesize
   storageClassName: local-storage
