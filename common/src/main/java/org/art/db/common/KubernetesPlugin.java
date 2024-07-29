@@ -1,25 +1,13 @@
 package org.art.db.common;
 
-import static io.fabric8.kubernetes.client.utils.Utils.generateId;
-
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.URI;
-import java.time.Duration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,11 +19,6 @@ import io.fabric8.kubernetes.api.model.EndpointsList;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.extended.leaderelection.LeaderCallbacks;
-import io.fabric8.kubernetes.client.extended.leaderelection.LeaderElectionConfig;
-import io.fabric8.kubernetes.client.extended.leaderelection.LeaderElectionConfigBuilder;
-import io.fabric8.kubernetes.client.extended.leaderelection.LeaderElector;
-import io.fabric8.kubernetes.client.extended.leaderelection.resourcelock.LeaseLock;
 
 public class KubernetesPlugin implements DiscoveryPlugin {
 	private static final Logger logger = LoggerFactory.getLogger(KubernetesPlugin.class);
@@ -50,7 +33,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	private AtomicBoolean loading = new AtomicBoolean();
 	private long ttl;
 	
-	private volatile String root;
+	private final String root;
 	
 	private final File ROOT_DIR = new File("/data/files");
 	
@@ -58,6 +41,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		try {
 			this.client = new KubernetesClientBuilder().build();
 			this.database = System.getenv("database");
+			this.root = ROOT_DIR.getAbsolutePath();
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -151,11 +135,12 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		return this.serverInstances.get();
 	}
 	
+	
 	public void initialize(ConnectionInfo info, boolean isServer) {
 		
 		try {
 			logger.info("*** entry to init");
-			
+						
 	        // Spin until we are able to find the instances and the local port, shard, and instance.
 	        
 	        Map<URI, String> instances = new HashMap<>();
@@ -173,30 +158,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	        
 	        if (instances.isEmpty() || this.localInstance == null) {
 	        	throw new DBRuntimeException("There was a timeout starting the server");
-	        }	        
-			
-			// Lock the cluster, call initializeRoot, and release the lock.
-			// initializeRoot will set this.root to a new directory or to
-			// an existing directory for an instance that has crashed.
-			
-			LeaderElectionConfig leaderConfig = new LeaderElectionConfigBuilder()
-					                                	.withName(this.database)
-					                                	.withLeaseDuration(Duration.ofMinutes(2))
-					                                	.withLock(new LeaseLock("default", this.database, generateId().toString()))
-					                                	.withReleaseOnCancel()
-					                                	.withLeaderCallbacks(new LeaderCallbacks(this::initializeRoot, () -> {}, x-> {}))
-					                                	.withRenewDeadline(Duration.ofSeconds(10L))
-					                                    .withRetryPeriod(Duration.ofSeconds(2L))
-					                                	.build();
-			
-			CompletableFuture<?> future = new LeaderElector(this.client, leaderConfig, Scheduler.DEFAULT).start();
-			
-			while (this.root == null) {
-				Thread.sleep(5000);
-			}
-			
-			logger.info("after spin " + this.root);
-	        future.cancel(true);
+	        }	        			
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("There was an error finding the root " + exc.getMessage());
@@ -205,103 +167,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 
 	}
 	
-	private void initializeRoot() {
 		
-		// Open the cluster.dat file in the directory.  This file is a csv file mapping
-		// host names into their root directories.
-
-		try {
-			logger.info("********* initializing root **********" + ROOT_DIR.getAbsolutePath() + " exists "  + ROOT_DIR.exists());
-			
-			// Load the map from uri's to directories.  If the list is corrupt then try loading it
-			// from the backup
-			
-			File rootList = new File(ROOT_DIR, this.database + "-" + this.localShard + ".dat");
-			File backup = new File(ROOT_DIR, this.database  + "-" + this.localShard + ".bak");
-			
-			Map<String, String> roots = this.readCSV(rootList);
-			
-			if (roots == null && backup.exists()) {
-				FileUtils.copyFile(backup, rootList);
-				
-				roots = this.readCSV(rootList);
-			}
-			
-			// Iterator over the entries in cluster.dat looking for an abandoned 
-			// root directory.  If you find one then update the cluster.dat file,
-			// set this.root, and return.
-
-			String localHost = InetAddress.getLocalHost().getHostAddress();
-			Set<String> hosts = new HashSet<>();
-
-			for (URI uri : this.getServerInstances().keySet()) {
-				hosts.add(uri.getHost());
-			}
-
-			for (Map.Entry<String, String> entry : roots.entrySet()) {
-				String uri = entry.getKey();
-				String root = entry.getValue();
-
-				if (!hosts.contains(entry.getKey())) {
-					roots.remove(uri);
-					roots.put(localHost, root);
-					this.writeCSV(roots, rootList);
-					this.root = new File(ROOT_DIR, entry.getValue()).getAbsolutePath();
-
-					logger.info("Using old " + this.root);
-					return;
-				}
-			}
-
-			// Backup the old file and create a new root directory using the host name
-
-			roots.put(localHost, localHost);
-			
-			if (rootList.exists()) {
-				FileUtils.copyFile(rootList, backup);
-			}
-			
-			this.writeCSV(roots, rootList);
-
-			File newRoot = new File(ROOT_DIR, localHost);
-
-			logger.info("using new " + newRoot.getAbsolutePath());
-
-			newRoot.mkdir();
-			this.root = newRoot.getAbsolutePath();
-		} catch (Exception exc) {
-			exc.printStackTrace();
-			throw new DBRuntimeException("There was an error finding the root " + exc.getMessage());
-		} finally {
-
-		}
-
-	}
-	
-	private Map<String, String> readCSV(File file) throws IOException {
-		Map<String, String> result = new HashMap<>();
-
-		if (file.exists()) {
-			try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-				String line = reader.readLine();
-				int hash = Integer.parseInt(line);
-								
-				while ((line = reader.readLine()) != null) {
-					String[] tokens = line.trim().split(",");
-					tokens = line.trim().split(",");
-					result.put(tokens[0], tokens[1]);
-				}
-				
-				if (result.hashCode() != hash) {
-					logger.info("Bad hash code");
-					return null;
-				}
-			}
-		}
-
-		return result;
-	}
-	
 	@Override
 	public void start() {
 		
@@ -312,18 +178,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		this.client.close();		
 	}
 	
-	private void writeCSV(Map<String, String> map, File file) throws IOException {
-		logger.info("writing to " + file.getAbsolutePath());
-		
-		try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
-			writer.println(String.valueOf(map.hashCode()));
-			
-			for (Map.Entry<String, String> entry : map.entrySet()) {
-				writer.println(entry.getKey() + "," + entry.getValue());
-			}
-		}
-	}
-
 	public static KubernetesPlugin getInstance() {
 		return instance;
 	}

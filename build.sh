@@ -100,7 +100,7 @@ kubectl delete deployment.apps/${service} service/${service}
 docker build . --tag db:v1
 kubectl apply -f customvolume.yaml
 kubectl create -f custom.yaml
-kubectl expose deployment ${service} --type=NodePort --port=$port
+kubectl expose deployment ${service}
 
 
 sleep 5
