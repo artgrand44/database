@@ -1,5 +1,6 @@
 #! /bin/bash
 
+#build.sh service1 db2 shard1 3 4Gi kubernetes.io\\/hostname minikube
 
 if [ "$#" -ge 1 ]; then
     service=$1
@@ -19,7 +20,6 @@ if [ -z "${database}" ]; then
 		database="default"
 	fi
 fi
-echo "database is $database"
 
 if [ "$#" -ge 3 ]; then
     shard=$3
@@ -33,7 +33,6 @@ if [ -z "${shard}" ]; then
 		shard="shard1"
 	fi
 fi
-echo "Shard is $shard"
 
 if [ "$#" -ge 4 ]; then
     replicas=$4
@@ -93,7 +92,7 @@ sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel
 sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  sample.yaml > custom.yaml
 
 echo ""
-echo ""
+echo "Starting build..."
 
 
 mvn clean package  -DskipTests=true -q
