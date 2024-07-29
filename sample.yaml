@@ -10,7 +10,7 @@ spec:
   selector:
     matchLabels:
       app: databasename
-  replicas: 1 # tells deployment to run 1 pods matching the template
+  replicas: reps
   template: # create pods using pod definition in this template
     metadata:
       labels:
@@ -26,9 +26,9 @@ spec:
              value: kubernetes
         imagePullPolicy: IfNotPresent
         volumeMounts:
-            - name: pv0001
+            - name: volumname
               mountPath: /data/files
         ports:
         - containerPort: 8080
       volumes:
-        - name: pv0001
+        - name: volumname

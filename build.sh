@@ -89,7 +89,7 @@ fi
 diskname="$database""-""$shard"
 
 sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g volume.yaml >customvolume.yaml
-sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g  sample.yaml > custom.yaml
+sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g -e s/"reps"/"${replicas}"/g -e s/"volumname"/"$diskname"/g  sample.yaml > custom.yaml
 
 echo ""
 echo "Starting build..."
