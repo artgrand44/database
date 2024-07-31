@@ -20,6 +20,7 @@ import org.art.db.security.SecurityHandler;
 import org.art.db.storage.Environment;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.PrometheusPublisher;
+import org.art.db.storage.RestoreManager;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
@@ -66,7 +67,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			UIConsole.getInstance().start(info);
 			PrometheusPublisher.getInstance().start();
 			
-			StorageManager.getInstance().recover(handler);
+			RestoreManager.getInstance().recover(handler);
 			
 			this.handler.start();
 			

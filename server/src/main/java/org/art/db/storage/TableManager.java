@@ -6,32 +6,24 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
-import java.net.URI;
 import java.nio.channels.FileLock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.art.db.common.Blob;
 import org.art.db.common.Comparison;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
-import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry;
-import org.art.db.common.RestClient;
-import org.art.db.common.RestException;
 import org.art.db.common.Scheduler;
-import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +43,6 @@ public class TableManager implements Closeable{
 	private final LockManager<Key> alternateKeyLockManager = new LockManager<>();
 	private boolean checkConstraints;
 	
-	private final RestClient restClient = new RestClient();
 	private final FileLock lock;
 	private Metadata metadata;
 	
@@ -238,12 +229,6 @@ public class TableManager implements Closeable{
 		return doc;
 	}
 	
-	private String getNextRemoteFile(URI peer, File localFile, String type, long timestamp) throws Exception{
-		URI uri = this.restClient.buildURI(peer, "/db/getnextfile?table=%s&type=%s&timestamp=%s", this.tableName, type, timestamp);
-		
-		return this.restClient.getFile(uri, localFile);
-	}
-	
 	public int getSelectivity(String indexName) {
 		return this.indices.get(indexName).getSelectivity();
 	}
@@ -290,193 +275,7 @@ public class TableManager implements Closeable{
 		return this.table.lease(owner, timeout);
 	}
 	
-	/**
-	 * Recover the table after a restore.  The recovery process
-	 * copies the missing segments from another instance and then
-	 * updates the indices to reflect the missing segments.
-	 * 
-	 * @param peer The peer to copy the segments from
-	 * @param thisURI The URI of this instance
-	 * @throws Exception
-	 */
-	public void recover(DiscoveryHandler handler) throws Exception {
-		long timestamp;
-		
-		
-		if (this.metadata.isQueue()) {
-			timestamp = 0;
-		} else {
-			File[] files = Files.listDiskSegments(this.tableName);
-
-			DiskSegment segment;
-
-			// Find the timestamp and merge level for the newest segment on this
-			// server
-
-			if (files == null || files.length == 0) {			
-				logger.info("No segments");
-				timestamp = 0;
-			} else {
-				List<File> list = Arrays.asList(files);
-				Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
-
-				segment = new DiskSegment(list.get(0));
-				timestamp = segment.getCreateTime();;
-			}		
-		}
-		
-		// Pick a random instance in this shard and try to copy its segments.
-		// We try up to 10 instances before giving up.  If an instance goes
-		// down in the middle of a recovery, we delete all the newly recovered 
-		// segments and try again.
-		
-		List<File> filesCreated = new ArrayList<>();
-		File downloadFile = null;
-		URI peer = null;
-		
-		for (int idx = 0; idx < 10; idx++) {
-			try {				
-				peer = handler.getRandomPeer();
-				String type;
-				
-				if (peer == null) {
-					return;
-				}
-				
-				if (this.metadata.isQueue()) {
-					downloadFile = Files.getTableLog(this.tableName);
-					type = ".log";
-				} else {
-					downloadFile = Files.getDiskSegment(this.tableName, 0);
-					type = ".seg";
-				}
-				
-				// Tell the peer to flush its current segment and to begin sending broadcasts to this
-				// instance.  The peer will continue sending the broadcasts until this instance is up
-				// and running.
-
-				this.restClient.get(restClient.buildURI(peer, "/db/recovering?uri=%s&table=%s", handler.getLocalInstance(), this.tableName));
-				
-				// Get the latest version of the metadata
-
-				this.restClient.getFile(restClient.buildURI(peer, "/db/getmetadata?table=%s", this.tableName, timestamp), Files.getMetadata(this.tableName));
-
-				// Process the missing logs/segments from oldest to newest.  Continue until we get an empty file.
-				// The empty file acts as a "no more segments" indicator.
-			
-				for (;;) {
-					String remoteFile = this.getNextRemoteFile(peer, downloadFile, type, timestamp);
-					
-					if (downloadFile.length() == 0) {
-						downloadFile.delete();
-						return;
-					}
-					
-					if (this.metadata.isQueue()) {
-						this.recoverQueueLog(downloadFile, remoteFile, filesCreated);
-					} else {
-						this.recoverSegment(downloadFile, remoteFile, filesCreated);
-					}
-					
-					timestamp = Files.getTimestampFromFile(remoteFile);
-				}				
-			} catch (RestException exc) {
-				for (File file : filesCreated) {
-					file.delete();
-				}
-				
-				if (exc.getStatus() == RestException.NO_CONNECTION || exc.getStatus() == RestException.SERVER_DOWN) {
-					logger.info("doCall got fail on " + peer + " exc " + exc);
-					handler.removeInstance(peer);
-				} else {
-					throw exc;
-				}
-			} finally {
-				if (downloadFile != null) {
-					downloadFile.delete();
-				}
-			}
-
-		}		
-		
-	}
-	
-	private void recoverSegment(File downloadFile, String remoteFileName, List<File> filesCreated) throws Exception {
-		DiskSegment segment = new DiskSegment(downloadFile);
-
-		// Iterate over the segments and update the index entries for each
-		// document.  This process is i/o intensive, so we process several
-		// documents in parallel.
-
-		Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
-		AtomicInteger inProgress = new AtomicInteger();
-
-		while (iterator.hasNext()) {
-			Map.Entry<Key, Blob> entry = iterator.next();
-			Key key = entry.getKey();
-			Blob blob = entry.getValue();
-
-			inProgress.incrementAndGet();
-			Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(key, blob, inProgress));
-		}
-
-		while (inProgress.get() != 0) {
-			Utils.sleepSafely(10);
-		}
-				
-		segment.close();
-		
-		File renamed = new File(downloadFile.getParentFile(), remoteFileName);
-		
-		downloadFile.renameTo(renamed);
-		filesCreated.add(renamed);
-		
-		logger.info("processed  " + renamed.getAbsolutePath());
-		
-	}
-	
-	private void recoverQueueLog(File downloadFile, String remoteFileName, List<File> filesCreated) throws Exception {
-		
-		logger.info("got file");
-		
-		boolean save = this.checkConstraints;
-		this.checkConstraints = false;
-		
-		try (FileInputStream stream = new FileInputStream(downloadFile)) {
-			this.applySnapshot(stream, false, downloadFile);
-		} catch (Exception exc) {
-			this.checkConstraints = save;
-		}
-		
-		File renamed = new File(downloadFile.getParentFile(), remoteFileName);
-		
-		downloadFile.renameTo(renamed);
-		filesCreated.add(renamed);
-		
-		logger.info("processed  queue" + downloadFile.getAbsolutePath() + " " + renamed.getAbsolutePath());
-				
-	}
-	/**
-	 * Update the index entries for a recovered document
-	 * @param key
-	 * @param blob
-	 * @param inProgress
-	 */
-	void recoverIndexEntries(Key key, Blob blob, AtomicInteger inProgress) {
-		try {
-			Document oldDoc = this.get(key);
-			Document newDoc = BlobConverter.toDocument(this.metadata, blob);
-		
-			this.updateIndices(oldDoc, newDoc, key);
-		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error recovering the indices");
-			logger.info("Error recovering index entries " + key + " " + exc.getMessage());
-		} finally {
-			inProgress.decrementAndGet();
-		}
-	}
-	
-	public void remove(Document doc, boolean propagate, boolean log) throws Exception {
+		public void remove(Document doc, boolean propagate, boolean log) throws Exception {
 		Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
 		
 		this.timestamps.put(primaryKey, System.currentTimeMillis());
