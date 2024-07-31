@@ -1,6 +1,5 @@
 package org.art.db.common;
 
-import java.io.File;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.HashMap;

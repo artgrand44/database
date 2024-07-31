@@ -6,12 +6,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.art.db.common.KubernetesPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Files {
 		
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Files.class);
 	
 	private final static String META_DATA = "%s/meta.dat";
