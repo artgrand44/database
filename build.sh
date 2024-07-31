@@ -87,8 +87,8 @@ if [ -z "${value}" ]; then
 fi
 
 diskname="$database""-""$shard"
-
-sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g volume.yaml >customvolume.yaml
+backupname="${diskname}""-back" 
+sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g -e  s/"backupname"/"$backupname"/g volume.yaml >customvolume.yaml
 sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g -e s/"reps"/"${replicas}"/g -e s/"volumname"/"$diskname"/g  sample.yaml > custom.yaml
 
 echo ""

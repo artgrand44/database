@@ -18,3 +18,16 @@ spec:
           operator: In
           values:
           - thevalue
+ 
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: backupname
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: volumesize
+  hostPath:
+    path: /backup/backupname
