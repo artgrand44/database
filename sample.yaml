@@ -24,6 +24,12 @@ spec:
              value: "databasename"
            - name: cloud
              value: kubernetes
+           - name: org.art.db.backupinterval
+             value: 1w
+           - name: org.art.db.backuproot
+             value: /backup
+           - name: org.art.db.dbroot
+             value: /data/files
         imagePullPolicy: IfNotPresent
         volumeMounts:
             - name: volumname

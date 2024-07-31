@@ -22,6 +22,8 @@ public class Environment {
 				   "org.art.db.maxSegmentSize", "100000",
 				   "org.art.db.nodeCache",      "10M",
 				   "org.art.db.indexCache",     "10M",
+				   "org.art.db.backuproot",     "./backup",
+				   "org.art.db.backupinterval", "1w",
 				   "org.art.db.queueRecovery",  "3");
 
 	private static Environment instance;

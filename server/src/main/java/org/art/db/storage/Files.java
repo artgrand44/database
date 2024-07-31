@@ -48,17 +48,6 @@ public class Files {
 	}
 	
 	public static File getRoot() {
-		if (KubernetesPlugin.isKubernetes()) {
-			String root = KubernetesPlugin.getInstance().getRoot();
-			
-			if (root == null || root.isEmpty()) {
-				logger.info("No kub root");
-				new Exception().printStackTrace();
-			}
-			
-			return new File(root);
-		}
-		
 		Environment config = Environment.getInstance();
 		
 		if (config == null) {

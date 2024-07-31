@@ -33,15 +33,11 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	private AtomicBoolean loading = new AtomicBoolean();
 	private long ttl;
 	
-	private final String root;
-	
-	private final File ROOT_DIR = new File("/data/files");
 	
 	private KubernetesPlugin() {
 		try {
 			this.client = new KubernetesClientBuilder().build();
 			this.database = System.getenv("database");
-			this.root = ROOT_DIR.getAbsolutePath();
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -66,9 +62,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		return this.localShard;			
 	}
 	
-	public String getRoot() {
-		return root;
-	}
 	
 	@Override
 	public Map<URI, String> getServerInstances() {
