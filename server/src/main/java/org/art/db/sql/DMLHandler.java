@@ -17,6 +17,7 @@ import org.art.db.common.OrderBy;
 import org.art.db.query.QueryManager;
 import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
+import org.art.db.storage.BackupHandler;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.Metrics;
@@ -118,6 +119,8 @@ public class DMLHandler {
 		DocumentSet docs = null;
 		boolean lock = false;
 		
+		BackupHandler.getInstance().startUpdate();
+		
 		try {
 			Expression where = delete.getWhere();
 			ReturningClause returnClause = delete.getReturningClause();
@@ -154,6 +157,7 @@ public class DMLHandler {
 				QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
 			}
 			
+			BackupHandler.getInstance().endUpdate();
 			Metrics.getInstance().logDelete();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		}
@@ -180,6 +184,8 @@ public class DMLHandler {
 	
 	static void insert(Insert insert, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) {
 		try {
+			BackupHandler.getInstance().startUpdate();
+			
 			String table = SQLUtils.getFQN(insert.getTable(), database);
 			Metadata metadata = Metadata.getMetadata(table);
 			long start = System.currentTimeMillis();
@@ -253,6 +259,8 @@ public class DMLHandler {
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("The insert failed " + exc.getMessage(), exc);
+		} finally {
+			BackupHandler.getInstance().endUpdate();
 		}
 		
 	}
@@ -432,6 +440,8 @@ public class DMLHandler {
 		DocumentSet docs = null;
 		boolean lock = false;
 		
+		BackupHandler.getInstance().startUpdate();
+		
 		try {			
 			ReturningClause returnClause = update.getReturningClause();
 			Metadata metadata = Metadata.getMetadata(table);
@@ -516,6 +526,7 @@ public class DMLHandler {
 				QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
 			}
 			
+			BackupHandler.getInstance().endUpdate();
 			Metrics.getInstance().logUpdate();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		}

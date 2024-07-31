@@ -22,6 +22,7 @@ import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
+import org.art.db.storage.BackupHandler;
 import org.art.db.storage.Environment;
 import org.art.db.storage.Files;
 import org.art.db.storage.Metrics;
@@ -50,7 +51,7 @@ public class Dispatcher {
 	private static final Map<String, Handler> HANDLERS = new HashMap<>();
 	
 	static {
-		HANDLERS.put("/db/execute",             new ExecuteHandler());
+		   HANDLERS.put("/db/execute",          new ExecuteHandler());
 		   HANDLERS.put("/db/executeQuery",     new ExecuteQueryHandler());
 		   HANDLERS.put("/db/propagate",        new PropagateHandler());
 		   HANDLERS.put("/db/ui",               new UIHandler());
@@ -66,6 +67,7 @@ public class Dispatcher {
 		   HANDLERS.put("/db/gettables",        new GetTablesHandler());
 		   HANDLERS.put("/db/getproperties",    new GetPropertiesHandler());
 		   HANDLERS.put("/db/stop" ,            new StopHandler());
+		   HANDLERS.put("/db/backup" ,          new BackHandler());
 		   HANDLERS.put("/db/restart",          new RestartHandler());
 		   HANDLERS.put("/actuator/prometheus", new ScrapeHandler());
 	}
@@ -176,6 +178,14 @@ public class Dispatcher {
 		return tokens == null ? "" : tokens[0];		
 	}
 	
+	static class BackHandler implements Handler {
+
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			BackupHandler.getInstance().backup();
+			return new byte[0];		
+		}		
+	}
 	
 	static class CloseHandler implements Handler {
 

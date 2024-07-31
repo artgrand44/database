@@ -19,6 +19,7 @@ import org.art.db.common.Document;
 import org.art.db.common.GUID;
 import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
+import org.art.db.storage.BackupHandler;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Files;
 import org.art.db.storage.IndexInfo;
@@ -121,6 +122,8 @@ public class DDLHandler {
 			}			
 		}
 		
+		BackupHandler.getInstance().startUpdate();
+		
 		try {
 			StorageManager.getInstance().getTableManager(tableName).setMetadata(metadata);
 
@@ -131,6 +134,8 @@ public class DDLHandler {
 			}
 		} catch (Exception exc) {
 			throw new DBRuntimeException("The alter failed", exc);
+		} finally {
+			BackupHandler.getInstance().endUpdate();
 		}
 		
 	}
@@ -168,6 +173,8 @@ public class DDLHandler {
 		
 		IndexInfo indexInfo = new IndexInfo(indexName, unique, fields);
 	
+		BackupHandler.getInstance().startUpdate();
+		
 		try {
 			List<IndexInfo> indices = metadata.indices();
 			
@@ -186,7 +193,9 @@ public class DDLHandler {
 		} catch (Exception exc) {
 			logger.info(exc.getMessage());
 			throw new DBRuntimeException("Create Index failed " + exc.getMessage(), exc);
-		}	
+		} finally {
+			BackupHandler.getInstance().endUpdate();
+		}
 
 	}
 	
@@ -194,6 +203,7 @@ public class DDLHandler {
 		if (!SecurityHandler.getInstance().isAdmin(user, password)) {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
+		
 			
 		Table table = createTable.getTable();
 		File file = Files.getMetadata(SQLUtils.getFQN(table, database));
@@ -240,6 +250,8 @@ public class DDLHandler {
 		
 		Metadata metadata = new Metadata(SQLUtils.getFQN(table, database), primaryKeyFields, columns, indices, isQueue);
 		
+		BackupHandler.getInstance().startUpdate();
+		
 		try {
 			Metadata.setMetadata(metadata);
 			
@@ -250,6 +262,8 @@ public class DDLHandler {
 			throw exc;
 		} catch (Exception exc) {
 			throw new DBRuntimeException("Create Table failed " + exc.getMessage(), exc);
+		} finally {
+			BackupHandler.getInstance().endUpdate();
 		}
 		
 	}
@@ -259,10 +273,16 @@ public class DDLHandler {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
 		
-		SecurityHandler.getInstance().createUser(newUser, newUser, newPassword, false);
+		BackupHandler.getInstance().startUpdate();
 		
-		if (targetShard.equals(Client.WILDCARD)) {
-			SQLUtils.broadcastAll(database, sql, user, password);
+		try {
+			SecurityHandler.getInstance().createUser(newUser, newUser, newPassword, false);
+
+			if (targetShard.equals(Client.WILDCARD)) {
+				SQLUtils.broadcastAll(database, sql, user, password);
+			}
+		} finally {
+			BackupHandler.getInstance().endUpdate();
 		}
 		
 	}
@@ -272,55 +292,62 @@ public class DDLHandler {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
 		
-		String type = drop.getType();
-		List<String> parameters = drop.getParameters();
+		BackupHandler.getInstance().startUpdate();
 		
-		if (type.equalsIgnoreCase("INDEX")) {
-			String table = parameters.get(1);
-			String fnq = String.format("%s.%s.%s", StringUtils.isAllBlank(database) ? "SYS" : database, "SYS", table);
-			String index = drop.getName().getName();
-			Metadata metadata = Metadata.getMetadata(fnq);
-			
-			if (metadata == null) {
-				throw new DBRuntimeException("Table " + table + " does not exist.");
-			}
-			
-			metadata = new Metadata(metadata);
-			
-			List<IndexInfo> indices = metadata.indices();
-			
-			for (int idx = 0; idx < indices.size(); idx++) {
-				if (indices.get(idx).name().equals(index)) {
-					indices.remove(idx);
-					break;
+		try {
+			String type = drop.getType();
+			List<String> parameters = drop.getParameters();
+
+			if (type.equalsIgnoreCase("INDEX")) {
+				String table = parameters.get(1);
+				String fnq = String.format("%s.%s.%s", StringUtils.isAllBlank(database) ? "SYS" : database, "SYS", table);
+				String index = drop.getName().getName();
+				Metadata metadata = Metadata.getMetadata(fnq);
+
+				if (metadata == null) {
+					throw new DBRuntimeException("Table " + table + " does not exist.");
 				}
-			}
-			
-			Metadata.setMetadata(metadata);
-			
-			if (targetShard.equals(Client.WILDCARD)) {
-				SQLUtils.broadcastAll(database, drop.toString(), user, password);
-			}
-		} else if (type.equalsIgnoreCase("TABLE")) {
-			String table = SQLUtils.getFQN(drop.getName(), database);
-			File tableDir = Files.getTableDirectory(table);
-			
-			if (tableDir.exists()) {
-				StorageManager.getInstance().closeTable(table);
-				FileUtils.deleteDirectory(tableDir);
-				Metadata.removeFromCache(table);
-				
-				logger.info("deleted tableDir " + tableDir.getAbsolutePath() + " " + tableDir.exists());
-				
+
+				metadata = new Metadata(metadata);
+
+				List<IndexInfo> indices = metadata.indices();
+
+				for (int idx = 0; idx < indices.size(); idx++) {
+					if (indices.get(idx).name().equals(index)) {
+						indices.remove(idx);
+						break;
+					}
+				}
+
+				Metadata.setMetadata(metadata);
+
 				if (targetShard.equals(Client.WILDCARD)) {
 					SQLUtils.broadcastAll(database, drop.toString(), user, password);
 				}
-			} else if (!drop.isIfExists()) {
-				throw new DBRuntimeException("Table " + table + " does not exist");
-			}
-		} else {
-			throw new UnsupportedSyntaxException("Drop " + type + " is not supported.");
+			} else if (type.equalsIgnoreCase("TABLE")) {
+				String table = SQLUtils.getFQN(drop.getName(), database);
+				File tableDir = Files.getTableDirectory(table);
+
+				if (tableDir.exists()) {
+					StorageManager.getInstance().closeTable(table);
+					FileUtils.deleteDirectory(tableDir);
+					Metadata.removeFromCache(table);
+
+					logger.info("deleted tableDir " + tableDir.getAbsolutePath() + " " + tableDir.exists());
+
+					if (targetShard.equals(Client.WILDCARD)) {
+						SQLUtils.broadcastAll(database, drop.toString(), user, password);
+					}
+				} else if (!drop.isIfExists()) {
+					throw new DBRuntimeException("Table " + table + " does not exist");
+				}
+			} else {
+				throw new UnsupportedSyntaxException("Drop " + type + " is not supported.");
+			} 
+		} finally {
+			BackupHandler.getInstance().endUpdate();
 		}
+
 	}
 	
 	private static Map<String, Integer> privs = Map.of("delete", User.DELETE, "select", User.SELECT, "insert", User.INSERT, "update", User.UPDATE);
@@ -330,6 +357,7 @@ public class DDLHandler {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
 		
+
 		String table = SQLUtils.getFQN(grant.getObjectName(), database);
 		int grants = 0;
 		
@@ -343,13 +371,19 @@ public class DDLHandler {
 			grants = User.add(grants, value);
 		}
 		
-		for (String grantee : grant.getUsers()) {
-			logger.info("grant on " + table);
-			SecurityHandler.getInstance().grant(grantee, table, grants);
-		}
+		BackupHandler.getInstance().startUpdate();
 		
-		if (targetShard.equals(Client.WILDCARD)) {
-			SQLUtils.broadcastAll(database, grant.toString(), user, password);
+		try {
+			for (String grantee : grant.getUsers()) {
+				logger.info("grant on " + table);
+				SecurityHandler.getInstance().grant(grantee, table, grants);
+			}
+
+			if (targetShard.equals(Client.WILDCARD)) {
+				SQLUtils.broadcastAll(database, grant.toString(), user, password);
+			}
+		} finally {
+			BackupHandler.getInstance().endUpdate();
 		}
 	}
 	

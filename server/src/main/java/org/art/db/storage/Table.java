@@ -143,7 +143,7 @@ public class Table implements Closeable {
 			for (;;) {
 				if (this.closed) {
 					return;
-				} else if (segment.size() == 0) {
+				} else if (segment.isClosed() || segment.size() == 0) {
 					return;
 				} else if (this.prevSegment == null && !saving) {
 					logger.info("flush saving");

@@ -50,6 +50,7 @@ public class TableManager implements Closeable{
 	private final LockManager<Key> primaryKeyLockManager = new LockManager<>();
 	private final LockManager<Key> alternateKeyLockManager = new LockManager<>();
 	private boolean checkConstraints;
+	
 	private final RestClient restClient = new RestClient();
 	private final FileLock lock;
 	private Metadata metadata;
@@ -544,6 +545,14 @@ public class TableManager implements Closeable{
 		
 	}
 	
+	public boolean isCheckConstraints() {
+		return checkConstraints;
+	}
+
+	public void setCheckConstraints(boolean checkConstraints) {
+		this.checkConstraints = checkConstraints;
+	}
+
 	public void setMetadata(Metadata info) throws Exception {
 		this.metadata = info;
 		new ObjectMapper().writeValue(this.metadataFile, info);
