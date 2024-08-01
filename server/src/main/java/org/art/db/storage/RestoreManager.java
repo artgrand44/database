@@ -20,6 +20,7 @@ import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -30,6 +31,13 @@ public class RestoreManager {
 	private final static RestoreManager instance = new RestoreManager();
 	
 	private final RestClient restClient = new RestClient();
+	
+	private File getBackupDirectory() {
+		String path = Environment.getInstance().getPropertyWithDefault("org.art.db.backuproot");
+		
+		return path == null || path.isEmpty() ? null : new File(path);
+	}
+	
 	
 	private List<String> getFilesNames(URI peer, String table, String type) throws Exception {
 		URI uri = this.restClient.buildURI(peer, "/db/getfilenames?table=%s&type=%s", table, type);
@@ -82,11 +90,26 @@ public class RestoreManager {
 		return result;	
 	}
 	
-	public void recover(DiscoveryHandler handler) {		
-		URI peer = handler.getRandomPeer();
+	public void recover(DiscoveryHandler handler) {	
 		
+		// Determine whether we need to restore the entire database from the backup.
+		// We do a restore if the root is empty and a backup is available.
+		
+		File root = Files.getRoot();
+		File[] tableDirs = root.listFiles();
+		File backupDirectory = this.getBackupDirectory();
+		boolean useBackup = (tableDirs == null || tableDirs.length == 0) && backupDirectory != null;
+		
+		// Select a peer to work with
+		
+		URI peer = handler.getRandomPeer();
+				
 		if (peer != null) {
 			try {
+				
+				// If there's a peer the recover the configuration and the metadata
+				// then recover the tables one by one.
+				
 				this.recoverConfiguration(peer);
 				this.recoverMetadata(peer);		
 				
@@ -94,6 +117,11 @@ public class RestoreManager {
 				
 				for (String table : Files.listTables()) {
 					try {
+						if (useBackup) {
+							logger.info("Restoring " + table + " from backup");
+							FileUtils.copyDirectory(new File(backupDirectory, table), new File(root, table));
+						}
+						
 						logger.info("Recovering " + table);
 						
 						// Tell the peer to flush its current segment and to begin sending broadcasts to this
@@ -124,7 +152,14 @@ public class RestoreManager {
 				Metrics.getInstance().logAlert("There was an error synchronizing the configuration.");
 				logger.info("There was an error synchronizing the configuration " + exc.getMessage());
 			}
-		}		
+		} else if (useBackup) {
+			try {
+				logger.info("Restoring database from backup");
+				FileUtils.copyDirectory(root, backupDirectory);
+			} catch (Exception exc) {
+				logger.info("There was an exception restoring the backup " + exc.getMessage());
+			}
+		}
 	
 	}
 	
@@ -242,6 +277,8 @@ public class RestoreManager {
 		}
 
 	}
+	
+	
 	public static RestoreManager getInstance() {
 		return instance;
 	}
