@@ -16,7 +16,6 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.RestClient;
-import org.art.db.common.RestException;
 import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
 import org.slf4j.Logger;
@@ -31,11 +30,56 @@ public class RestoreManager {
 	private final static RestoreManager instance = new RestoreManager();
 	
 	private final RestClient restClient = new RestClient();
-
-	private String getNextRemoteFile(URI peer, File localFile, String table, String type, long timestamp) throws Exception{
-		URI uri = this.restClient.buildURI(peer, "/db/getnextfile?table=%s&type=%s&timestamp=%s", table, type, timestamp);
+	
+	private List<String> getFilesNames(URI peer, String table, String type) throws Exception {
+		URI uri = this.restClient.buildURI(peer, "/db/getfilenames?table=%s&type=%s", table, type);
+		String[] names = new String(this.restClient.get(uri)).split(",");
+		List<String> result = new ArrayList<>();
 		
-		return this.restClient.getFile(uri, localFile);
+		for (String name : names) {
+			result.add(name);
+		}
+		
+		Collections.sort(result);
+		
+		return result;
+	}
+	
+	private void getFile(URI peer, String table, String name) throws Exception {
+		URI uri = this.restClient.buildURI(peer, "/db/getfile?table=%s&name=%s", table, name);
+		File localFile = new File(Files.getTableDirectory(table), name);
+		
+		localFile.delete();		
+		this.restClient.getFile(uri, localFile);
+		
+	}
+	
+	
+	private List<String> getAllFiles(URI peer, String table, String type) throws Exception {
+		List<String> names = this.getFilesNames(peer, table, type);
+
+		for (String name : names) {
+			this.getFile(peer, table, name);
+		}
+		
+		return names;	
+	}
+	
+	private List<String> getAllFilesAfter(URI peer, String table, String type, long timestamp) throws Exception {
+		List<String> names = this.getFilesNames(peer, table, type);
+		List<String> result = new ArrayList<>();
+				
+		for (String name : names) {
+			int dash = name.indexOf('_');
+			long fileTimestamp = Long.valueOf(name.substring(0, dash));
+			
+			if (fileTimestamp > timestamp) {
+				this.getFile(peer, table, name);
+				result.add(name);
+			} 
+		}
+		
+		return result;	
 	}
 	
 	public void recover(DiscoveryHandler handler) {		
@@ -52,9 +96,25 @@ public class RestoreManager {
 					try {
 						logger.info("Recovering " + table);
 						
-						this.recoverTable(table, handler);
+						// Tell the peer to flush its current segment and to begin sending broadcasts to this
+						// instance.  The peer will continue sending the broadcasts until this instance is up
+						// and running.
+
+						this.restClient.get(restClient.buildURI(peer, "/db/recovering?uri=%s&table=%s", handler.getLocalInstance(), table));
+						
+						// Get the metadata, determine whether this is a queue or a table, and do the
+						// appropriate recovery.
+						
+						Metadata metadata = Metadata.getMetadata(table);
+						
+						if (metadata.isQueue()) {
+							this.recoverQueue(peer, metadata, table);
+						} else {
+							this.recoverTable(peer, metadata, table);
+						}
 					} catch (Exception exc) {
 						Metrics.getInstance().logAlert("There was an error recovering the database");
+						exc.printStackTrace();
 						logger.info("There was an error recoverting " + table + " " + exc.getMessage());
 					}
 				}
@@ -111,183 +171,77 @@ public class RestoreManager {
 			for (String table : tables.split(",")) {
 				File file = Files.getMetadata(table);
 
-				if (!file.exists()) {
-					restClient.getFile(restClient.buildURI(peer, "/db/getmetadata?table=%s", table, 0), file);
-				}
+				restClient.getFile(restClient.buildURI(peer, "/db/getmetadata?table=%s", table, 0), file);
 			}	
 		}	
 	}
 
-	private void recoverQueueLog(TableManager manager, File downloadFile, String remoteFileName, List<File> filesCreated) throws Exception {
-		
-		logger.info("got file");
-		
-		boolean save = manager.isCheckConstraints();
-		
-		manager.setCheckConstraints(false);
-		
-		try (FileInputStream stream = new FileInputStream(downloadFile)) {
-			manager.applySnapshot(stream, false, downloadFile);
-		} catch (Exception exc) {
-			manager.setCheckConstraints(save);
-		}
-		
-		File renamed = new File(downloadFile.getParentFile(), remoteFileName);
-		
-		downloadFile.renameTo(renamed);
-		filesCreated.add(renamed);
-		
-		logger.info("processed  queue" + downloadFile.getAbsolutePath() + " " + renamed.getAbsolutePath());
-				
-	}
-	
-	private void recoverSegment(TableManager manager, Metadata metadata, File downloadFile, String remoteFileName, List<File> filesCreated) throws Exception {
-		DiskSegment segment = new DiskSegment(downloadFile);
-
-		// Iterate over the segments and update the index entries for each
-		// document.  This process is i/o intensive, so we process several
-		// documents in parallel.
-
-		Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
-		AtomicInteger inProgress = new AtomicInteger();
-
-		while (iterator.hasNext()) {
-			Map.Entry<Key, Blob> entry = iterator.next();
-			Key key = entry.getKey();
-			Blob blob = entry.getValue();
-
-			inProgress.incrementAndGet();
-			Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(manager, metadata, key, blob, inProgress));
-		}
-
-		while (inProgress.get() != 0) {
-			Utils.sleepSafely(10);
-		}
-				
-		segment.close();
-		
-		File renamed = new File(downloadFile.getParentFile(), remoteFileName);
-		
-		downloadFile.renameTo(renamed);
-		filesCreated.add(renamed);
-		
-		logger.info("processed  " + renamed.getAbsolutePath());
-		
-	}
-	
-	/**
-	 * Recover the table after a restore.  The recovery process
-	 * copies the missing segments from another instance and then
-	 * updates the indices to reflect the missing segments.
-	 * 
-	 * @param peer The peer to copy the segments from
-	 * @param thisURI The URI of this instance
-	 * @throws Exception
-	 */
-	public void recoverTable(String tableName, DiscoveryHandler handler) throws Exception {
-		Metadata metadata = Metadata.getMetadata(tableName);
+	private void recoverQueue(URI peer, Metadata metadata, String tableName) throws Exception { 
+		List<String> names = this.getAllFiles(peer, tableName, ".log");
 		TableManager manager = StorageManager.getInstance().getTableManager(tableName);
+		
+		for (String name : names) {
+			File localFile = new File(Files.getTableDirectory(tableName), name);
+			boolean save = manager.isCheckConstraints();
+			
+			manager.setCheckConstraints(false);
+			
+			try (FileInputStream stream = new FileInputStream(localFile)) {
+				manager.applySnapshot(stream, false, localFile);
+			} catch (Exception exc) {
+				manager.setCheckConstraints(save);
+			}
+			
+		}
+	}
+	
+	private void recoverTable(URI peer, Metadata metadata, String tableName) throws Exception { 
+		File[] files = Files.listDiskSegments(tableName);
 		long timestamp;
+
 		
-		
-		if (metadata.isQueue()) {
+		if (files == null || files.length == 0) {			
+			logger.info("No segments");
 			timestamp = 0;
 		} else {
-			File[] files = Files.listDiskSegments(tableName);
-
-			DiskSegment segment;
-
-			// Find the timestamp and merge level for the newest segment on this
-			// server
-
-			if (files == null || files.length == 0) {			
-				logger.info("No segments");
-				timestamp = 0;
-			} else {
-				List<File> list = Arrays.asList(files);
-				Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
-
-				segment = new DiskSegment(list.get(0));
-				timestamp = segment.getCreateTime();;
-			}		
-		}
-		
-		// Pick a random instance in this shard and try to copy its segments.
-		// We try up to 10 instances before giving up.  If an instance goes
-		// down in the middle of a recovery, we delete all the newly recovered 
-		// segments and try again.
-		
-		List<File> filesCreated = new ArrayList<>();
-		File downloadFile = null;
-		URI peer = null;
-		
-		for (int idx = 0; idx < 10; idx++) {
-			try {				
-				peer = handler.getRandomPeer();
-				String type;
-				
-				if (peer == null) {
-					return;
-				}
-				
-				if (metadata.isQueue()) {
-					downloadFile = Files.getTableLog(tableName);
-					type = ".log";
-				} else {
-					downloadFile = Files.getDiskSegment(tableName, 0);
-					type = ".seg";
-				}
-				
-				// Tell the peer to flush its current segment and to begin sending broadcasts to this
-				// instance.  The peer will continue sending the broadcasts until this instance is up
-				// and running.
-
-				this.restClient.get(restClient.buildURI(peer, "/db/recovering?uri=%s&table=%s", handler.getLocalInstance(), tableName));
-				
-				// Get the latest version of the metadata
-
-				this.restClient.getFile(restClient.buildURI(peer, "/db/getmetadata?table=%s", tableName, timestamp), Files.getMetadata(tableName));
-
-				// Process the missing logs/segments from oldest to newest.  Continue until we get an empty file.
-				// The empty file acts as a "no more segments" indicator.
-			
-				for (;;) {
-					String remoteFile = this.getNextRemoteFile(peer, downloadFile, tableName, type, timestamp);
-					
-					if (downloadFile.length() == 0) {
-						downloadFile.delete();
-						return;
-					}
-					
-					if (metadata.isQueue()) {
-						this.recoverQueueLog(manager, downloadFile, remoteFile, filesCreated);
-					} else {
-						this.recoverSegment(manager, metadata, downloadFile, remoteFile, filesCreated);
-					}
-					
-					timestamp = Files.getTimestampFromFile(remoteFile);
-				}				
-			} catch (RestException exc) {
-				for (File file : filesCreated) {
-					file.delete();
-				}
-				
-				if (exc.getStatus() == RestException.NO_CONNECTION || exc.getStatus() == RestException.SERVER_DOWN) {
-					logger.info("doCall got fail on " + peer + " exc " + exc);
-					handler.removeInstance(peer);
-				} else {
-					throw exc;
-				}
-			} finally {
-				if (downloadFile != null) {
-					downloadFile.delete();
-				}
-			}
-
+			List<File> list = Arrays.asList(files);
+			Collections.sort(list, (a, b) -> - a.getName().compareTo(b.getName()));
+			DiskSegment segment = new DiskSegment(list.get(0));
+			timestamp = segment.getCreateTime();;
 		}		
 		
+		List<String> names = this.getAllFilesAfter(peer, tableName, ".seg", timestamp);
+		TableManager manager = StorageManager.getInstance().getTableManager(tableName);
+		
+		for (String name : names) {
+			File localFile = new File(Files.getTableDirectory(tableName), name);
+			DiskSegment segment = new DiskSegment(localFile);
+
+			// Iterate over the segments and update the index entries for each
+			// document.  This process is i/o intensive, so we process several
+			// documents in parallel.
+
+			Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
+			AtomicInteger inProgress = new AtomicInteger();
+
+			while (iterator.hasNext()) {
+				Map.Entry<Key, Blob> entry = iterator.next();
+				Key key = entry.getKey();
+				Blob blob = entry.getValue();
+
+				inProgress.incrementAndGet();
+				Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(manager, metadata, key, blob, inProgress));
+			}
+
+			while (inProgress.get() != 0) {
+				Utils.sleepSafely(10);
+			}
+					
+			segment.close();
+			
+		}
+
 	}
-	
 	public static RestoreManager getInstance() {
 		return instance;
 	}

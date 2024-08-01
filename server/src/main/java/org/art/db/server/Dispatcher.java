@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +37,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderValues;
-import io.undertow.util.HttpString;
 
 public class Dispatcher {
 
@@ -60,11 +60,12 @@ public class Dispatcher {
 		   HANDLERS.put("/db/fetch",            new FetchHandler());
 		   HANDLERS.put("/db/log",              new LogHandler());
 		   HANDLERS.put("/db/setproperty",      new SetPropertyHandler());
-		   HANDLERS.put("/db/getnextfile",      new GetNextFileHandler());
 		   HANDLERS.put("/db/recovering",       new StartRecoveryHandler());
 		   HANDLERS.put("/db/close",            new CloseHandler());
 		   HANDLERS.put("/db/getmetadata",      new GetMetadataHandler());
 		   HANDLERS.put("/db/gettables",        new GetTablesHandler());
+		   HANDLERS.put("/db/getfilenames",     new GetFileNamesHandler());
+		   HANDLERS.put("/db/getfile",     		new GetFileHandler());
 		   HANDLERS.put("/db/getproperties",    new GetPropertiesHandler());
 		   HANDLERS.put("/db/stop" ,            new StopHandler());
 		   HANDLERS.put("/db/backup" ,          new BackHandler());
@@ -261,13 +262,35 @@ public class Dispatcher {
 		
 	}
 	
+	static class GetFileNamesHandler implements Handler {		
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			String table = parameters.get("table");
+			String type = parameters.get("type");
+			File[] files = Files.listFiles(table, type);
+			
+			if (files == null) {
+				return "".getBytes();
+			}
+			
+			List<String> names = new ArrayList<>();
+			
+			for (File file : files) {
+				names.add(file.getName());
+			}
+			
+			logger.info("getfilenames table = " + table + " type = " + type + " names " + names);
+			
+			return String.join(",", names).getBytes();
+		}
+	}
+
 	static class GetTablesHandler implements Handler {
 		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			return String.join(",", Files.listTables()).getBytes();
 		}
-
 	}
 
 	
@@ -288,26 +311,18 @@ public class Dispatcher {
 
 	}
 	
-	static class GetNextFileHandler implements Handler {
+	static class GetFileHandler implements Handler {
 		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			checkServer(exchange);
 			
 			String table = parameters.get("table");
-			String type = parameters.get("type");
-			long timestamp = Long.parseLong(parameters.get("timestamp"));
-			File file = StorageManager.getInstance().getNextFile(table, timestamp, type);
+			String name = parameters.get("name");
+			File file = new File(Files.getTableDirectory(table), name);
 
-			if (file == null) {
-				logger.info("returning null");
-				exchange.getResponseHeaders().add(new HttpString("filename"), "");
-				return null;
-			}
-			
-			exchange.getResponseHeaders().add(new HttpString("filename"), file.getName());
-			
-			return file;
+			logger.info("sending back " + file.getAbsolutePath() + "  " + file.length());
+			return file.exists() ? file : null;
 		}
 
 	}
