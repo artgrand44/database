@@ -17,6 +17,7 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
+import org.art.db.storage.BackupHandler;
 import org.art.db.storage.Environment;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.PrometheusPublisher;
@@ -66,6 +67,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			Metrics.getInstance().logStatus("Starting");
 			UIConsole.getInstance().start(info);
 			PrometheusPublisher.getInstance().start();
+			BackupHandler.getInstance().start();
 			
 			RestoreManager.getInstance().recover(handler);
 			
@@ -242,6 +244,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			DiscoveryHandler.clear();
 			StorageManager.getInstance().closeAll();
 			UIConsole.getInstance().stop();	
+			BackupHandler.getInstance().stop();
 		}
 	}
 	

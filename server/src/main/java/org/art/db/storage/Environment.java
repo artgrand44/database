@@ -24,6 +24,7 @@ public class Environment {
 				   "org.art.db.indexCache",     "10M",
 				   "org.art.db.backuproot",     "./backup",
 				   "org.art.db.backupinterval", "1w",
+				   "org.art.db.backupmax",      "2",
 				   "org.art.db.queueRecovery",  "3");
 
 	private static Environment instance;

@@ -1,6 +1,6 @@
 #! /bin/bash
 
-#build.sh service1 db2 shard1 3 4Gi kubernetes.io\\/hostname minikube 1w
+#build.sh service1 db2 shard1 3 4Gi kubernetes.io\\/hostname minikube 1w 2
 
 if [ "$#" -ge 1 ]; then
     service=$1
@@ -87,7 +87,7 @@ if [ -z "${value}" ]; then
 fi
 
 if [ "$#" -ge 8 ]; then
-    interval=$7
+    interval=$8
 fi
 
 if [ -z "${interval}" ]; then 
@@ -98,10 +98,23 @@ if [ -z "${interval}" ]; then
 		interval="1w"
 	fi
 fi
+
+if [ "$#" -ge 9 ]; then
+    maxbackup=$9
+fi
+
+if [ -z "${maxbackup}" ]; then 
+	read -p Nax. saved backups?["2]" maxbackup
+
+
+	if [ -z "${value}" ]; then 
+		maxbackup="12"
+	fi
+fi
 diskname="$database""-""$shard"
 backupname="${diskname}""-back" 
 sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g -e  s/"backupname"/"$backupname"/g volume.yaml >customvolume.yaml
-sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g -e s/"reps"/"${replicas}"/g -e s/"volumname"/"$diskname"/g -e s/"interval"/"$interval"/g  sample.yaml > custom.yaml
+sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g -e s/"reps"/"${replicas}"/g -e s/"volumname"/"$diskname"/g -e s/"interval"/"$interval"/g -e s/"maxbackup"/"$maxbackup"/g  sample.yaml > custom.yaml
 
 echo ""
 echo "Starting build..."

@@ -3,6 +3,10 @@ package org.art.db.storage;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -48,11 +52,18 @@ public class BackupHandler {
 			
 			if (lock != null) {
 				File rootFile = new File(root);
+				File backupDir = new File(rootFile, String.valueOf(System.currentTimeMillis()));
 				
-				this.backupFile(Files.getSecurity(), rootFile);
+				this.deleteOldBackups(rootFile);
+				
+				backupDir.mkdir();
+				
+				logger.info("Backing up to " + backupDir.getAbsolutePath());
+				
+				this.backupFile(Files.getSecurity(), backupDir);
 				
 				for (String table : Files.listTables()) {
-					this.backupTable(table, rootFile);
+					this.backupTable(table, backupDir);
 				}
 			}
 		} catch (Exception exc) {
@@ -110,6 +121,26 @@ public class BackupHandler {
 		FileUtils.copyFile(source, backup);
 	}
 	
+	private void deleteOldBackups(File rootFile) {
+		try {
+			File[] subdirs = rootFile.listFiles();
+			int maxBackups = Integer.parseInt(Environment.getInstance().getPropertyWithDefault("org.art.db.backupmax"));
+
+			if (subdirs != null && maxBackups > 0) {
+				List<File> list = new ArrayList<>(Arrays.asList(subdirs));
+
+				Collections.sort(list, (x, y) -> x.getName().compareTo(y.getName()));
+
+				while (list.size() > maxBackups) {
+					logger.info("deleting old " + list.get(0));
+					FileUtils.deleteDirectory(list.remove(0));
+				}
+			}
+		} catch (Exception exc) {
+			logger.info("There was an error deleting the old backups " + exc.getMessage());
+		}
+		
+	}
 	public void endUpdate() {
 		this.lock.readLock().unlock();
 	}

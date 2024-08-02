@@ -177,8 +177,9 @@ public class MemorySegment extends Segment {
 					}
 				}
 
-			logger.info("broadcast from " + this.discoveryHandler.getLocalPort() + " to " + peers);
-			this.restClient.broadcast(peers, "/db/propagate", stream.toByteArray());			}
+				logger.info("broadcast from " + this.discoveryHandler.getLocalPort() + " to " + peers);
+				this.restClient.broadcast(peers, "/db/propagate", stream.toByteArray());			
+			}
 		} catch (Exception exc) {
 			if (batch != null) {
 				this.broadcastQueue.addFirst(batch);

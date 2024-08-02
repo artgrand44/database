@@ -22,13 +22,13 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	
 	@AfterEach
 	public void afterEach() {
-		
-		super.afterEach();
-		
 		stopInternal();
 		stopExternal();
 		
 		DiscoveryHandler.clear();
+		
+		super.afterEach();
+		
 		
 	}
 	

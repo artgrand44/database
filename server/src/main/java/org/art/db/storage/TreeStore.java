@@ -244,7 +244,6 @@ public class TreeStore implements Closeable, BlobStore {
 			// to guarantee that the end of file marker has been written to the
 			// operating system.
 			
-			
 			if (batch.transactional) {
 				try (DataOutputStream log = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(this.logFile)))){
 					this.writeCount.addAndGet(batch.size());

@@ -25,9 +25,11 @@ spec:
            - name: cloud
              value: kubernetes
            - name: org.art.db.backupinterval
-             value: 1w
+             value: "interval"
            - name: org.art.db.backuproot
              value: /backup
+           - name: org.art.db.backupmax
+             value: "maxbackup"
            - name: org.art.db.dbroot
              value: /data/files
         imagePullPolicy: IfNotPresent

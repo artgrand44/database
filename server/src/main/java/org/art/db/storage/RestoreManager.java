@@ -35,7 +35,22 @@ public class RestoreManager {
 	private File getBackupDirectory() {
 		String path = Environment.getInstance().getPropertyWithDefault("org.art.db.backuproot");
 		
-		return path == null || path.isEmpty() ? null : new File(path);
+		if (path == null || path.isEmpty()) {
+			return null;
+		}
+		
+		File rootDir = new File(path);
+		File[] subdirs = rootDir.listFiles();
+		
+		if (subdirs == null || subdirs.length == 0) {
+			return null;
+		}
+		
+		List<File> list = new ArrayList<>(Arrays.asList(subdirs));
+		
+		Collections.sort(list, (x, y) -> - x.getName().compareTo(y.getName()));
+		
+		return list.get(0);
 	}
 	
 	
