@@ -87,15 +87,15 @@ if [ -z "${value}" ]; then
 fi
 
 if [ "$#" -ge 8 ]; then
-    interval=$8
+    theint=$8
 fi
 
-if [ -z "${interval}" ]; then 
-	read -p Backup interval?["1w]" interval
+if [ -z "${theint}" ]; then 
+	read -p Backup interval?["1w]" theint
 
 
 	if [ -z "${value}" ]; then 
-		interval="1w"
+		theint="1w"
 	fi
 fi
 
@@ -114,7 +114,7 @@ fi
 diskname="$database""-""$shard"
 backupname="${diskname}""-back" 
 sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g -e  s/"backupname"/"$backupname"/g volume.yaml >customvolume.yaml
-sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g -e s/"reps"/"${replicas}"/g -e s/"volumname"/"$diskname"/g -e s/"interval"/"$interval"/g -e s/"maxbackup"/"$maxbackup"/g  sample.yaml > custom.yaml
+sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g -e s/"reps"/"${replicas}"/g -e s/"volumname"/"$diskname"/g -e s/"theint"/"$theint"/g -e s/"maxbackup"/"$maxbackup"/g  sample.yaml > custom.yaml
 
 echo ""
 echo "Starting build..."

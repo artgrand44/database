@@ -25,7 +25,7 @@ spec:
            - name: cloud
              value: kubernetes
            - name: org.art.db.backupinterval
-             value: "interval"
+             value: "theint"
            - name: org.art.db.backuproot
              value: /backup
            - name: org.art.db.backupmax
