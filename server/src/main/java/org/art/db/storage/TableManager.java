@@ -268,6 +268,10 @@ public class TableManager implements Closeable{
 		
 	}
 	
+	public boolean isQueue() {
+		return this.metadata.isQueue();
+	}
+	
 	public DocumentSet lease(String owner,long timeout) {
 		if (!this.metadata.isQueue()) {
 			throw new DBRuntimeException("The lease() function is only supported for queue tables");

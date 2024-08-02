@@ -145,15 +145,17 @@ public class RestoreManager {
 
 						this.restClient.get(restClient.buildURI(peer, "/db/recovering?uri=%s&table=%s", handler.getLocalInstance(), table));
 						
-						// Get the metadata, determine whether this is a queue or a table, and do the
-						// appropriate recovery.
+						// Get the table manager.  This will trigger local recovery for any updates that
+						// were lost during the crash.
 						
-						Metadata metadata = Metadata.getMetadata(table);
+						TableManager manager = StorageManager.getInstance().getTableManager(table);
 						
-						if (metadata.isQueue()) {
-							this.recoverQueue(peer, metadata, table);
+						// Process any recent updates on the partner
+						
+						if (manager.isQueue()) {
+							this.recoverQueue(manager, peer, table);
 						} else {
-							this.recoverTable(peer, metadata, table);
+							this.recoverTable(manager, peer, table);
 						}
 					} catch (Exception exc) {
 						Metrics.getInstance().logAlert("There was an error recovering the database");
@@ -197,10 +199,10 @@ public class RestoreManager {
 	 * @param blob
 	 * @param inProgress
 	 */
-	private void recoverIndexEntries(TableManager manager, Metadata metadata, Key key, Blob blob, AtomicInteger inProgress) {
+	private void recoverIndexEntries(TableManager manager, Key key, Blob blob, AtomicInteger inProgress) {
 		try {
 			Document oldDoc = manager.get(key);
-			Document newDoc = BlobConverter.toDocument(metadata, blob);
+			Document newDoc = BlobConverter.toDocument(manager.getMetadata(), blob);
 		
 			manager.updateIndices(oldDoc, newDoc, key);
 		} catch (Exception exc) {
@@ -226,11 +228,8 @@ public class RestoreManager {
 		}	
 	}
 
-	private void recoverQueue(URI peer, Metadata metadata, String tableName) throws Exception { 
-		List<String> names = this.getAllFiles(peer, tableName, ".log");
-		TableManager manager = StorageManager.getInstance().getTableManager(tableName);
-		
-		for (String name : names) {
+	private void recoverQueue(TableManager manager, URI peer, String tableName) throws Exception { 
+		for (String name : this.getAllFiles(peer, tableName, ".log")) {
 			File localFile = new File(Files.getTableDirectory(tableName), name);
 			boolean save = manager.isCheckConstraints();
 			
@@ -245,7 +244,7 @@ public class RestoreManager {
 		}
 	}
 	
-	private void recoverTable(URI peer, Metadata metadata, String tableName) throws Exception { 
+	private void recoverTable(TableManager manager, URI peer, String tableName) throws Exception { 
 		File[] files = Files.listDiskSegments(tableName);
 		long timestamp;
 
@@ -260,10 +259,7 @@ public class RestoreManager {
 			timestamp = segment.getCreateTime();;
 		}		
 		
-		List<String> names = this.getAllFilesAfter(peer, tableName, ".seg", timestamp);
-		TableManager manager = StorageManager.getInstance().getTableManager(tableName);
-		
-		for (String name : names) {
+		for (String name : this.getAllFilesAfter(peer, tableName, ".seg", timestamp)) {
 			File localFile = new File(Files.getTableDirectory(tableName), name);
 			DiskSegment segment = new DiskSegment(localFile);
 
@@ -280,7 +276,7 @@ public class RestoreManager {
 				Blob blob = entry.getValue();
 
 				inProgress.incrementAndGet();
-				Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(manager, metadata, key, blob, inProgress));
+				Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(manager, key, blob, inProgress));
 			}
 
 			while (inProgress.get() != 0) {
