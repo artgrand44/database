@@ -3,6 +3,7 @@ package org.art.db.common;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -10,12 +11,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fabric8.kubernetes.api.model.EndpointAddress;
-import io.fabric8.kubernetes.api.model.EndpointPort;
-import io.fabric8.kubernetes.api.model.EndpointSubset;
-import io.fabric8.kubernetes.api.model.Endpoints;
-import io.fabric8.kubernetes.api.model.EndpointsList;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 
@@ -23,8 +21,8 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	private static final Logger logger = LoggerFactory.getLogger(KubernetesPlugin.class);
 			
 	private final KubernetesClient client;
-	private String localPort;
-	private String localShard;
+	private final String localPort = "8080";
+	private final String localShard = System.getenv("org.art.db.shard");
 	private String database;
 	private URI localInstance;
 	private AtomicReference<Map<URI, String>> serverInstances = new AtomicReference<Map<URI,String>>();
@@ -67,52 +65,28 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		if ((this.serverInstances.get() == null || System.currentTimeMillis() > this.ttl) && this.loading.compareAndSet(false, true)) {
 			try {
 				logger.info("starting services scan " + this.database);
-										
-				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
-				EndpointsList endpointList = client.endpoints().withLabel("database=" + this.database).list();
-				Map<URI, String> result = new HashMap<>();
 				
-				for (Endpoints endpoints : endpointList.getItems()) {
-					ObjectMeta meta = endpoints.getMetadata();
-					Map<String, String> labels = meta.getLabels();
-					String database = labels.get("database");
-					String shard = labels.get("shard");
+				PodList podList = client.pods().withLabel("app=" + this.database).list();
+				
+				Map<URI, String> result = new HashMap<>();
+				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
+								
+				for (Pod pod : podList.getItems()) {
+					List<EnvVar> list = pod.getSpec().getContainers().get(0).getEnv();
+					EnvVar shardVar = list.stream().filter(x -> x.getName().equals("org.art.db.shard")).findAny().orElse(null);
+					String shard = shardVar == null ? "shard1" : shardVar.getValue();
+					String podIp = pod.getStatus().getPodIP();
+					URI uri = new URI(String.format("http://%s:%s", podIp, "8080"));
 
+					result.put(uri, shard);
 					
-					logger.info("labels " + labels + " shard = " + shard + " database " + database + " this.database " + this.database);
-					
-					if (database.equalsIgnoreCase(this.database)) {
-						for (EndpointSubset subset : endpoints.getSubsets()) {					 
-							if (!subset.getAddresses().isEmpty() && !subset.getPorts().isEmpty()) {
-								for (int idx = 0; idx < subset.getAddresses().size(); idx++) {
-									EndpointAddress address = subset.getAddresses().get(idx);
-									
-									for (int jdx = 0; jdx < subset.getPorts().size(); jdx++) {
-										EndpointPort port = subset.getPorts().get(jdx);
-										URI uri = new URI(String.format("http://%s:%s", address.getIp(), port.getPort()));
-
-										result.put(uri, shard);
-										
-										if (address.getIp().equals(localHostAddress)) {
-											this.localPort = port.getPort().toString();
-											this.localShard = shard;
-											this.localInstance = uri;
-										}
-									}
-								}
-							}
-						}
-					} else {
-						logger.info("skip " + meta);
-					}
+					if (podIp.equals(localHostAddress)) {
+						this.localInstance = uri;
+					} 				
 				}
-
-				logger.info("instances " + result);
-				logger.info("local host name " + InetAddress.getLocalHost().getHostName() + " hostaddress " +   InetAddress.getLocalHost().getHostAddress());
-				logger.info("local host IP "  + InetAddress.getLocalHost());
-				logger.info("local shard "  + this.localShard);
-				logger.info("local instance "  + this.localInstance);
-
+						
+				logger.info("localhost = " + localHostAddress + " localInstance = " + this.localInstance + " result = " + result);
+				
 				this.ttl = System.currentTimeMillis() + 10 * 1000;
 				this.serverInstances.set(result);
 			} catch (Exception exc) {

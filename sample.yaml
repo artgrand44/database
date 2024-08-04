@@ -26,6 +26,8 @@ spec:
              value: kubernetes
            - name: org.art.db.backupinterval
              value: "theint"
+           - name:  org.art.db.shard
+             value : "shardname"
            - name: org.art.db.backuproot
              value: /backup
            - name: org.art.db.backupmax
