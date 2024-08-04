@@ -22,7 +22,6 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 public class KubernetesPlugin implements DiscoveryPlugin {
 	private static final Logger logger = LoggerFactory.getLogger(KubernetesPlugin.class);
 			
-	private static final KubernetesPlugin instance = new KubernetesPlugin();
 	private final KubernetesClient client;
 	private String localPort;
 	private String localShard;
@@ -33,10 +32,10 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	private long ttl;
 	
 	
-	private KubernetesPlugin() {
+	public KubernetesPlugin(String database) {
 		try {
 			this.client = new KubernetesClientBuilder().build();
-			this.database = System.getenv("database");
+			this.database = database;
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -168,10 +167,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	@Override
 	public void stop() {
 		this.client.close();		
-	}
-	
-	public static KubernetesPlugin getInstance() {
-		return instance;
 	}
 
 	public static boolean isKubernetes() {

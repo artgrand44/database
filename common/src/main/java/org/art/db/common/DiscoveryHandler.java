@@ -69,8 +69,10 @@ public class DiscoveryHandler {
 			
 		DiscoveryPlugin plugin;
 		
-		if (KubernetesPlugin.isKubernetes()) {
-			plugin = KubernetesPlugin.getInstance();
+		if (KubernetesPlugin.isKubernetes() && isServer) {
+			plugin = new KubernetesPlugin(System.getenv("database"));
+		} else if (KubernetesPlugin.isKubernetes()) {
+			plugin = new KubernetesPlugin(config.getDatabase());
 		} else if (isServer || config.getHost() == null || config.getHost().equals(InetAddress.getLocalHost().getHostAddress())) {
 			plugin = new DiscoveryPluginImpl();
 		} else {
