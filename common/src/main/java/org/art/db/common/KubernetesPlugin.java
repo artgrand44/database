@@ -74,7 +74,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 				for (Pod pod : podList.getItems()) {
 					List<EnvVar> list = pod.getSpec().getContainers().get(0).getEnv();
 					EnvVar shardVar = list.stream().filter(x -> x.getName().equals("org.art.db.shard")).findAny().orElse(null);
-					String shard = shardVar == null ? "shard1" : shardVar.getValue();
+					String shard = shardVar.getValue();
 					String podIp = pod.getStatus().getPodIP();
 					URI uri = new URI(String.format("http://%s:%s", podIp, "8080"));
 
