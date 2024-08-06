@@ -68,9 +68,9 @@ public class Server implements HttpHandler, FullBytesCallback {
 			UIConsole.getInstance().start(info);
 			PrometheusPublisher.getInstance().start();
 			BackupHandler.getInstance().start();
+			RestoreManager.getInstance().recover(handler);
 			
 			this.handler.start();
-			RestoreManager.getInstance().recover(handler);
 			
 			InetAddress address = InetAddress.getLocalHost();
 			

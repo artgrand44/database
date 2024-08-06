@@ -94,7 +94,6 @@ public class SegmentBuilder {
 					Key key = entry.getKey();
 					
 					if (!handler.getShard(key.toString()).equals(localShard)) {
-						logger.info("skip " + key);
 						continue;
 					}
 					

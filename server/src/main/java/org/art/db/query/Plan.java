@@ -51,7 +51,6 @@ public abstract class Plan  {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
 		if (handler != null && !handler.getShard(key.toString()).equals(handler.getLocalShard())) {
-			logger.info("skip " + key);
 			return false;
 		}
 		

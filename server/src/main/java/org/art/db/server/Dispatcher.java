@@ -100,13 +100,26 @@ public class Dispatcher {
 	 * @throws Exception
 	 */
 	private static void checkServer(HttpServerExchange exchange) throws Exception {
-		HeaderValues values = exchange.getRequestHeaders().get("Client");
+		HeaderValues authValues = exchange.getRequestHeaders().get("Authorization");
 		
-		if (values == null || values.size() != 1) {
+		if (authValues != null && authValues.size() != 0) {
+			String authString = authValues.get(0);
+			String auth = new String(Base64.getDecoder().decode(authString.substring("Basic ".length())));
+			String[] tokens = auth.split(":");
+			
+			if (SecurityHandler.getInstance().isAdmin(tokens[0], tokens[1])) {
+				return;
+			} 			
+		}
+		
+		
+		HeaderValues clientValues = exchange.getRequestHeaders().get("Client");
+		
+		if (clientValues == null || clientValues.size() != 1) {
 			throw new DBRuntimeException(exchange.getRequestURI() + " can only be invoked from database servers");
 		}
 		
-		String client = values.get(0);
+		String client = clientValues.get(0);
 		List<URI> peers = DiscoveryHandler.getServerInstance().getAllPeers();
 		List<String> hosts = peers.stream().map(x -> x.getHost()).toList();
 		
@@ -271,6 +284,8 @@ public class Dispatcher {
 	static class GetFileNamesHandler implements Handler {		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			checkServer(exchange);
+			
 			String table = parameters.get("table");
 			String type = parameters.get("type");
 			File[] files = Files.listFiles(table, type);

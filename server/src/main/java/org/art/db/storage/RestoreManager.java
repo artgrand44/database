@@ -12,13 +12,13 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
-import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
+import org.art.db.security.SecurityHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vafer.jdeb.shaded.commons.io.FileUtils;
@@ -31,7 +31,7 @@ public class RestoreManager {
 	
 	private final static RestoreManager instance = new RestoreManager();
 	
-	private final RestClient restClient = new RestClient();
+	private final RestClient restClient = new RestClient(SecurityHandler.getInstance().getAdminUser(), SecurityHandler.getInstance().getAdminPassword());
 	
 	private File getBackupDirectory() {
 		String path = Environment.getInstance().getPropertyWithDefault("org.art.db.backuproot");
@@ -69,40 +69,15 @@ public class RestoreManager {
 		return result;
 	}
 	
-	/**
-	 * Get a file from the partner.  Note that the /db/getfile endpoint can only be called
-	 * by database servers.  Since this server is just starting, the partner may not
-	 * that the call is coming from a server.  So we need to iterate until the partner
-	 * accepts the call.
-	 * 
-	 * @param peer
-	 * @param table
-	 * @param name
-	 * @throws Exception
-	 */
 	private void getFile(URI peer, String table, String name) throws Exception {
-		Exception lastException = new DBRuntimeException("Timeout loading file");
+		URI uri = this.restClient.buildURI(peer, "/db/getfile?table=%s&name=%s", table, name);
+		File localFile = new File(Files.getTableDirectory(table), name);
 		
-		for (int idx = 0; idx < 10; idx++) {
-			try {
-				URI uri = this.restClient.buildURI(peer, "/db/getfile?table=%s&name=%s", table, name);
-				File localFile = new File(Files.getTableDirectory(table), name);
-				
-				localFile.delete();		
-				this.restClient.getFile(uri, localFile);
-				
-				logger.info("got file");
-				return;
-			} catch (Exception exc) {
-				lastException = exc;
-				Utils.sleepSafely(10000);			
-			}
-		}		
+		localFile.delete();		
+		this.restClient.getFile(uri, localFile);
 		
-		logger.info("timing out getfile");
-		throw lastException;
 	}
-	
+		
 	
 	private List<String> getAllFiles(URI peer, String table, String type) throws Exception {
 		List<String> names = this.getFilesNames(peer, table, type);
@@ -147,7 +122,6 @@ public class RestoreManager {
 		boolean newShard = false;
 		
 		if (peer == null && handler.getShards().size() > 1) {
-			logger.info("getting source from " + handler.getShards() + " in " + handler.getLocalInstance());
 			peer = handler.getSourceShard(handler.getLocalShard());
 			newShard = true;
 		}

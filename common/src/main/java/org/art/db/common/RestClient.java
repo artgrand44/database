@@ -192,7 +192,7 @@ public class RestClient {
 					.version(HttpClient.Version.HTTP_2);
 
 			String token = this.getAuthToken();
-
+			
 			if (token != null) {
 				builder = builder.header("Authorization", token);
 			}

@@ -58,6 +58,25 @@ public class SecurityHandler {
 		this.saveUser(newUser);
 	}
 	
+	public String getAdminUser() {
+		for (User user : this.users.values()) {
+			if (user.isAdmin()) {
+				return user.getName();
+			}
+		}
+		
+		throw new DBRuntimeException("Error getting admin user");
+	}
+
+	public String getAdminPassword() {
+		for (User user : this.users.values()) {
+			if (user.isAdmin()) {
+				return Utils.decrypt(user.getPassword());
+			}
+		}
+		
+		throw new DBRuntimeException("Error getting admin user");
+	}
 
 	private User getUser(String userName) throws Exception {
 		if (users.containsKey(userName)) {
