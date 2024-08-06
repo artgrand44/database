@@ -41,7 +41,7 @@ public class IndexScan extends Plan {
 				
 				doc.put(name, parts[index]);
 				
-				if (this.matches(doc, this.filters)) {
+				if (this.matches(key, doc, this.filters)) {
 					result.add(doc);
 				}
 				

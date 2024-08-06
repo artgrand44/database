@@ -41,7 +41,7 @@ public class IndexInLookup extends Plan {
 		for (Key key : keys) {
 			Document doc = engine.getDocument(key, lock);
 			
-			if (doc != null && this.matches(doc, this.filters)) {
+			if (doc != null && this.matches(key, doc, this.filters)) {
 				result.add(doc);
 			} else if (lock) {
 				engine.unlockPrimaryKey(key);

@@ -13,6 +13,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.TypedOutputStream;
@@ -59,6 +60,8 @@ public class SegmentBuilder {
 		Key lowKey = null;
 		Key highKey = null;
 		int count = 0;
+		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
+		String localShard = handler.getLocalShard();
 		
 		try (FileOutputStream fstream = new FileOutputStream(tempFile); 
 				BufferedOutputStream bstream = new BufferedOutputStream(fstream, 10 * 1024); 
@@ -72,8 +75,7 @@ public class SegmentBuilder {
 			// block size that the original tree) and build a map from the first key in each node to the block
 			// number of the node. When the process is completed, iterate over the map and build the parent nodes.
 			// This process continues until we write out the root.
-			
-			
+					
 			Iterator iterator = leafNodes;
 			TreeMap<Key, Long> parents = new TreeMap<>();
 			
@@ -85,10 +87,20 @@ public class SegmentBuilder {
 			for (;;) {
 				while (iterator.hasNext()) {
 					
-					// Get the next key/value pair from the original tree and determine it's size
+					// Get the next key/value pair from the original tree.  If the key has moved
+					// to another shard then skip the entry.
 					
 					Map.Entry<Key, ? extends Object> entry = (Map.Entry<Key, ? extends Object>)iterator.next();
 					Key key = entry.getKey();
+					
+					if (!handler.getShard(key.toString()).equals(localShard)) {
+						logger.info("skip " + key);
+						continue;
+					}
+					
+					
+					// Compute the size of the entry
+					
 					Object value = entry.getValue();
 					int size = key.getSize() + TypedOutputStream.getSize(value);
 					

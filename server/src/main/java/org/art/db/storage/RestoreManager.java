@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
@@ -68,13 +69,38 @@ public class RestoreManager {
 		return result;
 	}
 	
+	/**
+	 * Get a file from the partner.  Note that the /db/getfile endpoint can only be called
+	 * by database servers.  Since this server is just starting, the partner may not
+	 * that the call is coming from a server.  So we need to iterate until the partner
+	 * accepts the call.
+	 * 
+	 * @param peer
+	 * @param table
+	 * @param name
+	 * @throws Exception
+	 */
 	private void getFile(URI peer, String table, String name) throws Exception {
-		URI uri = this.restClient.buildURI(peer, "/db/getfile?table=%s&name=%s", table, name);
-		File localFile = new File(Files.getTableDirectory(table), name);
+		Exception lastException = new DBRuntimeException("Timeout loading file");
 		
-		localFile.delete();		
-		this.restClient.getFile(uri, localFile);
+		for (int idx = 0; idx < 10; idx++) {
+			try {
+				URI uri = this.restClient.buildURI(peer, "/db/getfile?table=%s&name=%s", table, name);
+				File localFile = new File(Files.getTableDirectory(table), name);
+				
+				localFile.delete();		
+				this.restClient.getFile(uri, localFile);
+				
+				logger.info("got file");
+				return;
+			} catch (Exception exc) {
+				lastException = exc;
+				Utils.sleepSafely(10000);			
+			}
+		}		
 		
+		logger.info("timing out getfile");
+		throw lastException;
 	}
 	
 	
@@ -118,6 +144,13 @@ public class RestoreManager {
 		// Select a peer to work with
 		
 		URI peer = handler.getRandomPeer();
+		boolean newShard = false;
+		
+		if (peer == null && handler.getShards().size() > 1) {
+			logger.info("getting source from " + handler.getShards() + " in " + handler.getLocalInstance());
+			peer = handler.getSourceShard(handler.getLocalShard());
+			newShard = true;
+		}
 				
 		if (peer != null) {
 			try {
@@ -156,6 +189,10 @@ public class RestoreManager {
 							this.recoverQueue(manager, peer, table);
 						} else {
 							this.recoverTable(manager, peer, table);
+						}
+						
+						if (newShard) {
+							manager.mergeAll();
 						}
 					} catch (Exception exc) {
 						Metrics.getInstance().logAlert("There was an error recovering the database");

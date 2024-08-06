@@ -281,7 +281,13 @@ public class Table implements Closeable {
 		}
 	}
 		
-
+	public void mergeAll() {
+		for (Segment segment : this.segments) {
+			if (segment instanceof DiskSegment disk) {
+				mergeQueue.add(new MergeQueueEntry(this, disk.getFile()));
+			}
+		}
+	}
 	public void insert(Key key, Document value, boolean propagate, boolean log) throws Exception {
 		this.readLock.lock();
 		

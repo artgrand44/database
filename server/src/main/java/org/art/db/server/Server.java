@@ -69,9 +69,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 			PrometheusPublisher.getInstance().start();
 			BackupHandler.getInstance().start();
 			
-			RestoreManager.getInstance().recover(handler);
-			
 			this.handler.start();
+			RestoreManager.getInstance().recover(handler);
 			
 			InetAddress address = InetAddress.getLocalHost();
 			
@@ -155,7 +154,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			exchange.getResponseHeaders().put(Headers.WWW_AUTHENTICATE, "Basic realm=Database");
 			exchange.setStatusCode(RestException.UNAUTHORIZED);
 		} catch (Exception exc) {
-			exc.printStackTrace();
+			//exc.printStackTrace();
 			exchange.setStatusCode(RestException.TEA_POT);
 			
 			String warning = String.format("Warning: 199 - %s", exc.getMessage());
@@ -241,8 +240,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 			Metrics.getInstance().logStatus("Stopping");
 			instance.server.stop();
 			instance.handler.stop();
-			DiscoveryHandler.clear();
 			StorageManager.getInstance().closeAll();
+			DiscoveryHandler.clear();
 			UIConsole.getInstance().stop();	
 			BackupHandler.getInstance().stop();
 		}

@@ -27,7 +27,7 @@ public class TableInLookup extends Plan {
 			
 			Document doc = engine.getDocument(key, lock);
 
-			if (doc != null && super.matches(doc, filters)) {		
+			if (doc != null && super.matches(key, doc, filters)) {		
 				result.add(doc);
 			} else if (lock) {
 				engine.unlockPrimaryKey(key);

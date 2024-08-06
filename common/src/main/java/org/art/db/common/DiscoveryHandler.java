@@ -256,6 +256,34 @@ public class DiscoveryHandler {
 		return this.instances.get().keySet();
 	}
 	
+	/**
+	 * This method is called when we recover the first instance of
+	 * a brand new shard.  It determines which shard should be split
+	 * in order to create the new shard and returns an instance of that shard.
+	 * @param newShard
+	 * @return
+	 */
+	public URI getSourceShard(String newShard) {
+		for (int retry = 0; retry < 50; retry++) {
+			ShardFinder shardFinder;
+			
+			if ((shardFinder = this.shardFinder.get()) == null || shardFinder.isEmpty()) {
+				logger.info("sleep");
+				Utils.sleepSafely(1000);
+				this.loadEnvironment();
+				continue;
+			}
+			
+			ShardFinder clone = new ShardFinder(shardFinder);
+			
+			clone.removeShard(newShard);
+			
+			return this.getServiceAddressForKey(clone.getShard(newShard));
+		}
+		
+		throw new DBRuntimeException("getSourceShard timed out");
+	}
+	
 	public boolean hasServices() {
 		return !this.instances.get().isEmpty();
 	}

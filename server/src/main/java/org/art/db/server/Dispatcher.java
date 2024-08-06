@@ -111,7 +111,13 @@ public class Dispatcher {
 		List<String> hosts = peers.stream().map(x -> x.getHost()).toList();
 		
 		if (!hosts.contains(client)) {
-			logger.info("error client = " + client + " hosts " + hosts);
+			DiscoveryHandler.getServerInstance().loadEnvironment();
+			peers = DiscoveryHandler.getServerInstance().getAllPeers();
+			hosts = peers.stream().map(x -> x.getHost()).toList();
+		}
+		
+		if (!hosts.contains(client)) {
+			logger.info("error on host " + DiscoveryHandler.getServerInstance().getLocalInstance() + " client = " + client + " hosts " + hosts);
 			throw new DBRuntimeException(exchange.getRequestURI() + " can only be invoked from database servers");
 		}	
 	}

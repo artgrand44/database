@@ -21,12 +21,20 @@ class ShardFinder {
     	}
     };
     
+    ShardFinder(ShardFinder from) {
+    	for (String shard : from.circle.values()) {
+    		this.addShard(shard);
+    	}
+    }
     
     void addShard(String shard) {
     	this.circle.put(hashString(shard.toString()), shard);       
     }
 
     String getShard(String key) {
+    	if (key == null) {
+    		logger.info("No keys");
+    	}
     	long hash = hashString(key);
     	
     	if (this.circle.isEmpty()) {
@@ -42,6 +50,10 @@ class ShardFinder {
         return this.circle.get(hash);
     }
 
+    boolean isEmpty() {
+    	return this.circle.isEmpty();
+    }
+    
     private long hashString(String keyOrShard) {
     	IncrementalHash32x86 hasher = new IncrementalHash32x86();
     	byte[] bytes = keyOrShard.getBytes();

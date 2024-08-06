@@ -287,6 +287,10 @@ public class TableManager implements Closeable{
 		this.updateIndices(doc, null, primaryKey);
 	}
 	
+	public void mergeAll() {
+		this.table.mergeAll();
+	}
+	
 	public void unlockPrimaryKey(Key key) {
 		this.primaryKeyLockManager.unlock(key);
 	}

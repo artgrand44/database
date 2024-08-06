@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.art.db.common.Comparison;
 import org.art.db.common.DBNull;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
@@ -43,7 +44,17 @@ public abstract class Plan  {
 	}
 	
 		
-	protected boolean matches(Document doc, List<Filter> filters) {
+	protected boolean matches(Key key, Document doc, List<Filter> filters) {
+		
+		// If the document has been moved to another shard then return false.
+		
+		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
+		
+		if (handler != null && !handler.getShard(key.toString()).equals(handler.getLocalShard())) {
+			logger.info("skip " + key);
+			return false;
+		}
+		
 		for (Filter filter : filters) {
 			Object actual = doc.get(filter.getField());
 			Object expected = filter.getValue(); 
