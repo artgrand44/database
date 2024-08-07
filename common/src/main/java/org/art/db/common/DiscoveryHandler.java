@@ -4,6 +4,7 @@ import java.beans.PropertyChangeSupport;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -186,20 +187,22 @@ public class DiscoveryHandler {
 	 */
 	public List<URI> getLocalPeers() {
 		
-		MultiValueMap<String, URI> instances = this.instances.get();
-		
-		if (instances == null) {
-			logger.info("no instances");
-		} else if (instances.get(this.getLocalShard()) == null) {
-			logger.info("np instances for service " + this.getLocalShard() + " in " + instances);
+		for (int idx = 0; idx < 10; idx++) {
+			MultiValueMap<String, URI> instances = this.instances.get();
+
+			if (instances == null || instances.get(this.getLocalShard()) == null) {
+				Utils.sleepSafely(1000);
+			} else {
+				Set<URI> peers = new HashSet<>(instances.get(this.getLocalShard()));
+
+				peers.remove(this.localInstance);
+				peers.addAll(this.recoveringInstances.keySet());
+
+				return new ArrayList<>(peers);
+			}
 		}
 		
-		Set<URI> peers = new HashSet<>(instances.get(this.getLocalShard()));
-		
-		peers.remove(this.localInstance);
-		peers.addAll(this.recoveringInstances.keySet());
-		
-		return new ArrayList<>(peers);
+		return Collections.emptyList();
 	
 	}
 	

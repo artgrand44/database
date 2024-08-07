@@ -92,15 +92,19 @@ public class RestoreManager {
 	private List<String> getAllFilesAfter(URI peer, String table, String type, long timestamp) throws Exception {
 		List<String> names = this.getFilesNames(peer, table, type);
 		List<String> result = new ArrayList<>();
-				
+
 		for (String name : names) {
 			int dash = name.indexOf('_');
-			long fileTimestamp = Long.valueOf(name.substring(0, dash));
-			
-			if (fileTimestamp > timestamp) {
-				this.getFile(peer, table, name);
-				result.add(name);
-			} 
+
+			if (dash != -1) {
+
+				long fileTimestamp = Long.valueOf(name.substring(0, dash));
+
+				if (fileTimestamp > timestamp) {
+					this.getFile(peer, table, name);
+					result.add(name);
+				} 
+			}
 		}
 		
 		return result;	
@@ -203,7 +207,7 @@ public class RestoreManager {
 		}
 		
 	}
-	
+	boolean first = true;
 	/**
 	 * Update the index entries for a recovered document
 	 * @param key
@@ -217,8 +221,12 @@ public class RestoreManager {
 		
 			manager.updateIndices(oldDoc, newDoc, key);
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error recovering the indices");
-			logger.info("Error recovering index entries " + key + " " + exc.getMessage());
+			if (first) {
+				Metrics.getInstance().logAlert("There was an error recovering the indices");
+				logger.info("Error recovering index entries " + key + " " + exc.getMessage());
+				exc.printStackTrace();
+				first = false;
+			}
 		} finally {
 			inProgress.decrementAndGet();
 		}

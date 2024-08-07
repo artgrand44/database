@@ -160,6 +160,8 @@ public class Dispatcher {
 						output.write(response);
 					} catch (Exception exc) {
 						output.writeBoolean(false);
+						exc.printStackTrace();
+						System.exit(0);
 						output.writeUTF(exc.getMessage());
 					}
 				}

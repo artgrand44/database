@@ -1,0 +1,28 @@
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS}  %-5level %logger{16} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+	<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>./serverlogs/serverlog.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>./serverlogs/serverlog-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+			<!-- each archived file's size will be max 10MB -->
+			<maxFileSize>10MB</maxFileSize>    
+			<!-- 30 days to keep -->
+			<maxHistory>30</maxHistory>
+			<!-- total size of all archive files, if total size > 100GB, it will delete old archived file -->
+			<totalSizeCap>100GB</totalSizeCap>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{HH:mm:ss.SSS}  %-5level %logger{16} - %msg%n</pattern>
+		</encoder>
+	</appender>
+	<statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+  <root level="info">
+    <appender-ref ref="STDOUT" />
+     <appender-ref ref="FILE" />
+  </root>
+</configuration>

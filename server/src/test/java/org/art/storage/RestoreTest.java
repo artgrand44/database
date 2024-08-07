@@ -43,11 +43,13 @@ public class RestoreTest extends BaseIntegrationTest {
 			secondaryClient.waitServerCount(2);
 
 			Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+			String drop = "drop table if exists pounder";
 			String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 			String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
 			String nameQuery = "select * from pounder where FirstName = ?";
 			String idQuery = "select * from pounder where ID = ?";
 			
+			client.execute(drop);
 			client.execute(create);
 			client.execute(createIndex);
 			

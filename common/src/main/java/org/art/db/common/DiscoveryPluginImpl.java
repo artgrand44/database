@@ -31,6 +31,10 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 	
 	@Override
 	public Map<URI, String> getServerInstances() {
+		if (this.listener == null) {
+			logger.info("no listener for " + DiscoveryHandler.getServerInstance().getLocalInstance());
+			System.exit(1);
+		}
 		return this.listener.getInstances();
 	}
 

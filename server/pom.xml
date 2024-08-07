@@ -27,6 +27,12 @@
   			<artifactId>client</artifactId>
   			<version>0.0.1-SNAPSHOT</version>
 	  </dependency>
+	     <dependency>
+		   <groupId>org.art.org.art.database</groupId>
+  			<artifactId>tester</artifactId>
+  			<version>0.0.1-SNAPSHOT</version>
+  			<scope>test</scope>
+	  </dependency>
 	  <dependency>
     	<groupId>io.micrometer</groupId>
     	<artifactId>micrometer-core</artifactId>
