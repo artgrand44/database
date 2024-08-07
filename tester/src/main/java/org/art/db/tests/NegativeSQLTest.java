@@ -42,7 +42,7 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				startInternal("./application.properties");
+				startPrimary("./application.properties");
 				
 				String drop = "drop table if exists negative";
 				String create = "CREATE TABLE negative (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255))";

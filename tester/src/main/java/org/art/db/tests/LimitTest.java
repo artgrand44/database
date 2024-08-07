@@ -26,7 +26,7 @@ public class LimitTest  extends BaseIntegrationTest {
 
 	@BeforeEach
 	public void beforeEach() throws Exception  {
-		startInternal("./application.properties");
+		startPrimary("./application.properties");
 		
 		this.client = this.getClient().batch(false);
 		

@@ -20,7 +20,7 @@ public class DuplicateKeyTest extends BaseIntegrationTest {
 	@Test
 	public void test() {
 		try {
-			startInternal("./tinysegments.properties");
+			startPrimary("./tinysegments.properties");
 			
 			Client client = this.getClient().batch(false);
 			

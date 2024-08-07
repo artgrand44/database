@@ -24,7 +24,7 @@ public class FunctionTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				startInternal("./application.properties");
+				startPrimary("./application.properties");
 				
 				Client client = this.getClient().batch(false);
 				

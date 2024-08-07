@@ -61,7 +61,9 @@ public class RestoreManager {
 		List<String> result = new ArrayList<>();
 		
 		for (String name : names) {
-			result.add(name);
+			if (!name.isBlank()) {
+				result.add(name);
+			}
 		}
 		
 		Collections.sort(result);
@@ -92,19 +94,16 @@ public class RestoreManager {
 	private List<String> getAllFilesAfter(URI peer, String table, String type, long timestamp) throws Exception {
 		List<String> names = this.getFilesNames(peer, table, type);
 		List<String> result = new ArrayList<>();
-
+				
 		for (String name : names) {
 			int dash = name.indexOf('_');
-
-			if (dash != -1) {
-
-				long fileTimestamp = Long.valueOf(name.substring(0, dash));
-
-				if (fileTimestamp > timestamp) {
-					this.getFile(peer, table, name);
-					result.add(name);
-				} 
-			}
+			
+			long fileTimestamp = Long.valueOf(name.substring(0, dash));
+			
+			if (fileTimestamp > timestamp) {
+				this.getFile(peer, table, name);
+				result.add(name);
+			} 
 		}
 		
 		return result;	

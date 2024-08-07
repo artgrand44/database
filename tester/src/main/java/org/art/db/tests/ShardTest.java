@@ -30,8 +30,8 @@ public class ShardTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				super.startInternal("./averlongshardname.properties");
-				super.startExternal("./cluster2.properties");
+				super.startPrimary("./averlongshardname.properties");
+				super.startSecondary("./cluster2.properties");
 				
 				
 				Client averlongshardnameClient = new Client(getLocalURI("8080"), "averlongshardname", "admin", "admin").batch(false);

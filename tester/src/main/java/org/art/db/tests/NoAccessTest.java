@@ -18,7 +18,7 @@ public class NoAccessTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				startInternal("./application.properties");
+				startPrimary("./application.properties");
 				
 				String drop = "drop table if exists privtest";
 				String create = "CREATE TABLE privtest (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255))";

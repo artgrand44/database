@@ -1,5 +1,8 @@
 package org.art.storage;
 
+import java.net.InetAddress;
+import java.net.URI;
+
 import org.art.db.tests.ServerManager;
 import org.art.db.tests.TestRunner;
 import org.assertj.core.api.Assertions;
@@ -18,5 +21,40 @@ public class IntegrationTests extends BaseIntegrationTest implements ServerManag
 		logger.info("results");
 		
 		Assertions.assertThat(results.contains("Total Errors: 0")).isTrue();
+	}
+
+	private URI getURI(String port) {
+		try {
+			String host = InetAddress.getLocalHost().getHostAddress();
+
+			return new URI(String.format("http://%s:%s", host, port));
+		} catch (Exception exc) {
+			throw new IllegalStateException(exc);
+		}
+	}
+	
+	@Override
+	public URI startPrimary(String profile) {
+		super.startInternal(profile);
+		
+		return getURI("8080");
+	}
+
+	@Override
+	public void stopPrimary() {
+		super.stopInternal();
+		
+	}
+
+	@Override
+	public URI startSecondary(String profile) {
+		super.startExternal(profile);
+		return getURI("8081");
+		
+	}
+
+	@Override
+	public void stopSecondary() {
+		super.stopExternal();
 	}
 }

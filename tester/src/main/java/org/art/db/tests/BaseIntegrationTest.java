@@ -18,8 +18,8 @@ public class BaseIntegrationTest  {
 
 	@AfterEach
 	public void afterEach() {
-		stopInternal();
-		stopExternal();
+		stopPrimary();
+		stopSecondary();
 		
 		DiscoveryHandler.clear();
 		
@@ -31,21 +31,21 @@ public class BaseIntegrationTest  {
 		return new URI(String.format("http://%s:%s", host, port));		
 	}
 	
-	public void startExternal(String path) throws IOException {
-		TestRunner.getServerManager().startExternal(path);
+	public URI startSecondary(String path) throws IOException {
+		return TestRunner.getServerManager().startSecondary(path);
 	}
 	
-	public void startInternal(String path) {
-		TestRunner.getServerManager().startInternal(path);
+	public URI startPrimary(String path) {
+		return TestRunner.getServerManager().startPrimary(path);
 	}
 	
 
-	public void stopExternal() {
-		TestRunner.getServerManager().stopExternal();
+	public void stopSecondary() {
+		TestRunner.getServerManager().stopSecondary();
 	}
 	
-	public void stopInternal() {
-		TestRunner.getServerManager().stopInternal();
+	public void stopPrimary() {
+		TestRunner.getServerManager().stopPrimary();
 	}
 	
 	public Client getClient() throws Exception {

@@ -33,8 +33,8 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			// Start both servers, wait until the are up, and then create the table
 			// on both servers.
 			
-			super.startInternal("./replication.properties");
-			super.startExternal("./secondaryrecovery.properties");
+			super.startPrimary("./replication.properties");
+			super.startSecondary("./secondaryrecovery.properties");
 
 			Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin");
 			Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin");
@@ -53,7 +53,7 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			// Take down the internal server then create documents until there are at least
 			// 3 disk segments
 			
-			super.stopInternal();
+			super.stopPrimary();
 			
 			logger.info("Stopped internal");
 			
@@ -101,7 +101,7 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			
 			logger.info("restarting");
 			
-			super.startInternal("./replication.properties");
+			super.startPrimary("./replication.properties");
 			
 			primaryClient.waitServerCount(2);
 			

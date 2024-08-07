@@ -1,8 +1,10 @@
 package org.art.db.tests;
 
+import java.net.URI;
+
 public interface ServerManager {
-	void startInternal(String profile);
-	void stopInternal();
-	void startExternal(String profile);
-	void stopExternal();
+	URI startPrimary(String profile);
+	void stopPrimary();
+	URI startSecondary(String profile);
+	void stopSecondary();
 }

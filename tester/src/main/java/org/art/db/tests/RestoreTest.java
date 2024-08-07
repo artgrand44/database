@@ -33,8 +33,8 @@ public class RestoreTest extends BaseIntegrationTest {
 			// Start both servers, wait until the are up, and then create the table
 			// on both servers.
 			
-			super.startInternal("./replication.properties");
-			super.startExternal("./secondaryrecovery.properties");
+			super.startPrimary("./replication.properties");
+			super.startSecondary("./secondaryrecovery.properties");
 
 			Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin");
 			Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin");
@@ -43,18 +43,21 @@ public class RestoreTest extends BaseIntegrationTest {
 			secondaryClient.waitServerCount(2);
 
 			Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+			
+			String drop = "drop table if exists pounder";
 			String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 			String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
 			String nameQuery = "select * from pounder where FirstName = ?";
 			String idQuery = "select * from pounder where ID = ?";
 			
+			client.execute(drop);
 			client.execute(create);
 			client.execute(createIndex);
 			
 			// Take down the internal server then create documents until there are at least
 			// 3 disk segments
 			
-			super.stopInternal();
+			super.stopPrimary();
 			
 			logger.info("Stopped internal");
 			
@@ -102,7 +105,7 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			logger.info("restarting");
 			
-			super.startInternal("./replication.properties");
+			super.startPrimary("./replication.properties");
 			
 			primaryClient.waitServerCount(2);
 			

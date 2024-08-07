@@ -36,8 +36,8 @@ public class ReplicationTest extends BaseIntegrationTest {
 					FileUtils.deleteDirectory(secondDir);
 				}
 				
-				super.startInternal("./replication.properties");
-				super.startExternal("./secondary.properties");
+				super.startPrimary("./replication.properties");
+				super.startSecondary("./secondary.properties");
 				
 				Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin").batch(false);
 				Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin").batch(false);
@@ -58,7 +58,7 @@ public class ReplicationTest extends BaseIntegrationTest {
 					primaryClient.execute(theInsert);
 				}
 				
-				stopInternal();
+				stopPrimary();
 				
 				Thread.sleep(20 * 1000);
 				
