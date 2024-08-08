@@ -35,9 +35,9 @@ public class ShardTest extends BaseIntegrationTest {
 				TestRunner.getAdapter().startSecondary("./cluster2.properties");
 				
 				
-				Client averlongshardnameClient = new Client(getLocalURI("8080"), "averlongshardname", "admin", "admin").batch(false);
-				Client shard2Client = new Client(getLocalURI("8081"), "shard2", "admin", "admin").batch(false);
-				Client clusterClient = this.getClient().batch(false);
+				Client averlongshardnameClient = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
+				Client shard2Client = TestRunner.getAdapter().getSecondaryClient("admin", "admin").batch(false);
+				Client clusterClient = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
 				
 				averlongshardnameClient.waitServerCount(2);
 				shard2Client.waitServerCount(2);

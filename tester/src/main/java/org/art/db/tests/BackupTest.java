@@ -29,7 +29,7 @@ public class BackupTest extends BaseIntegrationTest {
 			
 			TestRunner.getAdapter().startPrimary("./backup.properties");
 			
-			Client client = this.getClient().batch(false);
+			Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
 			String drop = "drop table if exists pounder";
 			String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 			String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";

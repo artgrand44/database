@@ -28,7 +28,7 @@ public class LimitTest  extends BaseIntegrationTest {
 	public void beforeEach() throws Exception  {
 		TestRunner.getAdapter().startPrimary("./application.properties");
 		
-		this.client = this.getClient().batch(false);
+		this.client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
 		
 	}
 	

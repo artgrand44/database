@@ -17,8 +17,8 @@ public class ReplicationTest extends BaseIntegrationTest {
 	
 	private void load(Client client) throws Exception {
 		logger.info("Got client");
-		String drop = "drop table if exists sharded";
-		String create = "CREATE TABLE sharded (id int NOT NULL PRIMARY KEY, last varchar(255) NOT NULL, first varchar(255), count int)";
+		String drop = "drop table if exists insert";
+		String create = "CREATE TABLE insert (id int NOT NULL PRIMARY KEY, last varchar(255) NOT NULL, first varchar(255), count int)";
 		String createIndex = "CREATE INDEX name ON insert(first)";
 		String insert = "insert into insert (id, first, last, count) values ('1', 'art', 'grand', '1')";
 		
@@ -41,8 +41,8 @@ public class ReplicationTest extends BaseIntegrationTest {
 				TestRunner.getAdapter().startPrimary("./replication.properties");
 				TestRunner.getAdapter().startSecondary("./secondary.properties");
 				
-				Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin").batch(false);
-				Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin").batch(false);
+				Client primaryClient = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
+				Client secondaryClient = TestRunner.getAdapter().getSecondaryClient("admin", "admin").batch(false);
 				
 				primaryClient.waitServerCount(2);
 				secondaryClient.waitServerCount(2);

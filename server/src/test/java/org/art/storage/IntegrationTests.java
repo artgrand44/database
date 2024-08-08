@@ -34,6 +34,16 @@ public class IntegrationTests extends BaseIntegrationTest implements TestAdapter
 		}
 	}
 	
+	public URI getPrimaryURI() {
+		return this.getURI("8080");
+	}
+	
+	
+	
+	public URI getSecondardURI() {
+		return this.getURI("8081");
+	}
+	
 	@Override
 	public URI startPrimary(String profile) {
 		super.startInternal(profile);
@@ -61,16 +71,16 @@ public class IntegrationTests extends BaseIntegrationTest implements TestAdapter
 
 	@Override
 	public Client getClusterClient(String user, String password) throws Exception {
-		return new Client(this.getLocalURI("8080"), user, password);
+		return new Client(new URI(this.getLocalURI("8080").toString() + "/cluster"), user, password);
 	}
 
 	@Override
 	public Client getPrimaryClient(String user, String password) throws Exception {
-		return new Client(this.getLocalURI("8080"), user, password);
+		return new Client(new URI(this.getLocalURI("8080").toString() + "/cluster"), user, password);
 	}
 
 	@Override
 	public Client getSecondaryClient(String user, String password) throws Exception {
-		return new Client(this.getLocalURI("8081"), user, password);
+		return new Client(new URI(this.getLocalURI("8081").toString() + "/cluster"), user, password);
 	}
 }

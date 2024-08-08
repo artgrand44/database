@@ -102,5 +102,11 @@ public class User {
 	public void setOldPasswordsTTL(long oldPasswordsTTL) {
 		this.oldPasswordsTTL = oldPasswordsTTL;
 	}
+
+	@Override
+	public String toString() {
+		return "User [name=" + name + ", userName=" + userName + ", grants=" + grants + ", admin=" + admin + "]";
+	}
+	
 	
 }

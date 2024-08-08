@@ -2,9 +2,6 @@ package org.art.db.tests;
 
 import java.io.File;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.art.db.client.Client;
@@ -36,13 +33,13 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			TestRunner.getAdapter().startPrimary("./replication.properties");
 			TestRunner.getAdapter().startSecondary("./secondaryrecovery.properties");
 
-			Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin");
-			Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin");
+			Client primaryClient = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
+			Client secondaryClient = TestRunner.getAdapter().getSecondaryClient("admin", "admin").batch(false);
 
 			primaryClient.waitServerCount(2);
 			secondaryClient.waitServerCount(2);
 
-			Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+			Client client = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
 			String create = "CREATE QUEUE TABLE restore (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 			String createIndex = "CREATE INDEX firstname ON restore(FirstName)";
 			String idQuery = "select * from restore where ID = ?";
@@ -57,21 +54,8 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			
 			logger.info("Stopped internal");
 			
-			File internalDir = new File("/Users/artgrand/repros/database/server/dbroot/SYS.SYS.restore");
-			File externalDir = new File("/Users/artgrand/repros/database/server/secondroot/SYS.SYS.restore");
-			File[] files = new File[0];
-			int count = 0;
-			
-			for (int idx = 0; ; idx++) {
+			for (int idx = 0; idx < 1000; idx++) {
 				this.insert(secondaryClient, idx);
-				
-				count++;
-								
-				files = externalDir.listFiles((dir, name) -> name.endsWith(".log"));
-				
-				if (files != null && files.length != 0) {
-					break;
-				}
 			}
 			
 			// Flush the external server then copy the index and the oldest segment.
@@ -79,24 +63,12 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			
 			logger.info("Flushing external");
 			
-			URI external = this.getLocalURI("8081");
+			URI external = TestRunner.getAdapter().getSecondardURI();
 			RestClient restClient = new RestClient();
 			
 			restClient.get(restClient.buildURI(external, "/db/close"));
 			
-			logger.info("Flushing external");
-						
-			if (files != null && files.length != 0) {
-				List<File> list = Arrays.asList(files);
-				Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
-
-				FileUtils.copyFile(list.get(0), new File(internalDir, list.get(0).getName()));
-
-				File indexFile = new File(externalDir, "firstname.idx");
-				
-				FileUtils.copyFile(indexFile, new File(internalDir,  "firstname.idx"));				
-			}		
-			
+		
 			// Restart the internal server and wait until the recovery is complete
 			
 			logger.info("restarting");
@@ -105,12 +77,12 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			
 			primaryClient.waitServerCount(2);
 			
-			logger.info("recovery complete checking " + count);
+			logger.info("recovery complete checking ");
 			
 			// Stop the internal server then verify that all of the documents and
 			// index entries are in the external server	
 			
-			for (int idx = 0; idx < count; idx += 500) {
+			for (int idx = 0; idx < 1000; idx += 500) {
 				int id = this.getId(idx);
 				String name = this.getName(idx);
 				

@@ -41,8 +41,8 @@ public class AsyncReplicationTest extends BaseIntegrationTest {
 				TestRunner.getAdapter().startPrimary("./async.properties");
 				TestRunner.getAdapter().startSecondary("./secondaryasync.properties");
 				
-				Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin").batch(false);
-				Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin").batch(false);
+				Client primaryClient = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
+				Client secondaryClient = TestRunner.getAdapter().getSecondaryClient("admin", "admin").batch(false);
 				
 				primaryClient.waitServerCount(2);
 				secondaryClient.waitServerCount(2);

@@ -43,8 +43,16 @@ public class KubernetestAdapter implements TestAdapter {
 		return new Client(this.primary.uri, user, password);
 	}
 	
+	public URI getPrimaryURI() {
+		return this.primary.uri;
+	}
+	
 	public Client getSecondaryClient(String user, String password) throws Exception {
 		return new Client(this.secondary.uri, user, password);
+	}
+	
+	public URI getSecondardURI() {
+		return this.secondary.uri;
 	}
 	
 	private Server start(String profile) {

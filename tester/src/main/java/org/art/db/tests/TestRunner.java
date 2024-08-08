@@ -44,10 +44,9 @@ public class TestRunner {
 			Collections.sort(classNames);
 
 			for (String className : classNames) {
-				runTests(className);
-				
-				break;
-			
+				if (className.equals(RestoreTest.class.getName()) || className.equals(ShardTest.class.getName())  || className.equals(ReplicationTest.class.getName()) ) {
+					runTests(className);
+				}
 			}
 
 			StringBuilder builder = new StringBuilder();
@@ -144,6 +143,7 @@ public class TestRunner {
 					builder.append("\n\n\n\n\nEnd      test: " + clazz.getSimpleName());
 					builder.append("\nTotal tests:   " + totalTests + " Total Errors: " + totalErrors);
 					builder.append("\n\n\n");
+					logger.info(builder.toString());
 					
 				}
 			}			

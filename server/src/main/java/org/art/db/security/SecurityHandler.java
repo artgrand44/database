@@ -9,10 +9,13 @@ import org.art.db.common.Comparison;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.storage.Files;
 import org.art.db.storage.Tree;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class SecurityHandler {
+	private static final Logger logger = LoggerFactory.getLogger(SecurityHandler.class);
 	
 	private final Tree<String> tree;
 	
@@ -34,6 +37,7 @@ public class SecurityHandler {
 			this.tree = new Tree<>(Files.getSecurity(), String.class);
 			
 			if (!exists) {
+				logger.info("creating admin");
 				this.createUser("admin", "admin", "admin", true);
 			}
 		} catch (Exception exc) {
@@ -65,7 +69,7 @@ public class SecurityHandler {
 			}
 		}
 		
-		throw new DBRuntimeException("Error getting admin user");
+		throw new DBRuntimeException("Error getting admin user in " + this.users);
 	}
 
 	public String getAdminPassword() {

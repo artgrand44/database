@@ -25,7 +25,7 @@ public class FunctionTest extends BaseIntegrationTest {
 		
 			try  {
 				TestRunner.getAdapter().startPrimary("./application.properties");
-				Client client = this.getClient().batch(false);
+				Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
 				
 				String create = "CREATE TABLE func (id int NOT NULL PRIMARY KEY, str varchar(255), date Date, list LIST, count int)";
 				

@@ -28,7 +28,7 @@ public class NoAccessTest extends BaseIntegrationTest {
 				String createUser = "create user foo password bar";
 				String grant = "GRANT select, insert ON privtest TO foo";
 				
-				Client userClient = this.getClient("cluster", "foo", "bar").batch(false);
+				Client userClient = TestRunner.getAdapter().getClusterClient("foo", "bar").batch(false);
 				
 				try {
 					userClient.execute(create);
@@ -58,7 +58,7 @@ public class NoAccessTest extends BaseIntegrationTest {
 					
 					
 				}
-				Client adminClient = this.getClient().batch(false);
+				Client adminClient = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
 				
 				adminClient.execute(drop);
 				adminClient.execute(create);

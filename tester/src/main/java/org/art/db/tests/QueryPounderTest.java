@@ -53,7 +53,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 			String idQuery = "select * from pounder where ID = ?";
 			String update = "update pounder set Age = '2' where ID = ? limit 1";
 			Random random = new Random(index);
-			Client client = this.getClient();
+			Client client = TestRunner.getAdapter().getClusterClient("admin", "admin");
 
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				int idx = super.getRandom(random);
@@ -97,7 +97,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 	protected void doUpdates(int index) {	
 		try {
 
-			Client client = this.getClient();
+			Client client = TestRunner.getAdapter().getClusterClient("admin", "admin");
 
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				int id = -(this.deleteNextId.incrementAndGet());
@@ -122,7 +122,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 
 	@Override
 	protected void loadDabase() throws Exception {
-		Client client = this.getClient().batch(false);
+		Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
 		String drop = "drop table if exists pounder";
 		String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 		String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";

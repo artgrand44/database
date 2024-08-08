@@ -12,4 +12,6 @@ public interface TestAdapter {
 	Client getClusterClient(String user, String password) throws Exception;
 	Client getPrimaryClient(String user, String password) throws Exception;
 	Client getSecondaryClient(String user, String password) throws Exception;
+	URI getPrimaryURI();
+	URI getSecondardURI();
 }

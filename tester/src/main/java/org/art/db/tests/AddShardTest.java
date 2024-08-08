@@ -24,7 +24,7 @@ public class AddShardTest extends BaseIntegrationTest {
 			String drop = "drop table if exists sharded";
 			String create = "CREATE TABLE sharded (id  varchar(255) NOT NULL PRIMARY KEY, color varchar(255) NOT NULL, make varchar(255), count int)";
 			String createIndex = "CREATE INDEX name ON sharded(color)";
-			Client client = this.getClient().batch(false);
+			Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
 
 			client.execute(drop);
 			client.execute(create);
@@ -52,7 +52,7 @@ public class AddShardTest extends BaseIntegrationTest {
 			}
 
 			TestRunner.getAdapter().startSecondary("./cluster2.properties");
-			Client shard2Client = new Client(getLocalURI("8081"), "shard2", "admin", "admin").batch(false);
+			Client shard2Client = TestRunner.getAdapter().getSecondaryClient("admin", "admin").batch(false);
 			boolean started = false;
 			
 			for (int idx = 0; idx < 100; idx++) {

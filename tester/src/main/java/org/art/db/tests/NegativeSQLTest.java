@@ -53,7 +53,7 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 				String delete = "delete from negative where id = 1";
 				
 				
-				this.client = this.getClient().batch(false);
+				this.client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
 				
 				this.client.execute(drop);
 				
