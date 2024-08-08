@@ -78,7 +78,9 @@ public class KubernetestAdapter implements TestAdapter {
 			ObjectMapper mapper = new ObjectMapper();
 			Deployment deployment = mapper.readValue(new File(new File("."), jsonPath), Deployment.class);
 			String database = deployment.getMetadata().getLabels().get("database");
+			String shard = deployment.getMetadata().getLabels().get("shard");
 			
+			logger.info("got shard " + shard);
 			this.stop(shortName);
 			
 			try {
