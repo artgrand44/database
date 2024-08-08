@@ -27,7 +27,7 @@ public class TestRunner {
 			
 	
 	public static void main(String[] args) {
-		logger.info(run(new KubernetestServerManager()));
+		logger.info(run(new KubernetestAdapter()));
 	}
 	
 	public static String run(TestAdapter theAdapter) {

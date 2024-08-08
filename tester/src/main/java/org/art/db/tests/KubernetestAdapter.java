@@ -24,9 +24,9 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 
 
-public class KubernetestServerManager implements TestAdapter {
+public class KubernetestAdapter implements TestAdapter {
 
-	private static final Logger logger = LoggerFactory.getLogger(KubernetestServerManager.class);
+	private static final Logger logger = LoggerFactory.getLogger(KubernetestAdapter.class);
 	
 	record Server(String profile, String name, List<URI> uris, URI uri) {
 		
@@ -54,7 +54,7 @@ public class KubernetestServerManager implements TestAdapter {
 		String jsonPath = "./" + shortName + ".json";
 		
 		try {
-			String json = IOUtils.resourceToString(jsonPath, Charset.defaultCharset(), KubernetestServerManager.class.getClassLoader());
+			String json = IOUtils.resourceToString(jsonPath, Charset.defaultCharset(), KubernetestAdapter.class.getClassLoader());
 			ObjectMapper mapper = new ObjectMapper();
 			Deployment deployment = mapper.readValue(json, Deployment.class);
 			KubernetesClient client = new KubernetesClientBuilder().build();;
