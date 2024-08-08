@@ -22,11 +22,13 @@ public class BigSetTest extends BaseIntegrationTest {
 				
 				Client client = this.getClient().batch(false);
 				
+				String drop = "drop table if exists bigset";
 				String create = "CREATE TABLE bigset (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255), count int)";
 				String insert = "insert into bigset (id, first, last, count ) values (?, 'art', ?, ?)";
 				String createIndex = "CREATE INDEX bigset ON bigset(count)";
 				String query = "select * from bigset where count < 5000 order by count";
 				
+				client.execute(drop);
 				client.execute(create);
 				client.execute(createIndex);
 				

@@ -43,10 +43,12 @@ public class TestRunner {
 
 			Collections.sort(classNames);
 
-			
+			int count = 0;
 			for (String className : classNames) {
-				if (className.compareTo(QueryPounderTest.class.getName()) > 0) {
-					runTests(className);
+				runTests(className);
+				
+				if (count++ == 2) {
+					break;
 				}
 			}
 
@@ -99,7 +101,13 @@ public class TestRunner {
 			Constructor<?> cons = clazz.getConstructor();
 			Object instance = cons.newInstance();
 
-			logger.info("****Starting class " + clazz.getSimpleName());
+			StringBuilder builder = new StringBuilder();
+			
+			builder.append("\n\n\n\n\nStarting test: " + clazz.getSimpleName());
+			builder.append("\nTotal tests:   " + totalTests + " Total Errors: " + totalErrors);
+			builder.append("\n\n\n");
+			
+			logger.info(builder.toString());
 			
 			for (Method test : tests) {
 				totalTests++;

@@ -3,6 +3,7 @@ package org.art.storage;
 import java.net.InetAddress;
 import java.net.URI;
 
+import org.art.db.client.Client;
 import org.art.db.tests.ServerManager;
 import org.art.db.tests.TestRunner;
 import org.assertj.core.api.Assertions;
@@ -56,5 +57,20 @@ public class IntegrationTests extends BaseIntegrationTest implements ServerManag
 	@Override
 	public void stopSecondary() {
 		super.stopExternal();
+	}
+
+	@Override
+	public Client getClusterClient(String user, String password) throws Exception {
+		return new Client(this.getLocalURI("8080"), user, password);
+	}
+
+	@Override
+	public Client getPrimaryClient(String user, String password) throws Exception {
+		return new Client(this.getLocalURI("8080"), user, password);
+	}
+
+	@Override
+	public Client getSecondaryClient(String user, String password) throws Exception {
+		return new Client(this.getLocalURI("8081"), user, password);
 	}
 }

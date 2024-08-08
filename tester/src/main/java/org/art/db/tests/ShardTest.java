@@ -16,10 +16,11 @@ public class ShardTest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(ShardTest.class);
 	
 	private void load(Client client) throws Exception {
+		String drop = "drop table if exists sharded";
 		String create = "CREATE TABLE sharded (id  varchar(255) NOT NULL PRIMARY KEY, color varchar(255) NOT NULL, make varchar(255), count int)";
 		String createIndex = "CREATE INDEX name ON sharded(color)";
 		
-		
+		client.execute(drop);
 		client.execute(create);
 		client.execute(createIndex);
 		

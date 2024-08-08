@@ -17,10 +17,12 @@ public class ReplicationTest extends BaseIntegrationTest {
 	
 	private void load(Client client) throws Exception {
 		logger.info("Got client");
-		String create = "CREATE TABLE insert (id int NOT NULL PRIMARY KEY, last varchar(255) NOT NULL, first varchar(255), count int)";
+		String drop = "drop table if exists sharded";
+		String create = "CREATE TABLE sharded (id int NOT NULL PRIMARY KEY, last varchar(255) NOT NULL, first varchar(255), count int)";
 		String createIndex = "CREATE INDEX name ON insert(first)";
 		String insert = "insert into insert (id, first, last, count) values ('1', 'art', 'grand', '1')";
 		
+		client.execute(drop);
 		client.execute(create);
 		client.execute(createIndex);
 		
