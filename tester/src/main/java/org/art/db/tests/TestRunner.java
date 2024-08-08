@@ -23,16 +23,16 @@ public class TestRunner {
 	private static int totalErrors = 0;
 	private static List<String> messages = new ArrayList<>();
 	
-	private static ServerManager serverManager;
+	private static TestAdapter adapter;
 			
 	
 	public static void main(String[] args) {
 		logger.info(run(new KubernetestServerManager()));
 	}
 	
-	public static String run(ServerManager manager) {
+	public static String run(TestAdapter theAdapter) {
 		
-		serverManager = manager;
+		adapter = theAdapter;
 		
 		try {
 			FastClasspathScanner scanner = new FastClasspathScanner(new String[] {"org.art.db.tests"} );
@@ -43,13 +43,11 @@ public class TestRunner {
 
 			Collections.sort(classNames);
 
-			int count = 0;
 			for (String className : classNames) {
 				runTests(className);
 				
-				if (count++ == 2) {
-					break;
-				}
+				break;
+			
 			}
 
 			StringBuilder builder = new StringBuilder();
@@ -72,8 +70,8 @@ public class TestRunner {
 		}
 	}
 	
-	public static ServerManager getServerManager() {
-		return serverManager;
+	public static TestAdapter getAdapter() {
+		return adapter;
 	}
 
 	private static void runTests(String className) {
@@ -104,7 +102,6 @@ public class TestRunner {
 			StringBuilder builder = new StringBuilder();
 			
 			builder.append("\n\n\n\n\nStarting test: " + clazz.getSimpleName());
-			builder.append("\nTotal tests:   " + totalTests + " Total Errors: " + totalErrors);
 			builder.append("\n\n\n");
 			
 			logger.info(builder.toString());
@@ -119,9 +116,7 @@ public class TestRunner {
 					
 					test.invoke(instance);
 					
-					if (afterEach != null) {
-						afterEach.invoke(instance);
-					}
+	
 				} catch (Throwable thr) {
 					Throwable theThrowable = thr;
 					Throwable cause;
@@ -137,6 +132,19 @@ public class TestRunner {
 					
 					messages.add(StringUtils.rightPad(clazz.getSimpleName() + ":" + test.getName(), 30) + " - " + message);
 					totalErrors++;
+				} finally {
+					if (afterEach != null) {
+						try {
+							afterEach.invoke(instance);
+						} catch (Exception exc) {
+							logger.info("exception in afterEach " + exc.getMessage());
+						}
+					}
+					
+					builder.append("\n\n\n\n\nEnd      test: " + clazz.getSimpleName());
+					builder.append("\nTotal tests:   " + totalTests + " Total Errors: " + totalErrors);
+					builder.append("\n\n\n");
+					
 				}
 			}			
 		} catch (Throwable thr1) {

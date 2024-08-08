@@ -24,7 +24,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 
 
-public class KubernetestServerManager implements ServerManager {
+public class KubernetestServerManager implements TestAdapter {
 
 	private static final Logger logger = LoggerFactory.getLogger(KubernetestServerManager.class);
 	

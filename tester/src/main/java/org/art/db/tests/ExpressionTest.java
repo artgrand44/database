@@ -23,7 +23,7 @@ public class ExpressionTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				startPrimary("./application.properties");
+				TestRunner.getAdapter().startPrimary("./application.properties");
 				
 				Client client = this.getClient().batch(false);
 				

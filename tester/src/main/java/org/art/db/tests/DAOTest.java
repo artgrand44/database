@@ -32,7 +32,7 @@ public class DAOTest  extends BaseIntegrationTest {
 	@BeforeEach
 	public void beforeEach() throws Exception  {
 		
-		startPrimary("./application.properties");
+		TestRunner.getAdapter().startPrimary("./application.properties");
 		
 		this.client = this.getClient().batch(false);
 		

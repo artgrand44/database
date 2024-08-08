@@ -1,6 +1,5 @@
 package org.art.db.tests;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 
@@ -18,8 +17,8 @@ public class BaseIntegrationTest  {
 
 	@AfterEach
 	public void afterEach() {
-		stopPrimary();
-		stopSecondary();
+		TestRunner.getAdapter().stopPrimary();
+		TestRunner.getAdapter().stopSecondary();
 		
 		DiscoveryHandler.clear();
 		
@@ -29,23 +28,6 @@ public class BaseIntegrationTest  {
 		String host = InetAddress.getLocalHost().getHostAddress();
 		
 		return new URI(String.format("http://%s:%s", host, port));		
-	}
-	
-	public URI startSecondary(String path) throws IOException {
-		return TestRunner.getServerManager().startSecondary(path);
-	}
-	
-	public URI startPrimary(String path) {
-		return TestRunner.getServerManager().startPrimary(path);
-	}
-	
-
-	public void stopSecondary() {
-		TestRunner.getServerManager().stopSecondary();
-	}
-	
-	public void stopPrimary() {
-		TestRunner.getServerManager().stopPrimary();
 	}
 	
 	public Client getClient() throws Exception {

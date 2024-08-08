@@ -4,7 +4,7 @@ import java.net.URI;
 
 import org.art.db.client.Client;
 
-public interface ServerManager {
+public interface TestAdapter {
 	URI startPrimary(String profile);
 	void stopPrimary();
 	URI startSecondary(String profile);

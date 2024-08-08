@@ -33,8 +33,8 @@ public class RestoreTest extends BaseIntegrationTest {
 			// Start both servers, wait until the are up, and then create the table
 			// on both servers.
 			
-			super.startPrimary("./replication.properties");
-			super.startSecondary("./secondaryrecovery.properties");
+			TestRunner.getAdapter().startPrimary("./replication.properties");
+			TestRunner.getAdapter().startSecondary("./secondaryrecovery.properties");
 
 			Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin");
 			Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin");
@@ -57,7 +57,7 @@ public class RestoreTest extends BaseIntegrationTest {
 			// Take down the internal server then create documents until there are at least
 			// 3 disk segments
 			
-			super.stopPrimary();
+			TestRunner.getAdapter().stopPrimary();
 			
 			logger.info("Stopped internal");
 			
@@ -105,7 +105,7 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			logger.info("restarting");
 			
-			super.startPrimary("./replication.properties");
+			TestRunner.getAdapter().startPrimary("./replication.properties");
 			
 			primaryClient.waitServerCount(2);
 			

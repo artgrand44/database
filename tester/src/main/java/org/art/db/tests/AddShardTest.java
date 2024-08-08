@@ -19,7 +19,7 @@ public class AddShardTest extends BaseIntegrationTest {
 	public void test() {
 
 		try  {
-			super.startPrimary("./averlongshardname.properties");
+			TestRunner.getAdapter().startPrimary("./averlongshardname.properties");
 
 			String drop = "drop table if exists sharded";
 			String create = "CREATE TABLE sharded (id  varchar(255) NOT NULL PRIMARY KEY, color varchar(255) NOT NULL, make varchar(255), count int)";
@@ -51,7 +51,7 @@ public class AddShardTest extends BaseIntegrationTest {
 				}
 			}
 
-			super.startSecondary("./cluster2.properties");
+			TestRunner.getAdapter().startSecondary("./cluster2.properties");
 			Client shard2Client = new Client(getLocalURI("8081"), "shard2", "admin", "admin").batch(false);
 			boolean started = false;
 			

@@ -27,7 +27,7 @@ public class BackupTest extends BaseIntegrationTest {
 				FileUtils.cleanDirectory(root);
 			}
 			
-			startPrimary("./backup.properties");
+			TestRunner.getAdapter().startPrimary("./backup.properties");
 			
 			Client client = this.getClient().batch(false);
 			String drop = "drop table if exists pounder";

@@ -19,7 +19,7 @@ public class SegmentMergeTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				startPrimary("./tinysegments.properties");
+				TestRunner.getAdapter().startPrimary("./tinysegments.properties");
 				
 				Client client = this.getClient().batch(false);
 				

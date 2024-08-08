@@ -38,8 +38,8 @@ public class AsyncReplicationTest extends BaseIntegrationTest {
 				if (secondDir.exists()) {
 					FileUtils.deleteDirectory(secondDir);
 				}
-				super.startPrimary("./async.properties");
-				super.startSecondary("./secondaryasync.properties");
+				TestRunner.getAdapter().startPrimary("./async.properties");
+				TestRunner.getAdapter().startSecondary("./secondaryasync.properties");
 				
 				Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin").batch(false);
 				Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin").batch(false);
@@ -62,7 +62,7 @@ public class AsyncReplicationTest extends BaseIntegrationTest {
 				
 				Thread.sleep(10 * 1000);
 				
-				stopPrimary();			
+				TestRunner.getAdapter().stopPrimary();			
 				
 				logger.info("after sleep");
 				for (int idx = 2; idx < 200; idx++) {
