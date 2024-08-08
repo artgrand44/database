@@ -1,15 +1,11 @@
 package org.art.db.tests;
 
 import java.io.File;
-import java.io.InputStream;
 import java.net.URI;
-import java.nio.charset.Charset;
-import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.io.IOUtils;
 import org.art.db.client.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,16 +26,18 @@ public class KubernetestAdapter implements TestAdapter {
 
 	private static final Logger logger = LoggerFactory.getLogger(KubernetestAdapter.class);
 	
-	record Server(String profile, String name, List<URI> uris, URI uri) {
+	record Server(String profile, String name, String database, List<URI> uris, URI uri) {
 		
 	}
+	
+	private KubernetesClient client = new KubernetesClientBuilder().build();
 	
 	private Server primary;
 	
 	private Server secondary;
 	
 	public Client getClusterClient(String user, String password) throws Exception {
-		return new Client(new URI(String.format("database:/%s", this.primary.name)), user, password);
+		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password);
 	}
 	public Client getPrimaryClient(String user, String password) throws Exception {
 		return new Client(this.primary.uri, user, password);
@@ -57,32 +55,38 @@ public class KubernetestAdapter implements TestAdapter {
 		return this.secondary.uri;
 	}
 	
+	private void stop(String shortName) {
+		try {
+			this.client.apps().deployments().inNamespace("default").withField("metadata.name", shortName).delete();
+		} catch (Exception exc) {		
+			logger.info("delete deploy failed");
+		}
+		
+		try {
+			this.client.services().inNamespace("default").withField("metadata.name", shortName).delete();
+		} catch (Exception exc) {	
+			logger.info("delete service failed");
+		}
+	}
 	private Server start(String profile) {
 		String name = new File(profile).getName();
 		int dot = name.lastIndexOf('.');
 		String shortName = name.substring(0,  dot);
 		String jsonPath = shortName + ".json";
 		
-		
-		File[] files = new File(".").listFiles();
-		
-		logger.info("files");
-		
-		for (File file : files) {
-			logger.info("    " + file.getName());
-		}
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 			Deployment deployment = mapper.readValue(new File(new File("."), jsonPath), Deployment.class);
 			String database = deployment.getMetadata().getLabels().get("database");
-			KubernetesClient client = new KubernetesClientBuilder().build();;
+			
+			this.stop(shortName);
 			
 			try {
 				client.apps().deployments().inNamespace("default").resource(deployment).delete();
 			} catch (Exception exc) {				
 			}
 			
-			deployment = client.apps().deployments().inNamespace("default").resource(deployment).create();
+			deployment = this.client.apps().deployments().inNamespace("default").resource(deployment).create();
 	        
 			Service service = new ServiceBuilder()
 		            .withNewMetadata().withName(shortName).addToLabels("app", shortName).endMetadata()
@@ -101,18 +105,27 @@ public class KubernetestAdapter implements TestAdapter {
 				client.services().inNamespace("default").resource(service).delete();
 			} catch (Exception exc) {				
 			}
-			
+						
 		    client.services().inNamespace("default").resource(service).create();
 		    
 		    List<URI> uris = new ArrayList<>();
 		    
-		    PodList podList = client.pods().inNamespace("default").withLabel("app=" + database).list();
+		    logger.info("shortName = " + shortName);
+		    PodList podList = client.pods().inNamespace("default").withLabel("service=" + shortName).list();
 			
+		    logger.info("pods = " + podList.getItems().size());
+		    
+		    if (podList.getItems().size() == 0) {
+		    	podList = client.pods().inNamespace("default").withLabel("app=" + database).list();
+		    	
+		    	logger.info("got pods by app " + podList.getItems().size());
+		    }
 			for (Pod pod : podList.getItems()) {
 				uris.add(new URI(String.format("http://%s:%s", pod.getStatus().getPodIP(), "8080")));			
 			}
 			
-			return new Server(profile, shortName, uris, uris.get(0));
+			logger.info("serivice " + shortName + " started");
+			return new Server(profile, shortName, database, uris, uris.get(0));
 		} catch (Exception exc) {
 			logger.info("Failed to start " + profile);
 			exc.printStackTrace();
@@ -149,7 +162,7 @@ public class KubernetestAdapter implements TestAdapter {
 	@Override
 	public URI startSecondary(String profile) {
 		if (this.primary != null && this.primary.profile.equals(profile)) {
-			this.secondary = new Server(this.primary.profile, this.primary.name, this.primary.uris, this.primary.uris.get(1));
+			this.secondary = new Server(this.primary.profile, this.primary.name, this.primary.database, this.primary.uris, this.primary.uris.get(1));
 		} else {
 			this.secondary = start(profile);
 		}

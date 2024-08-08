@@ -63,7 +63,7 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 	@BeforeEach
 	public void beforeEach() throws Exception  {
 		TestRunner.getAdapter().startPrimary(this.profile);
-
+		logger.info("after call to start");
 	}
 	
 	@AfterEach
@@ -117,7 +117,9 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 	public void test() {
 		
 		try {
+			logger.info("in test");
 			this.lock.writeLock().lock();
+			logger.info("test for writelock");
 			this.loadDabase();
 
 			List<Thread> threads = new ArrayList<>();
@@ -151,6 +153,7 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 			
 			this.exitLatch.await();
 			
+			logger.info("after completions");
 			for (Thread thread : threads) {
 				if (thread.isAlive()) {
 					thread.interrupt();
@@ -258,6 +261,7 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 	protected abstract void loadDabase() throws Exception;
 	
 	protected synchronized void  waitForAllStarted() {
+		logger.info("in wait for all started");
 		if (started == nthreads - 1) {
 			logger.info("notify");
 			this.notifyAll();
@@ -270,6 +274,8 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 				logger.info("interrupted");
 			}
 		}
+		
+		logger.info("end of wait for all started");
 	}
 
 

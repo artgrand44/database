@@ -76,6 +76,11 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 					EnvVar shardVar = list.stream().filter(x -> x.getName().equals("org.art.db.shard")).findAny().orElse(null);
 					String shard = shardVar.getValue();
 					String podIp = pod.getStatus().getPodIP();
+					
+					if (podIp == null) {
+						podIp =  pod.getStatus().getHostIP();
+						logger.info("No podIP host =" + pod.getStatus().getHostIP());
+					}
 					URI uri = new URI(String.format("http://%s:%s", podIp, "8080"));
 
 					result.put(uri, shard);
@@ -114,14 +119,14 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	        	
 	        	instances = this.getServerInstances();
 	        	
-	        	if (instances.isEmpty() || this.localInstance == null) {
+	        	if (instances.isEmpty() || (isServer && this.localInstance == null)) {
 	        		Utils.sleepSafely(100);
 	        	} else {
 	        		break;
 	        	}
 	        }
 	        
-	        if (instances.isEmpty() || this.localInstance == null) {
+	        if (instances.isEmpty() || (isServer && this.localInstance == null)) {
 	        	throw new DBRuntimeException("There was a timeout starting the server");
 	        }	        			
 		} catch (Exception exc) {
@@ -144,7 +149,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	}
 
 	public static boolean isKubernetes() {
-		return "kubernetes".equalsIgnoreCase(System.getenv("cloud"));
+		return "kubernetes".equalsIgnoreCase(System.getenv("cloud")) || System.getenv("KUBERNETES_PORT") != null;
 	}	
 
 }

@@ -39,10 +39,13 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	
 	@Override
 	protected void loadDabase() throws Exception {
+		logger.info("in loaddb");
 		Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+		logger.info("Got client");
 		String drop = "drop table if exists queue";
 		String create = "CREATE QUEUE TABLE queue (id GUID NOT NULL PRIMARY KEY, name varchar(255), value varchar(255))";
 		
+		logger.info("doing execs");
 		client.execute(drop);
 		client.execute(create);
 		
@@ -57,7 +60,8 @@ public class AQueuePounderTest extends BaseQueryPounder {
 		logger.info("inserts complete");
 	}
 	
-	protected void pound(int index, int mainLoop) {	
+	protected void pound(int index, int mainLoop) {
+		logger.info("in pound");
 		super.waitForAllStarted();
 		try {
 			Client client = TestRunner.getAdapter().getClusterClient("admin", "admin");
@@ -80,9 +84,6 @@ public class AQueuePounderTest extends BaseQueryPounder {
 				
 				for (Document doc : set) {
 					GUID guid = doc.get("id", GUID.class);
-					
-					
-					
 					if (!this.remove(client, guid)) {
 						logger.info("remove failure");
 					}
@@ -102,6 +103,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 			this.addError(exc);
 		}
 		
+		logger.info("pounder loop complete");
 		this.addCompletion();
 	}
 	
