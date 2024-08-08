@@ -44,7 +44,7 @@ public class TestRunner {
 			Collections.sort(classNames);
 
 			for (String className : classNames) {
-				if (className.equals(RestoreTest.class.getName()) || className.equals(ShardTest.class.getName())  || className.equals(ReplicationTest.class.getName()) ) {
+				if (className.equals(AQueuePounderTest.class.getName())) {
 					runTests(className);
 				}
 			}

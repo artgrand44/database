@@ -1,6 +1,7 @@
 package org.art.db.tests;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -61,16 +62,21 @@ public class KubernetestAdapter implements TestAdapter {
 		String shortName = name.substring(0,  dot);
 		String jsonPath = "./" + shortName + ".json";
 		
-		try {
-			String json = IOUtils.resourceToString(jsonPath, Charset.defaultCharset(), KubernetestAdapter.class.getClassLoader());
+		try (InputStream stream = KubernetestAdapter.class.getClassLoader().getResourceAsStream(jsonPath)){
 			ObjectMapper mapper = new ObjectMapper();
-			Deployment deployment = mapper.readValue(json, Deployment.class);
+			Deployment deployment = mapper.readValue(stream, Deployment.class);
+			String database = deployment.getMetadata().getLabels().get("database");
 			KubernetesClient client = new KubernetesClientBuilder().build();;
+			
+			try {
+				client.apps().deployments().inNamespace("default").resource(deployment).delete();
+			} catch (Exception exc) {				
+			}
 			
 			deployment = client.apps().deployments().inNamespace("default").resource(deployment).create();
 	        
 			Service service = new ServiceBuilder()
-		            .withNewMetadata().withName("nginx-svc").addToLabels("app", "nginx").endMetadata()
+		            .withNewMetadata().withName(shortName).addToLabels("app", shortName).endMetadata()
 		            .withNewSpec()
 		            .addNewPort()
 		            .withName("http")
@@ -82,11 +88,16 @@ public class KubernetestAdapter implements TestAdapter {
 		            .endSpec()
 		            .build();
 			
+			try {
+				client.services().inNamespace("default").resource(service).delete();
+			} catch (Exception exc) {				
+			}
+			
 		    client.services().inNamespace("default").resource(service).create();
 		    
 		    List<URI> uris = new ArrayList<>();
 		    
-		    PodList podList = client.pods().withLabel("app=" + shortName).list();
+		    PodList podList = client.pods().inNamespace("default").withLabel("app=" + database).list();
 			
 			for (Pod pod : podList.getItems()) {
 				uris.add(new URI(String.format("http://%s:%s", pod.getStatus().getPodIP(), "8080")));			
@@ -95,6 +106,7 @@ public class KubernetestAdapter implements TestAdapter {
 			return new Server(profile, shortName, uris, uris.get(0));
 		} catch (Exception exc) {
 			logger.info("Failed to start " + profile);
+			exc.printStackTrace();
 			throw new IllegalStateException(exc);
 		}
 	}

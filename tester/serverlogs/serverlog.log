@@ -1,0 +1,188 @@
+10:47:19.394  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+10:50:29.031  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+10:50:29.085  INFO  o.a.d.t.KubernetestAdapter - Failed to start ./queuepounder.properties
+10:52:05.602  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+10:52:05.607  INFO  o.a.d.t.KubernetestAdapter - dot = file:/Users/artgrand/repros/database/tester/target/classes/
+10:52:05.608  INFO  o.a.d.t.KubernetestAdapter - json = null
+10:53:08.197  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+10:53:08.200  INFO  o.a.d.t.KubernetestAdapter - dot = file:/Users/artgrand/repros/database/tester/target/classes/
+10:53:08.200  INFO  o.a.d.t.KubernetestAdapter - json = file:/Users/artgrand/repros/database/tester/target/classes/queuepounder.json
+10:56:56.291  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+10:56:56.294  INFO  o.a.d.t.KubernetestAdapter - dot = file:/Users/artgrand/repros/database/tester/target/classes/
+10:56:56.295  INFO  o.a.d.t.KubernetestAdapter - json = file:/Users/artgrand/repros/database/tester/target/classes/queuepounder.json
+10:56:56.908  INFO  o.a.d.t.KubernetestAdapter - Failed to start ./queuepounder.properties
+10:56:56.909  ERROR o.a.d.t.TestRunner - 
+        Test failed Failure executing: POST at: https://127.0.0.1:55048/apis/apps/v1/namespaces/default/deployments. Message: deployments.apps "primary" already exists. Received status: Status(apiVersion=v1, code=409, details=StatusDetails(causes=[], group=apps, kind=deployments, name=primary, retryAfterSeconds=null, uid=null, additionalProperties={}), kind=Status, message=deployments.apps "primary" already exists, metadata=ListMeta(_continue=null, remainingItemCount=null, resourceVersion=null, selfLink=null, additionalProperties={}), reason=AlreadyExists, status=Failure, additionalProperties={}).
+10:56:56.922  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+
+
+
+
+End      test: AQueuePounderTest
+Total tests:   1 Total Errors: 1
+
+
+
+10:56:56.922  INFO  o.a.d.t.TestRunner - 
+Total tests: 1 Total Errors: 1
+Messsages:
+    AQueuePounderTest:test         - Failure executing: POST at: https://127.0.0.1:55048/apis/apps/v1/namespaces/default/deployments. Message: deployments.apps "primary" already exists. Received status: Status(apiVersion=v1, code=409, details=StatusDetails(causes=[], group=apps, kind=deployments, name=primary, retryAfterSeconds=null, uid=null, additionalProperties={}), kind=Status, message=deployments.apps "primary" already exists, metadata=ListMeta(_continue=null, remainingItemCount=null, resourceVersion=null, selfLink=null, additionalProperties={}), reason=AlreadyExists, status=Failure, additionalProperties={}).
+10:57:26.304  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+10:57:26.307  INFO  o.a.d.t.KubernetestAdapter - dot = file:/Users/artgrand/repros/database/tester/target/classes/
+10:57:26.308  INFO  o.a.d.t.KubernetestAdapter - json = file:/Users/artgrand/repros/database/tester/target/classes/queuepounder.json
+10:57:26.906  INFO  o.a.d.t.KubernetestAdapter - Failed to start ./queuepounder.properties
+10:57:26.906  ERROR o.a.d.t.TestRunner - 
+        Test failed Failure executing: POST at: https://127.0.0.1:55048/apis/apps/v1/namespaces/default/deployments. Message: deployments.apps "primary" already exists. Received status: Status(apiVersion=v1, code=409, details=StatusDetails(causes=[], group=apps, kind=deployments, name=primary, retryAfterSeconds=null, uid=null, additionalProperties={}), kind=Status, message=deployments.apps "primary" already exists, metadata=ListMeta(_continue=null, remainingItemCount=null, resourceVersion=null, selfLink=null, additionalProperties={}), reason=AlreadyExists, status=Failure, additionalProperties={}).
+10:57:26.918  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+
+
+
+
+End      test: AQueuePounderTest
+Total tests:   1 Total Errors: 1
+
+
+
+10:57:26.919  INFO  o.a.d.t.TestRunner - 
+Total tests: 1 Total Errors: 1
+Messsages:
+    AQueuePounderTest:test         - Failure executing: POST at: https://127.0.0.1:55048/apis/apps/v1/namespaces/default/deployments. Message: deployments.apps "primary" already exists. Received status: Status(apiVersion=v1, code=409, details=StatusDetails(causes=[], group=apps, kind=deployments, name=primary, retryAfterSeconds=null, uid=null, additionalProperties={}), kind=Status, message=deployments.apps "primary" already exists, metadata=ListMeta(_continue=null, remainingItemCount=null, resourceVersion=null, selfLink=null, additionalProperties={}), reason=AlreadyExists, status=Failure, additionalProperties={}).
+10:58:22.778  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+10:58:22.781  INFO  o.a.d.t.KubernetestAdapter - dot = file:/Users/artgrand/repros/database/tester/target/classes/
+10:58:22.782  INFO  o.a.d.t.KubernetestAdapter - json = file:/Users/artgrand/repros/database/tester/target/classes/queuepounder.json
+10:58:23.360  INFO  o.a.d.t.KubernetestAdapter - Failed to start ./queuepounder.properties
+11:00:59.561  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+11:00:59.564  INFO  o.a.d.t.KubernetestAdapter - dot = file:/Users/artgrand/repros/database/tester/target/classes/
+11:00:59.565  INFO  o.a.d.t.KubernetestAdapter - json = file:/Users/artgrand/repros/database/tester/target/classes/queuepounder.json
+11:04:30.999  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+11:04:31.002  INFO  o.a.d.t.KubernetestAdapter - dot = file:/Users/artgrand/repros/database/tester/target/classes/
+11:04:31.002  INFO  o.a.d.t.KubernetestAdapter - json = file:/Users/artgrand/repros/database/tester/target/classes/queuepounder.json
+11:06:13.448  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+11:06:13.451  INFO  o.a.d.t.KubernetestAdapter - dot = file:/Users/artgrand/repros/database/tester/target/classes/
+11:06:13.451  INFO  o.a.d.t.KubernetestAdapter - json = file:/Users/artgrand/repros/database/tester/target/classes/queuepounder.json
+11:06:14.133  INFO  o.a.d.t.KubernetestAdapter - Failed to start ./queuepounder.properties
+11:08:22.670  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+11:08:22.673  INFO  o.a.d.t.KubernetestAdapter - dot = file:/Users/artgrand/repros/database/tester/target/classes/
+11:08:22.674  INFO  o.a.d.t.KubernetestAdapter - json = file:/Users/artgrand/repros/database/tester/target/classes/queuepounder.json
+11:11:33.862  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+11:20:09.694  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
