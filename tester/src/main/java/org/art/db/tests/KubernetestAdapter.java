@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -60,11 +61,19 @@ public class KubernetestAdapter implements TestAdapter {
 		String name = new File(profile).getName();
 		int dot = name.lastIndexOf('.');
 		String shortName = name.substring(0,  dot);
-		String jsonPath = "./" + shortName + ".json";
+		String jsonPath = shortName + ".json";
 		
-		try (InputStream stream = KubernetestAdapter.class.getClassLoader().getResourceAsStream(jsonPath)){
+		
+		File[] files = new File(".").listFiles();
+		
+		logger.info("files");
+		
+		for (File file : files) {
+			logger.info("    " + file.getName());
+		}
+		try {
 			ObjectMapper mapper = new ObjectMapper();
-			Deployment deployment = mapper.readValue(stream, Deployment.class);
+			Deployment deployment = mapper.readValue(new File(new File("."), jsonPath), Deployment.class);
 			String database = deployment.getMetadata().getLabels().get("database");
 			KubernetesClient client = new KubernetesClientBuilder().build();;
 			
