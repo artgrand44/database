@@ -64,9 +64,9 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		
 		if ((this.serverInstances.get() == null || System.currentTimeMillis() > this.ttl) && this.loading.compareAndSet(false, true)) {
 			try {
-				logger.info("starting services scan " + this.database);
+				PodList podList =  client.pods().inNamespace("default").withLabel("database=" + database).list();
 				
-				PodList podList = client.pods().withLabel("app=" + this.database).list();
+				logger.info("podlist " + podList.getItems().size());
 				
 				Map<URI, String> result = new HashMap<>();
 				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
