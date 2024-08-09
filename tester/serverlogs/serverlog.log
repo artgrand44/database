@@ -186,3 +186,374 @@ Starting test: AQueuePounderTest
 
 
 
+16:36:08.867  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:36:08.868  INFO  o.a.d.t.KubernetestAdapter - Failed to start ./queuepounder.properties
+16:36:08.870  ERROR o.a.d.t.TestRunner - 
+        Test failed ./queuepounder.json (No such file or directory)
+16:36:08.881  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+
+
+
+
+End      test: AQueuePounderTest
+Total tests:   1 Total Errors: 1
+
+
+
+16:36:08.881  INFO  o.a.d.t.TestRunner - 
+Total tests: 1 Total Errors: 1
+Messsages:
+    AQueuePounderTest:test         - ./queuepounder.json (No such file or directory)
+16:37:46.915  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:37:46.916  INFO  o.a.d.t.KubernetestAdapter - Failed to start ./queuepounder.properties
+16:37:46.917  ERROR o.a.d.t.TestRunner - 
+        Test failed ./queuepounder.json (No such file or directory)
+16:37:46.929  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+
+
+
+
+End      test: AQueuePounderTest
+Total tests:   1 Total Errors: 1
+
+
+
+16:37:46.929  INFO  o.a.d.t.TestRunner - 
+Total tests: 1 Total Errors: 1
+Messsages:
+    AQueuePounderTest:test         - ./queuepounder.json (No such file or directory)
+16:38:30.996  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:38:30.997  INFO  o.a.d.t.KubernetestAdapter - /Users/artgrand/repros/database/tester/./queuepounder.json
+16:38:30.998  INFO  o.a.d.t.KubernetestAdapter - Failed to start ./queuepounder.properties
+16:38:30.999  ERROR o.a.d.t.TestRunner - 
+        Test failed ./queuepounder.json (No such file or directory)
+16:38:31.011  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+
+
+
+
+End      test: AQueuePounderTest
+Total tests:   1 Total Errors: 1
+
+
+
+16:38:31.011  INFO  o.a.d.t.TestRunner - 
+Total tests: 1 Total Errors: 1
+Messsages:
+    AQueuePounderTest:test         - ./queuepounder.json (No such file or directory)
+16:39:16.592  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:39:16.593  INFO  o.a.d.t.KubernetestAdapter - /Users/artgrand/repros/database/tester/./queuepounder.json
+16:39:16.695  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+16:39:55.863  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:39:55.864  INFO  o.a.d.t.KubernetestAdapter - /Users/artgrand/repros/database/tester/./queuepounder.json
+16:39:55.958  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+16:40:15.398  INFO  o.a.d.t.KubernetestAdapter - Failed to start ./queuepounder.properties
+16:40:15.403  ERROR o.a.d.t.TestRunner - 
+        Test failed Failure executing: POST at: https://127.0.0.1:55048/apis/apps/v1/namespaces/default/deployments. Message: resourceVersion should not be set on objects to be created. Received status: Status(apiVersion=v1, code=500, details=null, kind=Status, message=resourceVersion should not be set on objects to be created, metadata=ListMeta(_continue=null, remainingItemCount=null, resourceVersion=null, selfLink=null, additionalProperties={}), reason=null, status=Failure, additionalProperties={}).
+16:40:15.423  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+
+
+
+
+End      test: AQueuePounderTest
+Total tests:   1 Total Errors: 1
+
+
+
+16:40:15.424  INFO  o.a.d.t.TestRunner - 
+Total tests: 1 Total Errors: 1
+Messsages:
+    AQueuePounderTest:test         - Failure executing: POST at: https://127.0.0.1:55048/apis/apps/v1/namespaces/default/deployments. Message: resourceVersion should not be set on objects to be created. Received status: Status(apiVersion=v1, code=500, details=null, kind=Status, message=resourceVersion should not be set on objects to be created, metadata=ListMeta(_continue=null, remainingItemCount=null, resourceVersion=null, selfLink=null, additionalProperties={}), reason=null, status=Failure, additionalProperties={}).
+16:44:37.707  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:44:37.709  INFO  o.a.d.t.KubernetestAdapter - /Users/artgrand/repros/database/tester/./queuepounder.json
+16:44:37.807  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+16:44:38.074  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+16:44:38.097  INFO  o.a.d.t.KubernetestAdapter - pods = 0
+16:51:00.145  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:51:00.147  INFO  o.a.d.t.KubernetestAdapter - Failed to start ./queuepounder.properties
+16:51:00.148  ERROR o.a.d.t.TestRunner - 
+        Test failed Users/artgrand/repros/database/tester/src/main/resources/queuepounder.json (No such file or directory)
+16:51:00.158  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+
+
+
+
+End      test: AQueuePounderTest
+Total tests:   1 Total Errors: 1
+
+
+
+16:51:00.159  INFO  o.a.d.t.TestRunner - 
+Total tests: 1 Total Errors: 1
+Messsages:
+    AQueuePounderTest:test         - Users/artgrand/repros/database/tester/src/main/resources/queuepounder.json (No such file or directory)
+16:51:23.164  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:51:23.272  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+16:51:23.565  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+16:51:23.585  INFO  o.a.d.t.KubernetestAdapter - pods = 0
+16:52:59.747  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:52:59.847  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+16:53:00.158  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+16:53:00.187  INFO  o.a.d.t.KubernetestAdapter - pods = 6
+16:53:00.188  INFO  o.a.d.t.KubernetestAdapter - serivice queuepounder started
+16:55:58.586  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:55:58.688  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+16:55:58.925  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+16:55:58.952  INFO  o.a.d.t.KubernetestAdapter - pods = 3
+16:55:58.953  INFO  o.a.d.t.KubernetestAdapter - serivice queuepounder started
+16:58:01.469  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:58:01.569  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+16:58:01.861  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+16:58:01.883  INFO  o.a.d.t.KubernetestAdapter - pods = 6
+16:58:01.885  INFO  o.a.d.t.KubernetestAdapter - serivice queuepounder started
+16:58:51.815  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:58:51.910  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+16:58:52.172  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+16:58:52.197  INFO  o.a.d.t.KubernetestAdapter - pods = 6
+16:58:52.198  INFO  o.a.d.t.KubernetestAdapter - serivice queuepounder started
+16:59:55.359  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+16:59:55.456  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+16:59:55.857  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+16:59:55.882  INFO  o.a.d.t.KubernetestAdapter - pods = 6
+16:59:55.883  INFO  o.a.d.t.KubernetestAdapter - serivice queuepounder started
+17:00:38.321  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+17:00:38.416  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+17:00:38.680  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+17:00:38.705  INFO  o.a.d.t.KubernetestAdapter - pods = 6
+17:00:38.706  INFO  o.a.d.t.KubernetestAdapter - serivice queuepounder started
+17:02:18.030  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+17:02:18.133  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+17:02:18.454  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+17:02:18.477  INFO  o.a.d.t.KubernetestAdapter - pods = 6
+17:02:54.384  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+17:02:54.479  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+17:02:54.761  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+17:02:54.786  INFO  o.a.d.t.KubernetestAdapter - pods = 3
+17:03:21.714  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+17:03:21.814  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+17:03:22.068  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+17:03:22.094  INFO  o.a.d.t.KubernetestAdapter - pods = 6
+17:05:56.662  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+17:06:04.915  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+17:06:05.020  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+17:06:05.338  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+17:06:05.362  INFO  o.a.d.t.KubernetestAdapter - pods = 6
+17:06:05.363  INFO  o.a.d.t.KubernetestAdapter - Uris 3 [http://10.244.3.111:8080, http://10.244.3.112:8080, http://10.244.3.110:8080]
+17:07:46.806  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+17:07:46.903  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+17:07:47.226  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+17:07:47.247  INFO  o.a.d.t.KubernetestAdapter - pods = 3
+17:07:47.249  INFO  o.a.d.t.KubernetestAdapter - Uris 0 []
+17:08:26.625  INFO  o.a.d.t.TestRunner - 
+
+
+
+
+Starting test: AQueuePounderTest
+
+
+
+17:08:26.722  INFO  o.a.d.t.KubernetestAdapter - got shard shard1
+17:08:27.027  INFO  o.a.d.t.KubernetestAdapter - shortName = queuepounder
+17:08:27.051  INFO  o.a.d.t.KubernetestAdapter - pods = 6
+17:08:27.052  INFO  o.a.d.t.KubernetestAdapter - Uris 3 [http://10.244.3.118:8080, http://10.244.3.117:8080, http://10.244.3.116:8080]

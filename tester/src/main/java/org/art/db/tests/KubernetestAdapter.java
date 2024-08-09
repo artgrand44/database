@@ -74,9 +74,12 @@ public class KubernetestAdapter implements TestAdapter {
 		String shortName = name.substring(0,  dot);
 		String jsonPath = shortName + ".json";
 		
+		//File json = new File("/Users/artgrand/repros/database/tester/src/main/resources/queuepounder.json");
+		File json = new File(new File("."), jsonPath);
+		
 		try {
 			ObjectMapper mapper = new ObjectMapper();
-			Deployment deployment = mapper.readValue(new File(new File("."), jsonPath), Deployment.class);
+			Deployment deployment = mapper.readValue(json, Deployment.class);
 			String database = deployment.getMetadata().getLabels().get("database");
 			String shard = deployment.getMetadata().getLabels().get("shard");
 			
@@ -113,19 +116,17 @@ public class KubernetestAdapter implements TestAdapter {
 		    List<URI> uris = new ArrayList<>();
 		    
 		    logger.info("shortName = " + shortName);
-		    PodList podList = client.pods().inNamespace("default").withLabel("service=" + shortName).list();
+		    PodList podList = client.pods().inNamespace("default").withLabel("database=" + database).withLabel("shard=" + "shard1").list();
 			
 		    logger.info("pods = " + podList.getItems().size());
 		    
-		    if (podList.getItems().size() == 0) {
-		    	podList = client.pods().inNamespace("default").withLabel("app=" + database).list();
-		    	
-		    	logger.info("got pods by app " + podList.getItems().size());
-		    }
-			for (Pod pod : podList.getItems()) {
-				uris.add(new URI(String.format("http://%s:%s", pod.getStatus().getPodIP(), "8080")));			
+		    for (Pod pod : podList.getItems()) {
+		    	if (pod.getStatus().getPodIP() != null) {
+		    		uris.add(new URI(String.format("http://%s:%s", pod.getStatus().getPodIP(), "8080")));
+		    	}
 			}
 			
+		    logger.info("Uris " + uris.size() + " " + uris);
 			logger.info("serivice " + shortName + " started");
 			return new Server(profile, shortName, database, uris, uris.get(0));
 		} catch (Exception exc) {

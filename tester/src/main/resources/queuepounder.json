@@ -21,7 +21,9 @@
         "revisionHistoryLimit": 10,
         "selector": {
             "matchLabels": {
-                "app": "cluster"
+                "app": "cluster",
+                "database": "cluster",
+                "shard": "shard1"
             }
         },
         "strategy": {
@@ -35,7 +37,9 @@
             "metadata": {
                 "creationTimestamp": null,
                 "labels": {
-                    "app": "cluster"
+                    "app": "cluster",
+                    "database": "cluster",
+                    "shard": "shard1"
                 }
             },
             "spec": {
