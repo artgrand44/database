@@ -10,11 +10,15 @@ spec:
   selector:
     matchLabels:
       app: databasename
+      database: databasename
+      shard: shardname
   replicas: reps
   template: # create pods using pod definition in this template
     metadata:
       labels:
         app: databasename
+        database: databasename
+        shard: shardname
     spec:
       containers:
       - name: databasename

@@ -180,7 +180,7 @@ public class RestoreManager {
 					
 				StorageManager.getInstance().reset();
 			} catch (Exception exc) {
-				Metrics.getInstance().logAlert("There was an error synchronizing the configuration.");
+				Metrics.getInstance().logAlert("There was an exception restoring the backup.");
 				logger.info("There was an error synchronizing the configuration " + exc.getMessage());
 			}
 		} else if (useBackup) {
