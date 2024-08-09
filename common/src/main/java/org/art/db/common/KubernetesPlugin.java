@@ -77,17 +77,15 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 					String shard = shardVar.getValue();
 					String podIp = pod.getStatus().getPodIP();
 					
-					if (podIp == null) {
-						podIp =  pod.getStatus().getHostIP();
-						logger.info("No podIP host =" + pod.getStatus().getHostIP());
-					}
-					URI uri = new URI(String.format("http://%s:%s", podIp, "8080"));
+					if (podIp != null) {
+						URI uri = new URI(String.format("http://%s:%s", podIp, "8080"));
 
-					result.put(uri, shard);
-					
-					if (podIp.equals(localHostAddress)) {
-						this.localInstance = uri;
-					} 				
+						result.put(uri, shard);
+
+						if (podIp.equals(localHostAddress)) {
+							this.localInstance = uri;
+						} 		
+					}
 				}
 						
 				logger.info("localhost = " + localHostAddress + " localInstance = " + this.localInstance + " result = " + result);

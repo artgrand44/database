@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.art.db.client.Client;
+import org.art.db.common.DBRuntimeException;
+import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,19 +118,29 @@ public class KubernetestAdapter implements TestAdapter {
 		    List<URI> uris = new ArrayList<>();
 		    
 		    logger.info("shortName = " + shortName);
-		    PodList podList = client.pods().inNamespace("default").withLabel("database=" + database).withLabel("shard=" + "shard1").list();
-			
-		    logger.info("pods = " + podList.getItems().size());
 		    
-		    for (Pod pod : podList.getItems()) {
-		    	if (pod.getStatus().getPodIP() != null) {
-		    		uris.add(new URI(String.format("http://%s:%s", pod.getStatus().getPodIP(), "8080")));
+		    for (int idx = 0; idx < 100; idx++) {
+		    	PodList podList = client.pods().inNamespace("default").withLabel("database=" + database).withLabel("shard=" + "shard1").list();
+
+		    	logger.info("pods = " + podList.getItems().size());
+
+		    	for (Pod pod : podList.getItems()) {
+		    		if (pod.getStatus().getPodIP() != null) {
+		    			uris.add(new URI(String.format("http://%s:%s", pod.getStatus().getPodIP(), "8080")));
+		    		}
 		    	}
-			}
-			
-		    logger.info("Uris " + uris.size() + " " + uris);
-			logger.info("serivice " + shortName + " started");
-			return new Server(profile, shortName, database, uris, uris.get(0));
+
+		    	if (uris.isEmpty()) {
+		    		logger.info("sleep");
+		    		Utils.sleepSafely(1000);
+		    	} else {
+		    		logger.info("Uris " + uris.size() + " " + uris);
+		    		logger.info("serivice " + shortName + " started");
+		    		return new Server(profile, shortName, database, uris, uris.get(0));
+		    	}
+		    }
+		    
+		    throw new DBRuntimeException("Unable to start service");
 		} catch (Exception exc) {
 			logger.info("Failed to start " + profile);
 			exc.printStackTrace();
@@ -150,8 +162,14 @@ public class KubernetestAdapter implements TestAdapter {
 		if (this.primary != null) {
 			KubernetesClient client = new KubernetesClientBuilder().build();
 
+			logger.info("stopping " + this.primary.name);
 			client.services().withLabel("app=" + this.primary.name).delete();
 
+			logger.info("after stop");
+			
+			client.apps().deployments().withName("deployment.apps/querypounder").delete();
+			
+			logger.info("after delete dep");
 			if (this.primary == this.secondary) {
 				this.secondary = null;
 			}
