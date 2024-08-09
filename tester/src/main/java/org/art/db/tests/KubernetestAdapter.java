@@ -28,7 +28,11 @@ public class KubernetestAdapter implements TestAdapter {
 
 	private static final Logger logger = LoggerFactory.getLogger(KubernetestAdapter.class);
 	
-	record Server(String profile, String name, String database, List<URI> uris, URI uri) {
+	record Server(String profile, String name, String database, Deployment deployment, Service service, List<URI> uris, URI uri) {
+		
+		Server(Server from, URI uri) {
+			this(from.profile, from.name, from.database, from.deployment, from.service, from.uris, uri);
+		}
 		
 	}
 	
@@ -57,19 +61,11 @@ public class KubernetestAdapter implements TestAdapter {
 		return this.secondary.uri;
 	}
 	
-	private void stop(String shortName) {
-		try {
-			this.client.apps().deployments().inNamespace("default").withField("metadata.name", shortName).delete();
-		} catch (Exception exc) {		
-			logger.info("delete deploy failed");
-		}
-		
-		try {
-			this.client.services().inNamespace("default").withField("metadata.name", shortName).delete();
-		} catch (Exception exc) {	
-			logger.info("delete service failed");
-		}
+	private void stop(Server server) {
+		client.services().inNamespace("default").resource(server.service).delete();
+		client.apps().deployments().inNamespace("default").resource(server.deployment).delete();
 	}
+	
 	private Server start(String profile) {
 		String name = new File(profile).getName();
 		int dot = name.lastIndexOf('.');
@@ -86,12 +82,9 @@ public class KubernetestAdapter implements TestAdapter {
 			String shard = deployment.getMetadata().getLabels().get("shard");
 			
 			logger.info("got shard " + shard);
-			this.stop(shortName);
 			
-			try {
-				client.apps().deployments().inNamespace("default").resource(deployment).delete();
-			} catch (Exception exc) {				
-			}
+			
+			client.apps().deployments().inNamespace("default").resource(deployment).delete();
 			
 			deployment = this.client.apps().deployments().inNamespace("default").resource(deployment).create();
 	        
@@ -108,12 +101,8 @@ public class KubernetestAdapter implements TestAdapter {
 		            .endSpec()
 		            .build();
 			
-			try {
-				client.services().inNamespace("default").resource(service).delete();
-			} catch (Exception exc) {				
-			}
-						
-		    client.services().inNamespace("default").resource(service).create();
+			client.services().inNamespace("default").resource(service).delete();
+			client.services().inNamespace("default").resource(service).create();
 		    
 		    List<URI> uris = new ArrayList<>();
 		    
@@ -136,7 +125,7 @@ public class KubernetestAdapter implements TestAdapter {
 		    	} else {
 		    		logger.info("Uris " + uris.size() + " " + uris);
 		    		logger.info("serivice " + shortName + " started");
-		    		return new Server(profile, shortName, database, uris, uris.get(0));
+		    		return new Server(profile, shortName, database, deployment, service, uris, uris.get(0));
 		    	}
 		    }
 		    
@@ -160,21 +149,12 @@ public class KubernetestAdapter implements TestAdapter {
 	@Override
 	public void stopPrimary() {
 		if (this.primary != null) {
-			KubernetesClient client = new KubernetesClientBuilder().build();
-
-			logger.info("stopping " + this.primary.name);
-			client.services().withLabel("app=" + this.primary.name).delete();
-
-			logger.info("after stop");
+			this.stop(this.primary);
+			this.primary = null;
 			
-			client.apps().deployments().withName("deployment.apps/querypounder").delete();
-			
-			logger.info("after delete dep");
 			if (this.primary == this.secondary) {
 				this.secondary = null;
 			}
-
-			this.primary = null;
 		}
 
 	}
@@ -183,7 +163,7 @@ public class KubernetestAdapter implements TestAdapter {
 	@Override
 	public URI startSecondary(String profile) {
 		if (this.primary != null && this.primary.profile.equals(profile)) {
-			this.secondary = new Server(this.primary.profile, this.primary.name, this.primary.database, this.primary.uris, this.primary.uris.get(1));
+			this.secondary = new Server(this.primary, this.primary.uris.get(1));
 		} else {
 			this.secondary = start(profile);
 		}
@@ -194,14 +174,7 @@ public class KubernetestAdapter implements TestAdapter {
 	@Override
 	public void stopSecondary() {
 		if (this.secondary != null) {
-			KubernetesClient client = new KubernetesClientBuilder().build();
-
-			client.services().withLabel("app=" + this.secondary.name).delete();
-
-			if (this.primary == this.secondary) {
-				this.primary = null;
-			}
-
+			this.stop(this.secondary);
 			this.secondary = null;
 		}		
 	}
