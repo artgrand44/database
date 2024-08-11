@@ -1,19 +1,24 @@
 package org.art.db.tests;
 
 import java.io.File;
+import java.io.FileReader;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.art.db.client.Client;
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.KubernetesPlugin;
 import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -22,7 +27,7 @@ import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-
+import io.fabric8.kubernetes.client.utils.Serialization;
 
 public class KubernetestAdapter implements TestAdapter {
 
@@ -61,25 +66,58 @@ public class KubernetestAdapter implements TestAdapter {
 		return this.secondary.uri;
 	}
 	
+	private void setEnvironment(List<EnvVar> list, String name, String value) {
+		for (EnvVar var : list) {
+			if (var.getName().equals(name)) {
+				var.setValue(value);
+				return;
+			}
+		}
+		
+		list.add(new EnvVar(name, value, null));
+	}
+	
 	private void stop(Server server) {
 		//client.services().inNamespace("default").resource(server.service).delete();
 		//client.apps().deployments().inNamespace("default").resource(server.deployment).delete();
 	}
-	
+
 	private Server start(String profile) {
-		String name = new File(profile).getName();
-		int dot = name.lastIndexOf('.');
-		String shortName = name.substring(0,  dot);
-		String jsonPath = shortName + ".json";
-		
-		//File json = new File("/Users/artgrand/repros/database/tester/src/main/resources/queuepounder.json");
-		File json = new File(new File("."), jsonPath);
+		File baseDir = KubernetesPlugin.isKubernetes() ? new File(".") : new File("/Users/artgrand/repros/database/tester/src/main/resources");
 		
 		try {
-			ObjectMapper mapper = new ObjectMapper();
-			Deployment deployment = mapper.readValue(json, Deployment.class);
-			String database = deployment.getMetadata().getLabels().get("database");
-			String shard = deployment.getMetadata().getLabels().get("shard");
+			
+			// Read the yaml template then set the application name to the name of the profile
+			
+			File yamlFile = new File(baseDir, "custom.yaml");
+			String yaml = FileUtils.readFileToString(yamlFile, Charset.defaultCharset());
+			Deployment deployment = Serialization.unmarshal(yaml, Deployment.class);
+			
+			String name = new File(profile).getName();
+			int dot = name.lastIndexOf('.');
+			String shortName = name.substring(0,  dot);
+			
+			
+			deployment.getMetadata().setName(shortName);
+			deployment.getSpec().getSelector().getMatchLabels().put("appname", shortName);
+			deployment.getSpec().getTemplate().getMetadata().getLabels().put("appname", shortName);
+		
+						
+			// Load the property file for the profile
+			
+			File propertyFile = new File(baseDir, profile);
+			Properties props = new Properties();
+						
+			try (FileReader reader = new FileReader(propertyFile)) {
+				props.load(reader);
+			}
+			
+			List<EnvVar> list = deployment.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv();
+			
+			for (Map.Entry<Object, Object> entry : props.entrySet()) {
+				this.setEnvironment(list, (String)entry.getKey(), (String)entry.getValue());
+			}
+			
 			
 			client.apps().deployments().inNamespace("default").resource(deployment).delete();
 			
@@ -117,7 +155,9 @@ public class KubernetestAdapter implements TestAdapter {
 		    	if (uris.isEmpty()) {
 		    		Utils.sleepSafely(1000);
 		    	} else {
-		    		return new Server(profile, shortName, database, deployment, service, uris, uris.get(0));
+		    		String database = deployment.getMetadata().getLabels().get("database");
+					
+					return new Server(profile, shortName, database, deployment, service, uris, uris.get(0));
 		    	}
 		    }
 		    

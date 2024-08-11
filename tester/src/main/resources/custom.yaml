@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secondary
+  labels: {
+    "database" : "db2",
+    "shard" : "shard1"
+  }
+spec:
+  selector:
+    matchLabels:
+      app: db2
+      database: db2
+      shard: shard1
+  replicas: 1
+  template: # create pods using pod definition in this template
+    metadata:
+      labels:
+        app: db2
+        database: db2
+        shard: shard1
+    spec:
+      containers:
+      - name: db2
+        image: db:v1 
+        env:
+           - name: database
+             value: "db2"
+           - name: cloud
+             value: kubernetes
+           - name: org.art.db.backupinterval
+             value: "1w"
+           - name:  org.art.db.shard
+             value : "shard1"
+           - name: org.art.db.backuproot
+             value: /backup
+           - name: org.art.db.backupmax
+             value: "2"
+           - name: org.art.db.dbroot
+             value: /data/files
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+            - name: db2-shard1
+              mountPath: /data/files
+        ports:
+        - containerPort: 8080
+      volumes:
+        - name: db2-shard1
