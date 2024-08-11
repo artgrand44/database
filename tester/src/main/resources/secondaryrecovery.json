@@ -13,7 +13,6 @@
         },
         "name": "secondaryrecovery",
         "namespace": "default",
-        "resourceVersion": "755732",
         "uid": "11c055ee-b628-482f-985e-3ad7c968296a"
     },
     "spec": {

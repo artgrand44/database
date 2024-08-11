@@ -13,7 +13,6 @@
         },
         "name": "secondaryasync",
         "namespace": "default",
-        "resourceVersion": "755667",
         "uid": "f251031e-9431-46c7-acf8-9109af65a0ec"
     },
     "spec": {

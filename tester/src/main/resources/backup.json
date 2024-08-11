@@ -13,7 +13,6 @@
         },
         "name": "backup",
         "namespace": "default",
-        "resourceVersion": "755348",
         "uid": "bb194576-825e-4ebe-9a0c-a70cce065a82"
     },
     "spec": {

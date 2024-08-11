@@ -66,8 +66,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			try {
 				PodList podList =  client.pods().inNamespace("default").withLabel("database=" + database).list();
 				
-				logger.info("podlist " + podList.getItems().size());
-				
 				Map<URI, String> result = new HashMap<>();
 				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
 								
@@ -76,8 +74,9 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 					EnvVar shardVar = list.stream().filter(x -> x.getName().equals("org.art.db.shard")).findAny().orElse(null);
 					String shard = shardVar.getValue();
 					String podIp = pod.getStatus().getPodIP();
+					String phase = pod.getStatus().getPhase();
 					
-					if (podIp != null) {
+					if (phase.equals("Running") && podIp != null) {
 						URI uri = new URI(String.format("http://%s:%s", podIp, "8080"));
 
 						result.put(uri, shard);
@@ -85,10 +84,10 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 						if (podIp.equals(localHostAddress)) {
 							this.localInstance = uri;
 						} 		
-					}
+					} 
 				}
 						
-				logger.info("localhost = " + localHostAddress + " localInstance = " + this.localInstance + " result = " + result);
+				logger.info("count = " + result.size() + " localInstance = " + this.localInstance);
 				
 				this.ttl = System.currentTimeMillis() + 10 * 1000;
 				this.serverInstances.set(result);
@@ -135,7 +134,10 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 
 	}
 	
-		
+	public void poll() { 
+		this.ttl = 0;
+	}
+	
 	@Override
 	public void start() {
 		

@@ -205,6 +205,7 @@ public class DDLHandler {
 		}
 		
 			
+		logger.info("***create table");
 		Table table = createTable.getTable();
 		File file = Files.getMetadata(SQLUtils.getFQN(table, database));
 		

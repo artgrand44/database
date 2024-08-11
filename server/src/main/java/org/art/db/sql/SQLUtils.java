@@ -73,7 +73,7 @@ public class SQLUtils {
 
 				for (URI uri : entry.getValue()) {
 					if (!uri.equals(local)) {
-						logger.info("Broadcast from " + local + " to " + uri);
+						logger.info("Broadcast from " + local + " to " + uri + " " + statement);
 						Client client = new Client(handler, uri, shard, user, password).batch(false);
 						
 						client.execute(statement);

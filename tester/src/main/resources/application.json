@@ -13,7 +13,6 @@
         },
         "name": "application",
         "namespace": "default",
-        "resourceVersion": "755415",
         "uid": "5942fc3c-1932-469e-af0c-c1228d5c70ab"
     },
     "spec": {

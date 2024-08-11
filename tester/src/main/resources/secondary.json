@@ -13,18 +13,18 @@
         },
         "name": "secondary",
         "namespace": "default",
-        "resourceVersion": "755795",
         "uid": "ebe72911-f396-4146-8060-561d898018bf"
     },
     "spec": {
         "progressDeadlineSeconds": 600,
-        "replicas": 3,
+        "replicas": 1,
         "revisionHistoryLimit": 10,
         "selector": {
             "matchLabels": {
                 "app": "db2",
                 "database": "db2",
-                "shard": "shard1"
+                "shard": "shard1",
+                "appname": "secondary"
             }
         },
         "strategy": {
@@ -40,7 +40,8 @@
                 "labels": {
                     "app": "db2",
                     "database": "db2",
-                    "shard": "shard1"
+                    "shard": "shard1",
+                    "appname": "secondary"
                 }
             },
             "spec": {
@@ -134,7 +135,7 @@
             }
         ],
         "observedGeneration": 1,
-        "replicas": 3,
+        "replicas": 1,
         "unavailableReplicas": 3,
         "updatedReplicas": 3
     }

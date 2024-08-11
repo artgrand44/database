@@ -13,18 +13,18 @@
         },
         "name": "replication",
         "namespace": "default",
-        "resourceVersion": "755602",
         "uid": "ecde6499-8048-48ec-a89e-bad5305429b3"
     },
     "spec": {
         "progressDeadlineSeconds": 600,
-        "replicas": 3,
+        "replicas": 1,
         "revisionHistoryLimit": 10,
         "selector": {
             "matchLabels": {
                 "app": "db2",
                 "database": "db2",
-                "shard": "shard1"
+                "shard": "shard1",
+                "appname": "replication"
             }
         },
         "strategy": {
@@ -40,7 +40,8 @@
                 "labels": {
                     "app": "db2",
                     "database": "db2",
-                    "shard": "shard1"
+                    "shard": "shard1",
+                    "appname": "replication"
                 }
             },
             "spec": {
@@ -134,8 +135,8 @@
             }
         ],
         "observedGeneration": 1,
-        "replicas": 3,
+        "replicas": 1,
         "unavailableReplicas": 3,
-        "updatedReplicas": 3
+        "updatedReplicas": 1
     }
 }

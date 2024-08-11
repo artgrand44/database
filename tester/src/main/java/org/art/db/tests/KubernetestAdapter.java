@@ -46,7 +46,7 @@ public class KubernetestAdapter implements TestAdapter {
 		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password);
 	}
 	public Client getPrimaryClient(String user, String password) throws Exception {
-		return new Client(this.primary.uri, user, password);
+		return new Client(new URI(this.primary.uri.toString() + "/" + this.primary.database), user, password);
 	}
 	
 	public URI getPrimaryURI() {
@@ -54,7 +54,7 @@ public class KubernetestAdapter implements TestAdapter {
 	}
 	
 	public Client getSecondaryClient(String user, String password) throws Exception {
-		return new Client(this.secondary.uri, user, password);
+		return new Client(new URI(this.secondary.uri.toString() + "/" + this.secondary.database), user, password);
 	}
 	
 	public URI getSecondardURI() {
@@ -62,8 +62,8 @@ public class KubernetestAdapter implements TestAdapter {
 	}
 	
 	private void stop(Server server) {
-		client.services().inNamespace("default").resource(server.service).delete();
-		client.apps().deployments().inNamespace("default").resource(server.deployment).delete();
+		//client.services().inNamespace("default").resource(server.service).delete();
+		//client.apps().deployments().inNamespace("default").resource(server.deployment).delete();
 	}
 	
 	private Server start(String profile) {
@@ -80,9 +80,6 @@ public class KubernetestAdapter implements TestAdapter {
 			Deployment deployment = mapper.readValue(json, Deployment.class);
 			String database = deployment.getMetadata().getLabels().get("database");
 			String shard = deployment.getMetadata().getLabels().get("shard");
-			
-			logger.info("got shard " + shard);
-			
 			
 			client.apps().deployments().inNamespace("default").resource(deployment).delete();
 			
@@ -106,25 +103,20 @@ public class KubernetestAdapter implements TestAdapter {
 		    
 		    List<URI> uris = new ArrayList<>();
 		    
-		    logger.info("shortName = " + shortName);
-		    
 		    for (int idx = 0; idx < 100; idx++) {
-		    	PodList podList = client.pods().inNamespace("default").withLabel("database=" + database).withLabel("shard=" + "shard1").list();
-
-		    	logger.info("pods = " + podList.getItems().size());
-
+		    	PodList podList = client.pods().inNamespace("default").withLabel("appname=" + shortName).list();
+		    	
+		    	logger.info("total pods " + podList.getItems().size());
+		    	
 		    	for (Pod pod : podList.getItems()) {
-		    		if (pod.getStatus().getPodIP() != null) {
+		    		if (pod.getStatus().getPhase().equals("Running") &&  pod.getStatus().getPodIP() != null) {
 		    			uris.add(new URI(String.format("http://%s:%s", pod.getStatus().getPodIP(), "8080")));
-		    		}
+		    		} 
 		    	}
 
 		    	if (uris.isEmpty()) {
-		    		logger.info("sleep");
 		    		Utils.sleepSafely(1000);
 		    	} else {
-		    		logger.info("Uris " + uris.size() + " " + uris);
-		    		logger.info("serivice " + shortName + " started");
 		    		return new Server(profile, shortName, database, deployment, service, uris, uris.get(0));
 		    	}
 		    }
@@ -163,9 +155,12 @@ public class KubernetestAdapter implements TestAdapter {
 	@Override
 	public URI startSecondary(String profile) {
 		if (this.primary != null && this.primary.profile.equals(profile)) {
+			logger.info("Resusing primary");
 			this.secondary = new Server(this.primary, this.primary.uris.get(1));
 		} else {
+			logger.info("creating separate");
 			this.secondary = start(profile);
+			logger.info("new started");
 		}
 		
 		return this.secondary.uri;

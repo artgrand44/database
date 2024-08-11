@@ -13,7 +13,6 @@
         },
         "name": "cluster2",
         "namespace": "default",
-        "resourceVersion": "755475",
         "uid": "d3003356-d8a7-4b58-ab07-dbfb3ea9efba"
     },
     "spec": {
