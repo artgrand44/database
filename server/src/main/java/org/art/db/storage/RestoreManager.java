@@ -61,7 +61,9 @@ public class RestoreManager {
 		List<String> result = new ArrayList<>();
 		
 		for (String name : names) {
-			result.add(name);
+			if (!name.isBlank()) {
+				result.add(name);
+			}
 		}
 		
 		Collections.sort(result);
