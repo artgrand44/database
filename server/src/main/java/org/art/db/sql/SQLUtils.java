@@ -1,13 +1,14 @@
 package org.art.db.sql;
 
-import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.art.db.client.Client;
+import org.art.db.client.ClientArgs;
+import org.art.db.common.Broadcaster;
 import org.art.db.common.Comparison;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
@@ -15,6 +16,7 @@ import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
 import org.art.db.common.Key;
 import org.art.db.common.OrderBy;
+import org.art.db.common.TypedOutputStream;
 import org.art.db.storage.Metadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,20 +68,13 @@ public class SQLUtils {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
 		if (handler != null) {
-			URI local = handler.getLocalInstance();
-			
-			for (Map.Entry<String, List<URI>> entry : handler.getInstances().entrySet()) {
-				String shard = entry.getKey();
-
-				for (URI uri : entry.getValue()) {
-					if (!uri.equals(local)) {
-						logger.info("Broadcast from " + local + " to " + uri);
-						Client client = new Client(handler, uri, shard, user, password).batch(false);
-						
-						client.execute(statement);
-					}
+			for (String shard : handler.getShards()) {
+				try (TypedOutputStream stream = new TypedOutputStream()) {
+					new ClientArgs(database, shard, statement, Collections.emptyList()).serialize(stream); 
+					
+					Broadcaster.getInstance().broadcast("/db/execute", stream.toByteArray(), shard, user, password);
 				}
-			}		
+			}	
 		}
 	}
 	

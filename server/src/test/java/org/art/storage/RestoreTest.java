@@ -43,11 +43,14 @@ public class RestoreTest extends BaseIntegrationTest {
 			secondaryClient.waitServerCount(2);
 
 			Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
+			String drop = "drop table if exists pounder";
 			String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 			String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
 			String nameQuery = "select * from pounder where FirstName = ?";
 			String idQuery = "select * from pounder where ID = ?";
+			String extraQuery = "select * from pounder where ID = ?";
 			
+			client.execute(drop);
 			client.execute(create);
 			client.execute(createIndex);
 			
@@ -102,8 +105,13 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			logger.info("restarting");
 			
+			Thread thread = new Thread(this::backgroundJob);
+			
+			
 			super.startInternal("./replication.properties");
 			
+			thread.start();
+			thread.join();
 			primaryClient.waitServerCount(2);
 			
 			logger.info("recovery complete checking " + count);
@@ -111,6 +119,15 @@ public class RestoreTest extends BaseIntegrationTest {
 			// Stop the internal server then verify that all of the documents and
 			// index entries are in the external server	
 			
+			for (int idx = 0; idx < 1000; idx++) {
+				DocumentSet set = primaryClient.executeQuery(extraQuery, this.getId(idx));
+				
+				if (set.size() != 1) {
+					logger.info("bad extra");
+				}
+				
+				Assertions.assertThat(set.size() == 1).withFailMessage("Np extra").isTrue();
+			}
 			for (int idx = 0; idx < count; idx += 500) {
 				int id = this.getId(idx);
 				String name = this.getName(idx);
@@ -139,6 +156,27 @@ public class RestoreTest extends BaseIntegrationTest {
 
 		} catch (AssertionFailedError err) {
 			throw err;
+		} catch(Throwable exc) {
+			exc.printStackTrace();
+			Assertions.fail(exc.getMessage());
+		} 
+	}
+	
+	private void backgroundJob() {
+		try {
+			Client client = new Client(getLocalURI("8081"), "*", "admin", "admin");
+			String drop = "drop table if exists extra";
+			String create = "CREATE TABLE extra (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
+			String createIndex = "CREATE INDEX firstname ON extra(FirstName)";
+			String insert = "insert into extra (ID, FirstName, LastName, Age) values (?, ?, 'grand', '1')";
+			
+			client.execute(drop);
+			client.execute(create);
+			client.execute(createIndex);
+			
+			for (int idx = 0; idx < 1000; idx++) {
+				client.execute(insert, getId(idx), getName(idx));				
+			}
 		} catch(Throwable exc) {
 			exc.printStackTrace();
 			Assertions.fail(exc.getMessage());

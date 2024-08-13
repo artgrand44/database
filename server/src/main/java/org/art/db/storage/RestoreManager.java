@@ -127,10 +127,17 @@ public class RestoreManager {
 			peer = handler.getSourceShard(handler.getLocalShard());
 			newShard = true;
 		}
-				
+						
 		if (peer != null) {
 			try {
 				
+				// Tell the local peers that we are starting the recovery.  This will cause
+				// them to save their logs until we're capable of processing them.
+				
+				String path = String.format("/db/markrecovering?uri=%s&shard=%s", handler.getLocalInstance(), handler.getLocalShard());
+				
+				this.restClient.broadcast(handler.getLocalPeers(), path, new byte[0]);
+												
 				// If there's a peer the recover the configuration and the metadata
 				// then recover the tables one by one.
 				
@@ -148,11 +155,9 @@ public class RestoreManager {
 						
 						logger.info("Recovering " + table);
 						
-						// Tell the peer to flush its current segment and to begin sending broadcasts to this
-						// instance.  The peer will continue sending the broadcasts until this instance is up
-						// and running.
+						// Tell the peer to flush its current segment 
 
-						this.restClient.get(restClient.buildURI(peer, "/db/recovering?uri=%s&table=%s", handler.getLocalInstance(), table));
+						this.restClient.get(restClient.buildURI(peer, "/db/flush?table=%s", table));
 						
 						// Get the table manager.  This will trigger local recovery for any updates that
 						// were lost during the crash.
