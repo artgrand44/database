@@ -128,7 +128,7 @@ public class RestClient {
 	}
 	
 	
-	private Future<HttpResponse<byte[]>> callAsync(String method, URI uri, Object body) throws Exception { 
+	public Future<HttpResponse<byte[]>> callAsync(String method, URI uri, Object body) throws Exception { 
 		HttpRequest.Builder builder = HttpRequest.newBuilder()	
 				.uri(uri)
 				.header("Content-Type", "application/json")
