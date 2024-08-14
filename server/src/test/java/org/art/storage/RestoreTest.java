@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 public class RestoreTest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(RestoreTest.class);
 	
+	private volatile int extraCount;
+	private volatile boolean needExtra = true;
 
 	@Test
 	public void test() {
@@ -57,6 +59,7 @@ public class RestoreTest extends BaseIntegrationTest {
 			// Take down the internal server then create documents until there are at least
 			// 3 disk segments
 			
+			logger.info("*** stopping internal");
 			super.stopInternal();
 			
 			logger.info("Stopped internal");
@@ -106,20 +109,27 @@ public class RestoreTest extends BaseIntegrationTest {
 			logger.info("restarting");
 			
 			Thread thread = new Thread(this::backgroundJob);
+			logger.info("Starting background");
+			thread.start();
 			
 			
 			super.startInternal("./replication.properties");
 			
-			thread.start();
-			thread.join();
+			
 			primaryClient.waitServerCount(2);
+			
+			this.needExtra = false;
+			logger.info("before join");
+			thread.join();
+			logger.info("after join");
+			
 			
 			logger.info("recovery complete checking " + count);
 			
 			// Stop the internal server then verify that all of the documents and
 			// index entries are in the external server	
 			
-			for (int idx = 0; idx < 1000; idx++) {
+			for (int idx = 0; idx < this.extraCount; idx++) {
 				DocumentSet set = primaryClient.executeQuery(extraQuery, this.getId(idx));
 				
 				if (set.size() != 1) {
@@ -164,6 +174,8 @@ public class RestoreTest extends BaseIntegrationTest {
 	
 	private void backgroundJob() {
 		try {
+			;
+					
 			Client client = new Client(getLocalURI("8081"), "*", "admin", "admin");
 			String drop = "drop table if exists extra";
 			String create = "CREATE TABLE extra (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
@@ -174,8 +186,9 @@ public class RestoreTest extends BaseIntegrationTest {
 			client.execute(create);
 			client.execute(createIndex);
 			
-			for (int idx = 0; idx < 1000; idx++) {
-				client.execute(insert, getId(idx), getName(idx));				
+			for (int idx = 0; this.needExtra; idx++) {
+				client.execute(insert, getId(idx), getName(idx));	
+				this.extraCount++;
 			}
 		} catch(Throwable exc) {
 			exc.printStackTrace();

@@ -301,7 +301,7 @@ public class DiscoveryHandler {
 				String shard = entry.getValue();
 				
 				instances.add(shard, uri);
-				Broadcaster.getInstance().markRecovered(uri);
+				Broadcaster.getInstance().markAvailable(uri);
 				hosts.add(InetAddress.getByName(uri.getHost()));
 			}
 			

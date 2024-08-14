@@ -1,5 +1,6 @@
 package org.art.db.common;
 
+import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
@@ -96,7 +97,7 @@ public class Broadcaster {
 		Message message = new Message(path, body, null, null);
 		
 		for (MessageQueue queue : this.messageQueues.values()) {
-			if (queue.shard.equals(shard)) {
+			if (shard.equals(queue.shard)) {
 				queue.messages.add(message);
 			}			
 		}
@@ -120,7 +121,7 @@ public class Broadcaster {
 		Message message = new Message(path, body, user, password);
 		
 		for (MessageQueue queue : this.messageQueues.values()) {
-			if (queue.shard.equals(shard)) {
+			if (shard.equals(queue.shard)) {
 				queue.messages.add(message);
 			}			
 		}
@@ -151,31 +152,54 @@ public class Broadcaster {
 		
 		for (int idx = 0; idx < instances.size(); idx++) {
 			Future<HttpResponse<byte[]>> future = futures.get(idx);
-			HttpResponse<byte[]> response = future.get();
 			
-			if (response.statusCode() == RestException.NO_CONNECTION) {
-				MessageQueue queue = this.messageQueues.computeIfAbsent(instances.get(idx), x -> new MessageQueue(null, true));
-				
-				queue.messages.add(new Message(path, body, user, password));
-				
+			try {
+				future.get();
+				logger.info("after get");
+			} catch (Exception exc) {
+				if (exc.getCause() instanceof ConnectException) {
+					MessageQueue queue = this.messageQueues.computeIfAbsent(instances.get(idx), x -> new MessageQueue(null, true));
+
+					logger.info("requeue " + path);
+					queue.messages.add(new Message(path, body, user, password));
+				}
 			}
 		}
 		
 		
 	}
-	public void markRecovered(URI uri) {
+	
+	/**
+	 * This method is called whenever the DiscoveryHandler detects an available 
+	 * instance.   It sends any messages that have been queued up for the instance.
+	 * Note that there is a chicken and the egg problem during startup - which do 
+	 * we do first - start the DiscoveryHandler or start the web server. To get
+	 * around this, we need to send each message several times until the
+	 * web server is available.
+	 * @param uri
+	 */
+	public void markAvailable(URI uri) {
 		MessageQueue queue = this.messageQueues.remove(uri);
 		
 		if (queue != null) {
 			for (Message message : queue.messages) {
-				try {
-					RestClient myClient = message.user == null ? this.client : new RestClient(message.user, message.password);
-					
-					logger.info("sending " + message.path);
-					myClient.put(client.buildURI(uri, message.path), message.body);
-				} catch (Exception exc) {
-					logger.info("Exception sending message " + exc.getMessage());
-					break;
+				boolean success = false;
+				
+				for (int idx = 0; idx < 10 && !success; idx++) {
+					try {
+						RestClient myClient = message.user == null ? this.client : new RestClient(message.user, message.password);
+
+						
+						myClient.put(client.buildURI(uri, message.path), message.body);
+						logger.info("resend "  + message.path + " to  " + uri);
+						success = true;
+					} catch (Exception exc) {
+						Utils.sleepSafely(1000);
+					}
+				}
+				
+				if (!success) {
+					logger.info("failed to resend " + message.path + " to  " + uri);
 				}
 			}
 		}

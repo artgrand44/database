@@ -153,7 +153,7 @@ public class RestoreManager {
 							FileUtils.copyDirectory(new File(backupDirectory, table), new File(root, table));
 						}
 						
-						logger.info("Recovering " + table);
+						logger.info("Recovering " + table + " on " + handler.getLocalInstanceCount());
 						
 						// Tell the peer to flush its current segment 
 
