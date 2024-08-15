@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
+import org.art.db.common.Broadcaster;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
@@ -136,7 +137,7 @@ public class RestoreManager {
 				
 				String path = String.format("/db/markrecovering?uri=%s&shard=%s", handler.getLocalInstance(), handler.getLocalShard());
 				
-				this.restClient.broadcast(handler.getLocalPeers(), path, new byte[0]);
+				Broadcaster.getInstance().broadcast(handler.getLocalPeers(), path, new byte[0]);
 												
 				// If there's a peer the recover the configuration and the metadata
 				// then recover the tables one by one.

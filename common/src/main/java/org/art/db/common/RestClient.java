@@ -14,10 +14,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -59,30 +56,6 @@ public class RestClient {
 		this.password = password;
 	}
 	
-	public  void broadcast(Collection<URI> baseUrls, String path,byte[] body) throws Exception {
-		List<Future<HttpResponse<byte[]>>> futures = new ArrayList<>();
-		
-		for (URI base : baseUrls) {
-			futures.add(callAsync("PUT", buildURI(base, path), body));
-		}
-			
-		Exception exception = null;
-		
-		for (Future<HttpResponse<byte[]>> future : futures) {
-			HttpResponse<byte[]> response = future.get();
-			
-			if (response.statusCode() != 200) {
-				Optional<String> warning = response.headers().firstValue("Warning");
-				String warningText = warning.orElse("");
-				
-				exception = new RestException(200, warningText);
-			}
-		}
-			
-		if (exception != null) {
-			throw exception;
-		}
-	}
 			
 	public  URI buildURI(URI base, String fileTemplate, Object ... args) throws Exception {
 		return args.length == 0 ? base.resolve(fileTemplate) : base.resolve(String.format(fileTemplate, args));

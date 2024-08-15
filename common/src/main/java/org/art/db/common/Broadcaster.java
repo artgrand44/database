@@ -83,7 +83,7 @@ public class Broadcaster {
 		}
 		
 		instances.remove(handler.getLocalInstance());
-		this.client.broadcast(instances, path, body);
+		this.broadcast(instances, path, body);
 	}
 	
 	/**
@@ -106,7 +106,7 @@ public class Broadcaster {
 		List<URI> instances = new ArrayList<>(handler.getInstancesForShard(shard));
 		
 		instances.remove(handler.getLocalInstance());
-		this.broadcast(instances, path, body, null, null);
+		this.broadcast(instances, path, body);
 		
 	}
 
@@ -134,7 +134,13 @@ public class Broadcaster {
 		
 	}
 	
+	public void broadcast(List<URI> instances, String path, byte[] body)  throws Exception  {
+		this.broadcast(instances, path, body, null, null);
+	}
+	
+	
 	/**
+	 * 
 	 * Broadcast a message to a list of instances.  If an instance us unavailable
 	 * then put the message on a queue.
 	 * @param instances
@@ -142,7 +148,7 @@ public class Broadcaster {
 	 * @param body
 	 * @throws Exception
 	 */
-	private void broadcast(List<URI> instances, String path, byte[] body, String user, String password) throws Exception {
+	public void broadcast(List<URI> instances, String path, byte[] body, String user, String password) throws Exception {
 		RestClient myClient = user == null ? this.client : new RestClient(user, password);
 		List<Future<HttpResponse<byte[]>>> futures = new ArrayList<>();
 		
