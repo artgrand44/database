@@ -54,6 +54,8 @@ public class BackupHandler {
 				File rootFile = new File(root);
 				File backupDir = new File(rootFile, String.valueOf(System.currentTimeMillis()));
 				
+				rootFile.mkdirs();
+				
 				this.deleteOldBackups(rootFile);
 				
 				backupDir.mkdir();
