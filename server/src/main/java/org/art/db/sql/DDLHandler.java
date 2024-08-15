@@ -192,6 +192,7 @@ public class DDLHandler {
 			throw exc;
 		} catch (Exception exc) {
 			logger.info(exc.getMessage());
+			exc.printStackTrace();
 			throw new DBRuntimeException("Create Index failed " + exc.getMessage(), exc);
 		} finally {
 			BackupHandler.getInstance().endUpdate();
@@ -262,6 +263,7 @@ public class DDLHandler {
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
+			exc.printStackTrace();
 			throw new DBRuntimeException("Create Table failed " + exc.getMessage(), exc);
 		} finally {
 			BackupHandler.getInstance().endUpdate();

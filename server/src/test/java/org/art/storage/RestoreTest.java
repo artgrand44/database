@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 public class RestoreTest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(RestoreTest.class);
 	
+	private volatile int extraCount;
+	private volatile boolean needExtra = true;
 
 	@Test
 	public void test() {
@@ -48,6 +50,7 @@ public class RestoreTest extends BaseIntegrationTest {
 			String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
 			String nameQuery = "select * from pounder where FirstName = ?";
 			String idQuery = "select * from pounder where ID = ?";
+			String extraQuery = "select * from pounder where ID = ?";
 			
 			client.execute(drop);
 			client.execute(create);
@@ -56,6 +59,7 @@ public class RestoreTest extends BaseIntegrationTest {
 			// Take down the internal server then create documents until there are at least
 			// 3 disk segments
 			
+			logger.info("*** stopping internal");
 			super.stopInternal();
 			
 			logger.info("Stopped internal");
@@ -104,15 +108,36 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			logger.info("restarting");
 			
+			Thread thread = new Thread(this::backgroundJob);
+			logger.info("Starting background");
+			thread.start();
+			
+			
 			super.startInternal("./replication.properties");
 			
+			
 			primaryClient.waitServerCount(2);
+			
+			this.needExtra = false;
+			logger.info("before join");
+			thread.join();
+			logger.info("after join");
+			
 			
 			logger.info("recovery complete checking " + count);
 			
 			// Stop the internal server then verify that all of the documents and
 			// index entries are in the external server	
 			
+			for (int idx = 0; idx < this.extraCount; idx++) {
+				DocumentSet set = primaryClient.executeQuery(extraQuery, this.getId(idx));
+				
+				if (set.size() != 1) {
+					logger.info("bad extra");
+				}
+				
+				Assertions.assertThat(set.size() == 1).withFailMessage("Np extra").isTrue();
+			}
 			for (int idx = 0; idx < count; idx += 500) {
 				int id = this.getId(idx);
 				String name = this.getName(idx);
@@ -141,6 +166,30 @@ public class RestoreTest extends BaseIntegrationTest {
 
 		} catch (AssertionFailedError err) {
 			throw err;
+		} catch(Throwable exc) {
+			exc.printStackTrace();
+			Assertions.fail(exc.getMessage());
+		} 
+	}
+	
+	private void backgroundJob() {
+		try {
+			;
+					
+			Client client = new Client(getLocalURI("8081"), "*", "admin", "admin");
+			String drop = "drop table if exists extra";
+			String create = "CREATE TABLE extra (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
+			String createIndex = "CREATE INDEX firstname ON extra(FirstName)";
+			String insert = "insert into extra (ID, FirstName, LastName, Age) values (?, ?, 'grand', '1')";
+			
+			client.execute(drop);
+			client.execute(create);
+			client.execute(createIndex);
+			
+			for (int idx = 0; this.needExtra; idx++) {
+				client.execute(insert, getId(idx), getName(idx));	
+				this.extraCount++;
+			}
 		} catch(Throwable exc) {
 			exc.printStackTrace();
 			Assertions.fail(exc.getMessage());

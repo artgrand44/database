@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.client.ClientArgs;
+import org.art.db.common.Broadcaster;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
@@ -60,7 +61,7 @@ public class Dispatcher {
 		   HANDLERS.put("/db/fetch",            new FetchHandler());
 		   HANDLERS.put("/db/log",              new LogHandler());
 		   HANDLERS.put("/db/setproperty",      new SetPropertyHandler());
-		   HANDLERS.put("/db/recovering",       new StartRecoveryHandler());
+		   HANDLERS.put("/db/flush",            new FlushHandler());
 		   HANDLERS.put("/db/close",            new CloseHandler());
 		   HANDLERS.put("/db/getmetadata",      new GetMetadataHandler());
 		   HANDLERS.put("/db/gettables",        new GetTablesHandler());
@@ -69,6 +70,7 @@ public class Dispatcher {
 		   HANDLERS.put("/db/getproperties",    new GetPropertiesHandler());
 		   HANDLERS.put("/db/stop" ,            new StopHandler());
 		   HANDLERS.put("/db/backup" ,          new BackHandler());
+		   HANDLERS.put("/db/markrecovering" ,  new MarkRecoveringHandler());
 		   HANDLERS.put("/db/restart",          new RestartHandler());
 		   HANDLERS.put("/actuator/prometheus", new ScrapeHandler());
 	}
@@ -450,17 +452,15 @@ public class Dispatcher {
 		
 	}
 	
-	static class StartRecoveryHandler implements Handler {
+	static class FlushHandler implements Handler {
 		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {			
 			try {
 				String table = parameters.get("table");
-				String uri = parameters.get("uri");
 				
 				StorageManager.getInstance().getTableManager(table).flush();
-				DiscoveryHandler.getServerInstance().addRecoveringInstance(new URI(uri));
-			
+				
 				return new byte[0];
 			} catch (Exception exc) {
 				Metrics.getInstance().logAlert("There was an error flushing the database");
@@ -470,6 +470,25 @@ public class Dispatcher {
 
 	}
 	
+	static class MarkRecoveringHandler implements Handler {
+		
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {			
+			try {
+				String shard = parameters.get("shard");
+				URI uri = new URI(parameters.get("uri"));
+				
+				Broadcaster.getInstance().markRecovering(uri, shard);
+				
+				return new byte[0];
+			} catch (Exception exc) {
+				Metrics.getInstance().logAlert("There was an error flushing the database");
+				throw exc;
+			}
+		}
+
+	}
+
 	static class StopHandler implements Handler {
 
 		@Override

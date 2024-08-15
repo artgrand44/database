@@ -152,10 +152,14 @@ public class TableManager implements Closeable{
 						logger.info("bad op " + entry);
 						break;
 					}
+				} catch (DBRuntimeException exc) {
+					if (!exc.getMessage().startsWith("Duplicate")) {
+						Metrics.getInstance().logAlert("There was an error recovering a log entry");
+						logger.info("There was an exception recovering a log entry " + exc.getMessage() + " " + entry + " check " + checkTimestamps);
+					}
 				} catch (Exception exc) {
 					Metrics.getInstance().logAlert("There was an error recovering a log entry");
 					logger.info("There was an exception recovering a log entry " + exc.getMessage() + " " + entry + " check " + checkTimestamps);
-					exc.printStackTrace();
 				}
 			}
 		} catch (Exception exc) {

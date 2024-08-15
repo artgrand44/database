@@ -37,8 +37,6 @@ public class DiscoveryHandler {
 	
 	private AtomicReference<Set<InetAddress>> hosts = new  AtomicReference<>(new HashSet<>());
 	
-	private ConcurrentHashMap<URI, URI> recoveringInstances = new ConcurrentHashMap<>();
-	
 	private String port;
 	
 	private final URI localInstance;
@@ -107,9 +105,6 @@ public class DiscoveryHandler {
 	}
 	
 
-	public void addRecoveringInstance(URI uri) {
-		this.recoveringInstances.put(uri,  uri);
-	}
 	
 	public static void clear() {
 		handlers.clear();
@@ -151,6 +146,10 @@ public class DiscoveryHandler {
 	
 	public MultiValueMap<String, URI> getInstances() {
 		return this.instances.get();
+	}
+	
+	public List<URI> getInstancesForShard(String shard) {
+		return this.instances.get().get(shard);
 	}
 	
 	public String getLocalShard() {
@@ -196,14 +195,12 @@ public class DiscoveryHandler {
 				Set<URI> peers = new HashSet<>(instances.get(this.getLocalShard()));
 
 				peers.remove(this.localInstance);
-				peers.addAll(this.recoveringInstances.keySet());
-
+			
 				return new ArrayList<>(peers);
 			}
 		}
 		
 		return Collections.emptyList();
-	
 	}
 	
 	public URI getRandomPeer() {
@@ -303,15 +300,14 @@ public class DiscoveryHandler {
 				String shard = entry.getValue();
 				
 				instances.add(shard, uri);
+				Broadcaster.getInstance().markAvailable(uri);
 				hosts.add(InetAddress.getByName(uri.getHost()));
-				this.recoveringInstances.remove(uri);
 			}
 			
 			if (this.localInstance != null && !map.containsKey(this.localInstance)) {
 				instances.add(this.getLocalShard(), this.localInstance);
 				hosts.add(InetAddress.getByName(this.localInstance.getHost()));
-			}
-			
+			}		
 		
 			ShardFinder finder = new ShardFinder(instances.keySet());
 			

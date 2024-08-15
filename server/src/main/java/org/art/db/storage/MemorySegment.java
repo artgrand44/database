@@ -2,10 +2,8 @@ package org.art.db.storage;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -21,13 +19,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.art.db.common.Blob;
+import org.art.db.common.Broadcaster;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.GUID;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry;
 import org.art.db.common.LogEntry.Operation;
-import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
 import org.art.db.common.TypedOutputStream;
 import org.slf4j.Logger;
@@ -67,11 +65,6 @@ public class MemorySegment extends Segment {
 	 */
 	private volatile ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
 	
-	
-	/**
-	 * The rest client for sending snapshots
-	 */
-	private final RestClient restClient = new RestClient();
 	
 	private static AtomicLong nextId = new AtomicLong();
 	
@@ -160,12 +153,7 @@ public class MemorySegment extends Segment {
 			this.broadcastLock.unlock();
 		}
 		
-		Collection<URI> peers;
 		List<LogEntry> batch = this.broadcastQueue.pollFirst();
-
-		if (this.discoveryHandler == null || (peers = this.discoveryHandler.getLocalPeers()).isEmpty() || batch == null) {
-			return;
-		}
 
 		try {
 			try (TypedOutputStream stream = new TypedOutputStream()) {
@@ -177,8 +165,7 @@ public class MemorySegment extends Segment {
 					}
 				}
 
-				logger.info("broadcast from " + this.discoveryHandler.getLocalPort() + " to " + peers);
-				this.restClient.broadcast(peers, "/db/propagate", stream.toByteArray());			
+				Broadcaster.getInstance().broadcast("/db/propagate", stream.toByteArray());			
 			}
 		} catch (Exception exc) {
 			if (batch != null) {

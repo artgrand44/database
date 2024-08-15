@@ -76,6 +76,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 					String podIp = pod.getStatus().getPodIP();
 					String phase = pod.getStatus().getPhase();
 					
+		    		
 					if (phase.equals("Running") && podIp != null) {
 						URI uri = new URI(String.format("http://%s:%s", podIp, "8080"));
 
