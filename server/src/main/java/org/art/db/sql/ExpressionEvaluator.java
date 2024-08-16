@@ -483,11 +483,11 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 			Object left = this.evaluate(andExpression.getLeftExpression());
 			Object right = this.evaluate(andExpression.getRightExpression());
 
-			if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
+			if (left instanceof DocumentSet && right instanceof DocumentSet) {
 				throw new UnsupportedSyntaxException("Bad plan for " + andExpression);
 			} 
 
-			if (left instanceof DocumentSet set) {
+			if (left instanceof DocumentSet) {
 				this.result = right.equals(Boolean.TRUE) ? left : new DocumentSet();
 				return;
 			}

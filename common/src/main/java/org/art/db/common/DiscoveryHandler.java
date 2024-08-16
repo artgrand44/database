@@ -381,8 +381,6 @@ public class DiscoveryHandler {
 				throw new Exception("Unable to find services on " + this.plugin.getLocalPort() + " timeout " + timeout);
 			}
 			
-			logger.info("***wait " + desiredCount + " got " + this.getInstanceCount(this.instances.get()));
-			
 			Utils.sleepSafely(Math.min(timeout, 1000));
 			this.plugin.poll();
 			this.loadEnvironment();

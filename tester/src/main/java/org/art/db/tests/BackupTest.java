@@ -1,7 +1,6 @@
 package org.art.db.tests;
 
 import java.io.File;
-import java.net.InetAddress;
 
 import org.apache.commons.io.FileUtils;
 import org.art.db.client.Client;

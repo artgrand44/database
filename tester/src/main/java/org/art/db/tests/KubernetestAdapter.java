@@ -78,8 +78,8 @@ public class KubernetestAdapter implements TestAdapter {
 	}
 	
 	private void stop(Server server) {
-		//client.services().inNamespace("default").resource(server.service).delete();
-		//client.apps().deployments().inNamespace("default").resource(server.deployment).delete();
+		client.services().inNamespace("default").resource(server.service).delete();
+		client.apps().deployments().inNamespace("default").resource(server.deployment).delete();
 	}
 
 	private Server start(String profile) {

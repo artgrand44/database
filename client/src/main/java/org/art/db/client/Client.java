@@ -39,7 +39,6 @@ public class Client {
 	
 	public static final String WILDCARD = "*";
 	
-	
 	public Client(URI uri, String user, String password) throws Exception {
 		String database;
 		String shard;
@@ -209,7 +208,7 @@ public class Client {
 	}
 	
 	public void waitServerCount(int count) throws Exception {
-		for (int idx = 0; idx < 5000; idx++) {
+		for (int idx = 0; idx < 10; idx++) {
 			try {
 				this.client.get(this.client.buildURI(this.uri, "/db/wait?count=%s", count));
 				return;

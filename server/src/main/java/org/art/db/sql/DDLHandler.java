@@ -204,9 +204,7 @@ public class DDLHandler {
 		if (!SecurityHandler.getInstance().isAdmin(user, password)) {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
-		
-			
-		logger.info("***create table");
+					
 		Table table = createTable.getTable();
 		File file = Files.getMetadata(SQLUtils.getFQN(table, database));
 		

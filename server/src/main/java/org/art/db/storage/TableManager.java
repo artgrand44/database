@@ -48,6 +48,7 @@ public class TableManager implements Closeable{
 	
 	private final Cache<Key, Long> timestamps = Caffeine.newBuilder().maximumSize(1000).build();
 	
+	@SuppressWarnings("resource")
 	public TableManager(String tableName) throws Exception {
 		this.tableName = tableName;
 		this.metadataFile = Files.getMetadata(tableName);

@@ -268,6 +268,7 @@ public class RestoreManager {
 		}
 	}
 	
+	@SuppressWarnings("resource")
 	private void recoverTable(TableManager manager, URI peer, String tableName) throws Exception { 
 		File[] files = Files.listDiskSegments(tableName);
 		long timestamp;

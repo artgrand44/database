@@ -128,7 +128,7 @@ public class UIPoller {
 				if (stats.getCacheName().equals(this.cluster)) {
 					String key;
 					
-					if (stats instanceof ServerStats serverStats) {
+					if (stats instanceof ServerStats) {
 						key = stats.getServer();
 					} else if (stats instanceof AlertStats alertStats) {
 						key = alertStats.getShard() + "|" + alertStats.getServer() + "|" + alertStats.getAlert();

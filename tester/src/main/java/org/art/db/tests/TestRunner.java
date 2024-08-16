@@ -45,9 +45,7 @@ public class TestRunner {
 			Collections.sort(classNames);
 
 			for (String className : classNames) {
-				if (className.equals(BackupTest.class.getName()) || className.equals(QueueRestoreTest.class.getName())) {
-					runTests(className);
-				}
+				runTests(className);
 			}
 
 			StringBuilder builder = new StringBuilder();

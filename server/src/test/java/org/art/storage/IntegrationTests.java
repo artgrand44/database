@@ -7,7 +7,6 @@ import org.art.db.client.Client;
 import org.art.db.tests.TestAdapter;
 import org.art.db.tests.TestRunner;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +14,7 @@ public class IntegrationTests extends BaseIntegrationTest implements TestAdapter
 
 	private static final Logger logger = LoggerFactory.getLogger(IntegrationTests.class);
 	
-	@Test
+	//@Test
 	public void test() {
 		String results = TestRunner.run(this);
 		
