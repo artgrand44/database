@@ -222,7 +222,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 		
 	public static void start(String properties) {
 		try {
-			logger.info("start with " + System.getProperty("java.home"));
+			logger.info("**start with " + System.getProperty("java.home"));
 			
 			File file = new File(properties);
 			

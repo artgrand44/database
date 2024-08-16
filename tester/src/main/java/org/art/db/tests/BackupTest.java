@@ -48,8 +48,7 @@ public class BackupTest extends BaseIntegrationTest {
 			
 			logger.info("inserts complete");
 			
-			String host = InetAddress.getLocalHost().getHostAddress();
-			ConnectionInfo primary = new ConnectionInfo(host, "8080", "cluster", "shard1");
+			ConnectionInfo primary = new ConnectionInfo(TestRunner.getAdapter().getPrimaryURI().getHost(), "8080", "averlongshardname", "db2");
 			RestClient restClient = new RestClient();
 			
 			restClient.get(restClient.buildURI(primary.toURI(), "/db/backup"));

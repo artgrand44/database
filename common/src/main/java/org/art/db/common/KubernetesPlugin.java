@@ -2,6 +2,7 @@ package org.art.db.common;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,19 +69,20 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 				
 				Map<URI, String> result = new HashMap<>();
 				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
+				List<String> names = new ArrayList<>();
 								
 				for (Pod pod : podList.getItems()) {
 					List<EnvVar> list = pod.getSpec().getContainers().get(0).getEnv();
 					EnvVar shardVar = list.stream().filter(x -> x.getName().equals("org.art.db.shard")).findAny().orElse(null);
 					String shard = shardVar.getValue();
 					String podIp = pod.getStatus().getPodIP();
-					String phase = pod.getStatus().getPhase();
-					
+					String phase = pod.getStatus().getPhase();					
 		    		
 					if (phase.equals("Running") && podIp != null) {
 						URI uri = new URI(String.format("http://%s:%s", podIp, "8080"));
 
 						result.put(uri, shard);
+						names.add(pod.getMetadata().getName());
 
 						if (podIp.equals(localHostAddress)) {
 							this.localInstance = uri;
@@ -88,7 +90,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 					} 
 				}
 						
-				logger.info("count = " + result.size() + " localInstance = " + this.localInstance);
+				logger.info("plugin found " + String.join(",", names));
 				
 				this.ttl = System.currentTimeMillis() + 10 * 1000;
 				this.serverInstances.set(result);

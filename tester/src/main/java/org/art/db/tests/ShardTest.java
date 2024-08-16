@@ -50,7 +50,9 @@ public class ShardTest extends BaseIntegrationTest {
 				String insertTemplare = "insert into sharded (id, color, make, count) values ('%s', 'red', 'toyota', '1')";
 				String queryTemplate = "select * from sharded where id = '%s'";
 				
-				DiscoveryHandler handler = new DiscoveryHandler(new ConnectionInfo("./averlongshardname.properties"), false);
+				ConnectionInfo info = new ConnectionInfo(TestRunner.getAdapter().getPrimaryURI().getHost(), "8080", "averlongshardname", "db2");
+				DiscoveryHandler handler = new DiscoveryHandler(info, false);
+				
 				handler.waitInstanceCount(2, 10 * 1000);
 				
 				for (int idx = 0; idx < 10; idx++) {
@@ -64,9 +66,14 @@ public class ShardTest extends BaseIntegrationTest {
 					averlongshardnameClient.execute(theInsert);
 					
 					Client expected = shard.equals("averlongshardname") ? averlongshardnameClient : shard2Client;
+					Client other = shard.equals("averlongshardname") ? shard2Client : averlongshardnameClient;
 					String query = String.format(queryTemplate, keyValue);
 					
 					DocumentSet set = expected.executeQuery(query);
+					
+					if (set.isEmpty()) {
+						logger.info("empty key = " + key + " shard = " + shard + " other = " + other.executeQuery(query).size());
+					}
 					
 					Assertions.assertThat(!set.isEmpty()).isTrue();
 					
@@ -121,6 +128,7 @@ public class ShardTest extends BaseIntegrationTest {
 				
 				Assertions.assertThat(set.size() == 0).isTrue();
 		} catch (AssertionFailedError err) {
+			err.printStackTrace();
 			throw err;
 		} catch(Throwable exc) {
 			exc.printStackTrace();

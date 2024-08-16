@@ -40,10 +40,12 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			secondaryClient.waitServerCount(2);
 
 			Client client = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
+			String drop = "drop table if exists restore";
 			String create = "CREATE QUEUE TABLE restore (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 			String createIndex = "CREATE INDEX firstname ON restore(FirstName)";
 			String idQuery = "select * from restore where ID = ?";
 			
+			client.execute(drop);
 			client.execute(create);
 			client.execute(createIndex);
 			
@@ -74,6 +76,7 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			logger.info("restarting");
 			
 			TestRunner.getAdapter().startPrimary("./replication.properties");
+			primaryClient = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
 			
 			primaryClient.waitServerCount(2);
 			
@@ -91,7 +94,10 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 				if (ids.size() != 1) {
 					logger.info("Missing id " + id);
 					ids = primaryClient.executeQuery(idQuery, id);
-					ids = secondaryClient.executeQuery(idQuery, id);					
+					
+					logger.info("from primary " + ids.size());
+					ids = secondaryClient.executeQuery(idQuery, id);
+					logger.info("from secondary " + ids.size());
 				}
 				
 				Assertions.assertThat(ids.size() == 1).isTrue();

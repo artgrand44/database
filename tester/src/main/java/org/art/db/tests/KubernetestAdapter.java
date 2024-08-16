@@ -119,10 +119,7 @@ public class KubernetestAdapter implements TestAdapter {
 			}
 			
 			
-			client.apps().deployments().inNamespace("default").resource(deployment).delete();
 			
-			deployment = this.client.apps().deployments().inNamespace("default").resource(deployment).create();
-	        
 			Service service = new ServiceBuilder()
 		            .withNewMetadata().withName(shortName).addToLabels("app", shortName).endMetadata()
 		            .withNewSpec()
@@ -136,10 +133,22 @@ public class KubernetestAdapter implements TestAdapter {
 		            .endSpec()
 		            .build();
 			
+			client.apps().deployments().inNamespace("default").resource(deployment).delete();
 			client.services().inNamespace("default").resource(service).delete();
-			client.services().inNamespace("default").resource(service).create();
+			
+			logger.info("completed deletes");
+			
+			while (!client.pods().inNamespace("default").withLabel("appname=" + shortName).list().getItems().isEmpty()) {
+				Utils.sleepSafely(1000);
+			}
+			
+			logger.info("starting creates");
+			
+			this.client.apps().deployments().inNamespace("default").resource(deployment).create();
+			this.client.services().inNamespace("default").resource(service).create();
 		    
 		    List<URI> uris = new ArrayList<>();
+		    List<String> names = new ArrayList<>();
 		    
 		    for (int idx = 0; idx < 100; idx++) {
 		    	PodList podList = client.pods().inNamespace("default").withLabel("appname=" + shortName).list();
@@ -149,6 +158,8 @@ public class KubernetestAdapter implements TestAdapter {
 		    	for (Pod pod : podList.getItems()) {
 		    		if (pod.getStatus().getPhase().equals("Running") &&  pod.getStatus().getPodIP() != null) {
 		    			uris.add(new URI(String.format("http://%s:%s", pod.getStatus().getPodIP(), "8080")));
+		    			
+		    			names.add(pod.getMetadata().getName());
 		    		} 
 		    	}
 
@@ -157,6 +168,7 @@ public class KubernetestAdapter implements TestAdapter {
 		    	} else {
 		    		String database = deployment.getMetadata().getLabels().get("database");
 					
+		    		logger.info("adapter found " + String.join(",", names));
 					return new Server(profile, shortName, database, deployment, service, uris, uris.get(0));
 		    	}
 		    }
@@ -174,6 +186,7 @@ public class KubernetestAdapter implements TestAdapter {
 	public URI startPrimary(String profile) {
 		this.primary = this.start(profile);
 		
+		logger.info("started primary " + this.primary.uri);
 		return this.primary.uri;
 	}
 
@@ -195,12 +208,9 @@ public class KubernetestAdapter implements TestAdapter {
 	@Override
 	public URI startSecondary(String profile) {
 		if (this.primary != null && this.primary.profile.equals(profile)) {
-			logger.info("Resusing primary");
 			this.secondary = new Server(this.primary, this.primary.uris.get(1));
 		} else {
-			logger.info("creating separate");
 			this.secondary = start(profile);
-			logger.info("new started");
 		}
 		
 		return this.secondary.uri;

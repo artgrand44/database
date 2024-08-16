@@ -79,6 +79,7 @@ public class RestoreTest extends BaseIntegrationTest {
 			logger.info("restarting");
 			
 			TestRunner.getAdapter().startPrimary("./replication.properties");
+			primaryClient = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
 			
 			primaryClient.waitServerCount(2);
 			

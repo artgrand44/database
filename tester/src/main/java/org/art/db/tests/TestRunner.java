@@ -27,6 +27,7 @@ public class TestRunner {
 			
 	
 	public static void main(String[] args) {
+		logger.info("*** in main");
 		logger.info(run(new KubernetestAdapter()));
 	}
 	
@@ -44,7 +45,7 @@ public class TestRunner {
 			Collections.sort(classNames);
 
 			for (String className : classNames) {
-				if (className.equals(ReplicationTest.class.getName())) {
+				if (className.equals(BackupTest.class.getName()) || className.equals(QueueRestoreTest.class.getName())) {
 					runTests(className);
 				}
 			}

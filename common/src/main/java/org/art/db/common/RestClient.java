@@ -89,6 +89,13 @@ public class RestClient {
 			Throwable cause = exc.getCause();
 			
 			if (cause instanceof ConnectException) {
+				logger.info("throwing connection exception " + cause.getMessage() + " " + uri);
+				
+				
+				if (cause.getMessage() == null) {
+					logger.info("cause is " + cause);
+					cause.printStackTrace();
+				}
 				throw new RestException(RestException.NO_CONNECTION, "", cause);
 			} else if (cause instanceof SocketException) {
 				throw new RestException(500, "Socket exception " + uri + " " + cause.getMessage(), cause);

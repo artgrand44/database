@@ -209,12 +209,13 @@ public class Client {
 	}
 	
 	public void waitServerCount(int count) throws Exception {
-		for (int idx = 0; idx < 10; idx++) {
+		for (int idx = 0; idx < 5000; idx++) {
 			try {
 				this.client.get(this.client.buildURI(this.uri, "/db/wait?count=%s", count));
 				return;
 			} catch (RestException exc) {
 				if (exc.getCause() instanceof ConnectException) {
+					logger.info("conn exception " + exc.getMessage());
 					Utils.sleepSafely(2000);
 				}
 			}
