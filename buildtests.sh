@@ -6,5 +6,7 @@ kubectl delete deployment.apps/tester service/tester
 docker build . --tag db:v1
 docker build . -f ./DockerFileTest --tag tester:v1 
 
+kubectl apply -f roles.yaml
+
 kubectl create -f tester.yaml
 kubectl expose deployment tester
