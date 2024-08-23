@@ -43,10 +43,9 @@ public class RestClient {
 			localHost = InetAddress.getLocalHost().getHostAddress();
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
-		}	
-		
-		
+		}			
 	}
+	
 	public RestClient() {
 		
 	}
@@ -54,6 +53,12 @@ public class RestClient {
 	public RestClient(String user, String password) {
 		this.user = user;
 		this.password = password;
+	}
+	
+	public RestClient(String user, String password, Duration timeout) {
+		this.user = user;
+		this.password = password;
+		this.timeout = timeout;
 	}
 	
 			

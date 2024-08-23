@@ -3,6 +3,7 @@ package org.art.db.storage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -110,6 +111,31 @@ public class RestoreManager {
 		return result;	
 	}
 	
+	/**
+	 * Find a suitable partner.  This method iterates over all of the local peers
+	 * and does a fast check to make sure that the peer is fully running.  This
+	 * is necessary to avoid deadlocks in the case where two peers are starting
+	 * at the same time.
+	 * @param handler
+	 * @return
+	 */
+	private URI getPartner(DiscoveryHandler handler) {
+		RestClient client = new RestClient(SecurityHandler.getInstance().getAdminUser(), 
+				                           SecurityHandler.getInstance().getAdminPassword(), 
+				                           Duration.ofMillis(200)); 
+		
+		for (URI partner : handler.getLocalPeers()) {
+			try {
+				client.get(partner);
+				return partner;
+			} catch (Exception exc) {
+	
+			}
+		}
+		
+		return null;
+	}
+	
 	public void recover(DiscoveryHandler handler) {	
 		
 		// Determine whether we need to restore the entire database from the backup.
@@ -122,7 +148,7 @@ public class RestoreManager {
 		
 		// Select a peer to work with
 		
-		URI peer = handler.getRandomPeer();
+		URI peer = getPartner(handler);
 		boolean newShard = false;
 		
 		if (peer == null && handler.getShards().size() > 1) {

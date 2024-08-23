@@ -4,9 +4,12 @@ metadata:
   namespace: default
   name: dbrole
 rules:
-- apiGroups: [""] # "" indicates the core API group
-  resources: ["pods", "leases"]
+- apiGroups: [""] # Privileges for database servers
+  resources: ["pods"]
   verbs: ["get", "watch", "list"]
+- apiGroups: [""] # Additional privileges for tester
+  resources: ["deployments", "services"]
+  verbs: ["get", "watch", "list", "create", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
