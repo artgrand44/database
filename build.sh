@@ -121,12 +121,8 @@ echo "Starting build..."
 
 
 mvn clean package  -DskipTests=true -q
-kubectl delete deployment.apps/${service} service/${service}
+kubectl delete deployment.apps/${service} service/${service} service/my-service
 docker build . --tag db:v1
 kubectl apply -f customvolume.yaml
 kubectl create -f custom.yaml
-kubectl expose deployment ${service}
-
-
-sleep 5
-minikube service ${service} hello-minikube1 --url
+kubectl expose deployment ${service} --type=LoadBalancer --name=my-service

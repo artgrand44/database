@@ -16,6 +16,7 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	private static final Logger logger = LoggerFactory.getLogger(BaseIntegrationTest.class);
 	
 	private Process externalServer;
+	private static boolean kunernetes;
 	
 	private final String java = System.getProperty("java.home") + "/bin/java";
 	
@@ -37,6 +38,14 @@ public class BaseIntegrationTest extends BaseSQLTest {
 		return new URI(String.format("http://%s:%s", host, port));		
 	}
 	
+	public static boolean isKunernetes() {
+		return kunernetes;
+	}
+
+	public static void setKunernetes(boolean kunernetes) {
+		BaseIntegrationTest.kunernetes = kunernetes;
+	}
+
 	public void startExternal(String path)  {
 		try {
 			String classpath = System.getProperty("java.class.path");
@@ -53,8 +62,10 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	}
 	
 	public void startInternal(String path) {
-		DiscoveryHandler.clear();
-		Server.start(path);		
+		if (!kunernetes) {
+			DiscoveryHandler.clear();
+			Server.start(path);	
+		}
 	}
 	
 
