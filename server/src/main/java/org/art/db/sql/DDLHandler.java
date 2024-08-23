@@ -204,8 +204,7 @@ public class DDLHandler {
 		if (!SecurityHandler.getInstance().isAdmin(user, password)) {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
-		
-			
+					
 		Table table = createTable.getTable();
 		File file = Files.getMetadata(SQLUtils.getFQN(table, database));
 		
@@ -334,8 +333,6 @@ public class DDLHandler {
 					StorageManager.getInstance().closeTable(table);
 					FileUtils.deleteDirectory(tableDir);
 					Metadata.removeFromCache(table);
-
-					logger.info("deleted tableDir " + tableDir.getAbsolutePath() + " " + tableDir.exists());
 
 					if (targetShard.equals(Client.WILDCARD)) {
 						SQLUtils.broadcastAll(database, drop.toString(), user, password);

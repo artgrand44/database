@@ -3,6 +3,7 @@ package org.art.db.storage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -98,6 +99,7 @@ public class RestoreManager {
 				
 		for (String name : names) {
 			int dash = name.indexOf('_');
+			
 			long fileTimestamp = Long.valueOf(name.substring(0, dash));
 			
 			if (fileTimestamp > timestamp) {
@@ -107,6 +109,31 @@ public class RestoreManager {
 		}
 		
 		return result;	
+	}
+	
+	/**
+	 * Find a suitable partner.  This method iterates over all of the local peers
+	 * and does a fast check to make sure that the peer is fully running.  This
+	 * is necessary to avoid deadlocks in the case where two peers are starting
+	 * at the same time.
+	 * @param handler
+	 * @return
+	 */
+	private URI getPartner(DiscoveryHandler handler) {
+		RestClient client = new RestClient(SecurityHandler.getInstance().getAdminUser(), 
+				                           SecurityHandler.getInstance().getAdminPassword(), 
+				                           Duration.ofMillis(200)); 
+		
+		for (URI partner : handler.getLocalPeers()) {
+			try {
+				client.get(partner);
+				return partner;
+			} catch (Exception exc) {
+	
+			}
+		}
+		
+		return null;
 	}
 	
 	public void recover(DiscoveryHandler handler) {	
@@ -121,7 +148,7 @@ public class RestoreManager {
 		
 		// Select a peer to work with
 		
-		URI peer = handler.getRandomPeer();
+		URI peer = getPartner(handler);
 		boolean newShard = false;
 		
 		if (peer == null && handler.getShards().size() > 1) {
@@ -185,7 +212,7 @@ public class RestoreManager {
 					
 				StorageManager.getInstance().reset();
 			} catch (Exception exc) {
-				Metrics.getInstance().logAlert("There was an error synchronizing the configuration.");
+				Metrics.getInstance().logAlert("There was an exception restoring the backup.");
 				logger.info("There was an error synchronizing the configuration " + exc.getMessage());
 			}
 		} else if (useBackup) {
@@ -211,7 +238,7 @@ public class RestoreManager {
 		}
 		
 	}
-	
+	boolean first = true;
 	/**
 	 * Update the index entries for a recovered document
 	 * @param key
@@ -225,8 +252,12 @@ public class RestoreManager {
 		
 			manager.updateIndices(oldDoc, newDoc, key);
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error recovering the indices");
-			logger.info("Error recovering index entries " + key + " " + exc.getMessage());
+			if (first) {
+				Metrics.getInstance().logAlert("There was an error recovering the indices");
+				logger.info("Error recovering index entries " + key + " " + exc.getMessage());
+				exc.printStackTrace();
+				first = false;
+			}
 		} finally {
 			inProgress.decrementAndGet();
 		}
@@ -263,6 +294,7 @@ public class RestoreManager {
 		}
 	}
 	
+	@SuppressWarnings("resource")
 	private void recoverTable(TableManager manager, URI peer, String tableName) throws Exception { 
 		File[] files = Files.listDiskSegments(tableName);
 		long timestamp;

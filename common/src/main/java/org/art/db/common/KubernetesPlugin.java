@@ -2,6 +2,7 @@ package org.art.db.common;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,30 +65,24 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		
 		if ((this.serverInstances.get() == null || System.currentTimeMillis() > this.ttl) && this.loading.compareAndSet(false, true)) {
 			try {
-				logger.info("starting services scan " + this.database);
-				
-				PodList podList = client.pods().withLabel("app=" + this.database).list();
+				PodList podList =  client.pods().inNamespace("default").withLabel("app=" + this.database).list();
 				
 				Map<URI, String> result = new HashMap<>();
 				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
+				List<String> names = new ArrayList<>();
 								
 				for (Pod pod : podList.getItems()) {
 					List<EnvVar> list = pod.getSpec().getContainers().get(0).getEnv();
 					EnvVar shardVar = list.stream().filter(x -> x.getName().equals("org.art.db.shard")).findAny().orElse(null);
 					String shard = shardVar.getValue();
 					String podIp = pod.getStatus().getPodIP();
-					String phase = pod.getStatus().getPhase();
-					
-					if (pod.getStatus().getPhase().equals("Running")) {
-		    			logger.info("Running pod  podIP " + pod.getStatus().getPodIP()  + "host " + pod.getStatus().getHostIP());
-		    		}
+					String phase = pod.getStatus().getPhase();					
 		    		
 					if (phase.equals("Running") && podIp != null) {
 						URI uri = new URI(String.format("http://%s:%s", podIp, "8080"));
-						
-						logger.info("added " + uri);
 
 						result.put(uri, shard);
+						names.add(pod.getMetadata().getName());
 
 						if (podIp.equals(localHostAddress)) {
 							this.localInstance = uri;
@@ -95,7 +90,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 					} 
 				}
 						
-				logger.info("localhost = " + localHostAddress + " localInstance = " + this.localInstance + " result = " + result);
+				logger.info("plugin found " + String.join(",", names));
 				
 				this.ttl = System.currentTimeMillis() + 10 * 1000;
 				this.serverInstances.set(result);
@@ -142,7 +137,10 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 
 	}
 	
-		
+	public void poll() { 
+		this.ttl = 0;
+	}
+	
 	@Override
 	public void start() {
 		
@@ -154,7 +152,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	}
 
 	public static boolean isKubernetes() {
-		return "kubernetes".equalsIgnoreCase(System.getenv("cloud"));
+		return "kubernetes".equalsIgnoreCase(System.getenv("cloud")) || System.getenv("KUBERNETES_PORT") != null;
 	}	
 
 }

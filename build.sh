@@ -1,6 +1,6 @@
 #! /bin/bash
 
-#build.sh service1 db2 shard1 3 4Gi kubernetes.io\\/hostname minikube 1w 2
+#build.sh service1 db2 shard1 2 4Gi kubernetes.io\\/hostname minikube 1w 2
 
 if [ "$#" -ge 1 ]; then
     service=$1
@@ -121,12 +121,9 @@ echo "Starting build..."
 
 
 mvn clean package  -DskipTests=true -q
-kubectl delete deployment.apps/${service} service/${service}
+kubectl delete deployment.apps/${service} service/${service} service/my-service
 docker build . --tag db:v1
+kubectl apply -f roles.yaml
 kubectl apply -f customvolume.yaml
 kubectl create -f custom.yaml
-kubectl expose deployment ${service}
-
-
-sleep 5
-minikube service ${service} hello-minikube1 --url
+kubectl expose deployment ${service} --type=LoadBalancer --name=my-service

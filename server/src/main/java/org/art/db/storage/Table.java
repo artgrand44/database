@@ -358,6 +358,7 @@ public class Table implements Closeable {
 
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error merging database segments");
+			exc.printStackTrace();
 			logger.info("Error merging files " + exc.getMessage());
 		}
 

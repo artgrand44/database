@@ -3,8 +3,7 @@
 # cd /Users/artgrand/repros/database
 # 
 
-# eval $(minikube -p minikube docker-env)
-# minikube start
+# kubectl config use-context docker-desktop
 # docker build . --tag db:v1 
 # 
 

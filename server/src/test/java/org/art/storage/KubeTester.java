@@ -1,7 +1,5 @@
 package org.art.storage;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -9,12 +7,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.commons.lang3.StringUtils;
 
 import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
 
@@ -28,24 +26,8 @@ public class KubeTester {
 	public static void main(String[] args) {
 		
 		try {
-			if (System.getProperty("org.art.db.serviceURI") == null) {
-				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-				String uri = null;
-				
-				while (uri == null || uri.isBlank()) {
-					System.out.println("Enter service uri:");
-
-					try {
-						uri = reader.readLine();
-
-					} catch (Exception exc) {
-						throw new IllegalStateException(exc);
-					}
-				}
-				
-				System.setProperty("org.art.db.serviceURI", uri.trim());
-			}
-
+			System.setProperty("org.art.db.serviceURI", "http://localhost:8080");
+			
 			FastClasspathScanner scanner = new FastClasspathScanner(new String[] {"org.art.storage"} );
 			
 			scanner.scan();
@@ -104,6 +86,8 @@ public class KubeTester {
 			Object instance = cons.newInstance();
 
 			logger.info("Starting class " + clazz.getSimpleName());
+			
+			BaseIntegrationTest.setKunernetes(true);
 			
 			for (Method test : tests) {
 				totalTests++;

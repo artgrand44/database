@@ -201,7 +201,6 @@ public class DiscoveryHandler {
 		}
 		
 		return Collections.emptyList();
-
 	}
 	
 	public URI getRandomPeer() {
@@ -383,6 +382,7 @@ public class DiscoveryHandler {
 			}
 			
 			Utils.sleepSafely(Math.min(timeout, 1000));
+			this.plugin.poll();
 			this.loadEnvironment();
 		}
 	

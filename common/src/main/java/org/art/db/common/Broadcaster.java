@@ -161,7 +161,6 @@ public class Broadcaster {
 			
 			try {
 				future.get();
-				logger.info("after get");
 			} catch (Exception exc) {
 				if (exc.getCause() instanceof ConnectException) {
 					MessageQueue queue = this.messageQueues.computeIfAbsent(instances.get(idx), x -> new MessageQueue(null, true));

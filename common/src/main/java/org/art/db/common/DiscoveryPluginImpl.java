@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 public class DiscoveryPluginImpl implements DiscoveryPlugin {
 
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(DiscoveryPluginImpl.class);
 			
 	private HeartbeatPublisher publisher;

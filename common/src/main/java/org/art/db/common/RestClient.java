@@ -43,10 +43,9 @@ public class RestClient {
 			localHost = InetAddress.getLocalHost().getHostAddress();
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
-		}	
-		
-		
+		}			
 	}
+	
 	public RestClient() {
 		
 	}
@@ -54,6 +53,12 @@ public class RestClient {
 	public RestClient(String user, String password) {
 		this.user = user;
 		this.password = password;
+	}
+	
+	public RestClient(String user, String password, Duration timeout) {
+		this.user = user;
+		this.password = password;
+		this.timeout = timeout;
 	}
 	
 			
@@ -89,6 +94,7 @@ public class RestClient {
 			Throwable cause = exc.getCause();
 			
 			if (cause instanceof ConnectException) {
+				logger.info("throwing connection exception " + cause.getMessage() + " " + uri);
 				throw new RestException(RestException.NO_CONNECTION, "", cause);
 			} else if (cause instanceof SocketException) {
 				throw new RestException(500, "Socket exception " + uri + " " + cause.getMessage(), cause);

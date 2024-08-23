@@ -1,7 +1,6 @@
 package org.art.storage;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 
@@ -17,6 +16,7 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	private static final Logger logger = LoggerFactory.getLogger(BaseIntegrationTest.class);
 	
 	private Process externalServer;
+	private static boolean kunernetes;
 	
 	private final String java = System.getProperty("java.home") + "/bin/java";
 	
@@ -38,23 +38,34 @@ public class BaseIntegrationTest extends BaseSQLTest {
 		return new URI(String.format("http://%s:%s", host, port));		
 	}
 	
-	public void startExternal(String path) throws IOException {
-		String classpath = System.getProperty("java.class.path");
-		ProcessBuilder pb = new ProcessBuilder(java, "-cp", classpath, Server.class.getName(), path);
-		
-		pb.directory(new File("."));
-		pb.inheritIO();
-		
-		this.externalServer = pb.start();
-		logger.info("started external " + path);
+	public static boolean isKunernetes() {
+		return kunernetes;
+	}
+
+	public static void setKunernetes(boolean kunernetes) {
+		BaseIntegrationTest.kunernetes = kunernetes;
+	}
+
+	public void startExternal(String path)  {
+		try {
+			String classpath = System.getProperty("java.class.path");
+			ProcessBuilder pb = new ProcessBuilder(java, "-cp", classpath, Server.class.getName(), path);
+
+			pb.directory(new File("."));
+			pb.inheritIO();
+
+			this.externalServer = pb.start();
+			logger.info("started external " + path);
+		} catch (Exception exc) {
+			throw new IllegalStateException(exc);
+		}
 	}
 	
 	public void startInternal(String path) {
-		if (System.getProperty("org.art.db.serviceURI") == null) {
+		if (!kunernetes) {
 			DiscoveryHandler.clear();
-			Server.start(path);
+			Server.start(path);	
 		}
-		
 	}
 	
 
@@ -65,9 +76,8 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	}
 	
 	public void stopInternal() {
-		if (System.getProperty("org.art.db.serviceURI") == null) {
-			Server.stop();
-		}	
+		Server.stop();
+		
 	}
 	
 	public Client getClient() throws Exception {

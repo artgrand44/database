@@ -39,7 +39,6 @@ public class Client {
 	
 	public static final String WILDCARD = "*";
 	
-	
 	public Client(URI uri, String user, String password) throws Exception {
 		String database;
 		String shard;
@@ -215,6 +214,7 @@ public class Client {
 				return;
 			} catch (RestException exc) {
 				if (exc.getCause() instanceof ConnectException) {
+					logger.info("conn exception " + exc.getMessage());
 					Utils.sleepSafely(2000);
 				}
 			}

@@ -149,7 +149,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 		try {
 			client.execute(insert, getId(idx), getName(idx));	
 		} catch (Exception exc) {
-			logger.info("exception on " + idx);
+			logger.info("exception on " + idx + " " + exc);
 		}
 	}
 	
