@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tester
+spec:
+  selector:
+    matchLabels:
+      app: tester
+  replicas: 1
+  template: # create pods using pod definition in this template
+    metadata:
+      labels:
+        app: tester
+    spec:
+      containers:
+      - name: tester
+        image: tester:v1 
+        imagePullPolicy: IfNotPresent
+        env:
+           - name: cloud
+             value: kubernetes
+        ports:
+        - containerPort: 80
