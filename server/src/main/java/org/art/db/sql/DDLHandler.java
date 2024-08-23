@@ -334,8 +334,6 @@ public class DDLHandler {
 					FileUtils.deleteDirectory(tableDir);
 					Metadata.removeFromCache(table);
 
-					logger.info("deleted tableDir " + tableDir.getAbsolutePath() + " " + tableDir.exists());
-
 					if (targetShard.equals(Client.WILDCARD)) {
 						SQLUtils.broadcastAll(database, drop.toString(), user, password);
 					}

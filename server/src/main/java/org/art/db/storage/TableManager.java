@@ -22,6 +22,7 @@ import org.art.db.common.DBRuntimeException;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
+import org.art.db.common.KubernetesPlugin;
 import org.art.db.common.LogEntry;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
@@ -43,7 +44,7 @@ public class TableManager implements Closeable{
 	private final LockManager<Key> alternateKeyLockManager = new LockManager<>();
 	private boolean checkConstraints;
 	
-	private final FileLock lock;
+	private FileLock lock;
 	private Metadata metadata;
 	
 	private final Cache<Key, Long> timestamps = Caffeine.newBuilder().maximumSize(1000).build();
@@ -55,12 +56,14 @@ public class TableManager implements Closeable{
 		this.metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(tableName);
 		this.indexInfo = metadata.indices();
 		
-		RandomAccessFile lockFile = new RandomAccessFile(Files.getLockFile(this.tableName), "rw");
-		
-		this.lock = lockFile.getChannel().tryLock(0, Long.MAX_VALUE, false);
-		
-		if (this.lock == null) {
-			throw new DBRuntimeException(tableName + " is locked by another serve");
+		if (!KubernetesPlugin.isKubernetes()) {
+			RandomAccessFile lockFile = new RandomAccessFile(Files.getLockFile(this.tableName), "rw");
+
+			this.lock = lockFile.getChannel().tryLock(0, Long.MAX_VALUE, false);
+
+			if (this.lock == null) {
+				throw new DBRuntimeException(tableName + " is locked by another serve");
+			}
 		}
 		
 		for (IndexInfo info : this.indexInfo) {
