@@ -65,7 +65,10 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		
 		if ((this.serverInstances.get() == null || System.currentTimeMillis() > this.ttl) && this.loading.compareAndSet(false, true)) {
 			try {
-				PodList podList =  client.pods().inNamespace("default").withLabel("database=" + database).list();
+				logger.info("starting loop " + database);
+				PodList podList =  client.pods().inNamespace("default").withLabel("app=" + this.database).list();
+				
+				logger.info("found " + podList.getItems().size());
 				
 				Map<URI, String> result = new HashMap<>();
 				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
@@ -87,7 +90,9 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 						if (podIp.equals(localHostAddress)) {
 							this.localInstance = uri;
 						} 		
-					} 
+					} else {
+						logger.info("skip " + pod.getMetadata().getName() + " phase " + phase + " podIp" + podIp + " host " + pod.getStatus().getHostIP());
+					}
 				}
 						
 				logger.info("plugin found " + String.join(",", names));
