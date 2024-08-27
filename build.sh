@@ -1,6 +1,6 @@
 #! /bin/bash
 
-#build.sh service1 db2 shard1 2 4Gi kubernetes.io\\/hostname minikube 1w 2
+#build.sh service1 db2 shard1 1 4Gi kubernetes.io\\/hostname minikube 1w 2
 
 if [ "$#" -ge 1 ]; then
     service=$1
@@ -126,4 +126,4 @@ docker build . --tag db:v1
 kubectl apply -f roles.yaml
 kubectl apply -f customvolume.yaml
 kubectl create -f custom.yaml
-kubectl expose deployment ${service} --type=LoadBalancer --name=my-service
+kubectl expose deployment ${service} --type=LoadBalancer --name=${service}   

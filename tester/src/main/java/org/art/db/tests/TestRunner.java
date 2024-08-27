@@ -3,6 +3,7 @@ package org.art.db.tests;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,6 +30,13 @@ public class TestRunner {
 	public static void main(String[] args) {
 		logger.info("*** in main");
 		logger.info(run(new KubernetestAdapter()));
+		logger.info("Sleeping");
+		
+		try {
+			Thread.sleep(Duration.ofHours(1));
+		} catch (Exception exc) {
+			
+		}
 	}
 	
 	public static String run(TestAdapter theAdapter) {

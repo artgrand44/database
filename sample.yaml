@@ -10,11 +10,13 @@ spec:
   selector:
     matchLabels:
       app: databasename
+      database: databasename
   replicas: reps
   template: # create pods using pod definition in this template
     metadata:
       labels:
         app: databasename
+        database: databasename
     spec:
       containers:
       - name: databasename
