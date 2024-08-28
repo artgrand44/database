@@ -59,7 +59,7 @@ public class PlanTest {
 	private void doQuery(TableManager storage, Metadata metadata, int[] expectedIds, Filter...filters) throws Exception {
 		List<Filter> filterList = Arrays.asList(filters);
 		
-		Plan plan = Planner.buildPlan(metadata.name(), Collections.emptyList(), filterList);
+		Plan plan = Planner.buildPlan(metadata.getName(), Collections.emptyList(), filterList);
 		
 		logger.info("Got plan " + plan);
 		

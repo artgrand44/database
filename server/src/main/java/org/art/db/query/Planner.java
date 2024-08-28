@@ -28,8 +28,8 @@ public class Planner {
 		// Build some useful maps
 		
 		Metadata metadata = Metadata.getMetadata(table);
-		List<IndexInfo> indices = metadata.indices();
-		List<String> primaryKeys = metadata.primaryKeyFields();
+		List<IndexInfo> indices = metadata.getIndices();
+		List<String> primaryKeys = metadata.getPrimaryKeyFields();
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
 		Map<String, Filter> fieldNameToFilter = new HashMap<>();

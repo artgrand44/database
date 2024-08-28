@@ -35,7 +35,7 @@ public class SQLUtils {
 		List<OrderBy> orderByList = new ArrayList<>();
 		
 
-		for (String key : metadata.primaryKeyFields()) {
+		for (String key : metadata.getPrimaryKeyFields()) {
 			orderByList.add(new OrderBy(key, true));
 		}
 
@@ -45,7 +45,7 @@ public class SQLUtils {
 	static Key buildPrimaryKey(Document doc, Metadata metadata) {
 		List<Comparable<?>> keys = new ArrayList<>();
 		
-		for (String field : metadata.primaryKeyFields()) {
+		for (String field : metadata.getPrimaryKeyFields()) {
 			keys.add((Comparable<?>)doc.get(field));
 		}
 		
@@ -215,7 +215,7 @@ public class SQLUtils {
 		Metadata metadata = Metadata.getMetadata(table);
 		List<Comparable<?>> keys = new ArrayList<>();
 		
-		for (String field : metadata.primaryKeyFields()) {
+		for (String field : metadata.getPrimaryKeyFields()) {
 			keys.add((Comparable<?>)doc.get(field));
 		}
 		
@@ -238,7 +238,7 @@ public class SQLUtils {
 		List<Comparable<?>> keys = new ArrayList<>();
 		ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 
-		for (String field : metadata.primaryKeyFields()) {
+		for (String field : metadata.getPrimaryKeyFields()) {
 			Filter filter = findFilter(filters, field);
 
 			if (filter != null && filter.getComparison() == Comparison.EQ) {

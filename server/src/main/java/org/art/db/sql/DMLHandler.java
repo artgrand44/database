@@ -137,6 +137,10 @@ public class DMLHandler {
 			long limit = getLimit(delete.getLimit(), table);
 			Metadata metadata = Metadata.getMetadata(table);
 			
+			if (metadata == null) {
+				throw new DBRuntimeException("Table " + table + " does not exist.");
+			}
+			
 			lock = !isPrimaySearch(metadata, normalized);
 			docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, lock), delete.getLimit(), evaluator);
 
@@ -176,7 +180,7 @@ public class DMLHandler {
 	
 	private static boolean isPrimaySearch(Metadata metadata, Expression where) {
 		if (where instanceof FilterExpression exp) {
-			return exp.getFilters().stream().allMatch(x -> metadata.primaryKeyFields().contains(x.getField()));
+			return exp.getFilters().stream().allMatch(x -> metadata.getPrimaryKeyFields().contains(x.getField()));
 		}
 		
 		return false;
@@ -191,7 +195,7 @@ public class DMLHandler {
 			long start = System.currentTimeMillis();
 			
 			if (metadata == null) {
-				throw new DBRuntimeException("Table " + insert.getTable().getName() + " does not exist");
+				throw new DBRuntimeException("Table " + insert.getTable().getName() + " does not exist.");
 			}
 			
 			if (!SecurityHandler.getInstance().isInRole(user, password, table, User.INSERT)) {
@@ -227,7 +231,7 @@ public class DMLHandler {
 				doc.put(column, Converter.convert(value, info.type()));
 			}
 			
-			for (Map.Entry<String, ColumnInfo> entry : metadata.columns().entrySet()) {
+			for (Map.Entry<String, ColumnInfo> entry : metadata.getColumns().entrySet()) {
 				String name = entry.getKey();
 				ColumnInfo info = entry.getValue();
 				
@@ -371,7 +375,7 @@ public class DMLHandler {
 		long start = System.currentTimeMillis();
 		
 		if (Metadata.getMetadata(table) == null) {
-			throw new DBRuntimeException("Table " + fromTable.getName() + " does not exist");
+			throw new DBRuntimeException("Table " + table + " does not exist.");
 		}
 		
 		// Normalize the where clause
@@ -451,7 +455,7 @@ public class DMLHandler {
 			Metadata metadata = Metadata.getMetadata(table);
 			
 			if (metadata == null) {
-				throw new DBRuntimeException("Table " + update.getTable().getName() + " does not exist");
+				throw new DBRuntimeException("Table " + update.getTable().getName() + " does not exist.");
 			}
 			
 			// Validate the update clauses
@@ -465,7 +469,7 @@ public class DMLHandler {
 					
 					if (metadata.column(prefix) == null) {
 						throw new DBRuntimeException(column + " is not a valid column");
-					} else if (metadata.primaryKeyFields().contains(column)) {
+					} else if (metadata.getPrimaryKeyFields().contains(column)) {
 						throw new DBRuntimeException("Primary field columns cannot be changed");
 					}
 				}

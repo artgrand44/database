@@ -18,7 +18,7 @@ public class BlobConverter {
 		byte[] bytes = ZipUtils.decompress(blob.getBytes());
 				
 		try (TypedInputStream stream = new TypedInputStream(bytes)) {
-			for (String column : metadata.columns().keySet()) {
+			for (String column : metadata.getColumns().keySet()) {
 				doc.put(column, stream.readObject());
 			}
 		}
@@ -33,7 +33,7 @@ public class BlobConverter {
 		}
 		
 		try (TypedOutputStream stream = new TypedOutputStream()) {
-			for (String column : metadata.columns().keySet()) {
+			for (String column : metadata.getColumns().keySet()) {
 				Object value = doc.get(column);
 
 				stream.writeObject(value == null ? DBNull.NULL : value);

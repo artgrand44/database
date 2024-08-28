@@ -11,7 +11,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.art.db.client.Client;
 import org.art.db.common.Converter;
 import org.art.db.common.DBRuntimeException;
@@ -74,11 +73,11 @@ public class DDLHandler {
 		Metadata metadata = Metadata.getMetadata(tableName);
 		
 		if (metadata == null) {
-			throw new DBRuntimeException("Table " + table.getName() + " does not exist");
+			throw new DBRuntimeException("Table " + table.getName() + " does not exist.");
 		}
 		
 		metadata = new Metadata(metadata);
-		Map<String, ColumnInfo> map = metadata.columns();
+		Map<String, ColumnInfo> map = metadata.getColumns();
 		
 		for (AlterExpression exp : alter.getAlterExpressions()) {
 			switch (exp.getOperation()) {
@@ -106,11 +105,11 @@ public class DDLHandler {
 					throw new DBRuntimeException("The table does not contain a column called " + exp.getColumnName() + ".");
 				}
 				
-				if (metadata.primaryKeyFields().contains(name)) {
+				if (metadata.getPrimaryKeyFields().contains(name)) {
 					throw new DBRuntimeException(name + " is part of the primary key.");
 				}
 				
-				for (IndexInfo index : metadata.indices()) {
+				for (IndexInfo index : metadata.getIndices()) {
 					if (index.fields().contains(name)) {
 						throw new DBRuntimeException(name + " is part of an index.");
 					}
@@ -164,7 +163,7 @@ public class DDLHandler {
 		for (ColumnParams param : index.getColumns()) {
 			String name = param.getColumnName();
 			
-			if (!metadata.columns().containsKey(name)) {
+			if (!metadata.getColumns().containsKey(name)) {
 				throw new DBRuntimeException(name + " is not a valid comlumn");
 			}
 			
@@ -176,9 +175,9 @@ public class DDLHandler {
 		BackupHandler.getInstance().startUpdate();
 		
 		try {
-			List<IndexInfo> indices = metadata.indices();
+			List<IndexInfo> indices = metadata.getIndices();
 			
-			if (metadata.indices().contains(indexInfo)) {
+			if (metadata.getIndices().contains(indexInfo)) {
 				throw new DBRuntimeException("Index " + indexName + " is already defined.");
 			}
 			
@@ -292,26 +291,28 @@ public class DDLHandler {
 		if (!SecurityHandler.getInstance().isAdmin(user, password)) {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
+				
+		String type = drop.getType();
+		List<String> parameters = drop.getParameters();
+		String table = type.equalsIgnoreCase("INDEX") ? SQLUtils.getFQN(parameters.get(1), database) : SQLUtils.getFQN(drop.getName(), database);
+		Metadata metadata = Metadata.getMetadata(table);
+		
+		if (metadata == null) {
+			if (drop.isIfExists()) {
+				return;
+			} else {
+				throw new DBRuntimeException("Table " + table  + " does not exist.");
+			}
+		}
 		
 		BackupHandler.getInstance().startUpdate();
+		metadata.writeLock();
 		
 		try {
-			String type = drop.getType();
-			List<String> parameters = drop.getParameters();
-
 			if (type.equalsIgnoreCase("INDEX")) {
-				String table = parameters.get(1);
-				String fnq = String.format("%s.%s.%s", StringUtils.isAllBlank(database) ? "SYS" : database, "SYS", table);
 				String index = drop.getName().getName();
-				Metadata metadata = Metadata.getMetadata(fnq);
-
-				if (metadata == null) {
-					throw new DBRuntimeException("Table " + table + " does not exist.");
-				}
-
-				metadata = new Metadata(metadata);
-
-				List<IndexInfo> indices = metadata.indices();
+				
+				List<IndexInfo> indices = metadata.getIndices();
 
 				for (int idx = 0; idx < indices.size(); idx++) {
 					if (indices.get(idx).name().equals(index)) {
@@ -326,25 +327,20 @@ public class DDLHandler {
 					SQLUtils.broadcastAll(database, drop.toString(), user, password);
 				}
 			} else if (type.equalsIgnoreCase("TABLE")) {
-				String table = SQLUtils.getFQN(drop.getName(), database);
 				File tableDir = Files.getTableDirectory(table);
+				StorageManager.getInstance().closeTable(table);
+				FileUtils.deleteDirectory(tableDir);
+				metadata.removeFromCache();
 
-				if (tableDir.exists()) {
-					StorageManager.getInstance().closeTable(table);
-					FileUtils.deleteDirectory(tableDir);
-					Metadata.removeFromCache(table);
-
-					if (targetShard.equals(Client.WILDCARD)) {
-						SQLUtils.broadcastAll(database, drop.toString(), user, password);
-					}
-				} else if (!drop.isIfExists()) {
-					throw new DBRuntimeException("Table " + table + " does not exist");
+				if (targetShard.equals(Client.WILDCARD)) {
+					SQLUtils.broadcastAll(database, drop.toString(), user, password);
 				}
 			} else {
 				throw new UnsupportedSyntaxException("Drop " + type + " is not supported.");
 			} 
 		} finally {
 			BackupHandler.getInstance().endUpdate();
+			metadata.unlock();
 		}
 
 	}

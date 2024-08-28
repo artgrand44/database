@@ -48,7 +48,7 @@ public class QueryManager {
 		// Go through the documents, find the null values, and merge in the defaults
 		
 		for (Document doc : set) {
-			for (Map.Entry<String, ColumnInfo> entry : metadata.columns().entrySet()) {
+			for (Map.Entry<String, ColumnInfo> entry : metadata.getColumns().entrySet()) {
 				String name = entry.getKey();
 				ColumnInfo info = entry.getValue();
 				Object value = doc.get(name);

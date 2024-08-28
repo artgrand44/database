@@ -30,7 +30,7 @@ public class BackupHandler {
 	
 	private BackupHandler() {
 		try {
-			this.lockFile =  new RandomAccessFile(Files.getLockFile("$$backup"), "rw");
+			this.lockFile =  new RandomAccessFile(Files.getLockFile("_backup"), "rw");;
 		} catch (Exception exc) {
 			throw new DBRuntimeException("Error creatinng lock file", exc);
 		}
@@ -144,7 +144,7 @@ public class BackupHandler {
 		
 	}
 	public void endUpdate() {
-		this.lock.readLock().unlock();
+		this.lock.readLock().unlock();		
 	}
 	
 	public static BackupHandler getInstance() {

@@ -34,6 +34,10 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch (DBRuntimeException exc) {
+			if (!exc.getMessage().equals(message)) {
+				logger.info("want " + message);
+				logger.info("got  " + exc.getMessage());
+			}
 			Assertions.assertThat(exc.getMessage().equals(message)).isTrue();
 		} catch (Exception exc) {
 			Assertions.fail(statement + " generated an exception of type " + exc.getClass().getSimpleName());

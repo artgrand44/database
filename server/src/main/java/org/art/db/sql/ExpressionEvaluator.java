@@ -708,7 +708,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 			name = name.substring(0, name.indexOf('.'));
 		}
 		
-		if (!this.metadata.columns().containsKey(name)) {
+		if (!this.metadata.getColumns().containsKey(name)) {
 			throw new DBRuntimeException(name + " is not a valid column name");
 		}
 		

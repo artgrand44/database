@@ -54,7 +54,7 @@ public class TableManager implements Closeable{
 		this.tableName = tableName;
 		this.metadataFile = Files.getMetadata(tableName);
 		this.metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(tableName);
-		this.indexInfo = metadata.indices();
+		this.indexInfo = metadata.getIndices();
 		
 		if (!KubernetesPlugin.isKubernetes()) {
 			RandomAccessFile lockFile = new RandomAccessFile(Files.getLockFile(this.tableName), "rw");
@@ -199,7 +199,7 @@ public class TableManager implements Closeable{
 	}
 	
 	public void checkWriteLock(Document doc) {
-		this.primaryKeyLockManager.checkWriteLock(this.buildKey(doc, metadata.primaryKeyFields()));
+		this.primaryKeyLockManager.checkWriteLock(this.buildKey(doc, metadata.getPrimaryKeyFields()));
 	}
 	
 	public void flush() {
@@ -247,7 +247,7 @@ public class TableManager implements Closeable{
 	
 	public void insert(Document doc, boolean propagate, boolean log) throws Exception {
 		try {
-			Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
+			Key primaryKey = this.buildKey(doc, this.metadata.getPrimaryKeyFields());
 
 			if (this.checkConstraints) {
 				this.primaryKeyLockManager.writeLock(primaryKey);
@@ -288,7 +288,7 @@ public class TableManager implements Closeable{
 	}
 	
 		public void remove(Document doc, boolean propagate, boolean log) throws Exception {
-		Key primaryKey = this.buildKey(doc, this.metadata.primaryKeyFields());
+		Key primaryKey = this.buildKey(doc, this.metadata.getPrimaryKeyFields());
 		
 		this.timestamps.put(primaryKey, System.currentTimeMillis());
 		this.table.remove(primaryKey, propagate, log);
@@ -304,7 +304,7 @@ public class TableManager implements Closeable{
 	}
 	
 	public void unlockPrimaryKey(Document doc) {
-		this.primaryKeyLockManager.unlock(this.buildKey(doc, this.metadata.primaryKeyFields()));
+		this.primaryKeyLockManager.unlock(this.buildKey(doc, this.metadata.getPrimaryKeyFields()));
 	}
 	
 	
@@ -316,7 +316,7 @@ public class TableManager implements Closeable{
 	
 	public void update(Document oldDoc, Document newDoc, boolean propagate, boolean log) throws Exception {
 		try {
-			Key primaryKey = this.buildKey(newDoc, this.metadata.primaryKeyFields());
+			Key primaryKey = this.buildKey(newDoc, this.metadata.getPrimaryKeyFields());
 
 			if (this.checkConstraints) {
 				for (int idx = 0; idx < this.indexInfo.size(); idx++) {

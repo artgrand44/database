@@ -155,9 +155,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 			exchange.setStatusCode(RestException.UNAUTHORIZED);
 		} catch (Exception exc) {
 			exchange.setStatusCode(RestException.TEA_POT);
-			
 			String warning = String.format("Warning: 199 - %s", exc.getMessage());
-				
+			
 			exchange.getResponseHeaders().add(new HttpString("warning"), warning);	
 		} finally {
 			this.readLock.unlock();
