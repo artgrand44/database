@@ -126,7 +126,7 @@ public class RestoreManager {
 		
 		for (URI partner : handler.getLocalPeers()) {
 			try {
-				client.get(partner);
+				client.get(client.buildURI(partner, "/db/ping"));
 				return partner;
 			} catch (Exception exc) {
 	
@@ -229,7 +229,7 @@ public class RestoreManager {
 	@SuppressWarnings("unchecked")
 	private void recoverConfiguration(URI peer) throws Exception {
 		RestClient client = new RestClient();
-		byte[] bytes = client.get(client.buildURI(peer, "/db/getproperties"));
+		byte[] bytes = client.get(client.buildURI(peer, "/db/getproperties?source=%s", Environment.getInstance().getSource()));
 		
 		Map<String, String> properties = (Map<String, String>)new ObjectMapper().readValue(bytes, Map.class);
 		

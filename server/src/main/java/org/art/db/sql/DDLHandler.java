@@ -63,6 +63,8 @@ public class DDLHandler {
 		SQL_TYPES.put("LIST",     List.class);    
 	}
  
+	private static Map<String, Integer> privs = Map.of("delete", User.DELETE, "select", User.SELECT, "insert", User.INSERT, "update", User.UPDATE);
+	
 	static void alter(Alter alter, String targetShard, String database, String user, String password) throws Exception {
 		if (!SecurityHandler.getInstance().isAdmin(user, password)) {
 			throw new SQLException("User " + user + " is not an admin.");
@@ -76,54 +78,55 @@ public class DDLHandler {
 			throw new DBRuntimeException("Table " + table.getName() + " does not exist.");
 		}
 		
-		metadata = new Metadata(metadata);
-		Map<String, ColumnInfo> map = metadata.getColumns();
-		
-		for (AlterExpression exp : alter.getAlterExpressions()) {
-			switch (exp.getOperation()) {
-			case ADD:
-				for (ColumnDataType type : exp.getColDataTypeList()) {
-					String name = type.getColumnName();
-					ColumnInfo colInfo = getColumnInfo(type);
-					
-					if (map.containsKey(name)) {
-						throw new DBRuntimeException("The table aleady contains a column called " + name + ".");
-					}
-					
-					if (!colInfo.nullable() && colInfo.defaultValue() == null) {
-						throw new DBRuntimeException("You must provide a default value for " + name);
-					}
-					
-					map.put(name, colInfo);
-				}
-				
-				break;
-			case DROP:
-				String name = exp.getColumnName();
-				
-				if (!map.containsKey(name)){
-					throw new DBRuntimeException("The table does not contain a column called " + exp.getColumnName() + ".");
-				}
-				
-				if (metadata.getPrimaryKeyFields().contains(name)) {
-					throw new DBRuntimeException(name + " is part of the primary key.");
-				}
-				
-				for (IndexInfo index : metadata.getIndices()) {
-					if (index.fields().contains(name)) {
-						throw new DBRuntimeException(name + " is part of an index.");
-					}
-				}
-				map.remove(exp.getColumnName());
-				break;
-			default:
-				break;
-			}			
-		}
-		
-		BackupHandler.getInstance().startUpdate();
+		metadata.writeLock();
 		
 		try {
+			Map<String, ColumnInfo> map = metadata.getColumns();
+
+			for (AlterExpression exp : alter.getAlterExpressions()) {
+				switch (exp.getOperation()) {
+				case ADD:
+					for (ColumnDataType type : exp.getColDataTypeList()) {
+						String name = type.getColumnName();
+						ColumnInfo colInfo = getColumnInfo(type);
+
+						if (map.containsKey(name)) {
+							throw new DBRuntimeException("The table aleady contains a column called " + name + ".");
+						}
+
+						if (!colInfo.nullable() && colInfo.defaultValue() == null) {
+							throw new DBRuntimeException("You must provide a default value for " + name);
+						}
+
+						map.put(name, colInfo);
+					}
+
+					break;
+				case DROP:
+					String name = exp.getColumnName();
+
+					if (!map.containsKey(name)){
+						throw new DBRuntimeException("The table does not contain a column called " + exp.getColumnName() + ".");
+					}
+
+					if (metadata.getPrimaryKeyFields().contains(name)) {
+						throw new DBRuntimeException(name + " is part of the primary key.");
+					}
+
+					for (IndexInfo index : metadata.getIndices()) {
+						if (index.fields().contains(name)) {
+							throw new DBRuntimeException(name + " is part of an index.");
+						}
+					}
+					map.remove(exp.getColumnName());
+					break;
+				default:
+					break;
+				}			
+			}
+
+			BackupHandler.getInstance().startUpdate();
+		
 			StorageManager.getInstance().getTableManager(tableName).setMetadata(metadata);
 
 			Metadata.setMetadata(metadata);
@@ -134,6 +137,7 @@ public class DDLHandler {
 		} catch (Exception exc) {
 			throw new DBRuntimeException("The alter failed", exc);
 		} finally {
+			metadata.unlock();
 			BackupHandler.getInstance().endUpdate();
 		}
 		
@@ -160,21 +164,28 @@ public class DDLHandler {
 		
 		Metadata metadata = Metadata.getMetadata(SQLUtils.getFQN(table, database));
 		
-		for (ColumnParams param : index.getColumns()) {
-			String name = param.getColumnName();
-			
-			if (!metadata.getColumns().containsKey(name)) {
-				throw new DBRuntimeException(name + " is not a valid comlumn");
-			}
-			
-			fields.add(name);
+		if (metadata == null) {
+			throw new DBRuntimeException("Table " + SQLUtils.getFQN(table, database) + " does not exist.");
 		}
 		
-		IndexInfo indexInfo = new IndexInfo(indexName, unique, fields);
-	
-		BackupHandler.getInstance().startUpdate();
+		metadata.writeLock();
 		
 		try {
+			for (ColumnParams param : index.getColumns()) {
+				String name = param.getColumnName();
+
+				if (!metadata.getColumns().containsKey(name)) {
+					throw new DBRuntimeException(name + " is not a valid comlumn");
+				}
+
+				fields.add(name);
+			}
+
+			IndexInfo indexInfo = new IndexInfo(indexName, unique, fields);
+
+			BackupHandler.getInstance().startUpdate();
+
+
 			List<IndexInfo> indices = metadata.getIndices();
 			
 			if (metadata.getIndices().contains(indexInfo)) {
@@ -194,6 +205,7 @@ public class DDLHandler {
 			exc.printStackTrace();
 			throw new DBRuntimeException("Create Index failed " + exc.getMessage(), exc);
 		} finally {
+			metadata.unlock();
 			BackupHandler.getInstance().endUpdate();
 		}
 
@@ -345,7 +357,6 @@ public class DDLHandler {
 
 	}
 	
-	private static Map<String, Integer> privs = Map.of("delete", User.DELETE, "select", User.SELECT, "insert", User.INSERT, "update", User.UPDATE);
 	
 	static void grant(Grant grant, String targetShard, String database, String user, String password) throws Exception {
 		if (!SecurityHandler.getInstance().isAdmin(user, password)) {

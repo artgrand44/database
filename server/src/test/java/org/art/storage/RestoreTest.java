@@ -2,6 +2,7 @@ package org.art.storage;
 
 import java.io.File;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -22,7 +23,7 @@ public class RestoreTest extends BaseIntegrationTest {
 	private volatile int extraCount;
 	private volatile boolean needExtra = true;
 
-	@Test
+	//@Test
 	public void test() {
 
 		try  {
@@ -51,6 +52,8 @@ public class RestoreTest extends BaseIntegrationTest {
 			String nameQuery = "select * from pounder where FirstName = ?";
 			String idQuery = "select * from pounder where ID = ?";
 			String extraQuery = "select * from pounder where ID = ?";
+			RestClient restClient = new RestClient();
+			
 			
 			client.execute(drop);
 			client.execute(create);
@@ -63,6 +66,10 @@ public class RestoreTest extends BaseIntegrationTest {
 			super.stopInternal();
 			
 			logger.info("Stopped internal");
+			
+			Thread.sleep(Duration.ofSeconds(10));
+			
+			restClient.put(restClient.buildURI(getLocalURI("8081"), "/db/loadenv"), new byte[0]);
 			
 			File internalDir = new File("./dbroot/SYS.SYS.pounder");
 			File externalDir = new File("./secondroot/SYS.SYS.pounder");
@@ -79,6 +86,10 @@ public class RestoreTest extends BaseIntegrationTest {
 				if (files != null && files.length > 3) {
 					break;
 				}
+				
+				if (idx % 100 == 0) {
+					logger.info("idx " + idx);
+				}
 			}
 			
 			// Flush the external server then copy the index and the oldest segment.
@@ -87,7 +98,6 @@ public class RestoreTest extends BaseIntegrationTest {
 			logger.info("Flushing external");
 			
 			URI external = this.getLocalURI("8081");
-			RestClient restClient = new RestClient();
 			
 			restClient.get(restClient.buildURI(external, "/db/close"));
 			

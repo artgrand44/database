@@ -39,7 +39,7 @@ public class Table implements Closeable {
 	private final ReadLock readLock = lock.readLock();
 	private final WriteLock writeLock = lock.writeLock();
 	private final DiscoveryHandler discoveryHandler;
-	private final Environment config;
+	private final Environment environment;
 	private final int maxSegmentSize;
 	private final ScheduledFuture<?> switcher;
 	private final ScheduledFuture<?> timer;
@@ -62,13 +62,15 @@ public class Table implements Closeable {
 		this.table = table;
 		this.indices = indices;
 		this.discoveryHandler = DiscoveryHandler.getServerInstance();
-		this.config = Environment.getInstance();
+		this.environment = Environment.getInstance();
 		this.isQueue = meta.isQueue();
-		this.maxSegmentSize = Integer.parseInt(this.config.getProperty("org.art.db.maxSegmentSize", this.config.getDefault("org.art.db.maxSegmentSize")));
+		this.maxSegmentSize = Integer.parseInt(this.environment.getProperty("org.art.db.maxSegmentSize", this.environment.getDefault("org.art.db.maxSegmentSize")));
+		
+		logger.info("set max to " + this.maxSegmentSize);
 		
 		this.currentSegment = this.isQueue
-				              ? new QueueSegment(this.table, this.discoveryHandler, this.config)
-				              : new MemorySegment(table, this.discoveryHandler, this.config, false);
+				              ? new QueueSegment(this.table, this.discoveryHandler, this.environment)
+				              : new MemorySegment(table, this.discoveryHandler, this.environment, false);
 		
 		this.segments.add(this.currentSegment);
 			
@@ -121,8 +123,8 @@ public class Table implements Closeable {
 		if (this.currentSegment != null) {
 			this.currentSegment.crash();
 			this.currentSegment = this.isQueue
-					              ? new QueueSegment(this.table, this.discoveryHandler, this.config)
-					              : new MemorySegment(this.table, this.discoveryHandler, this.config, false);
+					              ? new QueueSegment(this.table, this.discoveryHandler, this.environment)
+					              : new MemorySegment(this.table, this.discoveryHandler, this.environment, false);
 			
 		}
 	}
@@ -332,9 +334,9 @@ public class Table implements Closeable {
 			}
 			
 			DiskSegment saved = segment.save(file);
-
+			
 			this.writeLock.lock();
-
+			
 			try {
 				boolean replaced = false;
 
@@ -373,11 +375,10 @@ public class Table implements Closeable {
 			this.prevSegment = this.currentSegment;
 			
 			if (this.isQueue) {
-				this.currentSegment = new QueueSegment(this.table, this.discoveryHandler, this.config);
+				this.currentSegment = new QueueSegment(this.table, this.discoveryHandler, this.environment);
 			} else {
-				
-				Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null; });
-				this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.config, true);
+				Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null;});
+				this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.environment, true);
 			}
 			
 			this.segments.addFirst(this.currentSegment);
@@ -397,7 +398,7 @@ public class Table implements Closeable {
 			} else if (this.isQueue && this.currentSegment.getLogSize() > MAX_LOG_SIZE) {
 				logger.info("calling switch due to log size" + this.currentSegment.getLogSize());
 				switchSegments();
-			}
+			} 
 		} finally {
 			this.writeLock.unlock();
 		}

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class Environment {
 	
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Environment.class);
 
 
@@ -27,15 +28,9 @@ public class Environment {
 				   "org.art.db.backupmax",      "2",
 				   "org.art.db.queueRecovery",  "3");
 
-	private static Environment instance;
+	private final static Environment instance = new Environment();
 	
-	static {
-		try {
-			instance = new Environment();			
-		} catch (Exception exc) {
-			logger.info("Error getting local host " + exc.getMessage());
-		}
-	} 
+	public String source;
 	
 	private final Map<String, String> properties = new HashMap<>();
 	
@@ -109,6 +104,8 @@ public class Environment {
 					this.setProperty((String)x, (String)y);
 				}
 			});
+			
+			this.source = propertyPath;
 		} catch (Exception exc) {
 			throw new Exception("There was an error reading " + propertyPath);
 		}
@@ -132,5 +129,14 @@ public class Environment {
 
 	public static Environment getInstance() {
 		return instance;
+	}
+
+	@Override
+	public String toString() {
+		return "Environment [source=" + source + ", properties=" + properties + "]";
+	}
+
+	public String getSource() {
+		return source;
 	}
 }

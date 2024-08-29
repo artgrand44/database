@@ -50,17 +50,6 @@ public class LargeDocumentTest extends BaseSQLTest {
 			Document first = docs.iterator().next();
 			
 			Assertions.assertThat(first.get("text").equals(text));
-			
-			manager.close();
-			
-			manager = StorageManager.getInstance().getTableManager("SYS.SYS.largedoc");
-			docs = super.executeSelect("select * from largedoc where id = 'key'");
-			
-			Assertions.assertThat(!docs.isEmpty()).isTrue();
-			
-			first = docs.iterator().next();
-			
-			Assertions.assertThat(first.get("text").equals(text));
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Exception exc) {

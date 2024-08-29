@@ -10,6 +10,7 @@ import org.art.db.client.Client;
 import org.art.db.common.Converter;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentComparer;
 import org.art.db.common.DocumentSet;
@@ -118,14 +119,20 @@ public class DMLHandler {
 		String table = SQLUtils.getFQN(delete.getTable(), database);
 		DocumentSet docs = null;
 		boolean lock = false;
+		Metadata metadata = Metadata.getMetadata(table);
+		
+		if (metadata == null) {
+			throw new DBRuntimeException("Table " + table + " does not exist.");
+		}
+		
+		metadata.readLock();
 		
 		BackupHandler.getInstance().startUpdate();
 		
 		try {
 			Expression where = delete.getWhere();
 			ReturningClause returnClause = delete.getReturningClause();
-			
-						
+									
 			if (where == null) {
 				throw new DBRuntimeException("The delete must contain a where clause");
 			}
@@ -135,11 +142,6 @@ public class DMLHandler {
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression normalized = new ExpressionNormalizer().normalize(where);
 			long limit = getLimit(delete.getLimit(), table);
-			Metadata metadata = Metadata.getMetadata(table);
-			
-			if (metadata == null) {
-				throw new DBRuntimeException("Table " + table + " does not exist.");
-			}
 			
 			lock = !isPrimaySearch(metadata, normalized);
 			docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, lock), delete.getLimit(), evaluator);
@@ -161,6 +163,7 @@ public class DMLHandler {
 				QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
 			}
 			
+			metadata.unlock();
 			BackupHandler.getInstance().endUpdate();
 			Metrics.getInstance().logDelete();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
@@ -187,16 +190,21 @@ public class DMLHandler {
 	}
 	
 	static void insert(Insert insert, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) {
+		
+		String table = SQLUtils.getFQN(insert.getTable(), database);
+		Metadata metadata = Metadata.getMetadata(table);
+		
+		if (metadata == null) {
+			metadata = Metadata.getMetadata(table);
+			throw new DBRuntimeException("Table " + insert.getTable().getName() + " does not exist.");
+		}
+		
+		metadata.readLock();
+		
 		try {
 			BackupHandler.getInstance().startUpdate();
 			
-			String table = SQLUtils.getFQN(insert.getTable(), database);
-			Metadata metadata = Metadata.getMetadata(table);
 			long start = System.currentTimeMillis();
-			
-			if (metadata == null) {
-				throw new DBRuntimeException("Table " + insert.getTable().getName() + " does not exist.");
-			}
 			
 			if (!SecurityHandler.getInstance().isInRole(user, password, table, User.INSERT)) {
 				throw new SQLException("User " + user + " does not have insert access to " + table);
@@ -255,7 +263,7 @@ public class DMLHandler {
 			
 			QueryManager.getInstance().insert(table, doc);	
 			QueryManager.getInstance().unlockPrimaryKey(table, doc);
-
+			
 			if (targetShard.equals(Client.WILDCARD)) {
 				SQLUtils.broadcastLocal(database, sqlString, user, password, parameters);
 			}
@@ -268,6 +276,7 @@ public class DMLHandler {
 			exc.printStackTrace();
 			throw new DBRuntimeException("The insert failed " + exc.getMessage(), exc);
 		} finally {
+			metadata.unlock();
 			BackupHandler.getInstance().endUpdate();
 		}
 		
@@ -373,37 +382,44 @@ public class DMLHandler {
 		
 		String table = SQLUtils.getFQN(fromTable, database);
 		long start = System.currentTimeMillis();
+		Metadata metadata = Metadata.getMetadata(table);
 		
-		if (Metadata.getMetadata(table) == null) {
+		if (metadata == null) {
 			throw new DBRuntimeException("Table " + table + " does not exist.");
 		}
 		
-		// Normalize the where clause
+		metadata.readLock();
 		
-		Expression where = plainSelect.getWhere();
-		
-		if (where == null) {
-			throw new DBRuntimeException("The select must contain a where clause");
-		}
+		try {
+			// Normalize the where clause
 
-		Expression normalized = new ExpressionNormalizer().normalize(where);
-		
-		
-		// Find the order by list and the selected columns
-		
-		List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
-		List<String> selectColumns = buildSelectList(plainSelect.getSelectItems());
-						
-		// Get the document set then process any aliases and expressions in the select items
-		
-		ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
-		DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters, Long.MAX_VALUE, false);	
-				
-		processSelectItems(set, plainSelect.getSelectItems(), evaluator, parameters);
-		
-		Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, set.size());
-		
-		return set;
+			Expression where = plainSelect.getWhere();
+
+			if (where == null) {
+				throw new DBRuntimeException("The select must contain a where clause");
+			}
+
+			Expression normalized = new ExpressionNormalizer().normalize(where);
+
+
+			// Find the order by list and the selected columns
+
+			List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
+			List<String> selectColumns = buildSelectList(plainSelect.getSelectItems());
+
+			// Get the document set then process any aliases and expressions in the select items
+
+			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
+			DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters, Long.MAX_VALUE, false);	
+
+			processSelectItems(set, plainSelect.getSelectItems(), evaluator, parameters);
+
+			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, set.size());
+
+			return set;
+		} finally {
+			metadata.unlock();
+		}
 		
 	}
 
@@ -447,16 +463,17 @@ public class DMLHandler {
 		String table = SQLUtils.getFQN(update.getTable(), database);
 		DocumentSet docs = null;
 		boolean lock = false;
+		Metadata metadata = Metadata.getMetadata(table);
 		
+		if (metadata == null) {
+			throw new DBRuntimeException("Table " + update.getTable().getName() + " does not exist.");
+		}
+		
+		metadata.readLock();
 		BackupHandler.getInstance().startUpdate();
 		
 		try {			
 			ReturningClause returnClause = update.getReturningClause();
-			Metadata metadata = Metadata.getMetadata(table);
-			
-			if (metadata == null) {
-				throw new DBRuntimeException("Table " + update.getTable().getName() + " does not exist.");
-			}
 			
 			// Validate the update clauses
 			
@@ -534,6 +551,7 @@ public class DMLHandler {
 				QueryManager.getInstance().unlockPrimaryAllKeys(table, docs);
 			}
 			
+			metadata.unlock();
 			BackupHandler.getInstance().endUpdate();
 			Metrics.getInstance().logUpdate();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);

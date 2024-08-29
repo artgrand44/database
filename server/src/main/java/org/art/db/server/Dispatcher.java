@@ -7,9 +7,11 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
@@ -69,6 +71,7 @@ public class Dispatcher {
 		   HANDLERS.put("/db/getfile",     		new GetFileHandler());
 		   HANDLERS.put("/db/getproperties",    new GetPropertiesHandler());
 		   HANDLERS.put("/db/stop" ,            new StopHandler());
+		   HANDLERS.put("/db/ping" ,            new PingHandler());
 		   HANDLERS.put("/db/backup" ,          new BackHandler());
 		   HANDLERS.put("/db/markrecovering" ,  new MarkRecoveringHandler());
 		   HANDLERS.put("/db/restart",          new RestartHandler());
@@ -354,11 +357,16 @@ public class Dispatcher {
 		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			return MAPPER.writeValueAsBytes(Environment.getInstance().getDynamicProperties());
+			String source = parameters.get("source");
+			Map<String, String> result = Objects.equals(source, Environment.getInstance().getSource())
+					                     ? Environment.getInstance().getDynamicProperties()
+					                     : Collections.emptyMap();	 
+			
+			return MAPPER.writeValueAsBytes(result);
 		}
 
 	}
-	
+		
 	static class LogHandler implements Handler {
 
 		@Override
@@ -374,6 +382,14 @@ public class Dispatcher {
 			}
 			
 			return new byte[0];
+		}
+	}
+
+	static class PingHandler implements Handler {
+
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			return "Hello".getBytes();
 		}
 	}
 
