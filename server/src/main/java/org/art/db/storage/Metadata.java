@@ -60,6 +60,10 @@ public class Metadata  {
 	}
 	
 	
+	public static void clear() {
+		cache.clear();
+	}
+	
 	public static Metadata getMetadata(String table) {
 		
 		if (cache.containsKey(table)) {
@@ -163,4 +167,12 @@ public class Metadata  {
 	public void setQueue(boolean isQueue) {
 		this.isQueue = isQueue;
 	}
+
+	@Override
+	public String toString() {
+		return "Metadata [name=" + name + ", primaryKeyFields=" + primaryKeyFields + ", columns=" + columns
+				+ ", indices=" + indices + ", isQueue=" + isQueue + "]";
+	}
+	
+	
 }

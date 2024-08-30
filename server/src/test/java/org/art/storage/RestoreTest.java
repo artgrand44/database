@@ -9,11 +9,14 @@ import org.apache.commons.io.FileUtils;
 import org.art.db.client.Client;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.RestClient;
+import org.art.db.storage.Metadata;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class RestoreTest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(RestoreTest.class);
@@ -33,9 +36,10 @@ public class RestoreTest extends BaseIntegrationTest {
 
 			// Start the external server 
 			
+			super.startInternal("./replication.properties");
 			super.startExternal("./secondaryrecovery.properties");
 
-			Client external = new Client(getLocalURI("8081"), "*", "admin", "admin");
+			Client external = new Client(getLocalURI("8081"), "*", "admin", "admin").batch(false);
 
 			external.waitServerCount(1);
 
@@ -44,14 +48,16 @@ public class RestoreTest extends BaseIntegrationTest {
 			String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
 			RestClient restClient = new RestClient();
 			
-			
-			// Create the table in the external server
-			
 			external.execute(drop);
 			external.execute(create);
 			external.execute(createIndex);
 			
-		
+			
+			// Create the table in the external server
+			
+			logger.info("*** stopping internal");
+			super.stopInternal();
+					
 			// Insert documents into the external server until it has at least
 			// three disk segments, then flush the external server to disk.
 			
@@ -79,16 +85,14 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			restClient.get(restClient.buildURI(this.getLocalURI("8081"), "/db/close"));
 			
-			logger.info("after extenal flush");
+			logger.info("after external flush");
 						
 			
 			File internalDir = new File("./dbroot/SYS.SYS.pounder");
 			File indexFile = new File(externalDir, "firstname.idx");
-			File metadataFile = new File(externalDir, "meta.dat");
 			
-			// Copy the metadata and the index to the primary
+			// Copy the index to the primary
 			
-			FileUtils.copyFile(metadataFile, new File(internalDir,  "metadata.dat"));
 			FileUtils.copyFile(indexFile,    new File(internalDir,  "firstname.idx"));
 			
 			// Copy the oldest segment to the primary
@@ -97,6 +101,13 @@ public class RestoreTest extends BaseIntegrationTest {
 			Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
 
 			FileUtils.copyFile(list.get(0), new File(internalDir, list.get(0).getName()));
+			
+			File metadataFile = new File(externalDir, "meta.dat");
+			ObjectMapper MAPPER = new ObjectMapper();
+			Metadata metadata = MAPPER.readValue(metadataFile, Metadata.class);
+			
+			logger.info("external count = " + metadata.getIndices().size() + " " + metadata);
+			
 
 			// Start the internal server and wait until the recovery is complete
 			
@@ -114,6 +125,12 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			
 			internalClient.waitServerCount(2);
+			
+			metadataFile = new File(internalDir, "meta.dat");
+			
+			metadata = MAPPER.readValue(metadataFile, Metadata.class);
+			logger.info("internal count = " + metadata.getIndices().size() + " " + metadata);
+			
 			
 			this.needExtra = false;
 			logger.info("before join");

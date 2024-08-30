@@ -267,6 +267,8 @@ public class RestoreManager {
 		RestClient client = new RestClient();
 		String tables = new String(client.get(client.buildURI(peer, "/db/gettables")));
 		
+		Metadata.clear();
+		
 		if (!tables.isEmpty()) {
 			RestClient restClient = new RestClient();
 

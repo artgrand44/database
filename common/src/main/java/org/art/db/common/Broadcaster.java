@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,11 +52,11 @@ public class Broadcaster {
 	 */
 	private ConcurrentMap<URI, MessageQueue> messageQueues = new ConcurrentHashMap<>();
 	
-	private RestClient client = new RestClient(REST_TIMEOUT);
+	private RestClient client = new RestClient(FAST_TIMEOUT);
 	
 	
 	/**
-	 * The TTL for broadcast requests
+	 * The TTL for broadcast requests.  
 	 */
 	private final static long REQUEST_TTL = 5 * 60 * 60 * 1000;
 	
@@ -64,7 +65,8 @@ public class Broadcaster {
 	 * The timeout for individual REST calls. 
 	 * 
 	 */
-	private final static Duration REST_TIMEOUT = Duration.ofMillis(RestClient.DEFAULT_TIMEOUT.toMillis() / 10);
+	private final static Duration FAST_TIMEOUT = Duration.ofMillis(100);
+	
 	
 	private static final Broadcaster instance = new Broadcaster();
 	
@@ -160,7 +162,7 @@ public class Broadcaster {
 	 * @throws Exception
 	 */
 	public void broadcast(List<URI> instances, String path, byte[] body, String user, String password) throws Exception {
-		RestClient myClient = user == null ? this.client : new RestClient(user, password, REST_TIMEOUT);
+		RestClient myClient = user == null ? this.client : new RestClient(user, password, FAST_TIMEOUT);
 		List<Future<HttpResponse<byte[]>>> futures = new ArrayList<>();
 		
 		for (URI base : instances) {
@@ -171,14 +173,14 @@ public class Broadcaster {
 			Future<HttpResponse<byte[]>> future = futures.get(idx);
 			
 			try {
-				future.get();
-			} catch (Exception exc) {
-				if (exc.getCause() instanceof ConnectException) {
+				future.get(FAST_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+			} catch (Throwable exc) {
+				if (exc.getCause() instanceof ConnectException || exc instanceof TimeoutException) {
 					MessageQueue queue = this.messageQueues.computeIfAbsent(instances.get(idx), x -> new MessageQueue(null, true));
 
-					logger.info("requeue " + path);
+					DiscoveryHandler.getServerInstance().removeInstance(instances.get(idx));
 					queue.messages.add(new Message(path, body, user, password));
-				}
+				} 
 			}
 		}
 		
@@ -205,7 +207,8 @@ public class Broadcaster {
 					RestClient myClient = message.user == null ? new RestClient() : new RestClient(message.user, message.password);
 
 					myClient.put(client.buildURI(uri, message.path), message.body);
-				} catch (Exception exc) {					
+				} catch (Exception exc) {	
+					
 				}
 			}
 		}
@@ -238,7 +241,7 @@ public class Broadcaster {
 					Message message = messages.next();
 					
 					try {
-						RestClient myclient = message.user == null ? this.client : new RestClient(message.user, message.password, REST_TIMEOUT);
+						RestClient myclient = message.user == null ? this.client : new RestClient(message.user, message.password, FAST_TIMEOUT);
 						
 						myclient.put(client.buildURI(uri, message.path), message.body);
 						messages.remove();
