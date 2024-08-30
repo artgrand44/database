@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 @Integration
 public class NegativeSQLTest extends BaseIntegrationTest {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(NegativeSQLTest.class);
 	
 	private Client client;

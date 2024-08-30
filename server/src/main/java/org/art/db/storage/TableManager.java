@@ -5,8 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileLock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,7 +20,6 @@ import org.art.db.common.DBRuntimeException;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
-import org.art.db.common.KubernetesPlugin;
 import org.art.db.common.LogEntry;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
@@ -35,7 +32,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 public class TableManager implements Closeable{
 	private static final Logger logger = LoggerFactory.getLogger(TableManager.class);
 	
-	private final String tableName;
 	private final Table table;
 	private final File metadataFile;
 	private final List<IndexInfo> indexInfo;
@@ -44,27 +40,14 @@ public class TableManager implements Closeable{
 	private final LockManager<Key> alternateKeyLockManager = new LockManager<>();
 	private boolean checkConstraints;
 	
-	private FileLock lock;
 	private Metadata metadata;
 	
 	private final Cache<Key, Long> timestamps = Caffeine.newBuilder().maximumSize(1000).build();
 	
-	@SuppressWarnings("resource")
 	public TableManager(String tableName) throws Exception {
-		this.tableName = tableName;
 		this.metadataFile = Files.getMetadata(tableName);
 		this.metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(tableName);
 		this.indexInfo = metadata.getIndices();
-		
-		if (!KubernetesPlugin.isKubernetes()) {
-			RandomAccessFile lockFile = new RandomAccessFile(Files.getLockFile(this.tableName), "rw");
-
-			this.lock = lockFile.getChannel().tryLock(0, Long.MAX_VALUE, false);
-
-			if (this.lock == null) {
-				throw new DBRuntimeException(tableName + " is locked by another serve");
-			}
-		}
 		
 		for (IndexInfo info : this.indexInfo) {
 			String name = info.name();
@@ -381,18 +364,9 @@ public class TableManager implements Closeable{
 			entry.getValue().close();
 		}
 		
-		if (this.lock != null) {
-			this.lock.release();
-		}
-		
 	}
 	
 	public void crash() throws Exception {
 		this.table.crash();
-		
-		if (this.lock != null) {
-			this.lock.release();
-		}
-
 	}
 }
