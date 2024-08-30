@@ -223,7 +223,7 @@ public class DMLHandler {
 			for (int idx = 0; idx < insert.getColumns().size(); idx++) {
 				String column = columns.get(idx).getColumnName();
 				String prefix = column.contains(".") ? column.substring(0, column.indexOf('.')) : column;
-				ColumnInfo info = metadata.column(prefix);
+				ColumnInfo info = metadata.getColumn(prefix);
 				
 				if (info == null) {
 					throw new DBRuntimeException(column + " is not a valid column name");
@@ -483,7 +483,7 @@ public class DMLHandler {
 					String column = columns.get(idx).getFullyQualifiedName();
 					String prefix = column.contains(".") ? column.substring(0, column.indexOf('.')) : column;					
 					
-					if (metadata.column(prefix) == null) {
+					if (metadata.getColumn(prefix) == null) {
 						throw new DBRuntimeException(column + " is not a valid column");
 					} else if (metadata.getPrimaryKeyFields().contains(column)) {
 						throw new DBRuntimeException("Primary field columns cannot be changed");
@@ -515,7 +515,7 @@ public class DMLHandler {
 					for (int idx = 0; idx < columns.size(); idx++) {
 						String column = columns.get(idx).getFullyQualifiedName();
 						int dot = column.indexOf('.');
-						ColumnInfo info = dot == -1 ? metadata.column(column) : metadata.column(column.substring(0, dot));
+						ColumnInfo info = dot == -1 ? metadata.getColumn(column) : metadata.getColumn(column.substring(0, dot));
 						Object value = evaluator.evaluate(values.get(idx), dod, parameters);
 						
 						if (value == DBNull.NULL && !info.nullable()) {

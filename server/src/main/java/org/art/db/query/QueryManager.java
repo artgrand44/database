@@ -53,7 +53,7 @@ public class QueryManager {
 				ColumnInfo info = entry.getValue();
 				Object value = doc.get(name);
 				
-				if (value == DBNull.NULL && ! metadata.column(name).nullable()) {
+				if (value == DBNull.NULL && ! metadata.getColumn(name).nullable()) {
 					doc.put(name, info.defaultValue());
 				}
 				
@@ -75,8 +75,8 @@ public class QueryManager {
 				for (String name : selectColumns) {
 					Object value = doc.get(name);
 
-					if (value == DBNull.NULL && ! metadata.column(name).nullable()) {
-						value = metadata.column(name).defaultValue();
+					if (value == DBNull.NULL && ! metadata.getColumn(name).nullable()) {
+						value = metadata.getColumn(name).defaultValue();
 					}
 
 					newDoc.put(name, value);

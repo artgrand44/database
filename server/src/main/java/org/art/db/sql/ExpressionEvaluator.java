@@ -199,7 +199,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 				String field = filter.getField();
 				String prefix = field.contains(".") ? field.substring(0, field.indexOf('.')) : field;
 				
-				ColumnInfo col = this.metadata.column(prefix);
+				ColumnInfo col = this.metadata.getColumn(prefix);
 								
 				if (col == null) {
 					throw new DBRuntimeException(field + " is not a valid column.");
