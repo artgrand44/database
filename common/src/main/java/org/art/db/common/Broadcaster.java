@@ -207,8 +207,7 @@ public class Broadcaster {
 					RestClient myClient = message.user == null ? new RestClient() : new RestClient(message.user, message.password);
 
 					myClient.put(client.buildURI(uri, message.path), message.body);
-				} catch (Exception exc) {	
-					
+				} catch (Exception exc) {						
 				}
 			}
 		}
