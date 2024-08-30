@@ -66,8 +66,6 @@ public class Table implements Closeable {
 		this.isQueue = meta.isQueue();
 		this.maxSegmentSize = Integer.parseInt(this.environment.getProperty("org.art.db.maxSegmentSize", this.environment.getDefault("org.art.db.maxSegmentSize")));
 		
-		logger.info("set max to " + this.maxSegmentSize);
-		
 		this.currentSegment = this.isQueue
 				              ? new QueueSegment(this.table, this.discoveryHandler, this.environment)
 				              : new MemorySegment(table, this.discoveryHandler, this.environment, false);
@@ -327,12 +325,6 @@ public class Table implements Closeable {
 		try {
 			File file  = Files.getDiskSegment(this.table, 1);
 
-			logger.info("save segment");
-			
-			if (this.isQueue) {
-				logger.info("saving queue");
-			}
-			
 			DiskSegment saved = segment.save(file);
 			
 			this.writeLock.lock();
@@ -393,10 +385,8 @@ public class Table implements Closeable {
 
 		try {
 			if (this.currentSegment.size() > this.maxSegmentSize && this.prevSegment == null && !this.closed) {
-				logger.info("calling switch " + this.currentSegment.size());
 				switchSegments();
 			} else if (this.isQueue && this.currentSegment.getLogSize() > MAX_LOG_SIZE) {
-				logger.info("calling switch due to log size" + this.currentSegment.getLogSize());
 				switchSegments();
 			} 
 		} finally {

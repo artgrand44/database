@@ -31,13 +31,13 @@ public class RestClient {
 	private static final HttpClient client = HttpClient.newBuilder().build();
 	
 	private String user;
-	
 	private String password;
-	
-	private Duration timeout = Duration.ofSeconds(3000);
+	private Duration timeout = DEFAULT_TIMEOUT;
 	
 	private final static String localHost;
 	
+	public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3000);
+		
 	static {
 		try {
 			localHost = InetAddress.getLocalHost().getHostAddress();
@@ -48,6 +48,10 @@ public class RestClient {
 	
 	public RestClient() {
 		
+	}
+	
+	public RestClient(Duration timeout) {
+		this.timeout = timeout;
 	}
 	
 	public RestClient(String user, String password) {

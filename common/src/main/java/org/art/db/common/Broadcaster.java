@@ -3,6 +3,7 @@ package org.art.db.common;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -35,10 +36,10 @@ public class Broadcaster {
 	/**
 	 * A message queue for an instance that is in the middle of startup
 	 */
-	static record MessageQueue (String shard, LinkedList<Message> messages, long ttl, boolean temporary) {
+	static record MessageQueue (String shard, LinkedList<Message> messages, long startTime, boolean temporary) {
 		
 		MessageQueue(String shard, boolean temporary) {
-			this(shard, new LinkedList<>(), System.currentTimeMillis() + TIMEOUT, temporary);
+			this(shard, new LinkedList<>(), System.currentTimeMillis(), temporary);
 		}
 	}
 	
@@ -50,10 +51,20 @@ public class Broadcaster {
 	 */
 	private ConcurrentMap<URI, MessageQueue> messageQueues = new ConcurrentHashMap<>();
 	
-	private RestClient client = new RestClient();
+	private RestClient client = new RestClient(REST_TIMEOUT);
 	
-	private final static long TIMEOUT = 5 * 60 * 60 * 1000;
 	
+	/**
+	 * The TTL for broadcast requests
+	 */
+	private final static long REQUEST_TTL = 5 * 60 * 60 * 1000;
+	
+	
+	/**
+	 * The timeout for individual REST calls. 
+	 * 
+	 */
+	private final static Duration REST_TIMEOUT = Duration.ofMillis(RestClient.DEFAULT_TIMEOUT.toMillis() / 10);
 	
 	private static final Broadcaster instance = new Broadcaster();
 	
@@ -149,7 +160,7 @@ public class Broadcaster {
 	 * @throws Exception
 	 */
 	public void broadcast(List<URI> instances, String path, byte[] body, String user, String password) throws Exception {
-		RestClient myClient = user == null ? this.client : new RestClient(user, password);
+		RestClient myClient = user == null ? this.client : new RestClient(user, password, REST_TIMEOUT);
 		List<Future<HttpResponse<byte[]>>> futures = new ArrayList<>();
 		
 		for (URI base : instances) {
@@ -187,24 +198,14 @@ public class Broadcaster {
 		MessageQueue queue = this.messageQueues.remove(uri);
 		
 		if (queue != null) {
+			logger.info("got available from " + uri);
+			
 			for (Message message : queue.messages) {
-				boolean success = false;
-				
-				for (int idx = 0; idx < 10 && !success; idx++) {
-					try {
-						RestClient myClient = message.user == null ? this.client : new RestClient(message.user, message.password);
+				try {
+					RestClient myClient = message.user == null ? new RestClient() : new RestClient(message.user, message.password);
 
-						
-						myClient.put(client.buildURI(uri, message.path), message.body);
-						logger.info("resend "  + message.path + " to  " + uri);
-						success = true;
-					} catch (Exception exc) {
-						Utils.sleepSafely(1000);
-					}
-				}
-				
-				if (!success) {
-					logger.info("failed to resend " + message.path + " to  " + uri);
+					myClient.put(client.buildURI(uri, message.path), message.body);
+				} catch (Exception exc) {					
 				}
 			}
 		}
@@ -237,7 +238,7 @@ public class Broadcaster {
 					Message message = messages.next();
 					
 					try {
-						RestClient myclient = message.user == null ? this.client : new RestClient(message.user, message.password);
+						RestClient myclient = message.user == null ? this.client : new RestClient(message.user, message.password, REST_TIMEOUT);
 						
 						myclient.put(client.buildURI(uri, message.path), message.body);
 						messages.remove();
@@ -248,7 +249,7 @@ public class Broadcaster {
 			
 			// If the queue has been around for more than a few hours then delete it.
 			
-			if (queue.ttl < System.currentTimeMillis()) {
+			if (queue.startTime + REQUEST_TTL < System.currentTimeMillis()) {
 				iterator.remove();
 			} 
 		}
