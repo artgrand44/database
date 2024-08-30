@@ -214,7 +214,6 @@ public class Client {
 				return;
 			} catch (RestException exc) {
 				if (exc.getCause() instanceof ConnectException) {
-					logger.info("conn exception " + exc.getMessage());
 					Utils.sleepSafely(2000);
 				}
 			}
