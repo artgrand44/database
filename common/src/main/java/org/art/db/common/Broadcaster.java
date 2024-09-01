@@ -249,7 +249,7 @@ public class Broadcaster {
 					Message message = messages.next();
 					
 					try {
-						RestClient myclient = message.user == null ? this.client : new RestClient(message.user, message.password, FAST_TIMEOUT);
+						RestClient myclient = new RestClient(message.user, message.password, FAST_TIMEOUT);
 						
 						myclient.put(client.buildURI(uri, message.path), message.body);
 						messages.remove();
