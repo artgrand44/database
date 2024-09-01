@@ -203,17 +203,26 @@ public class Broadcaster {
 			logger.info("got available from " + uri);
 			
 			for (Message message : queue.messages) {
-				try {
-					RestClient myClient = message.user == null ? new RestClient() : new RestClient(message.user, message.password);
+				for (int idx = 0; idx < 10; idx++) {
+					try {
+						RestClient myClient = message.user == null ? new RestClient() : new RestClient(message.user, message.password);
 
-					myClient.put(client.buildURI(uri, message.path), message.body);
-				} catch (Exception exc) {						
+						myClient.put(client.buildURI(uri, message.path), message.body);
+						break;
+					} catch (Exception exc) {	
+						if (exc.getCause() instanceof ConnectException || exc instanceof TimeoutException) {
+							Utils.sleepSafely(100);
+							logger.info("sleeping " + idx);
+						} else {
+							break;
+						}
+					}
 				}
 			}
 		}
 		
 	}
-	
+		
 	public void markRecovering(URI uri, String shard) {
 		messageQueues.put(uri, new MessageQueue(shard, false));
 	}
