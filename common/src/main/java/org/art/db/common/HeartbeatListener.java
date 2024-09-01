@@ -161,15 +161,20 @@ public class HeartbeatListener {
 	}
 	
 	public void start() {
-		
+		this.stopping = false;
 	}
 	
 	public void stop() {
-		logger.info("stopping port" + this.port);
 		this.stopping = true;
 		
 		if (this.poller != null) {
 			this.poller.interrupt();
+			
+			while (this.poller.isAlive()) {
+				Utils.sleepSafely(1000);
+			}
+			
+			logger.info("finally dead");
 			this.poller = null;
 		}
 

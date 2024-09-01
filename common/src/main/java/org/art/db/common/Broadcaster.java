@@ -1,12 +1,19 @@
 package org.art.db.common;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,10 +44,71 @@ public class Broadcaster {
 	/**
 	 * A message queue for an instance that is in the middle of startup
 	 */
-	static record MessageQueue (String shard, LinkedList<Message> messages, long startTime, boolean temporary) {
+	static class MessageQueue {
 		
-		MessageQueue(String shard, boolean temporary) {
-			this(shard, new LinkedList<>(), System.currentTimeMillis(), temporary);
+		final String shard;
+		final long startTime;
+		final boolean temporary;
+		final File file;
+		private DataInputStream inStream;
+		private DataOutputStream outStream;
+		private int size;
+		
+		
+		MessageQueue(String shard, boolean temporary)  {
+			try {
+				this.shard = shard;
+				this.temporary = temporary;
+				this.startTime = System.currentTimeMillis();
+				this.file = File.createTempFile("msg", ".dat", new File("."));
+				this.outStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(this.file)));
+
+				this.file.deleteOnExit();
+			} catch (Exception exc) {
+				throw new IllegalStateException(exc);
+			}
+			
+		}
+		
+		void add(Message message) throws Exception {
+			this.outStream.writeUTF(message.path);
+			this.outStream.writeUTF(message.user == null ? "" : message.user);
+			this.outStream.writeUTF(message.password == null ? "" : message.password);
+			this.outStream.writeInt(message.body.length);
+			this.outStream.write(message.body);
+			this.size++;
+		}
+		
+		
+		void close() {
+			Utils.closeSafely(this.inStream);
+			Utils.closeSafely(this.outStream);
+			this.file.delete();
+		}
+		void flip() throws Exception {
+			this.outStream.close();
+			this.outStream = null;
+			this.inStream = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
+		}
+		
+		Message read() throws Exception {
+			try {
+				String path = this.inStream.readUTF();
+				String user = this.inStream.readUTF();
+				String password = this.inStream.readUTF();
+				int length = this.inStream.readInt();
+				byte[] body = new byte[length];
+				
+				this.inStream.read(body);
+				
+				return new Message(path, body, user.isEmpty() ? null : user, password.isEmpty() ? null : password);				
+			} catch (EOFException exc) {
+				return null;
+			}
+		}
+		
+		int size() {
+			return this.size;
 		}
 	}
 	
@@ -85,7 +153,7 @@ public class Broadcaster {
 		Message message = new Message(path, body, null, null);
 		
 		for (MessageQueue queue : this.messageQueues.values()) {
-			queue.messages.add(message);
+			queue.add(message);
 		}
 		
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
@@ -111,7 +179,7 @@ public class Broadcaster {
 		
 		for (MessageQueue queue : this.messageQueues.values()) {
 			if (shard.equals(queue.shard)) {
-				queue.messages.add(message);
+				queue.add(message);
 			}			
 		}
 		
@@ -135,7 +203,7 @@ public class Broadcaster {
 		
 		for (MessageQueue queue : this.messageQueues.values()) {
 			if (shard.equals(queue.shard)) {
-				queue.messages.add(message);
+				queue.add(message);
 			}			
 		}
 		
@@ -178,8 +246,11 @@ public class Broadcaster {
 				if (exc.getCause() instanceof ConnectException || exc instanceof TimeoutException) {
 					MessageQueue queue = this.messageQueues.computeIfAbsent(instances.get(idx), x -> new MessageQueue(null, true));
 
-					DiscoveryHandler.getServerInstance().removeInstance(instances.get(idx));
-					queue.messages.add(new Message(path, body, user, password));
+					queue.add(new Message(path, body, user, password));
+					
+					if (queue.size() > 2) {
+						DiscoveryHandler.getServerInstance().removeInstance(instances.get(idx));
+					}
 				} 
 			}
 		}
@@ -196,28 +267,42 @@ public class Broadcaster {
 	 * web server is available.
 	 * @param uri
 	 */
-	public void markAvailable(URI uri) {
+	public void markAvailable(URI uri, String localPort) {
 		MessageQueue queue = this.messageQueues.remove(uri);
 		
+		if (localPort.equals("8081") && uri.getPath().equals("8080")) {
+			logger.info("8081 got markAvailable from 8080 " + queue);
+		}
+		
 		if (queue != null) {
-			logger.info("got available from " + uri);
+			logger.info("got markAvailable from " + uri + " sent to " + localPort);
 			
-			for (Message message : queue.messages) {
-				for (int idx = 0; idx < 10; idx++) {
-					try {
-						RestClient myClient = message.user == null ? new RestClient() : new RestClient(message.user, message.password);
+			try {
+				queue.flip();
 
-						myClient.put(client.buildURI(uri, message.path), message.body);
-						break;
-					} catch (Exception exc) {	
-						if (exc.getCause() instanceof ConnectException || exc instanceof TimeoutException) {
-							Utils.sleepSafely(100);
-							logger.info("sleeping " + idx);
-						} else {
+				Message message;
+
+				while ((message = queue.read()) != null) {
+					for (int idx = 0; idx < 10; idx++) {
+						try {
+							RestClient myClient = message.user == null ? new RestClient() : new RestClient(message.user, message.password);
+
+							myClient.put(client.buildURI(uri, message.path), message.body);
 							break;
+						} catch (Exception exc) {	
+							if (exc.getCause() instanceof ConnectException || exc instanceof TimeoutException) {
+								Utils.sleepSafely(100);
+								logger.info("sleeping " + idx);
+							} else {
+								break;
+							}
 						}
 					}
 				}
+				
+				queue.close();
+			} catch (Exception exc) {
+				logger.info("There was an exception reading the queue " + exc.getMessage());
 			}
 		}
 		
@@ -243,18 +328,22 @@ public class Broadcaster {
 			
 			if (queue.temporary) {
 				URI uri = entry.getKey();
-				Iterator<Message> messages = queue.messages.iterator();
 				
-				while (messages.hasNext()) {
-					Message message = messages.next();
+				try {
+					Message message;
 					
-					try {
-						RestClient myclient = new RestClient(message.user, message.password, FAST_TIMEOUT);
-						
-						myclient.put(client.buildURI(uri, message.path), message.body);
-						messages.remove();
-					} catch (Exception exc) {						
+					while ((message = queue.read()) != null) {
+						try {
+							RestClient myclient = new RestClient(message.user, message.password, FAST_TIMEOUT);
+							
+							myclient.put(client.buildURI(uri, message.path), message.body);
+						} catch (Exception exc) {						
+						}
 					}
+					
+					queue.close();
+				} catch (Exception exc) {
+					logger.info("There was an exception reading the queue " + exc);
 				}
 			}
 			

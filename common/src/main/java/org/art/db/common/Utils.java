@@ -9,10 +9,12 @@ public class Utils {
 	private static final Logger logger = LoggerFactory.getLogger(Utils.class);
 	
 	public static void closeSafely(Closeable closable) {
-		try {
-			closable.close();
-		} catch (Exception exc) {
-			logger.info("close got exception " + exc.getMessage());
+		if (closable != null) {
+			try {
+				closable.close();
+			} catch (Exception exc) {
+				logger.info("close got exception " + exc.getMessage());
+			}
 		}
 	}
 	
