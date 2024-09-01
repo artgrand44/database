@@ -137,7 +137,6 @@ public class RestoreTest extends BaseIntegrationTest {
 			thread.join();
 			logger.info("after join");
 						
-			logger.info("recovery complete checking " + count);
 			
 			// Verify that all of the documents and index entries are in 
 			// the internal server	
@@ -147,6 +146,8 @@ public class RestoreTest extends BaseIntegrationTest {
 			String extraQuery = "select * from extra where ID = ?";
 			
 			external.waitServerCount(2);
+			
+			logger.info("recovery complete checking " + count);
 			
 			for (int idx = 0; idx < count; idx += 500) {
 				int id = this.getId(idx);
