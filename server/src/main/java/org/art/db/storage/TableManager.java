@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
+import org.art.db.common.Broadcaster;
 import org.art.db.common.Comparison;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
@@ -86,6 +88,9 @@ public class TableManager implements Closeable{
 			for (File file : recoverImmediately) {
 				if (file.length() != 0) {
 					this.applySnapshot(new FileInputStream(file), false, file);
+					
+					byte[] bytes = FileUtils.readFileToByteArray(file);
+					Broadcaster.getInstance().broadcast("/db/propagate", bytes);
 				} 
 			}
 			
@@ -103,6 +108,9 @@ public class TableManager implements Closeable{
 			if (file.length() != 0) {
 				try {
 					this.applySnapshot(new FileInputStream(file), false, file);
+					
+					byte[] bytes = FileUtils.readFileToByteArray(file);
+					Broadcaster.getInstance().broadcast("/db/propagate", bytes);
 				} catch (Exception exc) {
 
 				}
