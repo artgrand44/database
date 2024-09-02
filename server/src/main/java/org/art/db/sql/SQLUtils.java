@@ -131,22 +131,6 @@ public class SQLUtils {
 		return result;
 	}
 	
-	static void broadcastLocal(String database, String statement, String user, String password, List<Comparable<?>> parameters) throws Exception {
-		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
-
-		if (handler != null) {
-			String shard = handler.getLocalShard();
-
-			try (TypedOutputStream stream = new TypedOutputStream()) {
-				new ClientArgs(database, shard, statement, parameters).serialize(stream); 
-
-				Broadcaster.getInstance().broadcast("/db/execute", stream.toByteArray(), shard, user, password);
-			}
-
-		}
-	}
-
-
 	private static Filter findFilter(List<Filter> filters, String name) {
 		for (Filter filter : filters) {
 			if (filter.getField().equals(name)) {

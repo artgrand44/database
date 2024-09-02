@@ -263,10 +263,6 @@ public class DMLHandler {
 			QueryManager.getInstance().insert(table, doc);	
 			QueryManager.getInstance().unlockPrimaryKey(table, doc);
 			
-			if (targetShard.equals(Client.WILDCARD)) {
-				SQLUtils.broadcastLocal(database, sqlString, user, password, parameters);
-			}
-			
 			Metrics.getInstance().logInsert();
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		} catch (DBRuntimeException exc) {
