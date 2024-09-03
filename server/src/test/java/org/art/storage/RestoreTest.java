@@ -9,6 +9,7 @@ import org.apache.commons.io.FileUtils;
 import org.art.db.client.Client;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.RestClient;
+import org.art.db.common.Utils;
 import org.art.db.storage.Metadata;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -126,16 +127,8 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			internalClient.waitServerCount(2);
 			
-			metadataFile = new File(internalDir, "meta.dat");
-			
-			metadata = MAPPER.readValue(metadataFile, Metadata.class);
-			logger.info("internal count = " + metadata.getIndices().size() + " " + metadata);
-			
-			
 			this.needExtra = false;
-			logger.info("before join");
 			thread.join();
-			logger.info("after join");
 						
 			
 			// Verify that all of the documents and index entries are in 
@@ -145,7 +138,22 @@ public class RestoreTest extends BaseIntegrationTest {
 			String idQuery = "select * from pounder where ID = ?";
 			String extraQuery = "select * from extra where ID = ?";
 			
-			external.waitServerCount(2);
+			for (;;) {
+				try {
+					int id = this.getId(0);
+					internalClient.executeQuery(idQuery, id);
+					
+					break;
+				} catch (Exception exc) {
+					if (exc.getMessage().contains("The instance is being recovered")) {
+						Utils.sleepSafely(1000);
+					} else {
+						logger.info("Bad exception " + exc.getMessage());
+						break;
+					}
+				}
+			}
+			
 			
 			logger.info("recovery complete checking " + count);
 			
@@ -184,7 +192,7 @@ public class RestoreTest extends BaseIntegrationTest {
 					logger.info("bad extra for key " + key + " size " + set.size());
 				}
 				
-				//Assertions.assertThat(set.size() == 1).withFailMessage("Np extra").isTrue();
+				Assertions.assertThat(set.size() == 1).withFailMessage("Np extra").isTrue();
 			}
 			
 			

@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
-import org.art.db.common.Broadcaster;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
@@ -32,6 +31,10 @@ public class RestoreManager {
 	private static final Logger logger = LoggerFactory.getLogger(RestoreManager.class);
 	
 	private final static RestoreManager instance = new RestoreManager();
+	
+	private boolean hasMetadata;
+	
+	private boolean recovered;
 	
 	private final RestClient restClient = new RestClient(SecurityHandler.getInstance().getAdminUser(), SecurityHandler.getInstance().getAdminPassword());
 	
@@ -157,20 +160,14 @@ public class RestoreManager {
 		}
 						
 		if (peer != null) {
-			try {
-				
-				// Tell the local peers that we are starting the recovery.  This will cause
-				// them to save their logs until we're capable of processing them.
-				
-				String path = String.format("/db/markrecovering?uri=%s&shard=%s", handler.getLocalInstance(), handler.getLocalShard());
-				
-				Broadcaster.getInstance().broadcast(handler.getLocalPeers(), path, new byte[0]);
-												
+			try {								
 				// If there's a peer the recover the configuration and the metadata
 				// then recover the tables one by one.
 				
 				this.recoverConfiguration(peer);
 				this.recoverMetadata(peer);		
+				
+				this.hasMetadata = true;
 				
 				// Recovery the tables
 				
@@ -213,6 +210,8 @@ public class RestoreManager {
 				Metrics.getInstance().logAlert("There was an exception restoring the backup.");
 				logger.info("There was an error synchronizing the configuration " + exc.getMessage());
 			}
+			
+			this.recovered = true;
 		} else if (useBackup) {
 			try {
 				logger.info("Restoring database from backup");
@@ -312,6 +311,12 @@ public class RestoreManager {
 		
 		for (String name : this.getAllFilesAfter(peer, tableName, ".seg", timestamp)) {
 			File localFile = new File(Files.getTableDirectory(tableName), name);
+			
+			if (localFile.length() == 0) {
+				localFile.delete();
+				continue;
+			}
+			
 			DiskSegment segment = new DiskSegment(localFile);
 
 			// Iterate over the segments and update the index entries for each
@@ -343,6 +348,16 @@ public class RestoreManager {
 	
 	public static RestoreManager getInstance() {
 		return instance;
+	}
+
+
+	public boolean hasMetadata() {
+		return hasMetadata;
+	}
+
+
+	public boolean isRecovered() {
+		return recovered;
 	}
 
 }

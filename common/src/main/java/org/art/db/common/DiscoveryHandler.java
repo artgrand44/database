@@ -300,7 +300,6 @@ public class DiscoveryHandler {
 				String shard = entry.getValue();
 				
 				instances.add(shard, uri);
-				Broadcaster.getInstance().markAvailable(uri, this.port);
 				hosts.add(InetAddress.getByName(uri.getHost()));
 			}
 			
