@@ -19,6 +19,7 @@ import org.art.db.common.Key;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
+import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,14 +78,21 @@ public class RestoreManager {
 	}
 	
 	private void getFile(URI peer, String table, String name) throws Exception {
-		URI uri = this.restClient.buildURI(peer, "/db/getfile?table=%s&name=%s", table, name);
 		File localFile = new File(Files.getTableDirectory(table), name);
-		
-		localFile.delete();		
-		this.restClient.getFile(uri, localFile);
+
+		this.getFile(peer, String.format("/db/getfile?table=%s&name=%s", table, name), localFile);
 		
 	}
 		
+	private void getFile(URI peer, String path, File localFile) throws Exception {
+		URI uri = this.restClient.buildURI(peer, path);
+		File zipFile = Files.changeExtention(localFile, ".zip");
+		
+		localFile.delete();		
+		this.restClient.getFile(uri, zipFile);
+		
+		FileUtils.writeByteArrayToFile(localFile, ZipUtils.decompress(FileUtils.readFileToByteArray(zipFile)));
+	}
 	
 	private List<String> getAllFiles(URI peer, String table, String type) throws Exception {
 		List<String> names = this.getFilesNames(peer, table, type);
@@ -278,16 +286,13 @@ public class RestoreManager {
 		Metadata.clear();
 		
 		if (!tables.isEmpty()) {
-			RestClient restClient = new RestClient();
-
 			for (String table : tables.split(",")) {
-				File file = Files.getMetadata(table);
-
-				restClient.getFile(restClient.buildURI(peer, "/db/getmetadata?table=%s", table, 0), file);
+				this.getFile(peer, String.format("/db/getmetadata?table=%s", table), Files.getMetadata(table));
 			}	
 		}	
 	}
 
+	
 	private void recoverQueue(TableManager manager, URI peer, String tableName) throws Exception { 
 		for (String name : this.getAllFiles(peer, tableName, ".log")) {
 			File localFile = new File(Files.getTableDirectory(tableName), name);

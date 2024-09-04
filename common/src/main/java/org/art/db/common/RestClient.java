@@ -91,7 +91,7 @@ public class RestClient {
 			
 			if ("gzip".equals(headers.firstValue("Content-Encoding").orElse(null))) {
 				result = ZipUtils.decompress(result);
-			}
+			} 
 			
 			return result;
 		} catch (ExecutionException exc) {
@@ -189,7 +189,10 @@ public class RestClient {
 				throw new RestException(status, "There was a network errror");
 			}
 			
-			return response.headers().firstValue("filename").orElse(null);
+			String result = response.headers().firstValue("filename").orElse(null);
+			
+			logger.info("getfile file = " + file.getAbsolutePath() + " result = " + result);
+			return result;
 			
 		} catch(Exception exc) {
 			throw new RestException(500, exc.getMessage());

@@ -86,7 +86,7 @@ public class Broadcaster {
 	private static final Broadcaster instance = new Broadcaster();
 	
 	private Broadcaster() {
-		Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutHandler, 1, 1, TimeUnit.SECONDS);
+		Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutHandler, 1, 1, TimeUnit.MINUTES);
 	}
 	
 	

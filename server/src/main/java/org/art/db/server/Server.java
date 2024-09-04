@@ -26,13 +26,19 @@ import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.io.Receiver.FullBytesCallback;
+import io.undertow.predicate.Predicates;
 import io.undertow.server.DefaultByteBufferPool;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.server.handlers.encoding.ContentEncodingRepository;
+import io.undertow.server.handlers.encoding.DeflateEncodingProvider;
+import io.undertow.server.handlers.encoding.EncodingHandler;
+import io.undertow.server.handlers.encoding.GzipEncodingProvider;
 import io.undertow.util.HeaderValues;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
@@ -83,7 +89,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 			this.server.start();
 			Metrics.getInstance().logStatus("Running");
-			logger.info("Started WebServer on port " + port);
+			logger.info("Started WebServer on uri " + handler.getLocalInstance());
 		} catch (Throwable exc) {
 			exc.printStackTrace();
 			logger.error(exc.getClass().getName() + exc.getMessage());
@@ -140,16 +146,32 @@ public class Server implements HttpHandler, FullBytesCallback {
 		
 		try {
 			Object response = Dispatcher.handle(exchange, exchange.getRequestURI(), params, message);
+			HeaderValues headers = exchange.getRequestHeaders().get("Content-Encoding");
+			boolean zip = headers != null && headers.contains("gzip");
 			
 			if (response instanceof byte[] bytes) {
+				if (zip) {
+					bytes = ZipUtils.compress(bytes);
+					exchange.getResponseHeaders().add(new HttpString("Content-Encoding"), "gzip");
+				}
+				
 				exchange.getOutputStream().write(bytes);
 			} else if (response != null){
 				File file = (File)response;
+				File temp = File.createTempFile(file.getName(), "zip", new File("."));
+
+				FileUtils.writeByteArrayToFile(temp, ZipUtils.compress(FileUtils.readFileToByteArray(file)));
+
+				exchange.getResponseHeaders().add(new HttpString("Content-Encoding"), "gzip");
 				
-				try (FileInputStream inputStream = new FileInputStream(file)) {
+				try (FileInputStream inputStream = new FileInputStream(temp)) {
 					IOUtils.copyLarge(inputStream, exchange.getOutputStream());
 				}
+
+				temp.delete();			
 			}
+			
+			
 		} catch (UnathorizedException exc) {
 			exchange.getResponseHeaders().put(Headers.WWW_AUTHENTICATE, "Basic realm=Database");
 			exchange.setStatusCode(RestException.UNAUTHORIZED);

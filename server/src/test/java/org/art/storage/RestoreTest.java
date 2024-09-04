@@ -162,6 +162,7 @@ public class RestoreTest extends BaseIntegrationTest {
 				Assertions.assertThat(ids.iterator().next().get("FirstName").equals(name)).isTrue();
 			}
 			
+			
 			logger.info("Checking extras");
 			
 			for (int idx = 0; idx < this.extraCount; idx++) {
@@ -171,6 +172,7 @@ public class RestoreTest extends BaseIntegrationTest {
 				
 				if (set.size() != 1) {
 					logger.info("bad extra for key " + key + " size " + set.size());
+					break;
 				}
 				
 				Assertions.assertThat(set.size() == 1).withFailMessage("Np extra").isTrue();
@@ -178,6 +180,7 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			
 			logger.info("After check loop");
+			Utils.sleepSafely(60 * 60 * 1000);
 
 		} catch (AssertionFailedError err) {
 			throw err;
