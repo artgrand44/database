@@ -409,13 +409,8 @@ public class Dispatcher {
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				String table = stream.readUTF();
 				
-				logger.info("*******" + DiscoveryHandler.getServerInstance().getLocalPort() + " got apply for " + table);
-				if (RestoreManager.getInstance().hasMetadata()) {
-					StorageManager.getInstance().getTableManager(table).applySnapshot(stream, true, null);
-				} else {
-					logger.info("Skip apply for " + table);
-				}
-			
+				Scheduler.DEFAULT.submit(() -> StorageManager.getInstance().getTableManager(table).applySnapshot(stream, true, null));
+				
 				return new byte[0];
 			}
 		}		

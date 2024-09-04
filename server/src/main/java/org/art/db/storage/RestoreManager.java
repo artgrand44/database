@@ -160,57 +160,68 @@ public class RestoreManager {
 		}
 						
 		if (peer != null) {
-			try {								
-				// If there's a peer the recover the configuration and the metadata
-				// then recover the tables one by one.
-				
-				this.recoverConfiguration(peer);
-				this.recoverMetadata(peer);		
-				
-				this.hasMetadata = true;
-				
-				// Recovery the tables
-				
-				for (String table : Files.listTables()) {
-					try {
-						if (useBackup) {
-							logger.info("Restoring " + table + " from backup");
-							FileUtils.copyDirectory(new File(backupDirectory, table), new File(root, table));
-						}
-						
-						// Tell the peer to flush its current segment 
-
-						this.restClient.get(restClient.buildURI(peer, "/db/flush?table=%s", table));
-						
-						// Get the table manager.  This will trigger local recovery for any updates that
-						// were lost during the crash.
-						
-						TableManager manager = StorageManager.getInstance().getTableManager(table);
-						
-						// Process any recent updates on the partner
-						
-						if (manager.isQueue()) {
-							this.recoverQueue(manager, peer, table);
-						} else {
-							this.recoverTable(manager, peer, table);
-						}
-						
-						if (newShard) {
-							manager.mergeAll();
-						}
-					} catch (Exception exc) {
-						Metrics.getInstance().logAlert("There was an error recovering the database");
-						exc.printStackTrace();
-						logger.info("There was an error recoverting " + table + " " + exc.getMessage());
-					}
-				}
-					
-				StorageManager.getInstance().reset();
-			} catch (Exception exc) {
-				Metrics.getInstance().logAlert("There was an exception restoring the backup.");
-				logger.info("There was an error synchronizing the configuration " + exc.getMessage());
-			}
+			long lastDuration = Long.MAX_VALUE;
 			
+			for (int idx = 0; idx < 10 && lastDuration > 60 * 1000; idx++) {
+				long startTime = System.currentTimeMillis();
+				
+				logger.info("reload loop = " + idx + " lastDuration " + lastDuration);
+				
+				try {								
+					// If there's a peer the recover the configuration and the metadata
+					// then recover the tables one by one.
+
+					this.recoverConfiguration(peer);
+					this.recoverMetadata(peer);		
+
+					this.hasMetadata = true;
+
+					// Recovery the tables
+
+					for (String table : Files.listTables()) {
+						try {
+							if (useBackup) {
+								logger.info("Restoring " + table + " from backup");
+								FileUtils.copyDirectory(new File(backupDirectory, table), new File(root, table));
+							}
+
+							// Tell the peer to flush its current segment 
+
+							this.restClient.get(restClient.buildURI(peer, "/db/flush?table=%s", table));
+
+							// Get the table manager.  This will trigger local recovery for any updates that
+							// were lost during the crash.
+
+							TableManager manager = StorageManager.getInstance().getTableManager(table);
+
+							// Process any recent updates on the partner
+
+							if (manager.isQueue()) {
+								this.recoverQueue(manager, peer, table);
+							} else {
+								this.recoverTable(manager, peer, table);
+							}
+
+							if (newShard) {
+								manager.mergeAll();
+							}
+						} catch (Exception exc) {
+							Metrics.getInstance().logAlert("There was an error recovering the database");
+							exc.printStackTrace();
+							logger.info("There was an error recoverting " + table + " " + exc.getMessage());
+						}
+					}
+
+					StorageManager.getInstance().reset();
+					lastDuration = System.currentTimeMillis() - startTime;
+				} catch (Exception exc) {
+					Metrics.getInstance().logAlert("There was an exception restoring the backup.");
+					logger.info("There was an error synchronizing the configuration " + exc.getMessage());
+					break;
+				}
+
+				
+			}
 			this.recovered = true;
 		} else if (useBackup) {
 			try {

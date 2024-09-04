@@ -4,8 +4,8 @@ import java.io.File;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
  */
 public class Broadcaster {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Broadcaster.class);
 	
 	/**
@@ -74,14 +73,14 @@ public class Broadcaster {
 	 */
 	private final static long REQUEST_TTL = 5 * 60 * 60 * 1000;
 	
-	private final static int MAX_RETRIES = 10;
+	private final static int MAX_RETRIES = 100;
 	
 	
 	/**
 	 * The timeout for individual REST calls. 
 	 * 
 	 */
-	private final static Duration FAST_TIMEOUT = Duration.ofMillis(10000);
+	private final static Duration FAST_TIMEOUT = Duration.ofMillis(1000);
 	
 	
 	private static final Broadcaster instance = new Broadcaster();
@@ -170,10 +169,23 @@ public class Broadcaster {
 			try {
 				future.get(FAST_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
 			} catch (Throwable exc) {
-				if (exc.getCause() instanceof ConnectException || exc instanceof TimeoutException) {
-					this.messages.offer(new Message(instances.get(idx), path, body,user, password));
-				} 
 				logger.info("error on " + DiscoveryHandler.getServerInstance().getLocalPort() + " for " + path);
+				
+				Throwable cause = exc.getCause();
+				
+				if (cause instanceof ConnectException || cause instanceof HttpTimeoutException || exc instanceof TimeoutException) {
+					this.messages.addLast(new Message(instances.get(idx), path, body,user, password));
+					logger.info("added to queue");
+				} else {
+					logger.info("no add " + exc.getClass().getName() + " cause " + exc.getCause());
+					
+					if (exc.getCause() != null) {
+						logger.info("cause = " + exc.getCause().getClass().getName());
+					}
+					
+					
+					exc.printStackTrace();
+				}
 			}
 		}
 		
@@ -185,12 +197,7 @@ public class Broadcaster {
 	 */
 	private void timeoutHandler() {
 		
-		
 		Iterator<Message> iterator = this.messages.iterator();
-	
-		if (!this.messages.isEmpty()) {
-			logger.info("timeout " + messages.size());
-		}
 		
 		while (iterator.hasNext()) {
 			Message message = iterator.next();
@@ -203,7 +210,7 @@ public class Broadcaster {
 				message.cleanup();
 				iterator.remove();
 			} catch (Exception exc) {	
-				logger.info("failed retry " + message.path);
+				logger.info("failed retry " + message.path + " " + exc.getMessage());
 				if (message.timestamp + REQUEST_TTL > System.currentTimeMillis() || message.retries++ > MAX_RETRIES) {
 					message.cleanup();
 					iterator.remove();

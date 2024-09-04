@@ -99,17 +99,11 @@ public class RestoreTest extends BaseIntegrationTest {
 			// Copy the oldest segment to the primary
 			
 			List<File> list = Arrays.asList(segments);
+			logger.info("segment count in test is " + list.size());
 			Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
 
 			FileUtils.copyFile(list.get(0), new File(internalDir, list.get(0).getName()));
 			
-			File metadataFile = new File(externalDir, "meta.dat");
-			ObjectMapper MAPPER = new ObjectMapper();
-			Metadata metadata = MAPPER.readValue(metadataFile, Metadata.class);
-			
-			logger.info("external count = " + metadata.getIndices().size() + " " + metadata);
-			
-
 			// Start the internal server and wait until the recovery is complete
 			
 			logger.info("Starting internal server");
@@ -130,6 +124,9 @@ public class RestoreTest extends BaseIntegrationTest {
 			this.needExtra = false;
 			thread.join();
 						
+			// Give the server a chance to catch up
+			
+			Utils.sleepSafely(60 * 1000);
 			
 			// Verify that all of the documents and index entries are in 
 			// the internal server	
@@ -138,24 +135,8 @@ public class RestoreTest extends BaseIntegrationTest {
 			String idQuery = "select * from pounder where ID = ?";
 			String extraQuery = "select * from extra where ID = ?";
 			
-			for (;;) {
-				try {
-					int id = this.getId(0);
-					internalClient.executeQuery(idQuery, id);
-					
-					break;
-				} catch (Exception exc) {
-					if (exc.getMessage().contains("The instance is being recovered")) {
-						Utils.sleepSafely(1000);
-					} else {
-						logger.info("Bad exception " + exc.getMessage());
-						break;
-					}
-				}
-			}
 			
-			
-			logger.info("recovery complete checking " + count);
+			logger.info("Starting validation " + count);
 			
 			for (int idx = 0; idx < count; idx += 500) {
 				int id = this.getId(idx);
