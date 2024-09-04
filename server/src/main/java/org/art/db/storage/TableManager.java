@@ -90,7 +90,7 @@ public class TableManager implements Closeable{
 					this.applySnapshot(new FileInputStream(file), false, file);
 					
 					byte[] bytes = FileUtils.readFileToByteArray(file);
-					Broadcaster.getInstance().broadcast("/db/propagate", bytes);
+					Broadcaster.getInstance().broadcast("/db/propagate?table=" + tableName, bytes);
 				} 
 			}
 			

@@ -157,15 +157,13 @@ public class MemorySegment extends Segment {
 
 		try {
 			try (TypedOutputStream stream = new TypedOutputStream()) {
-				stream.writeUTF(this.table);
-
 				for (LogEntry entry : batch) {
 					if (entry.isPropagate()) {
 						stream.writeObject(entry);
 					}
 				}
 
-				Broadcaster.getInstance().broadcast("/db/propagate", stream.toByteArray());			
+				Broadcaster.getInstance().broadcast("/db/propagate?table=" + this.table, stream.toByteArray());			
 			}
 		} catch (Exception exc) {
 			if (batch != null) {

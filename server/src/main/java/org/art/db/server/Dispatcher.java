@@ -407,8 +407,9 @@ public class Dispatcher {
 			checkServer(exchange);
 			
 			try (TypedInputStream stream = new TypedInputStream(body)) {
-				String table = stream.readUTF();
+				String table = parameters.get("table");
 				
+				logger.info("Got propagate " + table);
 				Scheduler.DEFAULT.submit(() -> StorageManager.getInstance().getTableManager(table).applySnapshot(stream, true, null));
 				
 				return new byte[0];
