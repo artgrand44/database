@@ -70,6 +70,12 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 		}	
 	}
 	
+	public void poll() { 
+		if (this.listener != null) {
+			this.listener.poll();
+		}
+	}
+	
 	@Override
 	public void removeInstance(URI instance) {
 		this.listener.removeInstance(instance);

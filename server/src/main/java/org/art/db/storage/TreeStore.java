@@ -497,6 +497,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public Metadata getMetadata() throws IOException {
 		if (this.header.metadataOffset == -1 || this.header.metadataSize == 0) {
+			logger.info("Bad metadata  offset = " + this.header.metadataOffset + " size = " + this.header.metadataSize);
 			throw new IllegalStateException("The metadata is missing");
 		}
 		

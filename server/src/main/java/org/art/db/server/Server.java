@@ -12,6 +12,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.commons.io.IOUtils;
+import org.art.db.common.Broadcaster;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
@@ -26,19 +27,13 @@ import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.io.Receiver.FullBytesCallback;
-import io.undertow.predicate.Predicates;
 import io.undertow.server.DefaultByteBufferPool;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
-import io.undertow.server.handlers.encoding.ContentEncodingRepository;
-import io.undertow.server.handlers.encoding.DeflateEncodingProvider;
-import io.undertow.server.handlers.encoding.EncodingHandler;
-import io.undertow.server.handlers.encoding.GzipEncodingProvider;
 import io.undertow.util.HeaderValues;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
@@ -74,7 +69,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 			UIConsole.getInstance().start(info);
 			PrometheusPublisher.getInstance().start();
 			BackupHandler.getInstance().start();
-			RestoreManager.getInstance().recover(handler);
+			
+			Broadcaster.getInstance().beginStartup();
 			
 			this.handler.start();
 			
@@ -88,6 +84,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 								.build();
 			
 			this.server.start();
+			
+			RestoreManager.getInstance().recover(handler);
 			Metrics.getInstance().logStatus("Running");
 			logger.info("Started WebServer on uri " + handler.getLocalInstance());
 		} catch (Throwable exc) {
@@ -158,17 +156,11 @@ public class Server implements HttpHandler, FullBytesCallback {
 				exchange.getOutputStream().write(bytes);
 			} else if (response != null){
 				File file = (File)response;
-				File temp = File.createTempFile(file.getName(), "zip", new File("."));
-
-				FileUtils.writeByteArrayToFile(temp, ZipUtils.compress(FileUtils.readFileToByteArray(file)));
-
-				exchange.getResponseHeaders().add(new HttpString("Content-Encoding"), "gzip");
 				
-				try (FileInputStream inputStream = new FileInputStream(temp)) {
+				exchange.getResponseHeaders().add(new HttpString("filename"), file.getName());
+				try (FileInputStream inputStream = new FileInputStream(file)) {
 					IOUtils.copyLarge(inputStream, exchange.getOutputStream());
 				}
-
-				temp.delete();			
 			}
 			
 			

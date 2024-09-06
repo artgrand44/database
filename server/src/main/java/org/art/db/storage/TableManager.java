@@ -123,39 +123,7 @@ public class TableManager implements Closeable{
 			LogEntry entry;
 			
 			while ((entry = (LogEntry)log.read()) != null) {
-				if (checkTimestamps) {
-					Long localTimestamp = this.timestamps.getIfPresent(entry.getKey());
-					long remoteTimestamp = entry.getTimestamp();
-
-					if (localTimestamp != null && localTimestamp >= remoteTimestamp) {
-						continue;
-					}
-				}
-				
-				try {
-					switch (entry.getOp()) {
-					case INSERT:
-						this.insert(entry.getDocument(), false, false);
-						break;
-					case REMOVE:
-						this.remove(this.table.get(entry.getKey()), false, false);
-						break;
-					case UPDATE:
-						this.update(this.table.get(entry.getKey()), entry.getDocument(), false, false);
-						break;
-					default:
-						logger.info("bad op " + entry);
-						break;
-					}
-				} catch (DBRuntimeException exc) {
-					if (!exc.getMessage().startsWith("Duplicate")) {
-						Metrics.getInstance().logAlert("There was an error recovering a log entry");
-						logger.info("There was an exception recovering a log entry " + exc.getMessage() + " " + entry + " check " + checkTimestamps);
-					}
-				} catch (Exception exc) {
-					Metrics.getInstance().logAlert("There was an error recovering a log entry");
-					logger.info("There was an exception recovering a log entry " + exc.getMessage() + " " + entry + " check " + checkTimestamps);
-				}
+				this.applySnapshot(entry, checkTimestamps);
 			}
 		} catch (Exception exc) {
 			Metrics.getInstance().logAlert("There was an error recovering the log");
@@ -164,6 +132,56 @@ public class TableManager implements Closeable{
 		} 
 		
 	}
+	
+	public void applySnapshot(LogEntry entry, boolean checkTimestamps) {
+		
+
+		if (checkTimestamps) {
+			Long localTimestamp = this.timestamps.getIfPresent(entry.getKey());
+			long remoteTimestamp = entry.getTimestamp();
+
+			if (localTimestamp != null && localTimestamp >= remoteTimestamp) {
+				return;
+			}
+		}
+
+		try {
+			switch (entry.getOp()) {
+			case INSERT:
+				this.insert(entry.getDocument(), false, false);
+				break;
+			case REMOVE:
+				this.remove(this.table.get(entry.getKey()), false, false);
+				break;
+			case UPDATE:
+				this.update(this.table.get(entry.getKey()), entry.getDocument(), false, false);
+				break;
+			case UPSERT:
+				if (this.table.get(entry.getKey()) == null) {
+					this.insert(entry.getDocument(), false, false);
+				} else {
+					this.update(this.table.get(entry.getKey()), entry.getDocument(), false, false);
+				}
+								break;
+			default:
+				logger.info("bad op " + entry);
+				break;
+			}
+		} catch (DBRuntimeException exc) {
+			if (!exc.getMessage().startsWith("Duplicate")) {
+				Metrics.getInstance().logAlert("There was an db error recovering a log entry");
+				logger.info("There was an exception recovering a log entry " + exc.getMessage() + " " + entry + " check " + checkTimestamps);
+				exc.printStackTrace();
+			}
+		} catch (Exception exc) {
+			Metrics.getInstance().logAlert("There was an error recovering a log entry");
+			logger.info("There was an exception recovering a log entry " + exc.getMessage() + " " + entry + " check " + checkTimestamps);
+			exc.printStackTrace();
+		}
+
+
+	}
+
 	
 	private Key buildKey(Document doc, List<String> names) {
 		List<Comparable<?>> keys = new ArrayList<>();

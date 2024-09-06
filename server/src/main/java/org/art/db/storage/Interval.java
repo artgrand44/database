@@ -41,7 +41,7 @@ public class Interval {
 			millis = number * 7 * 24 * 60 * 60 * 1000;
 			break;
 		default:
-			throw new IllegalArgumentException("Invalid interval");	
+			throw new IllegalArgumentException("Invalid interval " + unit);	
 		}
 
 		this.string = trimmed;

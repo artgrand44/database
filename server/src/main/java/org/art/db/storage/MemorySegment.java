@@ -105,8 +105,6 @@ public class MemorySegment extends Segment {
 	 */
 	protected final DiscoveryHandler discoveryHandler;
 	
-	private final long logDelay;
-	
 	
 	private static ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("MemSeg", 5);
 	
@@ -114,23 +112,22 @@ public class MemorySegment extends Segment {
 	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Environment config, boolean isQueue) throws Exception {
 		super();
 		
-		if (discoveryHandler == null) {
-			logger.info("no handler");
-		}
 		Interval interval;
 		
 		try {
 			interval = new Interval(config.getProperty("org.art.db.logDelay", config.getDefault("org.art.db.logDelay")));
 		} catch (Exception exc) {
-			interval = new Interval("0s");
+
+			interval = new Interval("5s");
 		}
+		
+		long delay = interval.toMillis();
 		
 		this.logFile = Files.getTableLog(table);
 		this.log = new LogOutputStream(this.logFile);
 		this.table = table;
 		this.discoveryHandler = discoveryHandler;
-		this.logDelay = interval.toMillis();
-		this.broadcastHandler = logDelay == 0 ? null : SCHEDULER.scheduleAtFixedRate(this::broadcastTimer, 1,  1,  TimeUnit.SECONDS);
+		this.broadcastHandler = SCHEDULER.scheduleAtFixedRate(this::broadcastTimer, 1,  delay,  TimeUnit.MILLISECONDS);
 		this.id = "Mem" + nextId.incrementAndGet();		
 		
 		this.setMetadata(Metadata.getMetadata(table));		
@@ -153,21 +150,25 @@ public class MemorySegment extends Segment {
 			this.broadcastLock.unlock();
 		}
 		
-		List<LogEntry> batch = this.broadcastQueue.pollFirst();
+		List<LogEntry> batch;
 
-		try {
-			try (TypedOutputStream stream = new TypedOutputStream()) {
-				for (LogEntry entry : batch) {
-					if (entry.isPropagate()) {
-						stream.writeObject(entry);
+		while ((batch = this.broadcastQueue.pollFirst()) != null) {
+			try {
+				try (TypedOutputStream stream = new TypedOutputStream()) {
+					for (LogEntry entry : batch) {
+						if (entry.isPropagate()) {
+							stream.writeObject(entry);
+						}
 					}
-				}
+					
+					logger.info("send for " + table + " " + batch.size());
 
-				Broadcaster.getInstance().broadcast("/db/propagate?table=" + this.table, stream.toByteArray());			
-			}
-		} catch (Exception exc) {
-			if (batch != null) {
-				this.broadcastQueue.addFirst(batch);
+					Broadcaster.getInstance().broadcast("/db/propagate?table=" + this.table, stream.toByteArray());			
+				}
+			} catch (Exception exc) {
+				if (batch != null) {
+					this.broadcastQueue.addFirst(batch);
+				}
 			}
 		}
 				
@@ -182,8 +183,11 @@ public class MemorySegment extends Segment {
 			if (this.broadcastHandler != null) {
 				this.broadcastHandler.cancel(true);
 			}
-
-			this.broadcastTimer();
+			
+			do {
+				this.broadcastTimer();
+			} while (!this.broadcastQueue.isEmpty());
+			
 			this.log.close();
 			this.logFile.delete();
 			this.documents = null;

@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.client.ClientArgs;
+import org.art.db.common.Broadcaster;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
@@ -23,6 +24,7 @@ import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
+import org.art.db.common.Utils;
 import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
 import org.art.db.storage.BackupHandler;
@@ -69,11 +71,14 @@ public class Dispatcher {
 		   HANDLERS.put("/db/gettables",        new GetTablesHandler());
 		   HANDLERS.put("/db/getfilenames",     new GetFileNamesHandler());
 		   HANDLERS.put("/db/getfile",     		new GetFileHandler());
+		   HANDLERS.put("/db/getnextfile",     	new GetNextFileHandler());
 		   HANDLERS.put("/db/getproperties",    new GetPropertiesHandler());
 		   HANDLERS.put("/db/stop" ,            new StopHandler());
 		   HANDLERS.put("/db/ping" ,            new PingHandler());
 		   HANDLERS.put("/db/backup" ,          new BackHandler());
 		   HANDLERS.put("/db/restart",          new RestartHandler());
+		   HANDLERS.put("/db/beginstartup",     new BeginStartupHandler());
+		   HANDLERS.put("/db/endstartup",       new EndStartupHandler());
 		   HANDLERS.put("/actuator/prometheus", new ScrapeHandler());
 	}
 	
@@ -211,12 +216,55 @@ public class Dispatcher {
 		}		
 	}
 	
+	static class BeginStartupHandler implements Handler {
+
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			String instance = parameters.get("instance");
+			URI uri = new URI(instance);
+			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
+			
+			logger.info("got begin on " + handler.getLocalPort());
+			/*for (int idx = 0; idx < 10; idx++) {
+				handler.refresh();
+				
+				logger.info("after refresh");
+				if (handler.getLocalPeers().contains(uri)) {
+					logger.info("found new instance");
+					break;
+				} 
+				
+				logger.info("wait after loop uri " + uri + " local = " + handler.getLocalPeers());
+				Utils.sleepSafely(1000);
+				
+			}
+			
+			logger.info("end begin");*/
+			Broadcaster.getInstance().handleBeginStartup(uri);
+			return new byte[0];
+		}		
+	}
+	
 	static class CloseHandler implements Handler {
 
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) {
-			logger.info("Closing tables");
 			StorageManager.getInstance().closeAll();
+			return new byte[0];
+		}		
+	}
+	
+	static class EndStartupHandler implements Handler {
+
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body)  throws Exception {
+			String instance = parameters.get("instance");
+			URI uri = new URI(instance);
+			
+			DiscoveryHandler.getServerInstance().refresh();
+			
+			logger.info("endstartup uri = " + uri + " " + DiscoveryHandler.getServerInstance().getAllPeers() + "  " + DiscoveryHandler.getServerInstance().getAllPeers().contains(uri));
+			Broadcaster.getInstance().handleEndStartup(uri);
 			return new byte[0];
 		}		
 	}
@@ -227,9 +275,8 @@ public class Dispatcher {
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			if (!RestoreManager.getInstance().isRecovered()) {
-				throw new DBRuntimeException("The instance is being recovered");
+				throw new DBRuntimeException("Not recovered");
 			}
-			
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				ClientArgs args = new ClientArgs().deserialize(stream);
 				List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
@@ -254,7 +301,7 @@ public class Dispatcher {
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			if (!RestoreManager.getInstance().isRecovered()) {
-				throw new DBRuntimeException("The instance is being recovered");
+				throw new DBRuntimeException("Not recovered");
 			}
 			
 			try (TypedInputStream inStream = new TypedInputStream(body)) {
@@ -309,10 +356,10 @@ public class Dispatcher {
 			List<String> names = new ArrayList<>();
 			
 			for (File file : files) {
-				names.add(file.getName());
+				if (file.length() != 0) {
+					names.add(file.getName());
+				}
 			}
-			
-			logger.info("getfilenames table = " + table + " type = " + type + " names " + names);
 			
 			return String.join(",", names).getBytes();
 		}
@@ -344,6 +391,52 @@ public class Dispatcher {
 
 	}
 	
+	static class GetNextFileHandler implements Handler {
+		
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			checkServer(exchange);
+			
+			checkServer(exchange);
+			
+			String table = parameters.get("table");
+			String type = parameters.get("type");
+			long timestamp = Long.parseLong(parameters.get("timestamp"));
+			File[] array = Files.listFiles(table, type);
+			
+			if (array == null) {
+				logger.info("getnext no files");
+				return null;
+			}
+			
+			List<File> files = new ArrayList<>();
+			
+			for (File file : array) {
+				if (file.length() != 0) {
+					files.add(file);
+				}
+			}
+			
+			Collections.sort(files, (x, y) -> (int)(getTimestamp(x) - getTimestamp(y)));
+			
+			for (File file : files) {
+				if (getTimestamp(file) > timestamp && file.length() != 0) {
+					return file;
+				}
+			}
+			
+			return null;
+		}
+
+		private long getTimestamp(File file) {
+			String name = file.getName();
+			int dash = name.indexOf('_');
+			
+			return Long.valueOf(name.substring(0, dash));
+		}
+		
+	}
+
 	static class GetFileHandler implements Handler {
 		
 		@Override
@@ -354,7 +447,7 @@ public class Dispatcher {
 			String name = parameters.get("name");
 			File file = new File(Files.getTableDirectory(table), name);
 
-			logger.info("sending back " + file.getAbsolutePath() + "  " + file.length());
+			logger.info("send back " + file.getAbsolutePath() + " " + file.length() + " " + file.exists());
 			return file.exists() ? file : null;
 		}
 
@@ -409,7 +502,8 @@ public class Dispatcher {
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				String table = parameters.get("table");
 				
-				logger.info("Got propagate " + table);
+				logger.info("prop " + table + " " + DiscoveryHandler.getServerInstance().getLocalPort());
+				
 				Scheduler.DEFAULT.submit(() -> StorageManager.getInstance().getTableManager(table).applySnapshot(stream, true, null));
 				
 				return new byte[0];
@@ -525,6 +619,12 @@ public class Dispatcher {
 				handler.waitInstanceCount(count, 60 * 1000);
 			}
 			
+			while (!RestoreManager.getInstance().isRecovered()) {
+				logger.info("waiting for recovery");
+				Utils.sleepSafely(1000);
+			}
+			
+			logger.info("after recovery");
 			return new byte[0];
 		}
 	}

@@ -204,7 +204,6 @@ public class SegmentBuilder {
 		DiskSegment[] segments = new DiskSegment[fromFiles.length];
 		BitSet bloomFilter = new BitSet();
 		
-		logger.info("merge " + toFile.getAbsolutePath());
 		for (int idx = 0; idx < fromFiles.length; idx++) {
 			segments[idx] = new DiskSegment(fromFiles[idx]);
 			bloomFilter.or(segments[idx].getBloomFilter());

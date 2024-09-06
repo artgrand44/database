@@ -96,7 +96,8 @@ public class HeartbeatListener {
 		}
 		
 	}
-	private void poll() {
+	
+	public void poll() {
 		while (!stopping) {
 			try {
 				byte[] buf = new byte[256];

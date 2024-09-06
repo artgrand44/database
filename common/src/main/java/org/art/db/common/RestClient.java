@@ -138,8 +138,9 @@ public class RestClient {
 		}
 
 		HttpRequest request = builder.method(method.toUpperCase(), publisher).build();
-
+		
 		return client.sendAsync(request, BodyHandlers.ofByteArray());
+		
 	}
 	
 	public  byte[] get(URI uri) throws Exception {
@@ -189,12 +190,9 @@ public class RestClient {
 				throw new RestException(status, "There was a network errror");
 			}
 			
-			String result = response.headers().firstValue("filename").orElse(null);
-			
-			logger.info("getfile file = " + file.getAbsolutePath() + " result = " + result);
-			return result;
-			
+			return  response.headers().firstValue("filename").orElse(null);
 		} catch(Exception exc) {
+			logger.info("getfile " + exc.getMessage());
 			throw new RestException(500, exc.getMessage());
 		}
 	}

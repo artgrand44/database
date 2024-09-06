@@ -330,7 +330,10 @@ public class DiscoveryHandler {
 	
 	}
 	
-	
+	public void refresh() {
+		this.plugin.poll();
+		this.loadEnvironment();
+	}
 	
 	/**
 	 * Tenporarily remove an instance until the next time we load the environment;
@@ -387,6 +390,7 @@ public class DiscoveryHandler {
 	
 	}
 	
+
 	static class SingletonDiscoveryPlugin implements DiscoveryPlugin {
 		private final Map<URI, String> instances;
 		private final URI localURI;

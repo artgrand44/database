@@ -16,10 +16,11 @@ import org.art.db.common.Blob;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
+import org.art.db.common.LogEntry;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
-import org.art.db.common.ZipUtils;
+import org.art.db.common.LogEntry.Operation;
 import org.art.db.security.SecurityHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,21 +79,14 @@ public class RestoreManager {
 	}
 	
 	private void getFile(URI peer, String table, String name) throws Exception {
+		URI uri = this.restClient.buildURI(peer, "/db/getfile?table=%s&name=%s", table, name);
 		File localFile = new File(Files.getTableDirectory(table), name);
-
-		this.getFile(peer, String.format("/db/getfile?table=%s&name=%s", table, name), localFile);
-		
-	}
-		
-	private void getFile(URI peer, String path, File localFile) throws Exception {
-		URI uri = this.restClient.buildURI(peer, path);
-		File zipFile = Files.changeExtention(localFile, ".zip");
 		
 		localFile.delete();		
-		this.restClient.getFile(uri, zipFile);
+		this.restClient.getFile(uri, localFile);
 		
-		FileUtils.writeByteArrayToFile(localFile, ZipUtils.decompress(FileUtils.readFileToByteArray(zipFile)));
 	}
+		
 	
 	private List<String> getAllFiles(URI peer, String table, String type) throws Exception {
 		List<String> names = this.getFilesNames(peer, table, type);
@@ -105,18 +99,22 @@ public class RestoreManager {
 	}
 	
 	private List<String> getAllFilesAfter(URI peer, String table, String type, long timestamp) throws Exception {
-		List<String> names = this.getFilesNames(peer, table, type);
 		List<String> result = new ArrayList<>();
 				
-		for (String name : names) {
-			int dash = name.indexOf('_');
+		for (;;) {
+			URI uri = this.restClient.buildURI(peer, "/db/getnextfile?table=%s&type=%s&timestamp=%s", table, type, timestamp);
+			File file = File.createTempFile("temp", ".seg");
+			String name = this.restClient.getFile(uri, file);
 			
-			long fileTimestamp = Long.valueOf(name.substring(0, dash));
-			
-			if (fileTimestamp > timestamp) {
-				this.getFile(peer, table, name);
+			if (name != null && !name.isEmpty()) {
+				int dash = name.indexOf('_');
+				
+				timestamp = Long.valueOf(name.substring(0, dash)) + 1;
+				file.renameTo(new File(Files.getTableDirectory(table) + "/" + name));
 				result.add(name);
-			} 
+			} else {
+				break;
+			}
 		}
 		
 		return result;	
@@ -167,70 +165,55 @@ public class RestoreManager {
 			newShard = true;
 		}
 						
-		if (peer != null) {
-			long lastDuration = Long.MAX_VALUE;
-			
-			for (int idx = 0; idx < 10 && lastDuration > 60 * 1000; idx++) {
-				long startTime = System.currentTimeMillis();
-				
-				logger.info("reload loop = " + idx + " lastDuration " + lastDuration);
-				
-				try {								
-					// If there's a peer the recover the configuration and the metadata
-					// then recover the tables one by one.
+		if (peer != null) {			
+			try {								
+				// If there's a peer the recover the configuration and the metadata
+				// then recover the tables one by one.
 
-					this.recoverConfiguration(peer);
-					this.recoverMetadata(peer);		
+				this.recoverConfiguration(peer);
+				this.recoverMetadata(peer);		
 
-					this.hasMetadata = true;
+				this.hasMetadata = true;
 
-					// Recovery the tables
+				// Recovery the tables
 
-					for (String table : Files.listTables()) {
-						try {
-							if (useBackup) {
-								logger.info("Restoring " + table + " from backup");
-								FileUtils.copyDirectory(new File(backupDirectory, table), new File(root, table));
-							}
-
-							// Tell the peer to flush its current segment 
-
-							this.restClient.get(restClient.buildURI(peer, "/db/flush?table=%s", table));
-
-							// Get the table manager.  This will trigger local recovery for any updates that
-							// were lost during the crash.
-
-							TableManager manager = StorageManager.getInstance().getTableManager(table);
-
-							// Process any recent updates on the partner
-
-							if (manager.isQueue()) {
-								this.recoverQueue(manager, peer, table);
-							} else {
-								this.recoverTable(manager, peer, table);
-							}
-
-							if (newShard) {
-								manager.mergeAll();
-							}
-						} catch (Exception exc) {
-							Metrics.getInstance().logAlert("There was an error recovering the database");
-							exc.printStackTrace();
-							logger.info("There was an error recoverting " + table + " " + exc.getMessage());
+				for (String table : Files.listTables()) {
+					try {
+						if (useBackup) {
+							logger.info("Restoring " + table + " from backup");
+							FileUtils.copyDirectory(new File(backupDirectory, table), new File(root, table));
 						}
+
+						// Tell the peer to flush its current segment 
+
+						this.restClient.get(restClient.buildURI(peer, "/db/flush?table=%s", table));
+
+						// Get the table manager.  This will trigger local recovery for any updates that
+						// were lost during the crash.
+
+						TableManager manager = StorageManager.getInstance().getTableManager(table);
+
+						// Process any recent updates on the partner
+
+						if (manager.isQueue()) {
+							this.recoverQueue(manager, peer, table);
+						} else {
+							this.recoverTable(manager, peer, table);
+						}
+
+						if (newShard) {
+							manager.mergeAll();
+						}
+					} catch (Exception exc) {
+						Metrics.getInstance().logAlert("There was an error recovering the database");
+						exc.printStackTrace();
+						logger.info("There was an error recoverting " + table + " " + exc.getMessage());
 					}
-
-					StorageManager.getInstance().reset();
-					lastDuration = System.currentTimeMillis() - startTime;
-				} catch (Exception exc) {
-					Metrics.getInstance().logAlert("There was an exception restoring the backup.");
-					logger.info("There was an error synchronizing the configuration " + exc.getMessage());
-					break;
 				}
-
-				
+			} catch (Exception exc) {
+				Metrics.getInstance().logAlert("There was an exception restoring the backup.");
+				logger.info("There was an error synchronizing the configuration " + exc.getMessage());
 			}
-			this.recovered = true;
 		} else if (useBackup) {
 			try {
 				logger.info("Restoring database from backup");
@@ -239,7 +222,9 @@ public class RestoreManager {
 				logger.info("There was an exception restoring the backup " + exc.getMessage());
 			}
 		}
-	
+
+		logger.info("set recovered");
+		this.recovered = true;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -261,12 +246,12 @@ public class RestoreManager {
 	 * @param blob
 	 * @param inProgress
 	 */
-	private void recoverIndexEntries(TableManager manager, Key key, Blob blob, AtomicInteger inProgress) {
-		try {
-			Document oldDoc = manager.get(key);
-			Document newDoc = BlobConverter.toDocument(manager.getMetadata(), blob);
+	private void recover(TableManager manager, Key key, Document doc, long timestamp, AtomicInteger inProgress) {
 		
-			manager.updateIndices(oldDoc, newDoc, key);
+		try {
+			LogEntry entry = new LogEntry(doc.isZombie() ? Operation.REMOVE : Operation.UPSERT, key, doc, timestamp, false);
+			
+			manager.applySnapshot(entry, true);
 		} catch (Exception exc) {
 			if (first) {
 				Metrics.getInstance().logAlert("There was an error recovering the indices");
@@ -286,9 +271,13 @@ public class RestoreManager {
 		Metadata.clear();
 		
 		if (!tables.isEmpty()) {
+			RestClient restClient = new RestClient();
+
 			for (String table : tables.split(",")) {
-				this.getFile(peer, String.format("/db/getmetadata?table=%s", table), Files.getMetadata(table));
-			}	
+				File file = Files.getMetadata(table);
+
+				restClient.getFile(restClient.buildURI(peer, "/db/getmetadata?table=%s", table, 0), file);
+			}		
 		}	
 	}
 
@@ -313,10 +302,8 @@ public class RestoreManager {
 	private void recoverTable(TableManager manager, URI peer, String tableName) throws Exception { 
 		File[] files = Files.listDiskSegments(tableName);
 		long timestamp;
-
 		
 		if (files == null || files.length == 0) {			
-			logger.info("No segments");
 			timestamp = 0;
 		} else {
 			List<File> list = Arrays.asList(files);
@@ -325,38 +312,48 @@ public class RestoreManager {
 			timestamp = segment.getCreateTime();;
 		}		
 		
-		for (String name : this.getAllFilesAfter(peer, tableName, ".seg", timestamp)) {
-			File localFile = new File(Files.getTableDirectory(tableName), name);
-			
-			if (localFile.length() == 0) {
-				localFile.delete();
-				continue;
-			}
-			
-			DiskSegment segment = new DiskSegment(localFile);
+		boolean save = manager.isCheckConstraints();
+		
+		manager.setCheckConstraints(false);
+		
+		try {
+			for (String name : this.getAllFilesAfter(peer, tableName, ".seg", timestamp)) {
+				File localFile = new File(Files.getTableDirectory(tableName), name);
 
-			// Iterate over the segments and update the index entries for each
-			// document.  This process is i/o intensive, so we process several
-			// documents in parallel.
+				if (localFile.length() == 0) {
+					localFile.delete();
+					logger.info("bad local file " + name);
+					continue;
+				}
 
-			Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
-			AtomicInteger inProgress = new AtomicInteger();
+				DiskSegment segment = new DiskSegment(localFile);
 
-			while (iterator.hasNext()) {
-				Map.Entry<Key, Blob> entry = iterator.next();
-				Key key = entry.getKey();
-				Blob blob = entry.getValue();
+				// Iterate over the segments and update the index entries for each
+				// document.  This process is i/o intensive, so we process several
+				// documents in parallel.
 
-				inProgress.incrementAndGet();
-				Scheduler.DEFAULT.submit(() -> this.recoverIndexEntries(manager, key, blob, inProgress));
-			}
+				Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
+				AtomicInteger inProgress = new AtomicInteger();
 
-			while (inProgress.get() != 0) {
-				Utils.sleepSafely(10);
-			}
-					
-			segment.close();
-			
+				while (iterator.hasNext()) {
+					Map.Entry<Key, Blob> entry = iterator.next();
+					Key key = entry.getKey();
+					Blob blob = entry.getValue();
+					Document doc = BlobConverter.toDocument(manager.getMetadata(), blob);
+
+					inProgress.incrementAndGet();
+					Scheduler.DEFAULT.submit(() -> this.recover(manager, key, doc, segment.getCreateTime(), inProgress));
+				}
+
+				while (inProgress.get() != 0) {
+					Utils.sleepSafely(10);
+				}
+
+				segment.close();
+			} 
+		} finally {
+			manager.setCheckConstraints(save);
+
 		}
 
 	}

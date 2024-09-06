@@ -7,7 +7,8 @@ public class LogEntry  extends Serializable<LogEntry>{
 	public enum Operation {
 		INSERT,
 		REMOVE,
-		UPDATE
+		UPDATE,
+		UPSERT
 	}
 	
 	private Operation op;
@@ -80,6 +81,11 @@ public class LogEntry  extends Serializable<LogEntry>{
 
 	public boolean isPropagate() {
 		return propagate;
+	}
+	
+	@Override
+	public String toString() {
+		return "LogEntry [op=" + op + ", key=" + key + ", timestamp=" + timestamp + ", propagate=" + propagate + "]";
 	}
 
 	
