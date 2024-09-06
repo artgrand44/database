@@ -219,42 +219,12 @@ public class Broadcaster {
 		
 	}
 		
-	/**
-	 * Tell all the other instances that we have completed the startup sequence
-	 * @throws Exception
-	 */
-	public void endStartup() throws Exception {
-		this.broadcast("/db/endstartup?instance=" + DiscoveryHandler.getServerInstance().getLocalInstance(), new byte[0]);
-	}
 	
 	public void handleBeginStartup(URI instance) {
 		logger.info(DiscoveryHandler.getServerInstance().getLocalPort() + " got begin  from " + instance);
 		this.startingInstances.add(instance);
 	}
 	
-	public synchronized void handleEndStartup(URI instance) {
-		Iterator<Message> iterator = this.messages.iterator();
-		
-		logger.info(DiscoveryHandler.getServerInstance().getLocalPort() + " got end  from " + instance);
-		while (iterator.hasNext()) {
-			Message message = iterator.next();
-			
-			if (message.uri.equals(instance)) {
-				try {
-					RestClient myclient = new RestClient(message.user, message.password, FAST_TIMEOUT);
-
-					myclient.put(client.buildURI(message.uri, message.path), message.getBody());
-					message.cleanup();
-					iterator.remove();
-				} catch (Exception exc) {	
-					logger.info("failed handleEndStartup " + message.path + " " + exc.getMessage());
-				}
-			}
-			
-			this.startingInstances.remove(instance);
-		}
-		
-	}
 	
 	/**
 	 * Helper method to handle timeouts.

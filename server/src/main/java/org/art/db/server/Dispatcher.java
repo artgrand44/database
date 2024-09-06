@@ -78,7 +78,6 @@ public class Dispatcher {
 		   HANDLERS.put("/db/backup" ,          new BackHandler());
 		   HANDLERS.put("/db/restart",          new RestartHandler());
 		   HANDLERS.put("/db/beginstartup",     new BeginStartupHandler());
-		   HANDLERS.put("/db/endstartup",       new EndStartupHandler());
 		   HANDLERS.put("/actuator/prometheus", new ScrapeHandler());
 	}
 	
@@ -237,20 +236,6 @@ public class Dispatcher {
 		}		
 	}
 	
-	static class EndStartupHandler implements Handler {
-
-		@Override
-		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body)  throws Exception {
-			String instance = parameters.get("instance");
-			URI uri = new URI(instance);
-			
-			DiscoveryHandler.getServerInstance().refresh();
-			
-			logger.info("endstartup uri = " + uri + " " + DiscoveryHandler.getServerInstance().getAllPeers() + "  " + DiscoveryHandler.getServerInstance().getAllPeers().contains(uri));
-			Broadcaster.getInstance().handleEndStartup(uri);
-			return new byte[0];
-		}		
-	}
 	
 	static class ExecuteHandler implements Handler {
 
