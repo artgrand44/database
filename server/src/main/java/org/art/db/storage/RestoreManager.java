@@ -98,28 +98,22 @@ public class RestoreManager {
 		return names;	
 	}
 	
-	private List<String> getAllFilesAfter(URI peer, String table, String type, long timestamp) throws Exception {
-		List<String> result = new ArrayList<>();
-				
-		for (;;) {
-			URI uri = this.restClient.buildURI(peer, "/db/getnextfile?table=%s&type=%s&timestamp=%s", table, type, timestamp);
-			File file = File.createTempFile("temp", ".seg");
-			String name = this.restClient.getFile(uri, file);
-			
-			if (name != null && !name.isEmpty()) {
-				int dash = name.indexOf('_');
-				
-				timestamp = Long.valueOf(name.substring(0, dash)) + 1;
-				file.renameTo(new File(Files.getTableDirectory(table) + "/" + name));
-				result.add(name);
-			} else {
-				break;
-			}
-		}
-		
-		return result;	
-	}
 	
+	private String getNextFile(URI peer, String table, String type, long timestamp) throws Exception {
+		URI uri = this.restClient.buildURI(peer, "/db/getnextfile?table=%s&type=%s&timestamp=%s", table, type, timestamp);
+		File file = File.createTempFile("temp", ".seg");
+		String name = this.restClient.getFile(uri, file);
+		
+		if (name != null && !name.isEmpty()) {
+			int dash = name.indexOf('_');
+			
+			timestamp = Long.valueOf(name.substring(0, dash)) + 1;
+			file.renameTo(new File(Files.getTableDirectory(table) + "/" + name));
+			return name;
+		} 
+
+		return null;
+	}
 	/**
 	 * Find a suitable partner.  This method iterates over all of the local peers
 	 * and does a fast check to make sure that the peer is fully running.  This
@@ -300,6 +294,9 @@ public class RestoreManager {
 	
 	@SuppressWarnings("resource")
 	private void recoverTable(TableManager manager, URI peer, String tableName) throws Exception { 
+		
+		// Find the timestamp of the most recent segment on this node.
+		
 		File[] files = Files.listDiskSegments(tableName);
 		long timestamp;
 		
@@ -317,20 +314,17 @@ public class RestoreManager {
 		manager.setCheckConstraints(false);
 		
 		try {
-			for (String name : this.getAllFilesAfter(peer, tableName, ".seg", timestamp)) {
+			
+			// Process all of the more recent segments on the peer until we run out of segments
+			// or get caught up within a second.
+			
+			String name;
+			
+			while ((name = this.getNextFile(peer, tableName, ".seg", timestamp)) != null) {
 				File localFile = new File(Files.getTableDirectory(tableName), name);
-
-				if (localFile.length() == 0) {
-					localFile.delete();
-					logger.info("bad local file " + name);
-					continue;
-				}
-
 				DiskSegment segment = new DiskSegment(localFile);
 
-				// Iterate over the segments and update the index entries for each
-				// document.  This process is i/o intensive, so we process several
-				// documents in parallel.
+				// Iterate over the segment, find each document, and re-apply it.
 
 				Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
 				AtomicInteger inProgress = new AtomicInteger();
@@ -348,7 +342,8 @@ public class RestoreManager {
 				while (inProgress.get() != 0) {
 					Utils.sleepSafely(10);
 				}
-
+				
+				timestamp = segment.getCreateTime();
 				segment.close();
 			} 
 		} finally {
