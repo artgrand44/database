@@ -132,7 +132,7 @@ public class DDLHandler {
 			Metadata.setMetadata(metadata);
 
 			if (targetShard.equals(Client.WILDCARD)) {
-				SQLUtils.broadcastAll(database, alter.toString(), user, password);
+				SQLUtils.broadcastAll(database, alter.toString());
 			}
 		} catch (Exception exc) {
 			throw new DBRuntimeException("The alter failed", exc);
@@ -196,7 +196,7 @@ public class DDLHandler {
 			Metadata.setMetadata(metadata);
 			
 			if (targetShard.equals(Client.WILDCARD)) {
-				SQLUtils.broadcastAll(database, createIndex.toString(), user, password);
+				SQLUtils.broadcastAll(database, createIndex.toString());
 			}
 		} catch (DBRuntimeException exc) {
 			throw exc;
@@ -267,7 +267,7 @@ public class DDLHandler {
 			Metadata.setMetadata(metadata);
 			
 			if (targetShard.equals(Client.WILDCARD)) {
-				SQLUtils.broadcastAll(database, createTable.toString(), user, password);
+				SQLUtils.broadcastAll(database, createTable.toString());
 			}
 		} catch (DBRuntimeException exc) {
 			throw exc;
@@ -291,7 +291,7 @@ public class DDLHandler {
 			SecurityHandler.getInstance().createUser(newUser, newUser, newPassword, false);
 
 			if (targetShard.equals(Client.WILDCARD)) {
-				SQLUtils.broadcastAll(database, sql, user, password);
+				SQLUtils.broadcastAll(database, sql);
 			}
 		} finally {
 			BackupHandler.getInstance().endUpdate();
@@ -336,7 +336,7 @@ public class DDLHandler {
 				Metadata.setMetadata(metadata);
 
 				if (targetShard.equals(Client.WILDCARD)) {
-					SQLUtils.broadcastAll(database, drop.toString(), user, password);
+					SQLUtils.broadcastAll(database, drop.toString());
 				}
 			} else if (type.equalsIgnoreCase("TABLE")) {
 				File tableDir = Files.getTableDirectory(table);
@@ -345,7 +345,7 @@ public class DDLHandler {
 				metadata.removeFromCache();
 
 				if (targetShard.equals(Client.WILDCARD)) {
-					SQLUtils.broadcastAll(database, drop.toString(), user, password);
+					SQLUtils.broadcastAll(database, drop.toString());
 				}
 			} else {
 				throw new UnsupportedSyntaxException("Drop " + type + " is not supported.");
@@ -386,7 +386,7 @@ public class DDLHandler {
 			}
 
 			if (targetShard.equals(Client.WILDCARD)) {
-				SQLUtils.broadcastAll(database, grant.toString(), user, password);
+				SQLUtils.broadcastAll(database, grant.toString());
 			}
 		} finally {
 			BackupHandler.getInstance().endUpdate();

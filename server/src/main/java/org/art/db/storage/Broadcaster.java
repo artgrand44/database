@@ -18,6 +18,7 @@ import org.apache.commons.io.FileUtils;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
+import org.art.db.security.SecurityHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,17 +37,13 @@ public class Broadcaster {
 	static class Message {
 		URI uri;
 		String path;
-		String user; 
-		String password;
 		long timestamp;
 		int retries;
 		File file;
 		
-		Message(URI uri, String path, byte[] body, String user, String password) throws Exception {
+		Message(URI uri, String path, byte[] body) throws Exception {
 			this.uri = uri;
 			this.path = path;
-			this.user = user;
-			this.password = password;
 			this.timestamp = System.currentTimeMillis();
 			this.file = File.createTempFile("msg", ".dat", Files.getRoot());
 			this.file.deleteOnExit();
@@ -68,7 +65,9 @@ public class Broadcaster {
 	
 	private final ConcurrentLinkedDeque<URI> startingInstances = new ConcurrentLinkedDeque<>();
 	
-	private RestClient client = new RestClient(FAST_TIMEOUT);
+	private RestClient client = new RestClient(SecurityHandler.getInstance().getAdminUser(), 
+                                               SecurityHandler.getInstance().getAdminPassword(), 
+                                               FAST_TIMEOUT);
 	
 	
 	/**
@@ -141,26 +140,7 @@ public class Broadcaster {
 		
 	}
 
-	/**
-	 * Broadcast a message to a single shard
-	 * @param path
-	 * @param body
-	 * @param shard
-	 * @
-	 */
-	public void broadcast(String path, byte[] body, String shard, String user, String password) throws Exception {
-		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
-		List<URI> instances = new ArrayList<>(handler.getInstancesForShard(shard));
-		
-		instances.remove(handler.getLocalInstance());		
-		this.broadcast(instances, path, body, user, password);
-		
-	}
-	
-	public void broadcast(List<URI> instances, String path, byte[] body)  throws Exception  {
-		this.broadcast(instances, path, body, null, null);
-	}
-	
+
 	
 	/**
 	 * 
@@ -171,8 +151,7 @@ public class Broadcaster {
 	 * @param body
 	 * @throws Exception
 	 */
-	public void broadcast(List<URI> instances, String path, byte[] body, String user, String password) throws Exception {
-		RestClient myClient = user == null ? this.client : new RestClient(user, password, FAST_TIMEOUT);
+	public void broadcast(List<URI> instances, String path, byte[] body) throws Exception {
 		List<Future<HttpResponse<byte[]>>> futures = new ArrayList<>();
 		
 		
@@ -183,7 +162,7 @@ public class Broadcaster {
 		}
 		
 		for (URI base : instances) {
-			futures.add(myClient.callAsync("PUT", myClient.buildURI(base, path), body));				
+			futures.add(this.client.callAsync("PUT", this.client.buildURI(base, path), body));				
 		}
 				
 		for (int idx = 0; idx < instances.size(); idx++) {
@@ -197,7 +176,7 @@ public class Broadcaster {
 				Throwable cause = exc.getCause();
 				
 				if (cause instanceof ConnectException || cause instanceof HttpTimeoutException || exc instanceof TimeoutException) {
-					this.messages.addLast(new Message(instances.get(idx), path, body,user, password));
+					this.messages.addLast(new Message(instances.get(idx), path, body));
 					logger.info("added to queue " + exc.getClass().getName());
 					
 					if (cause != null) {
@@ -214,8 +193,7 @@ public class Broadcaster {
 					exc.printStackTrace();
 				}
 			}
-		}
-		
+		}		
 		
 	}
 		
@@ -237,9 +215,8 @@ public class Broadcaster {
 			Message message = iterator.next();
 			
 			try {
-				RestClient myclient = new RestClient(message.user, message.password, FAST_TIMEOUT);
+				this.client.put(client.buildURI(message.uri, message.path), message.getBody());
 				
-				myclient.put(client.buildURI(message.uri, message.path), message.getBody());
 				logger.info("successful retry " + message.path);
 				message.cleanup();
 				iterator.remove();

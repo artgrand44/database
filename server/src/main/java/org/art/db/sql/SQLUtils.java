@@ -64,7 +64,7 @@ public class SQLUtils {
 		}
 	}
 	
-	static void broadcastAll(String database, String statement, String user, String password) throws Exception {
+	static void broadcastAll(String database, String statement) throws Exception {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
 		if (handler != null) {
@@ -72,7 +72,7 @@ public class SQLUtils {
 				try (TypedOutputStream stream = new TypedOutputStream()) {
 					new ClientArgs(database, shard, statement, Collections.emptyList()).serialize(stream); 
 					
-					Broadcaster.getInstance().broadcast("/db/execute", stream.toByteArray(), shard, user, password);
+					Broadcaster.getInstance().broadcast("/db/execute", stream.toByteArray(), shard);
 				}
 			}	
 		}
