@@ -292,12 +292,6 @@ public class Table implements Closeable {
 		this.readLock.lock();
 		
 		try {
-			if (this.closed) {
-				logger.info("insert after close");
-			}
-			if (this.currentSegment.isClosed()) {
-				logger.info("insert after current seg is closed");
-			}
 			this.currentSegment.insert(key, value, propagate, log);	
 			
 			cache.put(new DocId(this, key), value);

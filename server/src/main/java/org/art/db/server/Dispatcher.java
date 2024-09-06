@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.client.ClientArgs;
-import org.art.db.common.Broadcaster;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
@@ -28,6 +27,7 @@ import org.art.db.common.Utils;
 import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
 import org.art.db.storage.BackupHandler;
+import org.art.db.storage.Broadcaster;
 import org.art.db.storage.Environment;
 import org.art.db.storage.Files;
 import org.art.db.storage.Metrics;
@@ -222,24 +222,7 @@ public class Dispatcher {
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String instance = parameters.get("instance");
 			URI uri = new URI(instance);
-			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 			
-			logger.info("got begin on " + handler.getLocalPort());
-			/*for (int idx = 0; idx < 10; idx++) {
-				handler.refresh();
-				
-				logger.info("after refresh");
-				if (handler.getLocalPeers().contains(uri)) {
-					logger.info("found new instance");
-					break;
-				} 
-				
-				logger.info("wait after loop uri " + uri + " local = " + handler.getLocalPeers());
-				Utils.sleepSafely(1000);
-				
-			}
-			
-			logger.info("end begin");*/
 			Broadcaster.getInstance().handleBeginStartup(uri);
 			return new byte[0];
 		}		

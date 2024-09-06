@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.art.db.common.Blob;
-import org.art.db.common.Broadcaster;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.GUID;
@@ -184,10 +183,7 @@ public class MemorySegment extends Segment {
 				this.broadcastHandler.cancel(true);
 			}
 			
-			do {
-				this.broadcastTimer();
-			} while (!this.broadcastQueue.isEmpty());
-			
+			this.broadcastTimer();
 			this.log.close();
 			this.logFile.delete();
 			this.documents = null;

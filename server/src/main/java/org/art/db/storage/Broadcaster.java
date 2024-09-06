@@ -1,4 +1,4 @@
-package org.art.db.common;
+package org.art.db.storage;
 
 import java.io.File;
 import java.net.ConnectException;
@@ -15,6 +15,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.io.FileUtils;
+import org.art.db.common.DiscoveryHandler;
+import org.art.db.common.RestClient;
+import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +48,7 @@ public class Broadcaster {
 			this.user = user;
 			this.password = password;
 			this.timestamp = System.currentTimeMillis();
-			this.file = File.createTempFile("msg", ".dat", new File("."));
+			this.file = File.createTempFile("msg", ".dat", Files.getRoot());
 			this.file.deleteOnExit();
 			
 			FileUtils.writeByteArrayToFile(this.file, body);

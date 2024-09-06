@@ -335,6 +335,7 @@ public class DiscoveryHandler {
 		this.loadEnvironment();
 	}
 	
+	
 	/**
 	 * Tenporarily remove an instance until the next time we load the environment;
 	 * @param instance
@@ -390,7 +391,6 @@ public class DiscoveryHandler {
 	
 	}
 	
-
 	static class SingletonDiscoveryPlugin implements DiscoveryPlugin {
 		private final Map<URI, String> instances;
 		private final URI localURI;
