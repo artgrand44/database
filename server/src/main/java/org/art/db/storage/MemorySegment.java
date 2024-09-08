@@ -160,8 +160,6 @@ public class MemorySegment extends Segment {
 						}
 					}
 					
-					logger.info("send for " + table + " " + batch.size());
-
 					Broadcaster.getInstance().broadcast("/db/propagate?table=" + this.table, stream.toByteArray());			
 				}
 			} catch (Exception exc) {

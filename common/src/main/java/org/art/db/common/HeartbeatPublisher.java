@@ -83,6 +83,8 @@ public class HeartbeatPublisher {
 			if (!this.publisher.cancel(true)) {
 				logger.info("cancel failed");
 			}
+			
+			logger.info("publisher cancelled " + this.port);
 		}
 		
 		this.sendSocket.close();

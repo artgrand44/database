@@ -19,6 +19,7 @@ import org.art.db.client.ClientArgs;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.InstanceRecoveringException;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
 import org.art.db.common.TypedInputStream;
@@ -243,8 +244,9 @@ public class Dispatcher {
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			if (!RestoreManager.getInstance().isRecovered()) {
-				throw new DBRuntimeException("Not recovered");
+				throw new InstanceRecoveringException();
 			}
+			
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				ClientArgs args = new ClientArgs().deserialize(stream);
 				List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
@@ -269,7 +271,7 @@ public class Dispatcher {
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			if (!RestoreManager.getInstance().isRecovered()) {
-				throw new DBRuntimeException("Not recovered");
+				throw new InstanceRecoveringException();
 			}
 			
 			try (TypedInputStream inStream = new TypedInputStream(body)) {

@@ -6,7 +6,9 @@ import java.net.URI;
 
 import org.art.db.client.Client;
 import org.art.db.common.DiscoveryHandler;
+import org.art.db.common.Utils;
 import org.art.db.server.Server;
+import org.art.db.storage.RestoreManager;
 import org.junit.jupiter.api.AfterEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,14 +66,19 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	public void startInternal(String path) {
 		if (!kunernetes) {
 			DiscoveryHandler.clear();
+			DiscoveryHandler.currentTest = this.getClass().getSimpleName();
 			Server.start(path);	
+			
+			while (!RestoreManager.getInstance().isRecovered()) {
+				Utils.sleepSafely(1000);
+			}
 		}
 	}
 	
 
 	public void stopExternal() {
 		if (this.externalServer != null) {
-			this.externalServer.destroyForcibly();
+			this.externalServer.destroy();
 		}
 	}
 	

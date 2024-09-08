@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -69,7 +70,7 @@ public class Broadcaster {
                                                SecurityHandler.getInstance().getAdminPassword(), 
                                                FAST_TIMEOUT);
 	
-	
+	private ScheduledFuture<?> timeoutHandler;
 	/**
 	 * The TTL for broadcast requests.  
 	 */
@@ -88,7 +89,7 @@ public class Broadcaster {
 	private static final Broadcaster instance = new Broadcaster();
 	
 	private Broadcaster() {
-		Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutHandler, 1, 10, TimeUnit.SECONDS);
+		this.timeoutHandler = Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutHandler, 1, 10, TimeUnit.SECONDS);
 	}
 	
 	
@@ -204,6 +205,12 @@ public class Broadcaster {
 	}
 	
 	
+	public void stop() {
+		if (this.timeoutHandler != null) {
+			this.timeoutHandler.cancel(true);
+			this.timeoutHandler = null;
+		}
+	}
 	/**
 	 * Helper method to handle timeouts.
 	 */

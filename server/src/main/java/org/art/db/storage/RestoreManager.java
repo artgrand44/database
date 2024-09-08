@@ -345,6 +345,7 @@ public class RestoreManager {
 				
 				timestamp = segment.getCreateTime();
 				segment.close();
+				Utils.sleepSafely(5000);				
 			} 
 		} finally {
 			manager.setCheckConstraints(save);

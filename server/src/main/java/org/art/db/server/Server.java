@@ -15,6 +15,7 @@ import org.apache.commons.io.IOUtils;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
+import org.art.db.common.InstanceRecoveringException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
 import org.art.db.storage.BackupHandler;
@@ -161,16 +162,17 @@ public class Server implements HttpHandler, FullBytesCallback {
 				try (FileInputStream inputStream = new FileInputStream(file)) {
 					IOUtils.copyLarge(inputStream, exchange.getOutputStream());
 				}
-			}
-			
-			
+			}			
 		} catch (UnathorizedException exc) {
 			exchange.getResponseHeaders().put(Headers.WWW_AUTHENTICATE, "Basic realm=Database");
 			exchange.setStatusCode(RestException.UNAUTHORIZED);
+		} catch (InstanceRecoveringException exc) {
+			exchange.setStatusCode(RestException.SERVER_DOWN);
+			exchange.getResponseHeaders().add(new HttpString("warning"), "The instance is recovering");	
 		} catch (Exception exc) {
 			exchange.setStatusCode(RestException.TEA_POT);
 			String warning = String.format("Warning: 199 - %s", exc.getMessage());
-			
+
 			exchange.getResponseHeaders().add(new HttpString("warning"), warning);	
 		} finally {
 			this.readLock.unlock();
@@ -256,6 +258,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			DiscoveryHandler.clear();
 			UIConsole.getInstance().stop();	
 			BackupHandler.getInstance().stop();
+			Broadcaster.getInstance().stop();
 		}
 	}
 	
@@ -267,8 +270,6 @@ public class Server implements HttpHandler, FullBytesCallback {
 			super(status, warning);
 		}
 		
-	}
-
-	
+	}	
 	
 }
