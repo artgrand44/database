@@ -66,7 +66,6 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	public void startInternal(String path) {
 		if (!kunernetes) {
 			DiscoveryHandler.clear();
-			DiscoveryHandler.currentTest = this.getClass().getSimpleName();
 			Server.start(path);	
 			
 			while (!RestoreManager.getInstance().isRecovered()) {
