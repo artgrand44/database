@@ -30,30 +30,26 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 				FileUtils.deleteDirectory(secondDir);
 			}
 
-			// Start both servers, wait until the are up, and then create the table
-			// on both servers.
-			
-			super.startInternal("./replication.properties");
 			super.startExternal("./secondaryrecovery.properties");
+			
+			
 
-			Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin");
-			Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin");
+			Client external = new Client(getLocalURI("8081"), "*", "admin", "admin").batch(false);
+			external.waitServerCount(1);
 
-			primaryClient.waitServerCount(2);
-			secondaryClient.waitServerCount(2);
-
-			Client client = new Client(getLocalURI("8080"), "*", "admin", "admin");
 			String create = "CREATE QUEUE TABLE restore (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 			String createIndex = "CREATE INDEX firstname ON restore(FirstName)";
 			String idQuery = "select * from restore where ID = ?";
+			RestClient rest = new RestClient();
 			
-			client.execute(create);
-			client.execute(createIndex);
+			logger.info("send create");
+			external.execute(create);
+			external.execute(createIndex);
 			
 			// Take down the internal server then create documents until there are at least
 			// 3 disk segments
 			
-			super.stopInternal();
+			//super.stopInternal();
 			
 			logger.info("Stopped internal");
 			
@@ -63,8 +59,13 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			int count = 0;
 			
 			for (int idx = 0; ; idx++) {
-				this.insert(secondaryClient, idx);
+				this.insert(external, idx);
 				
+				if (idx % 10 == 0) {
+					logger.info("send flush");
+					rest.get(rest.buildURI(this.getLocalURI("8081"), "/db/flush?table=SYS.SYS.restore"));
+					logger.info("after send flush");
+				}
 				count++;
 								
 				files = externalDir.listFiles((dir, name) -> name.endsWith(".log"));
@@ -77,12 +78,12 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			// Flush the external server then copy the index and the oldest segment.
 			// This is the only way to insure that the index is flushed.
 			
-			logger.info("Flushing external");
+			logger.info("Flushing external " + count);
 			
-			URI external = this.getLocalURI("8081");
+			URI externalURI = this.getLocalURI("8081");
 			RestClient restClient = new RestClient();
 			
-			restClient.get(restClient.buildURI(external, "/db/close"));
+			restClient.get(restClient.buildURI(externalURI, "/db/close"));
 			
 			logger.info("Flushing external");
 						
@@ -103,7 +104,10 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 			
 			super.startInternal("./replication.properties");
 			
-			primaryClient.waitServerCount(2);
+			Client internalClient = new Client(getLocalURI("8080"), "*", "admin", "admin");
+			
+			
+			internalClient.waitServerCount(2);
 			
 			logger.info("recovery complete checking " + count);
 			
@@ -114,12 +118,12 @@ public class QueueRestoreTest extends BaseIntegrationTest {
 				int id = this.getId(idx);
 				String name = this.getName(idx);
 				
-				DocumentSet ids = primaryClient.executeQuery(idQuery, id);
+				DocumentSet ids = internalClient.executeQuery(idQuery, id);
 				
 				if (ids.size() != 1) {
 					logger.info("Missing id " + id);
-					ids = primaryClient.executeQuery(idQuery, id);
-					ids = secondaryClient.executeQuery(idQuery, id);					
+					ids = internalClient.executeQuery(idQuery, id);
+					ids = external.executeQuery(idQuery, id);					
 				}
 				
 				Assertions.assertThat(ids.size() == 1).isTrue();
