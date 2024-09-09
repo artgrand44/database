@@ -21,6 +21,7 @@ import org.art.db.security.SecurityHandler;
 import org.art.db.storage.BackupHandler;
 import org.art.db.storage.Broadcaster;
 import org.art.db.storage.Environment;
+import org.art.db.storage.Files;
 import org.art.db.storage.Metrics;
 import org.art.db.storage.PrometheusPublisher;
 import org.art.db.storage.RestoreManager;
@@ -157,11 +158,17 @@ public class Server implements HttpHandler, FullBytesCallback {
 				exchange.getOutputStream().write(bytes);
 			} else if (response != null){
 				File file = (File)response;
+				File tempFile = Files.changeExtention(file, ".zip");
 				
 				exchange.getResponseHeaders().add(new HttpString("filename"), file.getName());
-				try (FileInputStream inputStream = new FileInputStream(file)) {
+				
+				ZipUtils.compress(file, tempFile);
+				
+				try (FileInputStream inputStream = new FileInputStream(tempFile)) {
 					IOUtils.copyLarge(inputStream, exchange.getOutputStream());
 				}
+				
+				tempFile.delete();
 			}			
 		} catch (UnathorizedException exc) {
 			exchange.getResponseHeaders().put(Headers.WWW_AUTHENTICATE, "Basic realm=Database");

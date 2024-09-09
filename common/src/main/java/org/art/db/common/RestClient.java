@@ -182,12 +182,20 @@ public class RestClient {
 
 
 			HttpRequest request = builder.build();
-			HttpResponse<Path> response = client.send(request, BodyHandlers.ofFile(file.toPath()));
+			File tempFile = File.createTempFile("temp", ".zip", file.getParentFile());
+			HttpResponse<Path> response = client.send(request, BodyHandlers.ofFile(tempFile.toPath()));
 			int status = response.statusCode();
 
 			if (status != 200) {
 				logger.info("getfile network error " + status);
 				throw new RestException(status, "There was a network errror");
+			}
+			
+			String name = response.headers().firstValue("filename").orElse(null);
+			
+			if (name != null) {
+				ZipUtils.decompress(tempFile, file);
+				logger.info("zip " + tempFile.length() + " file " + file.length());
 			}
 			
 			return  response.headers().firstValue("filename").orElse(null);

@@ -2,6 +2,9 @@ package org.art.db.common;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -23,6 +26,14 @@ public class ZipUtils {
 		}
 	}
 
+	public static void compress(File fromFile, File toFile) throws Exception {
+		try (FileInputStream inStream = new FileInputStream(fromFile); 
+				GZIPOutputStream outStream = new GZIPOutputStream(new FileOutputStream(toFile))) {
+			IOUtils.copyLarge(inStream,outStream);
+			outStream.finish();
+		}		
+	}
+	
 	public static ByteBuffer compress(ByteBuffer input) throws Exception {
 		ByteBuffer dup = input.duplicate();
 		int length = dup.remaining();
@@ -42,5 +53,11 @@ public class ZipUtils {
 		}
 	}
 	
+	public static void decompress(File fromFile, File toFile) throws Exception {
+		try (GZIPInputStream inStream = new GZIPInputStream(new FileInputStream(fromFile)); 
+				FileOutputStream outStream = new FileOutputStream(toFile)) {
+			IOUtils.copyLarge(inStream, outStream);
+		}		
+	}
 	
 }

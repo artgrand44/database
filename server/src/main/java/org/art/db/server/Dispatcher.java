@@ -594,7 +594,6 @@ public class Dispatcher {
 				Utils.sleepSafely(1000);
 			}
 			
-			logger.info("after recovery");
 			return new byte[0];
 		}
 	}
