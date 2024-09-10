@@ -11,7 +11,7 @@ import org.art.db.common.DocumentSet;
 import org.art.db.common.RestClient;
 import org.art.db.common.Utils;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.RepeatedTest;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,8 @@ public class RestoreTest extends BaseIntegrationTest {
 	private volatile int extraCount;
 	private volatile boolean needExtra = true;
 
-	@Test
+	//@Test
+	@RepeatedTest(10)
 	public void test() {
 
 		try  {
@@ -64,6 +65,11 @@ public class RestoreTest extends BaseIntegrationTest {
 			for (int idx = 0; ; idx++) {
 				this.insert(external, idx);
 				
+				if (idx % 10 == 0) {
+					logger.info("send flush");
+					restClient.get(restClient.buildURI(this.getLocalURI("8081"), "/db/flush?table=SYS.SYS.pounder"));
+					logger.info("after send flush");
+				}
 				count++;
 								
 				segments = externalDir.listFiles((dir, name) -> name.endsWith(".seg"));
@@ -177,6 +183,8 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			
 			logger.info("After check loop extra " + extraCount + " bad = " + badCount);
+			
+			Assertions.assertThat(badCount < 50).withFailMessage("Bad count" + badCount).isTrue();
 			//Utils.sleepSafely(10 * 60 * 1000);
 		} catch (AssertionFailedError err) {
 			throw err;

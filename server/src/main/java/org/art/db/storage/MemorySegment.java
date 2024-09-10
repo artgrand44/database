@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
  */
 
 public class MemorySegment extends Segment {
+	
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(MemorySegment.class);
 	
 	
