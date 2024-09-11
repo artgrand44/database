@@ -180,7 +180,7 @@ public class MemorySegment extends Segment {
 		
 		try {
 			if (this.broadcastHandler != null) {
-				this.broadcastHandler.cancel(true);
+				this.broadcastHandler.cancel(false);
 			}
 			
 			this.broadcastTimer();

@@ -28,7 +28,6 @@ import org.art.db.common.Utils;
 import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
 import org.art.db.storage.BackupHandler;
-import org.art.db.storage.Broadcaster;
 import org.art.db.storage.Environment;
 import org.art.db.storage.Files;
 import org.art.db.storage.Metrics;
@@ -222,8 +221,22 @@ public class Dispatcher {
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String instance = parameters.get("instance");
 			URI uri = new URI(instance);
+			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
+			long start = System.currentTimeMillis();
+			int count = 0;
 			
-			Broadcaster.getInstance().handleBeginStartup(uri);
+			logger.info(handler.getLocalInstance() + " got begin from " + uri);
+			while (!handler.getLocalPeers().contains(uri)) {
+				Utils.sleepSafely(100);
+				handler.loadEnvironment();
+				count++;
+			}
+			
+			long end = System.currentTimeMillis();
+			long delta = (end - start);
+			
+			logger.info("delta = " + delta + " count = " + count);
+			
 			return new byte[0];
 		}		
 	}

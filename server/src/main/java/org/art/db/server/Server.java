@@ -71,10 +71,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 			UIConsole.getInstance().start(info);
 			PrometheusPublisher.getInstance().start();
 			BackupHandler.getInstance().start();
-			
-			Broadcaster.getInstance().beginStartup();
-			
 			this.handler.start();
+			
 			
 			InetAddress address = InetAddress.getLocalHost();
 			
@@ -152,7 +150,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			if (response instanceof byte[] bytes) {
 				if (zip) {
 					bytes = ZipUtils.compress(bytes);
-					exchange.getResponseHeaders().add(new HttpString("Content-Encoding"), "gzip");
+					exchange.getResponseHeaders().add(new HttpString("Content-Encoding"), "gzip");					
 				}
 				
 				exchange.getOutputStream().write(bytes);

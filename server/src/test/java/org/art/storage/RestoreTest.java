@@ -12,6 +12,7 @@ import org.art.db.common.RestClient;
 import org.art.db.common.Utils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,8 +23,8 @@ public class RestoreTest extends BaseIntegrationTest {
 	private volatile int extraCount;
 	private volatile boolean needExtra = true;
 
-	//@Test
-	@RepeatedTest(10)
+	
+	@Test
 	public void test() {
 
 		try  {

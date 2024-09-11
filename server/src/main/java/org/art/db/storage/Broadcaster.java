@@ -64,8 +64,6 @@ public class Broadcaster {
 	
 	private final ConcurrentLinkedDeque<Message> messages = new ConcurrentLinkedDeque<>();
 	
-	private final ConcurrentLinkedDeque<URI> startingInstances = new ConcurrentLinkedDeque<>();
-	
 	private RestClient client = new RestClient(SecurityHandler.getInstance().getAdminUser(), 
                                                SecurityHandler.getInstance().getAdminPassword(), 
                                                FAST_TIMEOUT);
@@ -83,7 +81,7 @@ public class Broadcaster {
 	 * The timeout for individual REST calls. 
 	 * 
 	 */
-	private final static Duration FAST_TIMEOUT = Duration.ofMillis(10000);
+	private final static Duration FAST_TIMEOUT = Duration.ofMillis(20000);
 	
 	
 	private static final Broadcaster instance = new Broadcaster();
@@ -93,14 +91,7 @@ public class Broadcaster {
 	}
 	
 	
-	/**
-	 * Tell all the other instances that we are begining the startup sequence
-	 * @throws Exception
-	 */
-	public void beginStartup() throws Exception {
-		this.broadcast("/db/beginstartup?instance=" + DiscoveryHandler.getServerInstance().getLocalInstance(), new byte[0]);
-	}
-	
+
 	/**
 	 * Broadcast a message to all of the instances
 	 * @param path
@@ -119,7 +110,6 @@ public class Broadcaster {
 			}
 
 			instances.remove(handler.getLocalInstance());
-			instances.addAll(this.startingInstances);
 			
 			this.broadcast(instances, path, body);
 		}
@@ -156,12 +146,6 @@ public class Broadcaster {
 		List<Future<HttpResponse<byte[]>>> futures = new ArrayList<>();
 		
 		
-		for (URI starter : this.startingInstances) {
-			if (!instances.contains(starter)) {
-				instances.add(starter);
-			}
-		}
-		
 		for (URI base : instances) {
 			futures.add(this.client.callAsync("PUT", this.client.buildURI(base, path), body));				
 		}
@@ -172,7 +156,7 @@ public class Broadcaster {
 			try {
 				future.get(FAST_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
 			} catch (Throwable exc) {
-				logger.info("error on " + DiscoveryHandler.getServerInstance().getLocalPort() + " for " + instances.get(idx) + " "+ path + " " + exc.getMessage());
+				logger.info("error sending message from " + DiscoveryHandler.getServerInstance().getLocalPort() + " to " + instances.get(idx) + " "+ path + " " + exc.getMessage());
 				
 				Throwable cause = exc.getCause();
 				
@@ -198,12 +182,6 @@ public class Broadcaster {
 		
 	}
 		
-	
-	public void handleBeginStartup(URI instance) {
-		logger.info(DiscoveryHandler.getServerInstance().getLocalPort() + " got begin  from " + instance);
-		this.startingInstances.add(instance);
-	}
-	
 	
 	public void stop() {
 		if (this.timeoutHandler != null) {

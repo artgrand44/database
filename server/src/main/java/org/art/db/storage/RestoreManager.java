@@ -160,9 +160,14 @@ public class RestoreManager {
 		}
 						
 		if (peer != null) {			
-			try {								
-				// If there's a peer the recover the configuration and the metadata
-				// then recover the tables one by one.
+			try {			
+				
+				// Tell the other instances to start sending us logs
+				
+				logger.info("sending begin from " +  DiscoveryHandler.getServerInstance().getLocalInstance());
+				Broadcaster.getInstance().broadcast("/db/beginstartup?instance=" + DiscoveryHandler.getServerInstance().getLocalInstance(), new byte[0]);
+								
+				// Recover the configuration and the metadata then recover the tables one by one.
 
 				this.recoverConfiguration(peer);
 				this.recoverMetadata(peer);		
