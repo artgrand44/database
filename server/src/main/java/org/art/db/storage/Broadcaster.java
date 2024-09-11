@@ -81,7 +81,7 @@ public class Broadcaster {
 	 * The timeout for individual REST calls. 
 	 * 
 	 */
-	private final static Duration FAST_TIMEOUT = Duration.ofMillis(20000);
+	private final static Duration FAST_TIMEOUT = Duration.ofMillis(10000);
 	
 	
 	private static final Broadcaster instance = new Broadcaster();
@@ -142,7 +142,7 @@ public class Broadcaster {
 	 * @param body
 	 * @throws Exception
 	 */
-	public void broadcast(List<URI> instances, String path, byte[] body) throws Exception {
+	private void broadcast(List<URI> instances, String path, byte[] body) throws Exception {
 		List<Future<HttpResponse<byte[]>>> futures = new ArrayList<>();
 		
 		

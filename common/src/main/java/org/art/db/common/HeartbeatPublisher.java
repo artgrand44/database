@@ -76,6 +76,7 @@ public class HeartbeatPublisher {
 	
 	public void start() {
 		this.started = true;
+		this.publish();
 	}
 	
 	public void stop() {

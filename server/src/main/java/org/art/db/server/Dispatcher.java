@@ -222,20 +222,12 @@ public class Dispatcher {
 			String instance = parameters.get("instance");
 			URI uri = new URI(instance);
 			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
-			long start = System.currentTimeMillis();
-			int count = 0;
 			
 			logger.info(handler.getLocalInstance() + " got begin from " + uri);
 			while (!handler.getLocalPeers().contains(uri)) {
 				Utils.sleepSafely(100);
 				handler.loadEnvironment();
-				count++;
 			}
-			
-			long end = System.currentTimeMillis();
-			long delta = (end - start);
-			
-			logger.info("delta = " + delta + " count = " + count);
 			
 			return new byte[0];
 		}		
