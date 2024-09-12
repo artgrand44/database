@@ -11,7 +11,6 @@ import org.art.db.common.DocumentSet;
 import org.art.db.common.RestClient;
 import org.art.db.common.Utils;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;

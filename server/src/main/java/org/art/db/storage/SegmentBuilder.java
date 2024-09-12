@@ -13,7 +13,6 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
-import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.TypedOutputStream;
@@ -60,8 +59,6 @@ public class SegmentBuilder {
 		Key lowKey = null;
 		Key highKey = null;
 		int count = 0;
-		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
-		String localShard = handler.getLocalShard();
 		
 		try (FileOutputStream fstream = new FileOutputStream(tempFile); 
 				BufferedOutputStream bstream = new BufferedOutputStream(fstream, 10 * 1024); 
@@ -92,11 +89,14 @@ public class SegmentBuilder {
 					
 					Map.Entry<Key, ? extends Object> entry = (Map.Entry<Key, ? extends Object>)iterator.next();
 					Key key = entry.getKey();
-					
+					/*
 					if (!handler.getShard(key.toString()).equals(localShard)) {
+						logger.info("skipping " + segment.getName() + " on " + DiscoveryHandler.getServerInstance().getLocalInstance() + "  " + key + " " + isLeaf);
 						continue;
+					} else if (isLeaf) {
+						logger.info("creating " + segment.getName() + " on " + DiscoveryHandler.getServerInstance().getLocalInstance() + "  " + key);
 					}
-					
+*/
 					
 					// Compute the size of the entry
 					

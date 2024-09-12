@@ -85,7 +85,7 @@ public class LogEntry  extends Serializable<LogEntry>{
 	
 	@Override
 	public String toString() {
-		return "LogEntry [op=" + op + ", key=" + key + ", timestamp=" + timestamp + ", propagate=" + propagate + "]";
+		return "LogEntry [op=" + op + ", key=" + key + ", timestamp=" + timestamp + ", propagate=" + propagate  + ", document " + document + "]";
 	}
 
 	

@@ -159,9 +159,9 @@ public class TableManager implements Closeable{
 				if (this.table.get(entry.getKey()) == null) {
 					this.insert(entry.getDocument(), false, false);
 				} else {
-					this.update(this.table.get(entry.getKey()), entry.getDocument(), false, false);
+					logger.info("upset update");
 				}
-								break;
+				break;
 			default:
 				logger.info("bad op " + entry);
 				break;

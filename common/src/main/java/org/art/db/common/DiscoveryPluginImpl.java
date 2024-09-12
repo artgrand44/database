@@ -1,6 +1,7 @@
 package org.art.db.common;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -31,7 +32,7 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 	
 	@Override
 	public Map<URI, String> getServerInstances() {
-		return this.listener.getInstances();
+		return this.listener == null ? Collections.emptyMap() : this.listener.getInstances();
 	}
 
 

@@ -157,6 +157,9 @@ public class RestoreManager {
 		if (peer == null && handler.getShards().size() > 1) {
 			peer = handler.getSourceShard(handler.getLocalShard());
 			newShard = true;
+			logger.info("no peers got source local shard = " +  handler.getLocalShard() + " peer " + peer);
+		} else {
+			logger.info("using peer " + peer);
 		}
 						
 		if (peer != null) {			
@@ -177,6 +180,7 @@ public class RestoreManager {
 				// Recovery the tables
 
 				for (String table : Files.listTables()) {
+					logger.info("recovering " + table);
 					try {
 						if (useBackup) {
 							logger.info("Restoring " + table + " from backup");
@@ -325,10 +329,12 @@ public class RestoreManager {
 			
 			String name;
 			
+			logger.info("getting files");
 			while ((name = this.getNextFile(peer, tableName, ".seg", timestamp)) != null) {
 				File localFile = new File(Files.getTableDirectory(tableName), name);
 				DiskSegment segment = new DiskSegment(localFile);
 
+				logger.info("got file " + localFile);
 				// Iterate over the segment, find each document, and re-apply it.
 
 				Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
@@ -354,7 +360,6 @@ public class RestoreManager {
 			} 
 		} finally {
 			manager.setCheckConstraints(save);
-
 		}
 
 	}

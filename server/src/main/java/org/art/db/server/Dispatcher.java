@@ -595,7 +595,6 @@ public class Dispatcher {
 			}
 			
 			while (!RestoreManager.getInstance().isRecovered()) {
-				logger.info("waiting for recovery");
 				Utils.sleepSafely(1000);
 			}
 			
