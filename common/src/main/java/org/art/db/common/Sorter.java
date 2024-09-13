@@ -11,10 +11,15 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DocumentSetSorter {
+public class Sorter<T> {
+	private final Class<T> clazz;
+	
+	public Sorter(Class<T> clazz) {
+		this.clazz = clazz;
+	}
 	
 	@SuppressWarnings("unused")
-	private static final Logger logger = LoggerFactory.getLogger(DocumentSetSorter.class);
+	private static final Logger logger = LoggerFactory.getLogger(Sorter.class);
 	
 	private static File createTempFile() throws IOException {
 		File file = File.createTempFile("sort", ".dat");
@@ -25,8 +30,8 @@ public class DocumentSetSorter {
 		
 	}
 	
-	public static File merge(List<File> files, Comparator<Document> comparator) throws Exception {
-		List<Document> current = new ArrayList<>();
+	private File merge(List<File> files, Comparator<T> comparator) throws Exception {
+		List<T> current = new ArrayList<>();
 		File result = createTempFile();
 		List<TypedInputStream> inputs = new ArrayList<>();
 
@@ -35,17 +40,17 @@ public class DocumentSetSorter {
 				TypedInputStream input = new TypedInputStream(file);
 				
 				inputs.add(input);
-				current.add(readDocument(input));
+				current.add((T)readDocument(input));
 			}
 		
 		
 			for (;;) {
 				int smallestIndex = -1;
-				Document smallestDoc = null;
+				T smallestDoc = null;
 				TypedInputStream smallestInput = null;
 
 				for (int idx = 0; idx < current.size(); idx++) {
-					Document doc  = current.get(idx);
+					T doc  = current.get(idx);
 
 					if (doc == null) {
 						continue;
@@ -62,7 +67,7 @@ public class DocumentSetSorter {
 					outStream.writeObject(smallestDoc);
 				} 
 
-				current.set(smallestIndex,readDocument(smallestInput));
+				current.set(smallestIndex,(T)readDocument(smallestInput));
 			}
 		} finally {
 			for (TypedInputStream input : inputs) {
@@ -75,22 +80,22 @@ public class DocumentSetSorter {
 	}
 
 	
-	private static Document readDocument(TypedInputStream stream) throws Exception {
+	private T readDocument(TypedInputStream stream) throws Exception {
 		try {
-			return (Document)stream.readObject();
+			return this.clazz.cast(stream.readObject());
 		} catch (EOFException exc) {
 			return null;
 		}
 	}
 
-	static File sort(File file, Comparator<Document> comparator) throws DBRuntimeException {
+	public File sort(File file, Comparator<T> comparator) throws DBRuntimeException {
 		try {
 			if (file.length() < 1024 * 1024) {
-				List<Document> list = new ArrayList<>();
+				List<T> list = new ArrayList<>();
 
 				try (TypedInputStream stream = new TypedInputStream(file)) {
 					for (;;) {
-						list.add((Document)stream.readObject()); 
+						list.add(this.clazz.cast(stream.readObject())); 
 					}
 				} catch (EOFException exc) {
 
@@ -101,7 +106,7 @@ public class DocumentSetSorter {
 				File result = createTempFile();
 
 				try (TypedOutputStream stream = new TypedOutputStream(result)) {
-					for (Document doc : list) {
+					for (T doc : list) {
 						stream.writeObject(doc);
 					}
 				}
@@ -135,9 +140,7 @@ public class DocumentSetSorter {
 		try (TypedInputStream inStream = new TypedInputStream(file);
 				TypedOutputStream outStream1  = new TypedOutputStream(temp1);
 				TypedOutputStream outStream2  = new TypedOutputStream(temp2)) {
-			
-			
-			
+					
 			for (;;) {
 				Document doc = (Document)inStream.readObject();
 				

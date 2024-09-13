@@ -39,6 +39,8 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	
 	private static final int MAX_MEMORY = 1000;
 	
+	private static final Sorter<Document> SORTER = new Sorter<>(Document.class);
+	
 	private static final Cache<File, TypedInputStream> cache = Caffeine.newBuilder().maximumSize(10000).removalListener(DocumentSet::onRemoval).build();
 		
 	public void add(Document doc)  {
@@ -177,7 +179,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		if (this.file == null) {
 			Collections.sort(this.list, comparator);
 		} else {
-			File newFile = DocumentSetSorter.sort(this.file, comparator);
+			File newFile = SORTER.sort(this.file, comparator);
 			
 			this.file.delete();
 			
