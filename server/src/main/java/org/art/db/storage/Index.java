@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Index.class);
 	
 	/**
