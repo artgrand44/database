@@ -28,7 +28,7 @@ public class Planner {
 		// Build some useful maps
 		
 		Metadata metadata = Metadata.getMetadata(table);
-		List<IndexInfo> indices = metadata.getIndices();
+		List<IndexInfo> indices = metadata.getIndices().stream().filter(x -> x.isBuilt()).toList();
 		List<String> primaryKeys = metadata.getPrimaryKeyFields();
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
@@ -44,7 +44,7 @@ public class Planner {
 		Map<String, IndexInfo> indexNameToInfo = new HashMap<>();
 		
 		for (IndexInfo index : indices) {
-			indexNameToInfo.put(index.name(), index);
+			indexNameToInfo.put(index.getName(), index);
 		}
 		
 		// If we are doing an EQ against the leading fields of the primary key
@@ -70,7 +70,7 @@ public class Planner {
 		List<Scan> alternateKeyLookups = new ArrayList<>();
 		
 		for (IndexInfo index : indices) {		
-			Scan scan = getScan(index.name(), index.fields(), fieldNameToFilter);
+			Scan scan = getScan(index.getName(), index.getFields(), fieldNameToFilter);
 			
 			if (scan != null) {
 				alternateKeyLookups.add(scan);
@@ -86,11 +86,11 @@ public class Planner {
 				boolean covers = true;
 				
 				for (String name : selectColumns) {
-					covers &= index.fields().contains(name);
+					covers &= index.getFields().contains(name);
 				}
 
 				if (covers) {
-					return new IndexScan(table, filters, selectColumns, scan, index.fields(), scan.getKey());
+					return new IndexScan(table, filters, selectColumns, scan, index.getFields(), scan.getKey());
 				}
 			}
 		}
@@ -99,11 +99,11 @@ public class Planner {
 		// all of the values in the IN clause
 		
 		for (IndexInfo index : indices) {		
-			String firstKey = index.fields().get(0);
+			String firstKey = index.getFields().get(0);
 			Filter filter = fieldNameToFilter.get(firstKey);
 			
 			if (filter != null && filter.getComparison() == Comparison.IN) {
-				return new IndexInLookup(table, filters, index.name(), (List<Comparable<?>>) filter.getValue());
+				return new IndexInLookup(table, filters, index.getName(), (List<Comparable<?>>) filter.getValue());
 			}
 		}
 		
@@ -111,13 +111,13 @@ public class Planner {
 		// all of the values in the BETWEEN clause
 
 		for (IndexInfo index : indices) {		
-			String firstKey = index.fields().get(0);
+			String firstKey = index.getFields().get(0);
 			Filter filter = fieldNameToFilter.get(firstKey);
 
 			if (filter != null && filter.getComparison() == Comparison.BETWEEN) {
 				List<Key> keys = filter.getKeys();
 				
-				return new IndexBetweenLookup(table, filters, index.name(), keys.get(0), keys.get(1));
+				return new IndexBetweenLookup(table, filters, index.getName(), keys.get(0), keys.get(1));
 			}
 		}
 		

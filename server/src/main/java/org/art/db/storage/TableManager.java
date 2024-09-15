@@ -8,11 +8,12 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.io.FileUtils;
 import org.art.db.common.Comparison;
@@ -34,9 +35,10 @@ public class TableManager implements Closeable{
 	private static final Logger logger = LoggerFactory.getLogger(TableManager.class);
 	
 	private final Table table;
+	private final String tableName;
 	private final File metadataFile;
 	private final List<IndexInfo> indexInfo;
-	private final Map<String, Index> indices = new HashMap<>();
+	private final ConcurrentMap<String, Index> indices = new ConcurrentHashMap<>();
 	private final LockManager<Key> primaryKeyLockManager = new LockManager<>();
 	private final LockManager<Key> alternateKeyLockManager = new LockManager<>();
 	private boolean checkConstraints;
@@ -46,15 +48,20 @@ public class TableManager implements Closeable{
 	private final Cache<Key, Long> timestamps = Caffeine.newBuilder().maximumSize(1000).build();
 	
 	public TableManager(String tableName) throws Exception {
+		this.tableName = tableName;
 		this.metadataFile = Files.getMetadata(tableName);
 		this.metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(tableName);
 		this.indexInfo = metadata.getIndices();
 		
 		for (IndexInfo info : this.indexInfo) {
-			String name = info.name();
+			String name = info.getName();
 			File indexFile = Files.getIndex(tableName, name);
 			
-			this.indices.put(name, new Index(indexFile, info.unique()));
+			this.indices.put(name, new Index(indexFile, name, info.isUnique()));
+			
+			if (!info.isBuilt()) {
+				Scheduler.DEFAULT.submit(() -> this.buildIndex(name));
+			}
 		}
 		
 		File[] logs =  Files.listTableLogs(tableName);
@@ -178,9 +185,27 @@ public class TableManager implements Closeable{
 			exc.printStackTrace();
 		}
 
-
 	}
 
+	public void buildIndex(String name)  {
+		try {
+			this.metadata = Metadata.getMetadata(this.tableName);
+			
+			if (!this.indices.containsKey(name)) {
+				IndexInfo info = this.metadata.getIndex(name);
+				Index index = new Index(Files.getIndex(this.tableName, name), name, info.isUnique());
+
+				this.indices.put(name, index);
+			}
+			
+			this.indices.get(name).buildIndex(this.table, metadata);
+		} catch (Exception exc) {
+			logger.info("There was an error building the index for " + name + " " + exc.getMessage());
+			Metrics.getInstance().logAlert("There was an error building the index for " + name);
+		}
+	}
+	
+	
 	
 	private Key buildKey(Document doc, List<String> names) {
 		List<Comparable<?>> keys = new ArrayList<>();
@@ -195,20 +220,21 @@ public class TableManager implements Closeable{
 	}
 	
 	private void checkForDuplicateKey(IndexInfo info, Document doc) throws Exception {		
-		Index index = this.indices.get(info.name());
+		Index index = this.indices.get(info.getName());
 		
-		Key indexKey = this.buildKey(doc, info.fields());
+		Key indexKey = this.buildKey(doc, info.getFields());
 		
-		this.alternateKeyLockManager.writeLock(new Key(info.name(), indexKey));
+		this.alternateKeyLockManager.writeLock(new Key(info.getName(), indexKey));
 		
 		if (index.get(indexKey) != null) {
-			throw new DBRuntimeException("Duplicate value for " + info.name());
+			throw new DBRuntimeException("Duplicate value for " + info.getName());
 		}
 	}
 	
 	public void checkWriteLock(Document doc) {
 		this.primaryKeyLockManager.checkWriteLock(this.buildKey(doc, metadata.getPrimaryKeyFields()));
 	}
+	
 	
 	public void flush() {
 		this.table.flush();
@@ -269,7 +295,7 @@ public class TableManager implements Closeable{
 				for (int idx = 0; idx < this.indexInfo.size(); idx++) {
 					IndexInfo info = this.indexInfo.get(idx);
 
-					if (info.unique()) {
+					if (info.isUnique()) {
 						this.checkForDuplicateKey(info, doc);
 					}
 				}
@@ -329,10 +355,10 @@ public class TableManager implements Closeable{
 			if (this.checkConstraints) {
 				for (int idx = 0; idx < this.indexInfo.size(); idx++) {
 					IndexInfo info = this.indexInfo.get(idx);
-					Key oldKey = this.buildKey(oldDoc, info.fields());
-					Key newKey = this.buildKey(newDoc, info.fields());
+					Key oldKey = this.buildKey(oldDoc, info.getFields());
+					Key newKey = this.buildKey(newDoc, info.getFields());
 					
-					if (info.unique() && !oldKey.equals(newKey)) {
+					if (info.isUnique() && !oldKey.equals(newKey)) {
 						this.checkForDuplicateKey(info, newDoc);
 					}
 				}	
@@ -350,10 +376,10 @@ public class TableManager implements Closeable{
 
 		for (int idx = 0; idx < this.indexInfo.size(); idx++) {
 			IndexInfo info = this.indexInfo.get(idx);
-			Index index = this.indices.get(info.name());
+			Index index = this.indices.get(info.getName());
 			
-			Key oldKey = oldDoc == null ? null : this.buildKey(oldDoc, info.fields());
-			Key newKey = newDoc == null || newDoc.isZombie() ? null : this.buildKey(newDoc, info.fields());
+			Key oldKey = oldDoc == null ? null : this.buildKey(oldDoc, info.getFields());
+			Key newKey = newDoc == null || newDoc.isZombie() ? null : this.buildKey(newDoc, info.getFields());
 
 			if (!Objects.equals(oldKey, newKey)) {
 				if (oldKey != null) {

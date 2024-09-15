@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
@@ -88,7 +89,7 @@ public class Table implements Closeable {
 
 	}
 	
-	@Override
+		@Override
 	public void close() throws IOException {
 		this.writeLock.lock();
 		
@@ -197,6 +198,13 @@ public class Table implements Closeable {
 		}
 	}
 	
+	public List<Segment> getSegments() {
+		return Collections.unmodifiableList(this.segments);
+	}
+	
+	boolean isEmpty() {
+		return this.segments.isEmpty() || this.segments.size() == 1 && this.segments.get(0).size() == 0;
+	}
 	
 	public DocumentSet lease(String owner, long timeout) {
 		this.readLock.lock();

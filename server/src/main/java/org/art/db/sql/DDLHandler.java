@@ -16,6 +16,7 @@ import org.art.db.common.Converter;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.Document;
 import org.art.db.common.GUID;
+import org.art.db.common.Scheduler;
 import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
 import org.art.db.storage.BackupHandler;
@@ -24,6 +25,7 @@ import org.art.db.storage.Files;
 import org.art.db.storage.IndexInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
+import org.art.db.storage.TableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,7 +116,7 @@ public class DDLHandler {
 					}
 
 					for (IndexInfo index : metadata.getIndices()) {
-						if (index.fields().contains(name)) {
+						if (index.getFields().contains(name)) {
 							throw new DBRuntimeException(name + " is part of an index.");
 						}
 					}
@@ -162,7 +164,8 @@ public class DDLHandler {
 			throw new DBRuntimeException("Index " + indexName + " already exists");
 		}
 		
-		Metadata metadata = Metadata.getMetadata(SQLUtils.getFQN(table, database));
+		String tableName = SQLUtils.getFQN(table, database);
+		Metadata metadata = Metadata.getMetadata(tableName);
 		
 		if (metadata == null) {
 			throw new DBRuntimeException("Table " + SQLUtils.getFQN(table, database) + " does not exist.");
@@ -185,15 +188,19 @@ public class DDLHandler {
 
 			BackupHandler.getInstance().startUpdate();
 
-
 			List<IndexInfo> indices = metadata.getIndices();
 			
 			if (metadata.getIndices().contains(indexInfo)) {
 				throw new DBRuntimeException("Index " + indexName + " is already defined.");
 			}
 			
+			indexInfo.setBuilt(!indexName.contains("buildme"));
 			indices.add(indexInfo);
 			Metadata.setMetadata(metadata);
+			
+			if (indexName.contains("buildme")) {
+				StorageManager.getInstance().getTableManager(tableName).buildIndex(indexName);
+			} 
 			
 			if (targetShard.equals(Client.WILDCARD)) {
 				SQLUtils.broadcastAll(database, createIndex.toString());
@@ -327,7 +334,7 @@ public class DDLHandler {
 				List<IndexInfo> indices = metadata.getIndices();
 
 				for (int idx = 0; idx < indices.size(); idx++) {
-					if (indices.get(idx).name().equals(index)) {
+					if (indices.get(idx).getName().equals(index)) {
 						indices.remove(idx);
 						break;
 					}

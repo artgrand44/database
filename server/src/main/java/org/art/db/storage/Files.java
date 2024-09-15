@@ -20,6 +20,8 @@ public class Files {
 	
 	private final static String INDEX = "%s/%s.idx";
 	
+	private final static String INVERSE_INDEX = "%s/%s.inv";
+	
 	private final static String DISK_SEGMENT = "%s/%s_%s.seg";
 	
 	private final static String MEMORY_SEGMENT = "%s.mem";
@@ -100,6 +102,9 @@ public class Files {
 		return getFile(INDEX, table, index);
 	}
 	
+	public static File getInverseIndex(String table, String index) {
+		return getFile(INVERSE_INDEX, table, index);
+	}
 	public static File getDiskSegment(String table, int count) {
 		return getFile(DISK_SEGMENT, table, System.currentTimeMillis(), count);
 	}
