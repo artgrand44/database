@@ -16,7 +16,6 @@ import org.art.db.common.Converter;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.Document;
 import org.art.db.common.GUID;
-import org.art.db.common.Scheduler;
 import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
 import org.art.db.storage.BackupHandler;
@@ -25,7 +24,6 @@ import org.art.db.storage.Files;
 import org.art.db.storage.IndexInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
-import org.art.db.storage.TableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
