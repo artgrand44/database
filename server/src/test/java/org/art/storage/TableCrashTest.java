@@ -86,7 +86,7 @@ public class TableCrashTest extends BaseTest {
 			
 			Metadata metadata = new Metadata("test", Collections.singletonList("id"), columns, Collections.emptyList(), false);
 			
-			Metadata.setMetadata(metadata);
+			metadata.store();
 			
 			TableManager manager = new TableManager("test");
 			

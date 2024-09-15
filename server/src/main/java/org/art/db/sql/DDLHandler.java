@@ -129,7 +129,7 @@ public class DDLHandler {
 		
 			StorageManager.getInstance().getTableManager(tableName).setMetadata(metadata);
 
-			Metadata.setMetadata(metadata);
+			metadata.store();
 
 			if (targetShard.equals(Client.WILDCARD)) {
 				SQLUtils.broadcastAll(database, alter.toString());
@@ -192,13 +192,11 @@ public class DDLHandler {
 				throw new DBRuntimeException("Index " + indexName + " is already defined.");
 			}
 			
-			indexInfo.setBuilt(!indexName.contains("buildme"));
+			indexInfo.setBuilt(false);
 			indices.add(indexInfo);
-			Metadata.setMetadata(metadata);
+			metadata.store();
 			
-			if (indexName.contains("buildme")) {
-				StorageManager.getInstance().getTableManager(tableName).buildIndex(indexName);
-			} 
+			StorageManager.getInstance().getTableManager(tableName).buildIndex(indexName);
 			
 			if (targetShard.equals(Client.WILDCARD)) {
 				SQLUtils.broadcastAll(database, createIndex.toString());
@@ -269,7 +267,7 @@ public class DDLHandler {
 		BackupHandler.getInstance().startUpdate();
 		
 		try {
-			Metadata.setMetadata(metadata);
+			metadata.store();
 			
 			if (targetShard.equals(Client.WILDCARD)) {
 				SQLUtils.broadcastAll(database, createTable.toString());
@@ -338,7 +336,7 @@ public class DDLHandler {
 					}
 				}
 
-				Metadata.setMetadata(metadata);
+				metadata.store();
 
 				if (targetShard.equals(Client.WILDCARD)) {
 					SQLUtils.broadcastAll(database, drop.toString());

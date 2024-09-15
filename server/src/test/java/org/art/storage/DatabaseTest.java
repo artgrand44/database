@@ -60,7 +60,7 @@ public class DatabaseTest extends BaseTreeTest {
 					                    	Collections.singletonList(new IndexInfo("name", false, keyFields)),
 					                    	false);
 			
-			Metadata.setMetadata(metadata);
+			metadata.store();
 			TableManager manager = StorageManager.getInstance().getTableManager("test1");
 			
 			for (int idx = 0; idx < 10; idx++) {

@@ -170,12 +170,11 @@ public class Metadata  {
 		}
 	}
 
-	public static void setMetadata(Metadata meta) throws Exception {
-		File file = Files.getMetadata(meta.name);
+	public void store() throws Exception {
+		File file = Files.getMetadata(this.name);
 		
-		MAPPER.writeValue(file, meta); 
-		cache.put(meta.name, meta);
-		
+		MAPPER.writeValue(file, this); 
+		cache.put(this.name, this);
 	}
 	
 	

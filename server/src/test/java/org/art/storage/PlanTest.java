@@ -129,7 +129,7 @@ public class PlanTest {
 		
 		Metadata metadata = new Metadata(name, primaryKeyList, fieldMap, indexList, false);
 		
-		Metadata.setMetadata(metadata);
+		metadata.store();
 		
 		return metadata;
 	}

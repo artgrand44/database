@@ -58,10 +58,6 @@ public class TableManager implements Closeable{
 			File indexFile = Files.getIndex(tableName, name);
 			
 			this.indices.put(name, new Index(indexFile, name, info.isUnique()));
-			
-			if (!info.isBuilt()) {
-				Scheduler.DEFAULT.submit(() -> this.buildIndex(name));
-			}
 		}
 		
 		File[] logs =  Files.listTableLogs(tableName);
@@ -103,6 +99,12 @@ public class TableManager implements Closeable{
 			if (!deferred.isEmpty()) {
 				logger.info("background " + list.size() + " def " + deferred.size() + " immediate " + recoverImmediately.size());
 				Scheduler.DEFAULT.submit(() -> this.applyInBackground(deferred));
+			}
+		}
+		
+		for (IndexInfo info : this.indexInfo) {
+			if (!info.isBuilt()) {
+				Scheduler.DEFAULT.submit(() -> this.buildIndex(info.getName()));
 			}
 		}
 		
@@ -198,6 +200,9 @@ public class TableManager implements Closeable{
 				this.indices.put(name, index);
 			}
 			
+			if (this.table == null) {
+				return;
+			}
 			this.indices.get(name).buildIndex(this.table, metadata);
 		} catch (Exception exc) {
 			logger.info("There was an error building the index for " + name + " " + exc.getMessage());

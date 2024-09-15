@@ -86,7 +86,7 @@ public class QueueCrashTest extends BaseTest {
 			
 			Metadata metadata = new Metadata("test", Collections.singletonList("id"), columns, Collections.emptyList(), true);
 			
-			Metadata.setMetadata(metadata);
+			metadata.store();
 			
 			TableManager manager = new TableManager("test");
 			
