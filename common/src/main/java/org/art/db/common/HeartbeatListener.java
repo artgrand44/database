@@ -167,18 +167,6 @@ public class HeartbeatListener {
 	
 	public void stop() {
 		this.stopping = true;
-		
-		if (this.poller != null) {
-			this.poller.interrupt();
-			
-			while (this.poller.isAlive()) {
-				Utils.sleepSafely(1000);
-			}
-			
-			logger.info("finally dead");
-			this.poller = null;
-		}
-
 	}
 
 

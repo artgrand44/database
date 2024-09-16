@@ -258,8 +258,8 @@ public class Server implements HttpHandler, FullBytesCallback {
 		if (instance != null) {
 			Metrics.getInstance().logStatus("Stopping");
 			instance.server.stop();
-			instance.handler.stop();
 			StorageManager.getInstance().closeAll();
+			instance.handler.stop();
 			DiscoveryHandler.clear();
 			UIConsole.getInstance().stop();	
 			BackupHandler.getInstance().stop();
