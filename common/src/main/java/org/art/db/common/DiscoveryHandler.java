@@ -107,6 +107,10 @@ public class DiscoveryHandler {
 
 	
 	public static void clear() {
+		for (DiscoveryHandler handler : handlers.values()) {
+			handler.stop();
+		}
+		
 		handlers.clear();
 		serverInstance = null;
 	}
