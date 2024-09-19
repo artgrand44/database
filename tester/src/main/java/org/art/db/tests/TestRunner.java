@@ -121,8 +121,6 @@ public class TestRunner {
 					}
 					
 					test.invoke(instance);
-					
-	
 				} catch (Throwable thr) {
 					Throwable theThrowable = thr;
 					Throwable cause;
@@ -135,6 +133,7 @@ public class TestRunner {
 					message= theThrowable.getMessage() == null ? theThrowable.getClass().getName() : theThrowable.getMessage();
 					
 					logger.error("\n        Test failed " + message);
+					
 					
 					messages.add(StringUtils.rightPad(clazz.getSimpleName() + ":" + test.getName(), 30) + " - " + message);
 					totalErrors++;

@@ -1,7 +1,9 @@
 package org.art.db.tests;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
+import java.io.PrintStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -27,13 +29,15 @@ import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.dsl.LogWatch;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import io.fabric8.kubernetes.client.utils.Serialization;
 
 public class KubernetestAdapter implements TestAdapter {
 
 	private static final Logger logger = LoggerFactory.getLogger(KubernetestAdapter.class);
 	
-	record Server(String profile, String name, String database, Deployment deployment, Service service, List<URI> uris, URI uri) {
+	record Server(String profile, String name, String database, Deployment deployment, Service service,  List<URI> uris, URI uri) {
 		
 		Server(Server from, URI uri) {
 			this(from.profile, from.name, from.database, from.deployment, from.service, from.uris, uri);
@@ -47,11 +51,60 @@ public class KubernetestAdapter implements TestAdapter {
 	
 	private Server secondary;
 	
+	private String getLog(Server server) {
+		try {
+			PodList podList  = client.pods().inNamespace("default").withLabel("appname=" + server.name).list();
+
+			for (Pod pod : podList.getItems()) { 
+				URI uri = new URI(String.format("http://%s:%s", pod.getStatus().getPodIP(), "8080"));
+
+				if (uri.equals(server.uri)) {
+					PodResource res = client.pods().inNamespace("default").resource(pod);
+
+					try (ByteArrayOutputStream bstream = new ByteArrayOutputStream(); PrintStream out = new PrintStream(bstream)){
+						LogWatch ignore = res.tailingLines(100000).watchLog(out);
+						
+						Utils.sleepSafely(2000);
+
+						out.flush();
+						bstream.flush();
+
+						String str = new String(bstream.toByteArray());
+						
+						return str;
+					}
+				} else {
+					logger.info("in getLog want " + server.uri + " found " + uri);
+				}
+			}
+		} catch (Exception exc) {
+			exc.printStackTrace();
+			logger.info("There was an exception getting the log " + exc.getMessage());
+		}
+		
+		return "";
+	}
+	
 	public Client getClusterClient(String user, String password) throws Exception {
 		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password);
 	}
 	public Client getPrimaryClient(String user, String password) throws Exception {
 		return new Client(new URI(this.primary.uri.toString() + "/" + this.primary.database), user, password);
+	}
+	
+	public synchronized String getPrimaryLog() { 
+		Server server = this.primary;
+		
+		logger.info("getprimary " + server);
+		if (server == null) {
+			return "";
+		}
+		
+		return this.getLog(server);
+	}
+	
+	public synchronized String getSecondaryLog() { 
+		return this.secondary != null ? "no seondart" : this.getLog(this.secondary); 
 	}
 	
 	public URI getPrimaryURI() {
@@ -101,7 +154,6 @@ public class KubernetestAdapter implements TestAdapter {
 			deployment.getMetadata().setName(shortName);
 			deployment.getSpec().getSelector().getMatchLabels().put("appname", shortName);
 			deployment.getSpec().getTemplate().getMetadata().getLabels().put("appname", shortName);
-		
 						
 			// Load the property file for the profile
 			
@@ -192,9 +244,12 @@ public class KubernetestAdapter implements TestAdapter {
 
 
 	@Override
-	public void stopPrimary() {
+	public synchronized void stopPrimary() {
 		if (this.primary != null) {
+			logger.info(this.getLog(this.primary));
 			this.stop(this.primary);
+			
+			
 			this.primary = null;
 			
 			if (this.primary == this.secondary) {
@@ -206,7 +261,7 @@ public class KubernetestAdapter implements TestAdapter {
 
 
 	@Override
-	public URI startSecondary(String profile) {
+	public synchronized  URI startSecondary(String profile) {
 		if (this.primary != null && this.primary.profile.equals(profile)) {
 			this.secondary = new Server(this.primary, this.primary.uris.get(1));
 		} else {

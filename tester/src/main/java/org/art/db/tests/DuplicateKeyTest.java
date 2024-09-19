@@ -27,7 +27,8 @@ public class DuplicateKeyTest extends BaseIntegrationTest {
 			String drop = "drop table if exists duptest";
 			String create = "CREATE TABLE duptest (id GUID NOT NULL PRIMARY KEY, name varchar(255), color varchar(255))";
 			String createNameIndex = "CREATE UNIQUE INDEX name ON duptest(name)";
-			String createColorIndex = "CREATE INDEX name ON duptest(color)";
+			String createColorIndex = "CREATE INDEX color ON duptest(color)";
+			
 			
 			client.execute(drop);
 			client.execute(create);

@@ -14,4 +14,6 @@ public interface TestAdapter {
 	Client getSecondaryClient(String user, String password) throws Exception;
 	URI getPrimaryURI();
 	URI getSecondardURI();
+	default String getPrimaryLog() { return ""; }
+	default String getSecondaryLog() { return ""; }
 }

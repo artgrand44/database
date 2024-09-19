@@ -236,7 +236,6 @@ public class DiscoveryHandler {
 			if (list == null || list.isEmpty()) {
 				Utils.sleepSafely(1000);
 				this.plugin.clear();
-				logger.info("*** clear plugin");
 				this.loadEnvironment();
 				continue;
 			} 

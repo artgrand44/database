@@ -17,11 +17,12 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 
 public class KubernetesPlugin implements DiscoveryPlugin {
 	private static final Logger logger = LoggerFactory.getLogger(KubernetesPlugin.class);
 			
-	private final KubernetesClient client;
+	private KubernetesClient client;
 	private final String localPort = "8080";
 	private final String localShard = System.getenv("org.art.db.shard");
 	private String database;
@@ -94,9 +95,10 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 				
 				this.ttl = System.currentTimeMillis() + 10 * 1000;
 				this.serverInstances.set(result);
+			} catch (KubernetesClientException exc) {
+				this.client = new KubernetesClientBuilder().build(); 
 			} catch (Exception exc) {
-				logger.info("there was an error getting the instances " + exc.getLocalizedMessage());
-				exc.printStackTrace();
+				logger.info("there was an error getting the instances " + exc.getLocalizedMessage());				
 			} finally {
 				this.loading.set(false);
 			}
@@ -109,7 +111,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	public void initialize(ConnectionInfo info, boolean isServer) {
 		
 		try {
-			logger.info("*** entry to init");
 						
 	        // Spin until we are able to find the instances and the local port, shard, and instance.
 	        
