@@ -69,16 +69,11 @@ public class KubernetestAdapter implements TestAdapter {
 						out.flush();
 						bstream.flush();
 
-						String str = new String(bstream.toByteArray());
-						
-						return str;
+						return "\n\nLog for " + server.name + "\n\n" + new String(bstream.toByteArray()) + "\n\n";
 					}
-				} else {
-					logger.info("in getLog want " + server.uri + " found " + uri);
-				}
+				} 
 			}
 		} catch (Exception exc) {
-			exc.printStackTrace();
 			logger.info("There was an exception getting the log " + exc.getMessage());
 		}
 		
@@ -90,17 +85,6 @@ public class KubernetestAdapter implements TestAdapter {
 	}
 	public Client getPrimaryClient(String user, String password) throws Exception {
 		return new Client(new URI(this.primary.uri.toString() + "/" + this.primary.database), user, password);
-	}
-	
-	public synchronized String getPrimaryLog() { 
-		Server server = this.primary;
-		
-		logger.info("getprimary " + server);
-		if (server == null) {
-			return "";
-		}
-		
-		return this.getLog(server);
 	}
 	
 	public synchronized String getSecondaryLog() { 
@@ -149,8 +133,7 @@ public class KubernetestAdapter implements TestAdapter {
 			String name = new File(profile).getName();
 			int dot = name.lastIndexOf('.');
 			String shortName = name.substring(0,  dot);
-			
-			
+						
 			deployment.getMetadata().setName(shortName);
 			deployment.getSpec().getSelector().getMatchLabels().put("appname", shortName);
 			deployment.getSpec().getTemplate().getMetadata().getLabels().put("appname", shortName);
@@ -168,9 +151,7 @@ public class KubernetestAdapter implements TestAdapter {
 			
 			for (Map.Entry<Object, Object> entry : props.entrySet()) {
 				this.setEnvironment(list, (String)entry.getKey(), (String)entry.getValue());
-			}
-			
-			
+			}			
 			
 			Service service = new ServiceBuilder()
 		            .withNewMetadata().withName(shortName).addToLabels("app", shortName).endMetadata()
@@ -244,12 +225,10 @@ public class KubernetestAdapter implements TestAdapter {
 
 
 	@Override
-	public synchronized void stopPrimary() {
+	public void stopPrimary() {
 		if (this.primary != null) {
 			logger.info(this.getLog(this.primary));
 			this.stop(this.primary);
-			
-			
 			this.primary = null;
 			
 			if (this.primary == this.secondary) {
@@ -274,6 +253,8 @@ public class KubernetestAdapter implements TestAdapter {
 	@Override
 	public void stopSecondary() {
 		if (this.secondary != null) {
+			
+			logger.info(this.getLog(this.secondary));
 			this.stop(this.secondary);
 			this.secondary = null;
 		}		
