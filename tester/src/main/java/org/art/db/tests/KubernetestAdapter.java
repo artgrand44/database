@@ -33,7 +33,7 @@ import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 import io.fabric8.kubernetes.client.utils.Serialization;
 
-public class KubernetestAdapter implements TestAdapter {
+public class KubernetestAdapter extends TestAdapter {
 
 	private static final Logger logger = LoggerFactory.getLogger(KubernetestAdapter.class);
 	
@@ -62,6 +62,7 @@ public class KubernetestAdapter implements TestAdapter {
 					PodResource res = client.pods().inNamespace("default").resource(pod);
 
 					try (ByteArrayOutputStream bstream = new ByteArrayOutputStream(); PrintStream out = new PrintStream(bstream)){
+						@SuppressWarnings("unused")
 						LogWatch ignore = res.tailingLines(100000).watchLog(out);
 						
 						Utils.sleepSafely(2000);

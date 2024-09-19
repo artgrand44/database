@@ -26,9 +26,9 @@ public class BackupTest extends BaseIntegrationTest {
 				FileUtils.cleanDirectory(root);
 			}
 			
-			TestRunner.getAdapter().startPrimary("./backup.properties");
+			TestAdapter.getInstance().startPrimary("./backup.properties");
 			
-			Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 			String drop = "drop table if exists pounder";
 			String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 			String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
@@ -47,7 +47,7 @@ public class BackupTest extends BaseIntegrationTest {
 			
 			logger.info("inserts complete");
 			
-			ConnectionInfo primary = new ConnectionInfo(TestRunner.getAdapter().getPrimaryURI().getHost(), "8080", "averlongshardname", "db2");
+			ConnectionInfo primary = new ConnectionInfo(TestAdapter.getInstance().getPrimaryURI().getHost(), "8080", "averlongshardname", "db2");
 			RestClient restClient = new RestClient();
 			
 			restClient.get(restClient.buildURI(primary.toURI(), "/db/backup"));

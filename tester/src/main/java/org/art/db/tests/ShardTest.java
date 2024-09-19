@@ -31,13 +31,13 @@ public class ShardTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				TestRunner.getAdapter().startPrimary("./averlongshardname.properties");
-				TestRunner.getAdapter().startSecondary("./cluster2.properties");
+				TestAdapter.getInstance().startPrimary("./averlongshardname.properties");
+				TestAdapter.getInstance().startSecondary("./cluster2.properties");
 				
 				
-				Client averlongshardnameClient = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
-				Client shard2Client = TestRunner.getAdapter().getSecondaryClient("admin", "admin").batch(false);
-				Client clusterClient = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+				Client averlongshardnameClient = TestAdapter.getInstance().getPrimaryClient("admin", "admin").batch(false);
+				Client shard2Client = TestAdapter.getInstance().getSecondaryClient("admin", "admin").batch(false);
+				Client clusterClient = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 				
 				averlongshardnameClient.waitServerCount(2);
 				shard2Client.waitServerCount(2);
@@ -50,7 +50,7 @@ public class ShardTest extends BaseIntegrationTest {
 				String insertTemplare = "insert into sharded (id, color, make, count) values ('%s', 'red', 'toyota', '1')";
 				String queryTemplate = "select * from sharded where id = '%s'";
 				
-				ConnectionInfo info = new ConnectionInfo(TestRunner.getAdapter().getPrimaryURI().getHost(), "8080", "averlongshardname", "db2");
+				ConnectionInfo info = new ConnectionInfo(TestAdapter.getInstance().getPrimaryURI().getHost(), "8080", "averlongshardname", "db2");
 				DiscoveryHandler handler = new DiscoveryHandler(info, false);
 				
 				handler.waitInstanceCount(2, 10 * 1000);

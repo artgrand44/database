@@ -19,9 +19,9 @@ public class SegmentMergeTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				TestRunner.getAdapter().startPrimary("./tinysegments.properties");
+				TestAdapter.getInstance().startPrimary("./tinysegments.properties");
 				
-				Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+				Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 				
 				String drop = "drop table if exists segmentTest";
 				String create = "CREATE TABLE segmentTest (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255), count int)";

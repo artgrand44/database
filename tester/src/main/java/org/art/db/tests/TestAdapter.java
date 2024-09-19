@@ -4,14 +4,24 @@ import java.net.URI;
 
 import org.art.db.client.Client;
 
-public interface TestAdapter {
-	URI startPrimary(String profile);
-	void stopPrimary();
-	URI startSecondary(String profile);
-	void stopSecondary();
-	Client getClusterClient(String user, String password) throws Exception;
-	Client getPrimaryClient(String user, String password) throws Exception;
-	Client getSecondaryClient(String user, String password) throws Exception;
-	URI getPrimaryURI();
-	URI getSecondardURI();
+public abstract class TestAdapter {
+	public abstract URI startPrimary(String profile);
+	public abstract void stopPrimary();
+	public abstract URI startSecondary(String profile);
+	public abstract void stopSecondary();
+	public abstract Client getClusterClient(String user, String password) throws Exception;
+	public abstract Client getPrimaryClient(String user, String password) throws Exception;
+	public abstract Client getSecondaryClient(String user, String password) throws Exception;
+	public abstract URI getPrimaryURI();
+	public abstract URI getSecondardURI();
+	
+	private static TestAdapter instance;
+	
+	public static TestAdapter getInstance() {
+		return instance;
+	}
+	public static void setInstance(TestAdapter instance) {
+		TestAdapter.instance = instance;
+	}
+
 }

@@ -36,7 +36,7 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 			
 			String idQuery = "select * from pounder where ID = ?";
 			Random random = new Random(index);
-			Client client = TestRunner.getAdapter().getClusterClient("admin", "admin");
+			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin");
 
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				int idx = super.getRandom(random);
@@ -85,7 +85,7 @@ public class ROQueryPounderTest extends BaseQueryPounder {
 
 	@Override
 	protected void loadDabase() throws Exception {
-		Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+		Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 		String drop = "drop table if exists pounder";
 		String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 		String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";

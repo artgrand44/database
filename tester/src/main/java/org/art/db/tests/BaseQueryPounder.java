@@ -62,7 +62,7 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 
 	@BeforeEach
 	public void beforeEach() throws Exception  {
-		TestRunner.getAdapter().startPrimary(this.profile);
+		TestAdapter.getInstance().startPrimary(this.profile);
 		logger.info("after call to start");
 	}
 	

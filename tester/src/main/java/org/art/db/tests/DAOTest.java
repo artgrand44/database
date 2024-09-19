@@ -32,9 +32,9 @@ public class DAOTest  extends BaseIntegrationTest {
 	@BeforeEach
 	public void beforeEach() throws Exception  {
 		
-		TestRunner.getAdapter().startPrimary("./application.properties");
+		TestAdapter.getInstance().startPrimary("./application.properties");
 		
-		this.client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+		this.client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 		
 		try {
 			this.dao = client.getDAO(ItemDAO.class);

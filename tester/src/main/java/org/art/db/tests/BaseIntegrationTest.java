@@ -13,8 +13,8 @@ public class BaseIntegrationTest  {
 
 	@AfterEach
 	public void afterEach() {
-		TestRunner.getAdapter().stopPrimary();
-		TestRunner.getAdapter().stopSecondary();
+		TestAdapter.getInstance().stopPrimary();
+		TestAdapter.getInstance().stopSecondary();
 		
 		DiscoveryHandler.clear();
 		

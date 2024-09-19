@@ -42,7 +42,7 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				TestRunner.getAdapter().startPrimary("./application.properties");
+				TestAdapter.getInstance().startPrimary("./application.properties");
 				
 				String drop = "drop table if exists negative";
 				String create = "CREATE TABLE negative (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255))";
@@ -53,7 +53,7 @@ public class NegativeSQLTest extends BaseIntegrationTest {
 				String delete = "delete from negative where id = 1";
 				
 				
-				this.client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+				this.client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 				
 				this.client.execute(drop);
 				

@@ -10,13 +10,13 @@ import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IntegrationTests extends BaseIntegrationTest implements TestAdapter{
+public class IntegrationTests extends BaseIntegrationTest {
 
 	private static final Logger logger = LoggerFactory.getLogger(IntegrationTests.class);
 	
 	//@Test
 	public void test() {
-		String results = TestRunner.run(this);
+		String results = TestRunner.run(new Adapter());
 		
 		logger.info("results\n" + results);
 		
@@ -33,53 +33,55 @@ public class IntegrationTests extends BaseIntegrationTest implements TestAdapter
 		}
 	}
 	
-	public URI getPrimaryURI() {
-		return this.getURI("8080");
-	}
 	
-	
-	
-	public URI getSecondardURI() {
-		return this.getURI("8081");
-	}
-	
-	@Override
-	public URI startPrimary(String profile) {
-		super.startInternal(profile);
 		
-		return getURI("8080");
-	}
-
-	@Override
-	public void stopPrimary() {
-		super.stopInternal();
+	public class Adapter extends TestAdapter {
 		
-	}
-
-	@Override
-	public URI startSecondary(String profile) {
-		super.startExternal(profile);
-		return getURI("8081");
+		@Override
+		public URI startPrimary(String profile) {
+			startInternal(profile);
+			
+			return getURI("8080");
+		}
 		
-	}
-
-	@Override
-	public void stopSecondary() {
-		super.stopExternal();
-	}
-
-	@Override
-	public Client getClusterClient(String user, String password) throws Exception {
-		return new Client(new URI(this.getLocalURI("8080").toString() + "/cluster"), user, password);
-	}
-
-	@Override
-	public Client getPrimaryClient(String user, String password) throws Exception {
-		return new Client(new URI(this.getLocalURI("8080").toString() + "/cluster"), user, password);
-	}
-
-	@Override
-	public Client getSecondaryClient(String user, String password) throws Exception {
-		return new Client(new URI(this.getLocalURI("8081").toString() + "/cluster"), user, password);
+		public void stopPrimary() {
+			
+		}
+		
+		@Override
+		public URI startSecondary(String profile) {
+			startExternal(profile);
+			return getURI("8081");
+		}
+		
+		@Override
+		public void stopSecondary() {
+			
+		}
+		@Override
+		public Client getClusterClient(String user, String password) throws Exception {
+			return new Client(new URI(getLocalURI("8080").toString() + "/cluster"), user, password);
+		}
+		
+		@Override
+		public Client getPrimaryClient(String user, String password) throws Exception {
+			return new Client(new URI(getLocalURI("8080").toString() + "/cluster"), user, password);
+		}
+		
+		@Override
+		public Client getSecondaryClient(String user, String password) throws Exception {
+			return new Client(new URI(getLocalURI("8081").toString() + "/cluster"), user, password);
+		}
+		
+		@Override
+		public URI getPrimaryURI() {
+			return getURI("8080");
+		}
+		
+		
+		@Override
+		public URI getSecondardURI() {
+			return getURI("8081");
+		}
 	}
 }

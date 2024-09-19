@@ -18,7 +18,7 @@ public class NoAccessTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				TestRunner.getAdapter().startPrimary("./application.properties");
+				TestAdapter.getInstance().startPrimary("./application.properties");
 				
 				String drop = "drop table if exists privtest";
 				String create = "CREATE TABLE privtest (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255))";
@@ -28,7 +28,7 @@ public class NoAccessTest extends BaseIntegrationTest {
 				String createUser = "create user foo password bar";
 				String grant = "GRANT select, insert ON privtest TO foo";
 				
-				Client userClient = TestRunner.getAdapter().getClusterClient("foo", "bar").batch(false);
+				Client userClient = TestAdapter.getInstance().getClusterClient("foo", "bar").batch(false);
 				
 				try {
 					userClient.execute(create);
@@ -58,7 +58,7 @@ public class NoAccessTest extends BaseIntegrationTest {
 					
 					
 				}
-				Client adminClient = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+				Client adminClient = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 				
 				adminClient.execute(drop);
 				adminClient.execute(create);

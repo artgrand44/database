@@ -30,16 +30,16 @@ public class RestoreTest extends BaseIntegrationTest {
 			// Start both servers, wait until the are up, and then create the table
 			// on both servers.
 			
-			TestRunner.getAdapter().startPrimary("./replication.properties");
-			TestRunner.getAdapter().startSecondary("./secondaryrecovery.properties");
+			TestAdapter.getInstance().startPrimary("./replication.properties");
+			TestAdapter.getInstance().startSecondary("./secondaryrecovery.properties");
 
-			Client primaryClient = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
-			Client secondaryClient = TestRunner.getAdapter().getSecondaryClient("admin", "admin").batch(false);
+			Client primaryClient = TestAdapter.getInstance().getPrimaryClient("admin", "admin").batch(false);
+			Client secondaryClient = TestAdapter.getInstance().getSecondaryClient("admin", "admin").batch(false);
 
 			primaryClient.waitServerCount(2);
 			secondaryClient.waitServerCount(2);
 
-			Client client = TestRunner.getAdapter().getClusterClient("admin", "admin");
+			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin");
 			
 			String drop = "drop table if exists pounder";
 			String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
@@ -54,7 +54,7 @@ public class RestoreTest extends BaseIntegrationTest {
 			// Take down the internal server then create documents until there are at least
 			// 3 disk segments
 			
-			TestRunner.getAdapter().stopPrimary();
+			TestAdapter.getInstance().stopPrimary();
 			
 			logger.info("Stopped internal");
 			
@@ -68,7 +68,7 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			logger.info("Flushing external");
 			
-			URI external = TestRunner.getAdapter().getSecondardURI();
+			URI external = TestAdapter.getInstance().getSecondardURI();
 			RestClient restClient = new RestClient();
 			
 			restClient.get(restClient.buildURI(external, "/db/close"));
@@ -78,8 +78,8 @@ public class RestoreTest extends BaseIntegrationTest {
 			
 			logger.info("restarting");
 			
-			TestRunner.getAdapter().startPrimary("./replication.properties");
-			primaryClient = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
+			TestAdapter.getInstance().startPrimary("./replication.properties");
+			primaryClient = TestAdapter.getInstance().getPrimaryClient("admin", "admin").batch(false);
 			
 			primaryClient.waitServerCount(2);
 			

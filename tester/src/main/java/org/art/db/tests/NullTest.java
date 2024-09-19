@@ -22,9 +22,9 @@ public class NullTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				TestRunner.getAdapter().startPrimary("./application.properties");
+				TestAdapter.getInstance().startPrimary("./application.properties");
 				
-				Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+				Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 				
 				String drop = "drop table if exists nulls";
 				String create = "CREATE TABLE nulls (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255))";

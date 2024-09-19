@@ -18,9 +18,9 @@ public class BigSetTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				TestRunner.getAdapter().startPrimary("./application.properties");
+				TestAdapter.getInstance().startPrimary("./application.properties");
 				
-				Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+				Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 				
 				String drop = "drop table if exists bigset";
 				String create = "CREATE TABLE bigset (id int NOT NULL PRIMARY KEY, first varchar(255), last varchar(255), count int)";

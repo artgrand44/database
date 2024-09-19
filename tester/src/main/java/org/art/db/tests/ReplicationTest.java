@@ -38,11 +38,11 @@ public class ReplicationTest extends BaseIntegrationTest {
 					FileUtils.deleteDirectory(secondDir);
 				}
 				
-				TestRunner.getAdapter().startPrimary("./replication.properties");
-				TestRunner.getAdapter().startSecondary("./secondary.properties");
+				TestAdapter.getInstance().startPrimary("./replication.properties");
+				TestAdapter.getInstance().startSecondary("./secondary.properties");
 				
-				Client primaryClient = TestRunner.getAdapter().getPrimaryClient("admin", "admin").batch(false);
-				Client secondaryClient = TestRunner.getAdapter().getSecondaryClient("admin", "admin").batch(false);
+				Client primaryClient = TestAdapter.getInstance().getPrimaryClient("admin", "admin").batch(false);
+				Client secondaryClient = TestAdapter.getInstance().getSecondaryClient("admin", "admin").batch(false);
 				
 				primaryClient.waitServerCount(2);
 				secondaryClient.waitServerCount(2);
@@ -60,7 +60,7 @@ public class ReplicationTest extends BaseIntegrationTest {
 					primaryClient.execute(theInsert);
 				}
 				
-				TestRunner.getAdapter().stopPrimary();
+				TestAdapter.getInstance().stopPrimary();
 				
 				Thread.sleep(20 * 1000);
 				

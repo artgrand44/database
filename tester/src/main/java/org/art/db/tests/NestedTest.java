@@ -21,9 +21,9 @@ public class NestedTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				TestRunner.getAdapter().startPrimary("./application.properties");
+				TestAdapter.getInstance().startPrimary("./application.properties");
 				
-				Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+				Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 				
 				String drop = "drop table if exists nested";
 				String create = "CREATE TABLE nested (id int NOT NULL PRIMARY KEY, doc Document)";

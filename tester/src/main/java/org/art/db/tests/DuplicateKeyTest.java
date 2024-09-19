@@ -20,9 +20,9 @@ public class DuplicateKeyTest extends BaseIntegrationTest {
 	@Test
 	public void test() {
 		try {
-			TestRunner.getAdapter().startPrimary("./tinysegments.properties");
+			TestAdapter.getInstance().startPrimary("./tinysegments.properties");
 			
-			Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 			
 			String drop = "drop table if exists duptest";
 			String create = "CREATE TABLE duptest (id GUID NOT NULL PRIMARY KEY, name varchar(255), color varchar(255))";

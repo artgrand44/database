@@ -24,8 +24,6 @@ public class TestRunner {
 	private static int totalErrors = 0;
 	private static List<String> messages = new ArrayList<>();
 	
-	private static TestAdapter adapter;
-			
 	
 	public static void main(String[] args) {
 		logger.info("*** in main");
@@ -41,7 +39,7 @@ public class TestRunner {
 	
 	public static String run(TestAdapter theAdapter) {
 		
-		adapter = theAdapter;
+		TestAdapter.setInstance(theAdapter);
 		
 		try {
 			FastClasspathScanner scanner = new FastClasspathScanner(new String[] {"org.art.db.tests"} );
@@ -75,10 +73,7 @@ public class TestRunner {
 			return exc.getMessage();
 		}
 	}
-	
-	public static TestAdapter getAdapter() {
-		return adapter;
-	}
+
 
 	private static void runTests(String className) {
 		try {

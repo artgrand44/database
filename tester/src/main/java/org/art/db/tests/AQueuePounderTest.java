@@ -40,7 +40,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	@Override
 	protected void loadDabase() throws Exception {
 		
-		Client client = TestRunner.getAdapter().getClusterClient("admin", "admin").batch(false);
+		Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 		String drop = "drop table if exists queue";
 		String create = "CREATE QUEUE TABLE queue (id GUID NOT NULL PRIMARY KEY, name varchar(255), value varchar(255))";
 		
@@ -62,7 +62,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 		
 		super.waitForAllStarted();
 		try {
-			Client client = TestRunner.getAdapter().getClusterClient("admin", "admin");
+			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin");
 			
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				String owner = "art" + index;
