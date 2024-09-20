@@ -264,6 +264,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			UIConsole.getInstance().stop();	
 			BackupHandler.getInstance().stop();
 			Broadcaster.getInstance().stop();
+			instance = null;
 		}
 	}
 	

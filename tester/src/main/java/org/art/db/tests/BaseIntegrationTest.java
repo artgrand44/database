@@ -1,6 +1,7 @@
 package org.art.db.tests;
 
 import org.art.db.common.DiscoveryHandler;
+
 import org.junit.jupiter.api.AfterEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -6,6 +6,7 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
@@ -133,6 +134,8 @@ public class ShardTest extends BaseIntegrationTest {
 		} catch(Throwable exc) {
 			exc.printStackTrace();
 			Assertions.fail(exc.getMessage());
-		} 	}
+		} 	
+			
+	}
 
 }

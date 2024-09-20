@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.art.db.client.Client;
 import org.art.db.common.DBRuntimeException;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
