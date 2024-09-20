@@ -169,12 +169,17 @@ public class RestoreManager {
 				
 				logger.info("sending begin from " +  DiscoveryHandler.getServerInstance().getLocalInstance());
 				Broadcaster.getInstance().broadcast("/db/beginstartup?instance=" + DiscoveryHandler.getServerInstance().getLocalInstance(), new byte[0]);
+				
+				logger.info(DiscoveryHandler.getServerName() + " after sending begin");
 								
 				// Recover the configuration and the metadata then recover the tables one by one.
 
 				this.recoverConfiguration(peer);
+				
+				logger.info(DiscoveryHandler.getServerName() + " after getting config");
 				this.recoverMetadata(peer);		
 
+				logger.info(DiscoveryHandler.getServerName() + " after getting metadata");
 				this.hasMetadata = true;
 
 				// Recovery the tables

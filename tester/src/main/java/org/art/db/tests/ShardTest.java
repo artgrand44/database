@@ -51,8 +51,8 @@ public class ShardTest extends BaseIntegrationTest {
 				String insertTemplare = "insert into sharded (id, color, make, count) values ('%s', 'red', 'toyota', '1')";
 				String queryTemplate = "select * from sharded where id = '%s'";
 				
-				ConnectionInfo info = new ConnectionInfo(TestAdapter.getInstance().getPrimaryURI().getHost(), "8080", "averlongshardname", "db2");
-				DiscoveryHandler handler = new DiscoveryHandler(info, false);
+				ConnectionInfo info = new ConnectionInfo(TestAdapter.getInstance().getPrimaryURI().getHost(), "8080", "*", "cluster");
+				DiscoveryHandler handler = DiscoveryHandler.getHandler(info);
 				
 				handler.waitInstanceCount(2, 10 * 1000);
 				

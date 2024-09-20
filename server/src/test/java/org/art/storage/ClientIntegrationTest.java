@@ -10,7 +10,6 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Integration
 public class ClientIntegrationTest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(BaseIntegrationTest.class);
 	

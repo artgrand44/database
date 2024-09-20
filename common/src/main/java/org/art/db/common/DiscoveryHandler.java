@@ -48,7 +48,7 @@ public class DiscoveryHandler {
 	}
 
 	private ScheduledFuture<?> poller;
-	
+		
 	protected AtomicReference<ShardFinder> shardFinder = new AtomicReference<>();
 	
 	private Map<String, AtomicLong> lastUsed = new ConcurrentHashMap<>();
@@ -62,7 +62,6 @@ public class DiscoveryHandler {
 	
 	
 	public DiscoveryHandler(ConnectionInfo config, boolean isServer) throws Exception {
-		try {
 		
 		// Create the plugin, initialize it, and wait while it discovers the other instances.
 			
@@ -79,7 +78,7 @@ public class DiscoveryHandler {
 		}
 				
 		this.plugin = plugin;
-					
+			
 		this.plugin.initialize(config, isServer);
 		
 		Utils.sleepSafely(300);
@@ -97,10 +96,6 @@ public class DiscoveryHandler {
 		this.poller = SCHEDULER.scheduleAtFixedRate(this::loadEnvironment, 1, 20, TimeUnit.SECONDS);
 			
 		this.waitInstanceCount(1,  300);
-		} catch (Exception exc) {
-			exc.printStackTrace();
-			throw exc;
-		}
 		
 	}
 	
@@ -133,6 +128,10 @@ public class DiscoveryHandler {
 		return this.plugin.getLocalPort();
 	}
 
+	
+	public static String getServerName() {
+		return serverInstance == null ? "<none>" : serverInstance.getLocalInstance().toString();
+	}
 	
 	public static DiscoveryHandler getServerInstance() {
 		return serverInstance;

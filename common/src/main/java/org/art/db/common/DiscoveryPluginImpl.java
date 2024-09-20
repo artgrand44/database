@@ -97,7 +97,5 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 		}
 	}
 
-	
-
 
 }

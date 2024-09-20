@@ -81,4 +81,11 @@ public class ConnectionInfo {
 		return Objects.equals(database, other.database) && Objects.equals(host, other.host)
 				&& Objects.equals(port, other.port) && Objects.equals(shard, other.shard);
 	}
+
+	@Override
+	public String toString() {
+		return "ConnectionInfo [host=" + host + ", port=" + port + ", database=" + database + ", shard=" + shard + "]";
+	}
+	
+	
 }
