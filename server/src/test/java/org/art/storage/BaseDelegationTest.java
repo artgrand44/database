@@ -180,7 +180,7 @@ public abstract class BaseDelegationTest extends TestAdapter {
 
 	@Override
 	public Client getClusterClient(String user, String password) throws Exception {
-		return new Client(new URI(getURI("8080").toString() + "/cluster"), user, password);
+		return new Client(new URI("database:/cluster"), user, password);
 	}
 	
 	@Override
