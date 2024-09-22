@@ -6,7 +6,12 @@ import java.net.URI;
 import java.util.Objects;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ConnectionInfo {
+	private static final Logger logger = LoggerFactory.getLogger(ConnectionInfo.class);
+			
 	private final String host;
 	private final String port; 
 	private final String database;
@@ -20,6 +25,9 @@ public class ConnectionInfo {
 	}
 
 	public ConnectionInfo(String propertyPath) throws Exception {
+		
+		logger.info("Loading connection from " + ConnectionInfo.class.getClassLoader().getResource(propertyPath));
+		
 		try (InputStream stream = ConnectionInfo.class.getClassLoader().getResourceAsStream(propertyPath)) {
 			Properties properties = new Properties();
 			

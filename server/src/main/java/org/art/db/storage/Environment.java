@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.art.db.common.ConnectionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,6 +93,8 @@ public class Environment {
 	}	
 
 	public void load(String propertyPath) throws Exception {
+		logger.info("Loading environment from " + ConnectionInfo.class.getClassLoader().getResource(propertyPath));
+		
 		try (InputStream stream = Environment.class.getClassLoader().getResourceAsStream(propertyPath)) {
 			Properties properties = new Properties();
 			
