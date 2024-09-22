@@ -3,21 +3,21 @@ kind: Deployment
 metadata:
   name: secondary
   labels: {
-    "database" : "db2",
+    "database" : "cluster",
     "shard" : "shard1"
   }
 spec:
   selector:
     matchLabels:
       app: db2
-      database: db2
+      database: cluster
       shard: shard1
   replicas: 1
   template: # create pods using pod definition in this template
     metadata:
       labels:
         app: db2
-        database: db2
+        database: cluster
         shard: shard1
     spec:
       containers:
@@ -25,7 +25,7 @@ spec:
         image: db:v1 
         env:
            - name: database
-             value: "db2"
+             value: "cluster"
            - name: cloud
              value: kubernetes
            - name: org.art.db.backupinterval
