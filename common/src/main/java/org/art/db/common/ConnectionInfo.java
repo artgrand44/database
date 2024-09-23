@@ -1,5 +1,7 @@
 package org.art.db.common;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URI;
@@ -10,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConnectionInfo {
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(ConnectionInfo.class);
 			
 	private final String host;
@@ -26,9 +29,9 @@ public class ConnectionInfo {
 
 	public ConnectionInfo(String propertyPath) throws Exception {
 		
-		logger.info("Loading connection from " + ConnectionInfo.class.getClassLoader().getResource(propertyPath));
+		File file = new File(propertyPath);
 		
-		try (InputStream stream = ConnectionInfo.class.getClassLoader().getResourceAsStream(propertyPath)) {
+		try (InputStream stream = file.isAbsolute() ? new FileInputStream(file) : ConnectionInfo.class.getClassLoader().getResourceAsStream(propertyPath)) {
 			Properties properties = new Properties();
 			
 			properties.load(stream);

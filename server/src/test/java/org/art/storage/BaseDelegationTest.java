@@ -133,10 +133,17 @@ public abstract class BaseDelegationTest extends TestAdapter {
 		}
 	}
 
+	private String getProfilePath(String profile) {
+		File relative = new File(profile);
+		File absolute = new File("./../tester/target/classes/" + relative.getName());
+		
+		return absolute.getAbsolutePath();
+	}
 	@Override
 	public URI startPrimary(String profile) {
 		DiscoveryHandler.clear();
-		Server.start(profile);	
+		
+		Server.start(this.getProfilePath(profile));	
 		
 		while (!RestoreManager.getInstance().isRecovered()) {
 			Utils.sleepSafely(1000);
@@ -156,7 +163,7 @@ public abstract class BaseDelegationTest extends TestAdapter {
 	public URI startSecondary(String profile) {
 		try {
 			String classpath = System.getProperty("java.class.path");
-			ProcessBuilder pb = new ProcessBuilder(java, "-cp", classpath, Server.class.getName(), profile);
+			ProcessBuilder pb = new ProcessBuilder(java, "-cp", classpath, Server.class.getName(), this.getProfilePath(profile));
 
 			pb.directory(new File("."));
 			pb.inheritIO();

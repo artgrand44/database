@@ -10,3 +10,4 @@ kubectl apply -f roles.yaml
 
 kubectl create -f tester.yaml
 kubectl expose deployment tester
+kubectl logs service/tester --tail -1 -f
