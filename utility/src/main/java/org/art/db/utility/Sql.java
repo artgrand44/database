@@ -46,18 +46,18 @@ public class Sql {
 		Client client = null;
 		boolean verbose = false;
 		String fileName = null;
-		String commandLine = "sql [-file file] [-verbose] [-u user] [-p password]";
+		String commandLine = "sql[url] [-file file] [-verbose] [-u user] [-p password]";
 		String prompt = "";
 		String verb = "";
 		String user = null;
 		String password = null;
-		String cluster = null;
+		String url = null;
 		
 		try {
 	
 			// Parse the command line
 			
-			cluster = args.length == 0 ? "cluster" : args[0];
+			url = args.length == 0 ? "database:/cluster" : args[0];
 			
 			for (int idx = 1; idx  < args.length; idx++) {
 				if (args[idx].equals("-file") && idx < args.length - 1) {
@@ -107,7 +107,7 @@ public class Sql {
 			}
 			
 			try {
-				client = new Client(new URI("database:/" + cluster), user, password);
+				client = new Client(new URI(url), user, password).batch(false);
 			} catch (Exception exc) {
 				throw new Exception("There was an error connecting to the database.");
 			}
