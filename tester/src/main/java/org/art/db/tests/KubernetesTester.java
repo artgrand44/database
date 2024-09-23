@@ -18,8 +18,8 @@ import org.slf4j.LoggerFactory;
 
 import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
 
-public class TestRunner {
-	private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);
+public class KubernetesTester {
+	private static final Logger logger = LoggerFactory.getLogger(KubernetesTester.class);
 	
 	private static int totalTests = 0;
 	private static int totalErrors = 0;

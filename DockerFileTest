@@ -4,4 +4,4 @@ WORKDIR /app
 
 COPY dist/tester-0.0.1-SNAPSHOT-fat.jar /app
 COPY tester/src/main/resources/* /app
-CMD ["java", "-cp", "tester-0.0.1-SNAPSHOT-fat.jar", "org.art.db.tests.TestRunner"]
+CMD ["java", "-cp", "tester-0.0.1-SNAPSHOT-fat.jar", "org.art.db.tests.KubernetesTester"]
