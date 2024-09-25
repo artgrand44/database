@@ -151,6 +151,74 @@
 					<argLine>-Xmx800m</argLine>
 				</configuration>
 			</plugin>
+	 <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.0.2</version>
+        <configuration>
+          <archive>
+            <manifest>
+             <addClasspath>true</addClasspath>
+              <mainClass>org.art.db.tests.KubernetesTester</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.8.0</version>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>maven</outputDirectory>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>false</overWriteSnapshots>
+              <overWriteIfNewer>true</overWriteIfNewer>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+ <plugin>
+        <groupId>io.fabric8</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <version>0.45.0</version>
+        <configuration>
+          <images>
+            <image>
+              <name>db:v1</name>
+              <alias>artdb</alias>
+              <build>
+                <from>arm64v8/openjdk:22</from>
+                <assembly>
+                 <descriptorRef>artifact-with-dependencies</descriptorRef>
+                </assembly>
+                <cmd>java -jar maven/${project.name}-${project.version}.jar</cmd>
+              </build>
+              <run>
+                <wait>
+                  <log>Hello World!</log>
+                </wait>
+              </run>
+            </image>
+          </images>
+        </configuration>
+        <executions>
+          <execution>
+            <id>docker:start</id>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <phase>install</phase>
+          </execution>
+        </executions>
+      </plugin>
+			
 	</plugins>	
 	</build>		
 
