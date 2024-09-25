@@ -168,8 +168,9 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <version>3.8.0</version>
-        <executions>
+        <executions>        
           <execution>
+            <?m2e ignore?> 
             <id>copy-dependencies</id>
             <phase>package</phase>
             <goals>
@@ -191,7 +192,7 @@
         <configuration>
           <images>
             <image>
-              <name>db:v1</name>
+              <name>tester:v1</name>
               <alias>artdb</alias>
               <build>
                 <from>arm64v8/openjdk:22</from>

@@ -207,6 +207,11 @@
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.0.2</version>
         <configuration>
+        	<includes>
+            	<include>**/*.class</include>
+            	<include>**/*.properties</include>
+            	<include>**/*.yaml</include>
+        	</includes>
           <archive>
             <manifest>
              <addClasspath>true</addClasspath>
@@ -221,6 +226,7 @@
         <version>3.8.0</version>
         <executions>
           <execution>
+           <?m2e ignore?> 
             <id>copy-dependencies</id>
             <phase>package</phase>
             <goals>

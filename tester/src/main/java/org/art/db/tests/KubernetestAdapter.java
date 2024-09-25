@@ -2,22 +2,21 @@ package org.art.db.tests;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileReader;
+import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.StringReader;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.art.db.client.Client;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.KubernetesPlugin;
 import org.art.db.common.Utils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,8 +127,14 @@ public class KubernetestAdapter extends TestAdapter {
 			
 			// Read the yaml template then set the application name to the name of the profile
 			
-			File yamlFile = new File(baseDir, "custom.yaml");
-			String yaml = FileUtils.readFileToString(yamlFile, Charset.defaultCharset());
+			
+			String yaml = "";
+			
+			try (InputStream stream = KubernetestAdapter.class.getClassLoader().getResourceAsStream("custom.yaml")) {
+				yaml = new String(IOUtils.toByteArray(stream));
+				
+			}
+			
 			Deployment deployment = Serialization.unmarshal(yaml, Deployment.class);
 			
 			String name = new File(profile).getName();
@@ -143,15 +148,25 @@ public class KubernetestAdapter extends TestAdapter {
 			// Load the property file for the profile
 			
 			File propertyFile = new File(baseDir, profile);
+			String propString = "";
+			
+			logger.info("prop res = " + KubernetestAdapter.class.getClassLoader().getResource(propertyFile.getName()));
+			
+			
+			try (InputStream stream = KubernetestAdapter.class.getClassLoader().getResourceAsStream(propertyFile.getName())) {
+				propString = new String(IOUtils.toByteArray(stream));				
+			}
+			
 			Properties props = new Properties();
 						
-			try (FileReader reader = new FileReader(propertyFile)) {
+			try (StringReader reader = new StringReader(propString)) {
 				props.load(reader);
 			}
 			
 			List<EnvVar> list = deployment.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv();
 			
 			for (Map.Entry<Object, Object> entry : props.entrySet()) {
+				logger.info("Property " + entry.getKey() + " = " + entry.getValue());
 				this.setEnvironment(list, (String)entry.getKey(), (String)entry.getValue());
 			}			
 			
