@@ -120,9 +120,8 @@ echo ""
 echo "Starting build..."
 
 
-mvn clean package  -DskipTests=true -q
+mvn clean install  -DskipTests=true -q
 kubectl delete deployment.apps/${service} service/${service} service/my-service
-docker build . --tag db:v1
 kubectl apply -f roles.yaml
 kubectl apply -f customvolume.yaml
 kubectl create -f custom.yaml

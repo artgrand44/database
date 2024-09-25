@@ -15,7 +15,6 @@ import java.util.Properties;
 import org.apache.commons.io.IOUtils;
 import org.art.db.client.Client;
 import org.art.db.common.DBRuntimeException;
-import org.art.db.common.KubernetesPlugin;
 import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,19 +36,15 @@ public class KubernetestAdapter extends TestAdapter {
 
 	private static final Logger logger = LoggerFactory.getLogger(KubernetestAdapter.class);
 	
-	record Server(String profile, String name, String database, Deployment deployment, Service service,  List<URI> uris, URI uri) {
-		
-		Server(Server from, URI uri) {
-			this(from.profile, from.name, from.database, from.deployment, from.service, from.uris, uri);
-		}
-		
-	}
-	
 	private KubernetesClient client = new KubernetesClientBuilder().build();
 	
 	private Server primary;
 	
 	private Server secondary;
+	
+	public Client getClusterClient(String user, String password) throws Exception {
+		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password);
+	}
 	
 	private String getLog(Server server) {
 		try {
@@ -81,27 +76,29 @@ public class KubernetestAdapter extends TestAdapter {
 		return "";
 	}
 	
-	public Client getClusterClient(String user, String password) throws Exception {
-		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password);
-	}
 	public Client getPrimaryClient(String user, String password) throws Exception {
 		return new Client(new URI(this.primary.uri.toString() + "/" + this.primary.database), user, password);
 	}
 	
-	public synchronized String getSecondaryLog() { 
-		return this.secondary != null ? "no seondart" : this.getLog(this.secondary); 
-	}
-	
 	public URI getPrimaryURI() {
 		return this.primary.uri;
+	}
+	private String getResourceAsString(String resource) throws Exception {
+		try (InputStream stream = KubernetestAdapter.class.getClassLoader().getResourceAsStream(resource)) {
+			return new String(IOUtils.toByteArray(stream));			
+		}
+	}
+	
+	public URI getSecondardURI() {
+		return this.secondary.uri;
 	}
 	
 	public Client getSecondaryClient(String user, String password) throws Exception {
 		return new Client(new URI(this.secondary.uri.toString() + "/" + this.secondary.database), user, password);
 	}
 	
-	public URI getSecondardURI() {
-		return this.secondary.uri;
+	public synchronized String getSecondaryLog() { 
+		return this.secondary != null ? "no seondart" : this.getLog(this.secondary); 
 	}
 	
 	private void setEnvironment(List<EnvVar> list, String name, String value) {
@@ -115,26 +112,13 @@ public class KubernetestAdapter extends TestAdapter {
 		list.add(new EnvVar(name, value, null));
 	}
 	
-	private void stop(Server server) {
-		client.services().inNamespace("default").resource(server.service).delete();
-		client.apps().deployments().inNamespace("default").resource(server.deployment).delete();
-	}
-
 	private Server start(String profile) {
-		File baseDir = KubernetesPlugin.isKubernetes() ? new File(".") : new File("/Users/artgrand/repros/database/tester/src/main/resources");
-		
 		try {
 			
 			// Read the yaml template then set the application name to the name of the profile
 			
 			
-			String yaml = "";
-			
-			try (InputStream stream = KubernetestAdapter.class.getClassLoader().getResourceAsStream("custom.yaml")) {
-				yaml = new String(IOUtils.toByteArray(stream));
-				
-			}
-			
+			String yaml = this.getResourceAsString("custom.yaml");
 			Deployment deployment = Serialization.unmarshal(yaml, Deployment.class);
 			
 			String name = new File(profile).getName();
@@ -147,26 +131,15 @@ public class KubernetestAdapter extends TestAdapter {
 						
 			// Load the property file for the profile
 			
-			File propertyFile = new File(baseDir, profile);
-			String propString = "";
-			
-			logger.info("prop res = " + KubernetestAdapter.class.getClassLoader().getResource(propertyFile.getName()));
-			
-			
-			try (InputStream stream = KubernetestAdapter.class.getClassLoader().getResourceAsStream(propertyFile.getName())) {
-				propString = new String(IOUtils.toByteArray(stream));				
-			}
-			
 			Properties props = new Properties();
 						
-			try (StringReader reader = new StringReader(propString)) {
+			try (StringReader reader = new StringReader(this.getResourceAsString(new File(profile).getName()))) {
 				props.load(reader);
 			}
 			
 			List<EnvVar> list = deployment.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv();
 			
 			for (Map.Entry<Object, Object> entry : props.entrySet()) {
-				logger.info("Property " + entry.getKey() + " = " + entry.getValue());
 				this.setEnvironment(list, (String)entry.getKey(), (String)entry.getValue());
 			}			
 			
@@ -230,14 +203,30 @@ public class KubernetestAdapter extends TestAdapter {
 			throw new IllegalStateException(exc);
 		}
 	}
-
-
+	
 	@Override
 	public URI startPrimary(String profile) {
 		this.primary = this.start(profile);
 		
 		logger.info("started primary " + this.primary.uri);
 		return this.primary.uri;
+	}
+
+	@Override
+	public synchronized  URI startSecondary(String profile) {
+		if (this.primary != null && this.primary.profile.equals(profile)) {
+			this.secondary = new Server(this.primary, this.primary.uris.get(1));
+		} else {
+			this.secondary = start(profile);
+		}
+		
+		return this.secondary.uri;
+	}
+
+
+	private void stop(Server server) {
+		client.services().inNamespace("default").resource(server.service).delete();
+		client.apps().deployments().inNamespace("default").resource(server.deployment).delete();
 	}
 
 
@@ -257,17 +246,6 @@ public class KubernetestAdapter extends TestAdapter {
 
 
 	@Override
-	public synchronized  URI startSecondary(String profile) {
-		if (this.primary != null && this.primary.profile.equals(profile)) {
-			this.secondary = new Server(this.primary, this.primary.uris.get(1));
-		} else {
-			this.secondary = start(profile);
-		}
-		
-		return this.secondary.uri;
-	}
-
-	@Override
 	public void stopSecondary() {
 		if (this.secondary != null) {
 			
@@ -275,6 +253,14 @@ public class KubernetestAdapter extends TestAdapter {
 			this.stop(this.secondary);
 			this.secondary = null;
 		}		
+	}
+
+	record Server(String profile, String name, String database, Deployment deployment, Service service,  List<URI> uris, URI uri) {
+		
+		Server(Server from, URI uri) {
+			this(from.profile, from.name, from.database, from.deployment, from.service, from.uris, uri);
+		}
+		
 	}
 
 }
