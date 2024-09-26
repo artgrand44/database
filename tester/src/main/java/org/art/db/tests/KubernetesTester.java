@@ -63,7 +63,7 @@ public class KubernetesTester {
 				builder.append("\nMesssages:\n");
 				
 				for (String message : messages) {
-					builder.append("    " + message);
+					builder.append("    " + message + "\n");
 				}
 			}
 			
