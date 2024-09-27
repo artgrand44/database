@@ -37,6 +37,7 @@ public class UITest extends BaseIntegrationTest {
 				ConnectionInfo primary = new ConnectionInfo(host, "8080", "cluster", "shard1");
 				
 				startInternal("./uitest.properties");
+				startExternal("./uisecondary.properties");
 				
 				Client primaryClient = this.getClient().batch(false);
 				
