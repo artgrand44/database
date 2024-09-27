@@ -3,41 +3,27 @@ package org.art.db.ui;
 
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
-import org.art.db.common.Scheduler;
-import org.art.db.storage.Environment;
-import org.art.db.storage.Metrics;
 import org.art.db.storage.MetricsPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 
 
-public class UIPublisher implements MetricsPublisher {
-	private static final Logger logger = LoggerFactory.getLogger(UIPublisher.class);
+public class LocalModel implements MetricsPublisher {
 	
-	private static final ObjectMapper MAPPER = new ObjectMapper();
+	@SuppressWarnings("unused")
+	private static final Logger logger = LoggerFactory.getLogger(LocalModel.class);
 	
-
-	private static final ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("UI", 3);
-	private final DatagramSocket sendSocket;
-	
-	private final InetAddress group;
-	
-	private ScheduledFuture<?> publisher;
 	private Cache<String, Stats> statsCache = Caffeine.newBuilder().maximumSize(1000).build();
 	private final ServerStats serverStats;
 	
@@ -47,14 +33,12 @@ public class UIPublisher implements MetricsPublisher {
 	private final String server;
 	
 	
-	public UIPublisher(ConnectionInfo info) {
+	public LocalModel(ConnectionInfo info) {
 		try {
 			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 			this.database = handler.getLocalDatabase();
 			this.shard =  handler.getLocalShard();
 			this.server = InetAddress.getLocalHost().getHostAddress() + ":" + info.getPort();
-			this.sendSocket = new DatagramSocket();
-			this.group = InetAddress.getByName("230.0.0.0");
 			this.serverStats = new ServerStats(info.getDatabase(), info.getShard(), this.server);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
@@ -68,6 +52,20 @@ public class UIPublisher implements MetricsPublisher {
 		
 	private <T extends Stats> T getStats(String key, Class<T> clazz, Function<String, T> func) {
 		return clazz.cast(this.statsCache.get(key, func));
+	}
+	
+	public synchronized List<Stats> getStats() {
+		List<Stats> result = new ArrayList<>();
+		
+		this.serverStats.computeAverages();			
+		result.add(this.serverStats);
+
+		for (Stats stats : this.statsCache.asMap().values()) {
+			stats.computeAverages();
+			result.add(stats);
+		}
+
+		return result;
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -122,46 +120,5 @@ public class UIPublisher implements MetricsPublisher {
     }
 	
 	
-    private synchronized void publish() {
-		try {
-			this.serverStats.computeAverages();			
-			this.publish(this.serverStats);
-			
-			for (Stats stats : this.statsCache.asMap().values()) {
-				stats.computeAverages();
-				this.publish(stats);
-			}
-		} catch (Exception exc) {
-			logger.info("publish exception " + exc.getMessage());
-		}
-		
-	}
-    
-    void publish(Stats stats) throws Exception  {
-		byte[] buf = MAPPER.writeValueAsBytes(stats);
-		DatagramPacket packet = new DatagramPacket(buf, buf.length, group, UIController.PORT);
-		
-		this.sendSocket.send(packet);
-	}
-     
-
-	public void start() {
-		if (Environment.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
-			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
-			Metrics.getInstance().addPublisher(this);
-		}
-	}
-	
-	public void stop() {
-		
-		if (this.publisher != null) {
-			this.publisher.cancel(true);			
-		}
-		
-		this.logStatus("Stopped");
-		this.publish();
-		this.statsCache.invalidateAll();
-		Metrics.getInstance().removePublisher(this);
-	}
 	
 }

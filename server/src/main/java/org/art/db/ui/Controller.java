@@ -17,15 +17,17 @@ import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class UIController {
+public class Controller {
 	@SuppressWarnings("unused")
-	private static final Logger logger = LoggerFactory.getLogger(UIController.class);
+	private static final Logger logger = LoggerFactory.getLogger(Controller.class);
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	static final int PORT = 4446;
 	
-	private final UIPoller poller;
+	private final Model model;
+	
+	private long lastUpdate = 0;
 	
 	private final TemplateEngine templateEngine;
 	
@@ -53,8 +55,9 @@ public class UIController {
 			
 	};
 	
-	public UIController(UIPoller poller) {
-		this.poller = poller;
+	public Controller(Model model) {
+		this.model = model;
+		
 		ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
 		StandardCacheManager manager = new StandardCacheManager();
 		
@@ -72,10 +75,16 @@ public class UIController {
 	}
 	
 	
-	public String buildHtml(String currentPage, boolean isAdmin) throws Exception {
+	public synchronized String buildHtml(String currentPage, boolean isAdmin) throws Exception {
 		
 		Context context = new Context();        
                
+		if (System.currentTimeMillis() - this.lastUpdate > 10 * 1000 || ! StringUtils.isAllBlank(currentPage)) {
+			this.model.update();
+			this.lastUpdate = System.currentTimeMillis();
+		}
+			
+		
         String services = this.getStatsAsString(ServerStats.class);
         String shards = this.getStatsAsString(ServerStats.class, x -> x.getShard());
         String clients = this.getStatsAsString(ClientStats.class, x -> x.getClient() + "|" + x.getSql());
@@ -123,11 +132,11 @@ public class UIController {
 	}
 	
 	private String getStatsAsString(Class<? extends Stats> clazz) throws Exception {
-		return MAPPER.writeValueAsString(this.poller.getStats(clazz));
+		return MAPPER.writeValueAsString(this.model.getStats(clazz));
 	}
 	
 	<T extends Stats> String getStatsAsString(Class<T> clazz, Function<T, String> getKey) throws Exception {
-		return MAPPER.writeValueAsString(this.poller.getStats(clazz, getKey));
+		return MAPPER.writeValueAsString(this.model.getStats(clazz, getKey));
 	}
 	
 	static record PropertyDescriptor(String property, String name, String pattern, String error) {

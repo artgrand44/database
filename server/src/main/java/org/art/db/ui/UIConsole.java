@@ -1,15 +1,20 @@
 package org.art.db.ui;
 
 import org.art.db.common.ConnectionInfo;
-import org.art.db.storage.Environment;;
+import org.art.db.storage.Environment;
+import org.art.db.storage.Metrics;
+
+import com.fasterxml.jackson.databind.ObjectMapper;;
 
 public class UIConsole {
 	
-	private UIPublisher publisher;
-	private UIPoller poller;
-	private UIController controller;
+	private LocalModel localModel;
+	private Model model;
+	private Controller controller;
 	
 	private final static UIConsole instance = new UIConsole();
+	
+	private final static ObjectMapper MAPPER = new ObjectMapper();
 	
 	private UIConsole() {	
 	}
@@ -22,46 +27,46 @@ public class UIConsole {
 		return instance;
 	}
 	
+	public byte[] getStatsAsJson() throws Exception {
+		return MAPPER.writeValueAsBytes(this.localModel.getStats());
+	}
+	
 	public void logAlert(String alert) {
-		this.publisher.logAlert(alert);
+		this.localModel.logAlert(alert);
 	}
 	
 	public void logDelete() {
-		this.publisher.logDelete();
+		this.localModel.logDelete();
 	}
 	
 	public void logClient(String clientName, String sql, long time, long calls, int matches) {
-		this.publisher.logClient(clientName, sql, time, calls, matches);
+		this.localModel.logClient(clientName, sql, time, calls, matches);
 	}	
 
 	public void logInsert() {
-		this.publisher.logInsert();
+		this.localModel.logInsert();
 	}
 
 	public void logUpdate() {
-		this.publisher.logUpdate();
+		this.localModel.logUpdate();
 	}
 
 	public void logSelect(String queryString, long time, int matches) {
-		this.publisher.logSelect(queryString, time, matches);
+		this.localModel.logSelect(queryString, time, matches);
 	}
 
 	public void start(ConnectionInfo info) {
 		
 		if (Environment.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
-			this.publisher = new UIPublisher(info);
-			this.poller = new UIPoller(info);
-			this.controller = new UIController(poller);	
+			this.localModel = new LocalModel(info);
+			this.model = new Model(info, this.localModel);
+			this.controller = new Controller(this.model);	
 			
-			this.publisher.start();
-			this.poller.start();
+			Metrics.getInstance().addPublisher(this.localModel);
 		}
 	}
 	
 	public void stop() {
-		if (Environment.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
-			this.publisher.stop();
-			this.poller.stop();
-		}
+	
 	}
 }

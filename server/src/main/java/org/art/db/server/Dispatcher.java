@@ -79,6 +79,7 @@ public class Dispatcher {
 		   HANDLERS.put("/db/restart",          new RestartHandler());
 		   HANDLERS.put("/db/beginstartup",     new BeginStartupHandler());
 		   HANDLERS.put("/actuator/prometheus", new ScrapeHandler());
+		   HANDLERS.put("/db/getstats",         new GetStatsHandler());
 	}
 	
 	public static Object handle(HttpServerExchange exchange, String url, Map<String, String> parameters, byte[] body) throws Exception {
@@ -426,6 +427,14 @@ public class Dispatcher {
 			return file.exists() ? file : null;
 		}
 
+	}
+	
+	static class GetStatsHandler implements Handler {
+
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception{
+			return UIConsole.getInstance().getStatsAsJson();
+		}
 	}
 	
 	static class GetPropertiesHandler implements Handler {

@@ -36,7 +36,7 @@ public class UITest extends BaseIntegrationTest {
 				String host = InetAddress.getLocalHost().getHostAddress();
 				ConnectionInfo primary = new ConnectionInfo(host, "8080", "cluster", "shard1");
 				
-				startInternal("./application.properties");
+				startInternal("./uitest.properties");
 				
 				Client primaryClient = this.getClient().batch(false);
 				
@@ -77,10 +77,10 @@ public class UITest extends BaseIntegrationTest {
 				
 				Assertions.assertThat(html != null);
 				
-				logger.info(html);
+				//logger.info(html);
 				
-				//logger.info("sleep");
-				//Thread.sleep(1000 * 60 * 19);
+				logger.info("sleep");
+				Thread.sleep(1000 * 60 * 19);
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Throwable exc) {
