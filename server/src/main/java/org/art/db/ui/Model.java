@@ -91,6 +91,28 @@ public class Model {
 		return result;
 	}
 	
+	
+	public List<AlertStats> getAlertStats() {
+		return this.getStats(AlertStats.class);	
+	}
+	
+	public List<ClientStats> getClientStats(Function<ClientStats, String> getKey) {
+		return this.getStats(ClientStats.class, getKey);		
+	}
+	
+	public List<QueryStats> getQueryStats() {
+		return this.getStats(QueryStats.class);	
+	}
+	
+	public List<ServerStats> getServerStats() {
+		return this.getStats(ServerStats.class);
+		
+	}
+	
+	public List<ServerStats> getServerStats(Function<ServerStats, String> getKey) {
+		return this.getStats(ServerStats.class, getKey);		
+	}
+	
 	private void updateCache(List<Stats> list) {
 		String key = null;
 		

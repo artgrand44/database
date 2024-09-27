@@ -2,7 +2,6 @@ package org.art.db.ui;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 import  org.apache.commons.lang3.StringUtils;
 import org.art.db.common.Scheduler;
@@ -85,11 +84,11 @@ public class Controller {
 		}
 			
 		
-        String services = this.getStatsAsString(ServerStats.class);
-        String shards = this.getStatsAsString(ServerStats.class, x -> x.getShard());
-        String clients = this.getStatsAsString(ClientStats.class, x -> x.getClient() + "|" + x.getSql());
-        String queries = this.getStatsAsString(QueryStats.class);
-        String alerts = this.getStatsAsString(AlertStats.class);
+        String services = MAPPER.writeValueAsString(this.model.getServerStats());
+        String shards = MAPPER.writeValueAsString(this.model.getServerStats(x -> x.getShard()));
+        String clients = MAPPER.writeValueAsString(this.model.getClientStats(x -> x.getClient() + "|" + x.getSql()));
+        String queries = MAPPER.writeValueAsString(this.model.getQueryStats());
+        String alerts = MAPPER.writeValueAsString(this.model.getAlertStats());
         String settings = this.getSettings();
         String nextPage = StringUtils.isAllBlank(currentPage) ? "Clusters" : currentPage;
         
@@ -129,14 +128,6 @@ public class Controller {
 		}
 		
 		return MAPPER.writeValueAsString(result);
-	}
-	
-	private String getStatsAsString(Class<? extends Stats> clazz) throws Exception {
-		return MAPPER.writeValueAsString(this.model.getStats(clazz));
-	}
-	
-	<T extends Stats> String getStatsAsString(Class<T> clazz, Function<T, String> getKey) throws Exception {
-		return MAPPER.writeValueAsString(this.model.getStats(clazz, getKey));
 	}
 	
 	static record PropertyDescriptor(String property, String name, String pattern, String error) {
