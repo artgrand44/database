@@ -433,7 +433,6 @@ public class Dispatcher {
 
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception{
-			logger.info("in getstats " + new String(UIConsole.getInstance().getStatsAsJson()));
 			return UIConsole.getInstance().getStatsAsJson();
 		}
 	}

@@ -54,7 +54,7 @@ public class LocalModel implements MetricsPublisher {
 		return clazz.cast(this.statsCache.get(key, func));
 	}
 	
-	public synchronized List<Stats> getStats() {
+	public synchronized Stats[] getStats() {
 		List<Stats> result = new ArrayList<>();
 		
 		this.serverStats.computeAverages();			
@@ -65,7 +65,7 @@ public class LocalModel implements MetricsPublisher {
 			result.add(stats);
 		}
 
-		return result;
+		return result.toArray(new Stats[result.size()]);
 	}
 	
 	@SuppressWarnings("deprecation")

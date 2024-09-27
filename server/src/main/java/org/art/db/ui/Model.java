@@ -15,9 +15,7 @@ import org.art.db.common.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -26,8 +24,6 @@ public class Model {
 	private static final Logger logger = LoggerFactory.getLogger(Model.class);
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-	private static final  JavaType STATS_LIST = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, Stats.class);
-	
 	
 	private final String cluster;
 	private final LocalModel localModel;
@@ -38,6 +34,22 @@ public class Model {
 	public Model(ConnectionInfo config, LocalModel localModel) {
 		this.cluster = config.getDatabase();
 		this.localModel = localModel;
+		
+		Stats[] list = new Stats[1];
+		
+		list[0] = new ServerStats();
+		
+		try {
+			String json = MAPPER.writeValueAsString(list);
+			
+			logger.info("list is " + json);
+			
+			
+			Stats[] newArray = MAPPER.readValue(json, new Stats[0].getClass());
+			logger.info("new list " + newArray);
+		} catch (Exception exc) {
+			logger.info(exc.getMessage());
+		}
 	}
 	
 	private Set<String> getLiveInstances() {
@@ -113,10 +125,10 @@ public class Model {
 		return this.getStats(ServerStats.class, getKey);		
 	}
 	
-	private void updateCache(List<Stats> list) {
+	private void updateCache(Stats[] array) {
 		String key = null;
 		
-		for (Stats stats : list) {
+		for (Stats stats : array) {
 			
 			switch(stats) {
 			case AlertStats alertStats -> key = alertStats.getShard() + "|" + alertStats.getServer() + "|" + alertStats.getAlert();
@@ -141,9 +153,9 @@ public class Model {
 		for (URI uri : DiscoveryHandler.getServerInstance().getAllPeers()) {
 			try {
 				byte[] bytes = client.get(client.buildURI(uri, "/db/getstats"));
-				List<Stats> list = MAPPER.readValue(bytes, STATS_LIST);
+				Stats[] stats = MAPPER.readValue(bytes, new Stats[0].getClass());
 				
-				this.updateCache(list);
+				this.updateCache(stats);
 			} catch (Exception exc) {
 				logger.info("There was an exception getting the stats from " + uri + " " + exc.getMessage());
 			}
