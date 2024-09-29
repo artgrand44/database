@@ -34,23 +34,27 @@ public class Model {
 	public Model(ConnectionInfo config, LocalModel localModel) {
 		this.cluster = config.getDatabase();
 		this.localModel = localModel;
+	}
+	
+	private void addToCache(Stats[] array) {
+		String key = null;
 		
-		Stats[] list = new Stats[1];
-		
-		list[0] = new ServerStats();
-		
-		try {
-			String json = MAPPER.writeValueAsString(list);
+		for (Stats stats : array) {
 			
-			logger.info("list is " + json);
+			switch(stats) {
+			case AlertStats alertStats -> key = alertStats.getShard() + "|" + alertStats.getServer() + "|" + alertStats.getAlert();
+			case ClientStats clientStats -> key = clientStats.getShard() + "|" + clientStats.getServer() + "|" + clientStats.getSql();
+			case QueryStats queryStats -> key = ((QueryStats)stats).getQuery();
+			case ServerStats serverStats -> key = stats.getServer();
+			default -> logger.info("Bad stats type " + stats.getClass().getSimpleName());
+			}
 			
-			
-			Stats[] newArray = MAPPER.readValue(json, new Stats[0].getClass());
-			logger.info("new list " + newArray);
-		} catch (Exception exc) {
-			logger.info(exc.getMessage());
+			if (key != null) {
+				this.statsCache.put(key, stats);	
+			}
 		}
 	}
+	
 	
 	private Set<String> getLiveInstances() {
 		Set<String> result = new HashSet<>();
@@ -125,41 +129,24 @@ public class Model {
 		return this.getStats(ServerStats.class, getKey);		
 	}
 	
-	private void updateCache(Stats[] array) {
-		String key = null;
-		
-		for (Stats stats : array) {
-			
-			switch(stats) {
-			case AlertStats alertStats -> key = alertStats.getShard() + "|" + alertStats.getServer() + "|" + alertStats.getAlert();
-			case ClientStats clientStats -> key = clientStats.getShard() + "|" + clientStats.getServer() + "|" + clientStats.getSql();
-			case QueryStats queryStats -> key = ((QueryStats)stats).getQuery();
-			case ServerStats serverStats -> key = stats.getServer();
-			default -> logger.info("Bad stats type " + stats.getClass().getSimpleName());
-			}
-			
-			if (key != null) {
-				this.statsCache.put(key, stats);	
-			}
-		}
-	}
-	
-	public void update() {
-		
-		this.updateCache(this.localModel.getStats());
-		
+	public void refresh() {
+
+		this.addToCache(this.localModel.getStats());
+
 		RestClient client = new RestClient();
-		
-		for (URI uri : DiscoveryHandler.getServerInstance().getAllPeers()) {
-			try {
-				byte[] bytes = client.get(client.buildURI(uri, "/db/getstats"));
+
+		try {
+			List<byte[]> list = client.getAll(DiscoveryHandler.getServerInstance().getAllPeers(), "/db/getstats");
+
+			for (byte[] bytes : list) {
 				Stats[] stats = MAPPER.readValue(bytes, new Stats[0].getClass());
-				
-				this.updateCache(stats);
-			} catch (Exception exc) {
-				logger.info("There was an exception getting the stats from " + uri + " " + exc.getMessage());
+
+				this.addToCache(stats);
 			}
+		} catch (Exception exc) {
+
 		}
+
 	}
-	}
+}
 

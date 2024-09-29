@@ -14,10 +14,13 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 
@@ -110,7 +113,7 @@ public class RestClient {
 	}
 	
 	
-	public Future<HttpResponse<byte[]>> callAsync(String method, URI uri, Object body) throws Exception { 
+	public Future<HttpResponse<byte[]>> callAsync(String method, URI uri, Object body)  { 
 		HttpRequest.Builder builder = HttpRequest.newBuilder()	
 				.uri(uri)
 				.header("Content-Type", "application/json")
@@ -147,6 +150,47 @@ public class RestClient {
 		return this.call("GET", uri, null);
 	}
 	
+	public List<byte[]> getAll(List<URI> urls, String path) throws Exception{
+		List<byte[]> result = new ArrayList<>();
+		List<Future<HttpResponse<byte[]>>> futures = new ArrayList<>();
+		
+		for (URI uri : urls) {
+			futures.add(this.callAsync("GET", this.buildURI(uri, path), null));
+		}
+		
+		for (int idx = 0; idx < futures.size(); idx++) {
+			try {
+				Future<HttpResponse<byte[]>> future = futures.get(idx);
+				HttpResponse<byte[]> response = future.get(this.timeout.toMillis(), TimeUnit.MILLISECONDS);
+				Optional<String> warning = response.headers().firstValue("Warning");
+				int status = response.statusCode();
+
+				if (status == RestException.TEA_POT) {
+					String warningText = warning.orElse("");
+					String message = warningText.substring("Warning: 199 - ".length()); 
+
+					throw new DBRuntimeException(message);
+				} else if (status != 200) {
+					logger.info("network error " + status + " " + urls.get(idx));
+					throw new RestException(status, "There was a network errror");
+				}
+
+				byte[] bytes =  response.body();
+				HttpHeaders headers = response.headers();
+
+				if ("gzip".equals(headers.firstValue("Content-Encoding").orElse(null))) {
+					bytes = ZipUtils.decompress(bytes);
+				} 
+
+				result.add(bytes);
+
+			} catch (Exception exc) {
+				
+			}
+		}
+		
+		return result;
+	}
 	
 	private String getAuthToken() {
 					

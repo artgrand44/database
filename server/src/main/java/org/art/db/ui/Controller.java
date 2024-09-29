@@ -79,7 +79,7 @@ public class Controller {
 		Context context = new Context();        
                
 		if (System.currentTimeMillis() - this.lastUpdate > 10 * 1000 || ! StringUtils.isAllBlank(currentPage)) {
-			this.model.update();
+			this.model.refresh();
 			this.lastUpdate = System.currentTimeMillis();
 		}
 			
