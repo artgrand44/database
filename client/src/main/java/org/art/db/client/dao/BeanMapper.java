@@ -77,7 +77,9 @@ public class BeanMapper {
 				Property prop = metadata.getProperty(entry.getKey());
 				Object value = entry.getValue();
 				
-				map.put(prop.name(), value instanceof Document ? toBean((Document)value, Map.class) : value);
+				if (prop != null) {
+					map.put(prop.name(), value instanceof Document ? toBean((Document)value, Map.class) : value);
+				}
 			}
 			
 			return map;
