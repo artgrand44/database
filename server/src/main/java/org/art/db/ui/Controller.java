@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import  org.apache.commons.lang3.StringUtils;
+import org.art.db.common.KubernetesPlugin;
 import org.art.db.common.Scheduler;
 import org.art.db.storage.Environment;
 import org.slf4j.Logger;
@@ -69,12 +70,12 @@ public class Controller {
         this.templateEngine.setTemplateResolver(resolver);
         this.templateEngine.setCacheManager(manager);
         
-        Scheduler.DEFAULT.submit(() -> this.buildHtml("", false));
+        Scheduler.DEFAULT.submit(() -> this.buildHtml(""));
 
 	}
 	
 	
-	public synchronized String buildHtml(String currentPage, boolean isAdmin) throws Exception {
+	public synchronized String buildHtml(String currentPage) throws Exception {
 		
 		Context context = new Context();        
                
@@ -93,7 +94,7 @@ public class Controller {
         String nextPage = StringUtils.isAllBlank(currentPage) ? "Clusters" : currentPage;
         
                
-        context.setVariable("admin",        isAdmin ? "true" : "false");
+        context.setVariable("admin",        KubernetesPlugin.isKubernetes() ? "false" : "true");
         context.setVariable("currentPage",  nextPage);
         context.setVariable("serversData",  services);
         context.setVariable("clustersData", shards);

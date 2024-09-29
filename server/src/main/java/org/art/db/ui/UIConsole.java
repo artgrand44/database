@@ -19,8 +19,8 @@ public class UIConsole {
 	private UIConsole() {	
 	}
 
-	public String buildHtml(String currentPage, boolean isAdmin) throws Exception {
-		return this.controller == null ? "" : this.controller.buildHtml(currentPage, isAdmin);
+	public String buildHtml(String currentPage) throws Exception {
+		return this.controller == null ? "" : this.controller.buildHtml(currentPage);
 	}
 	
 	public static UIConsole getInstance() {
@@ -57,13 +57,12 @@ public class UIConsole {
 
 	public void start(ConnectionInfo info) {
 		
-		if (Environment.getInstance().getProperty("org.art.db.logConsole", "false").equalsIgnoreCase("true")) {
-			this.localModel = new LocalModel(info);
-			this.model = new Model(info, this.localModel);
-			this.controller = new Controller(this.model);	
-			
-			Metrics.getInstance().addPublisher(this.localModel);
-		}
+		this.localModel = new LocalModel(info);
+		this.model = new Model(info, this.localModel);
+		this.controller = new Controller(this.model);	
+
+		Metrics.getInstance().addPublisher(this.localModel);
+
 	}
 	
 	public void stop() {

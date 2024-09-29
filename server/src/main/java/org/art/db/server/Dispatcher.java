@@ -534,7 +534,7 @@ public class Dispatcher {
 			
 			String currentPage = parameters.get("currentPage");
 			
-			return UIConsole.getInstance().buildHtml(currentPage == null ? "" : currentPage, true).getBytes();
+			return UIConsole.getInstance().buildHtml(currentPage == null ? "" : currentPage).getBytes();
 		}
 					
 	}
