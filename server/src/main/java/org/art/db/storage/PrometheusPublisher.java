@@ -1,6 +1,8 @@
 package org.art.db.storage;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.art.db.common.DiscoveryHandler;
 import org.slf4j.Logger;
@@ -10,6 +12,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 
@@ -20,13 +24,12 @@ public class PrometheusPublisher implements MetricsPublisher {
 	
 	private final PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
 	
-	private final String[] tags;
 	
-	private final Cache<String, CounterGroup> groups = Caffeine.newBuilder()
-			                                                   .evictionListener((x, y, z) -> ((CounterGroup)y).free())
-			                                                   .maximumSize(1000)
-			                                                   .build();
-
+	
+	private final String shard;
+	private final String localInstance;
+	
+	
 	private final Cache<String, Counter> counters =   Caffeine.newBuilder()
 			                                                    .evictionListener((x, y, z) -> freeCounter((Counter)y))
 			                                                    .maximumSize(1000)
@@ -38,11 +41,24 @@ public class PrometheusPublisher implements MetricsPublisher {
 	private PrometheusPublisher() {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
-		this.tags = new String[] { "shard", handler.getLocalShard(), "instance", handler.getLocalInstance().toString() };		
+		this.shard = handler.getLocalShard();
+		this.localInstance = handler.getLocalInstance().toString();
+		
 	}
 	
-	private Counter createCounter(String name) {
-		return this.registry.counter(name, this.tags);
+	private Counter createCounter(String name, String ...extra) {
+		List<Tag> list = new ArrayList<>();
+		
+		
+		list.add(Tag.of("shard",    this.shard));
+		list.add(Tag.of("instance", this.localInstance));
+		
+		for (int idx = 0; idx < extra.length - 2; idx += 2) {
+			list.add(Tag.of(extra[idx], extra[idx + 1]));
+		}
+		
+		return this.registry.counter(name, list);
+		
 	}
 	
 	private void freeCounter(Counter counter) {
@@ -54,16 +70,15 @@ public class PrometheusPublisher implements MetricsPublisher {
 	}
 	@Override
 	public void logAlert(String message) {
-		counters.get(message, x -> createCounter(x)).increment();		
+		counters.get("alert", x -> createCounter(x, "msg", message)).increment();		
 	}
 
 	@Override
 	public void logClient(String clientName, String sql, long time, long calls, int matches) {
-		CounterGroup group = groups.get(clientName, x -> new CounterGroup(clientName + "|" + sql, "time", "calls", "matches"));
 		
-		group.increment("calls");
-		group.increment("time", time);
-		group.increment("matches", matches);
+		counters.get("client-count",   x -> createCounter(x, "name", clientName, "query", sql)).increment(calls);
+		counters.get("client-time",    x -> createCounter(x, "name", clientName, "query", sql)).increment(time);
+		counters.get("client-matches", x -> createCounter(x, "name", clientName, "query", sql)).increment(matches);
 	}
 
 	@Override
@@ -78,12 +93,14 @@ public class PrometheusPublisher implements MetricsPublisher {
 
 	@Override
 	public void logInsert() {
-		counters.get("insertys", x -> createCounter(x)).increment();	
+		counters.get("inserts", x -> createCounter(x)).increment();	
 	}
 
 	@Override
 	public void logSelect(String queryString, long time, int matches) {
-		counters.get("selects", x -> createCounter(x)).increment();	
+		counters.get("select-count",   x -> createCounter(x, "query", queryString)).increment();	
+		counters.get("select-time",    x -> createCounter(x, "query", queryString)).increment(time);
+		counters.get("select-matches", x -> createCounter(x, "query", queryString)).increment(matches);
 		
 	}
 	
@@ -109,27 +126,4 @@ public class PrometheusPublisher implements MetricsPublisher {
 		}
 	}
 	
-	class CounterGroup extends HashMap<String, Counter> {
-		private static final long serialVersionUID = 1L;
-
-		CounterGroup(String groupName, String ... names) {
-			for (String name : names) {
-				this.put(name, registry.counter(groupName + "_" + name, tags));
-			}
-		}
-		
-		void increment(String name) {
-			this.get(name).increment(1);
-		}
-		
-		void increment(String name, long amount) {
-			this.get(name).increment(amount);
-		}
-		
-		void free() {
-			for (Counter counter : this.values()) {
-				registry.remove(counter);
-			}
-		}
-	}
 }
