@@ -29,8 +29,6 @@ public class PrometheusPublisher implements MetricsPublisher {
 		
 		GaugeWrapper(String name, String ...extra) {
 			List<Tag> list = new ArrayList<>();
-			String fullName = "db_" + name;
-			
 			
 			list.add(Tag.of("shard",    shard));
 			list.add(Tag.of("instance", localInstance));
@@ -40,8 +38,8 @@ public class PrometheusPublisher implements MetricsPublisher {
 				list.add(Tag.of(extra[idx], extra[idx + 1]));
 			}
 			
-			this.average = new RollingAverage(fullName);
-			this.gauge = Gauge.builder(fullName, () -> average.getAverage()).tags(list).register(registry);
+			this.average = new RollingAverage(name);
+			this.gauge = Gauge.builder(name, () -> average.getAverage()).tags(list).register(registry);
 			
 		}
 		
@@ -103,7 +101,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 			list.add(Tag.of(extra[idx], extra[idx + 1]));
 		}
 		
-		return this.registry.counter("db_" + name, list);
+		return this.registry.counter(name, list);
 		
 	}
 	
@@ -120,39 +118,37 @@ public class PrometheusPublisher implements MetricsPublisher {
 	}
 	@Override
 	public void logAlert(String message) {
-		counters.get("alert", x -> createCounter(x, "msg", message)).increment();		
+		counters.get("db_alert" + message, x -> createCounter(x, "msg", message)).increment();		
 	}
 
 	@Override
 	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		
-		//counters.get("client-count",   x -> createCounter(x, "name", clientName, "query", sql)).increment(calls);
-		//counters.get("client-time",    x -> createCounter(x, "name", clientName, "query", sql)).increment(time);
-		//counters.get("client-matches", x -> createCounter(x, "name", clientName, "query", sql)).increment(matches);
+		gauges.get("db_client-count",   x -> new GaugeWrapper(x, "name", clientName, "query", sql)).increment(calls);
+		gauges.get("db_client-time",    x -> new GaugeWrapper(x, "name", clientName, "query", sql)).increment(time);
+		gauges.get("db_client-matches", x -> new GaugeWrapper(x, "name", clientName, "query", sql)).increment(matches);
 	}
 
 	@Override
 	public void logDelete() {
-		counters.get("deletes", x -> createCounter(x)).increment();	
+		counters.get("db_deletes", x -> createCounter(x)).increment();	
 	}
 
 	@Override
 	public void logGet() {
-		counters.get("gets", x -> createCounter(x)).increment();	
+		counters.get("db_gets", x -> createCounter(x)).increment();	
 	}
 
 	@Override
 	public void logInsert() {
-		counters.get("inserts", x -> createCounter(x)).increment();	
+		counters.get("db_inserts", x -> createCounter(x)).increment();	
 	}
 
 	@Override
 	public void logSelect(String queryString, long time, int matches) {
-		gauges.get("select-count-gauge" + queryString,   x -> new GaugeWrapper(x, "query", queryString)).increment();
-		
-		//counters.get("select-count" + queryString,   x -> createCounter(x, "query", queryString)).increment();	
-		//counters.get("select-time",    x -> createCounter(x, "query", queryString)).increment(time);
-		//counters.get("select-matches", x -> createCounter(x, "query", queryString)).increment(matches);
+		gauges.get("db_select-count-gauge" + queryString,   x -> new GaugeWrapper(x, "query", queryString)).increment();
+		gauges.get("db_select-time" + queryString,          x -> new GaugeWrapper(x, "query", queryString)).increment(time);
+		gauges.get("db_select-matches + queryString",       x -> new GaugeWrapper(x, "query", queryString)).increment(matches);
 		
 	}
 	
@@ -164,7 +160,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 
 	@Override
 	public void logUpdate() {
-		counters.get("updates", x -> createCounter(x)).increment();	
+		counters.get("db_updates", x -> createCounter(x)).increment();	
 		
 	}
 	
