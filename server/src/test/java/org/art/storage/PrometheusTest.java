@@ -1,12 +1,15 @@
 package org.art.storage;
 
 import java.net.InetAddress;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.art.db.client.Client;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.RestClient;
+import org.art.db.common.Utils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
@@ -20,19 +23,26 @@ public class PrometheusTest extends BaseIntegrationTest {
 		String drop = "drop table if exists insert";
 		String create = "CREATE TABLE insert (id int NOT NULL PRIMARY KEY, last varchar(255) NOT NULL, first varchar(255), count int)";
 		String createIndex = "CREATE INDEX name ON insert(first)";
-		String insert = "insert into insert (id, first, last, count) values ('1', 'art', 'grand', '1')";
 		
 		client.execute(drop);
 		client.execute(create);
 		client.execute(createIndex);
-		
-		client.execute(insert);
 	}
 	
 	@Test
 	public void test() {
 		
 			try  {
+				String qq = "thedb_total{db_name=\"cluster\",db_name=\"cluster\",} 1.0";
+				
+				String patt = "/db_name=\"(?<text>[^\"]+)|db=\"(?<value>[^\"]+)/g";
+				Pattern p = Pattern.compile("/db_name=\"(?<text>[^\"]+)|db=\"(?<value>[^\"]+)/g");
+				Matcher m = p.matcher(qq);
+				
+				if (!m.matches()) {
+					logger.info("no match");
+				}
+						
 				String host = InetAddress.getLocalHost().getHostAddress();
 				ConnectionInfo primary = new ConnectionInfo(host, "8080", "cluster", "shard1");
 				
@@ -44,20 +54,17 @@ public class PrometheusTest extends BaseIntegrationTest {
 				
 				logger.info("after loads");
 				
-				String insertTemplare = "insert into insert (id, first, last, count) values ('%s', 'art', 'grand', '1')";
-				String queryTemplate = "select * from insert where id = '%s'";
+				String insert = "insert into insert (id, first, last, count) values (?, 'art', 'grand', '1')";
+				String query = "select * from insert where id = ?";
 				
 				
 				for (int idx = 2; idx < 100; idx++) {
-					String theInsert = String.format(insertTemplare, idx);
-					primaryClient.execute(theInsert);
+					primaryClient.execute(insert, idx);
 				}
 				
 				
 				for (int idx = 2; idx < 20; idx++) {
-					String query = String.format(queryTemplate, idx);
-					
-					DocumentSet set = primaryClient.executeQuery(query);
+					DocumentSet set = primaryClient.executeQuery(query, idx);
 					
 					Assertions.assertThat(!set.isEmpty());
 					
@@ -73,14 +80,21 @@ public class PrometheusTest extends BaseIntegrationTest {
 				client.setUser("admin");
 				client.setPassword("admin");
 				
-				String stats = new String(client.get(client.buildURI(primary.toURI(), "/actuator/prometheus")));
+				String stats = new String(client.get(client.buildURI(primary.toURI(), "/metrics")));
 				
 				Assertions.assertThat(stats != null);
 				
 				logger.info(stats);
 				
 				logger.info("sleep");
-				Thread.sleep(1000 * 60 * 19);
+				
+				for (;;) {
+					for (int idx = 2; idx < 200; idx++) {
+						DocumentSet set = primaryClient.executeQuery(query, idx % 20);
+					}
+					Utils.sleepSafely(100);
+				}
+				
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Throwable exc) {

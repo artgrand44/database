@@ -78,7 +78,7 @@ public class Dispatcher {
 		   HANDLERS.put("/db/backup" ,          new BackHandler());
 		   HANDLERS.put("/db/restart",          new RestartHandler());
 		   HANDLERS.put("/db/beginstartup",     new BeginStartupHandler());
-		   HANDLERS.put("/actuator/prometheus", new ScrapeHandler());
+		   HANDLERS.put("/metrics",             new MetricsHandler());
 		   HANDLERS.put("/db/getstats",         new GetStatsHandler());
 	}
 	
@@ -516,7 +516,7 @@ public class Dispatcher {
 	}
 	
 
-	static class ScrapeHandler implements Handler {
+	static class MetricsHandler implements Handler {
 
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) {
