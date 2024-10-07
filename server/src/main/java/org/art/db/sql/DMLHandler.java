@@ -410,7 +410,8 @@ public class DMLHandler {
 			processSelectItems(set, plainSelect.getSelectItems(), evaluator, parameters);
 
 			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, set.size());
-
+			Metrics.getInstance().logGet();
+			
 			return set;
 		} finally {
 			metadata.unlock();

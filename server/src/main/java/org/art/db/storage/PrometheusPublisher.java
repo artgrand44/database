@@ -116,6 +116,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 	public static PrometheusPublisher getInstance() {
 		return instance;
 	}
+	
 	@Override
 	public void logAlert(String message) {
 		counters.get("db_alert" + message, x -> createCounter(x, "msg", message)).increment();		
@@ -131,17 +132,17 @@ public class PrometheusPublisher implements MetricsPublisher {
 
 	@Override
 	public void logDelete() {
-		counters.get("db_deletes", x -> createCounter(x)).increment();	
+		gauges.get("db_verb_delete", x -> new GaugeWrapper(x, "type", "Deletes")).increment();	
 	}
 
 	@Override
 	public void logGet() {
-		counters.get("db_gets", x -> createCounter(x)).increment();	
+		gauges.get("db_verb_select", x -> new GaugeWrapper(x, "type", "Selects")).increment();	
 	}
 
 	@Override
 	public void logInsert() {
-		counters.get("db_inserts", x -> createCounter(x)).increment();	
+		gauges.get("db_verb_insert", x -> new GaugeWrapper(x, "type", "Inserts")).increment();	
 	}
 
 	@Override
@@ -160,7 +161,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 
 	@Override
 	public void logUpdate() {
-		counters.get("db_updates", x -> createCounter(x)).increment();	
+		gauges.get("db_verb_update", x -> new GaugeWrapper(x, "type", "Updates")).increment();	
 		
 	}
 	
