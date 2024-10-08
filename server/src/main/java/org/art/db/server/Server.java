@@ -15,6 +15,7 @@ import org.apache.commons.io.IOUtils;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestException;
+import org.art.db.common.RollingAverage;
 import org.art.db.common.InstanceRecoveringException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
@@ -264,6 +265,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			UIConsole.getInstance().stop();	
 			BackupHandler.getInstance().stop();
 			Broadcaster.getInstance().stop();
+			RollingAverage.stop();
 			instance = null;
 		}
 	}

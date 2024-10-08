@@ -1,6 +1,9 @@
 package org.art.db.common;
 
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -17,15 +20,22 @@ public class RollingAverage {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(RollingAverage.class);
 	
-	private final LinkedList<Long>  samples = new LinkedList<>();
+	private final ConcurrentLinkedDeque<Long>  samples = new ConcurrentLinkedDeque<>();
 	private final String name;
 	private AtomicLong currentSampleValue = new AtomicLong();
+	
+	private final static ConcurrentMap<String, RollingAverage> averages = new ConcurrentHashMap<>();
+	
+	private final static ScheduledFuture<?> poller = Scheduler.DEFAULT.scheduleAtFixedRate(() -> updateAll(), 1, 1, TimeUnit.SECONDS);
+	
+	
 	
 	private static final int MAX_SAMPLES = 100;
 	
 	public RollingAverage(String name) {
 		this.name = name;
-		Scheduler.DEFAULT.scheduleAtFixedRate(this::update, 1, 1, TimeUnit.SECONDS);
+		
+		averages.put(name, this);
 	}
 	
 	public synchronized void clear() {
@@ -41,17 +51,20 @@ public class RollingAverage {
 		this.currentSampleValue.addAndGet(count);
 	}
 	
-	synchronized private void update() {
-		long sample = this.currentSampleValue.getAndSet(0);
-		
-		this.samples.add(sample);
+	private static void updateAll() {
+		for (RollingAverage average : averages.values()) {
+			long sample = average.currentSampleValue.getAndSet(0);
+			
+			average.samples.add(sample);
 
-		if (this.samples.size() > MAX_SAMPLES) {
-			this.samples.removeFirst();
+			if (average.samples.size() > MAX_SAMPLES) {
+				average.samples.removeFirst();
+			}
 		}
 	}
 	
-	public synchronized long getAverage() {
+	
+	public long getAverage() {
 		if (this.samples.isEmpty()) {
 			return 0;
 		}
@@ -66,6 +79,10 @@ public class RollingAverage {
 
 	}
 
+	public static void stop() {
+		poller.cancel(true);
+	}
+	
 	@Override
 	public String toString() {
 		return "RollingAverage [name=" + name + ", currentSampleValue=" + currentSampleValue + ",  samples=" + samples + "]";
