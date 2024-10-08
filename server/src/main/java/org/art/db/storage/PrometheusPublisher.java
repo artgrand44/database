@@ -125,9 +125,9 @@ public class PrometheusPublisher implements MetricsPublisher {
 	@Override
 	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		
-		gauges.get("db_client-count",   x -> new GaugeWrapper(x, "name", clientName, "query", sql)).increment(calls);
-		gauges.get("db_client-time",    x -> new GaugeWrapper(x, "name", clientName, "query", sql)).increment(time);
-		gauges.get("db_client-matches", x -> new GaugeWrapper(x, "name", clientName, "query", sql)).increment(matches);
+		gauges.get("db_client-count" + clientName,   x -> new GaugeWrapper(x, "name", clientName, "query", sql)).increment(calls);
+		gauges.get("db_client-time" + clientName,    x -> new GaugeWrapper(x, "name", clientName, "query", sql)).increment(time);
+		gauges.get("db_client-matches"  + clientName, x -> new GaugeWrapper(x, "name", clientName, "query", sql)).increment(matches);
 	}
 
 	@Override
