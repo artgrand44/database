@@ -23,6 +23,8 @@ public class RollingAverage {
 	private final ConcurrentLinkedDeque<Long>  samples = new ConcurrentLinkedDeque<>();
 	private final String name;
 	private AtomicLong currentSampleValue = new AtomicLong();
+	private final long updateInterval;
+	private long nextUpdate;
 	
 	private final static ConcurrentMap<String, RollingAverage> averages = new ConcurrentHashMap<>();
 	
@@ -33,7 +35,14 @@ public class RollingAverage {
 	private static final int MAX_SAMPLES = 100;
 	
 	public RollingAverage(String name) {
+		this(name, 1000);
+	}
+	
+	public RollingAverage(String name, long updateInterval) {
+		
 		this.name = name;
+		this.updateInterval = updateInterval;
+		this.nextUpdate = System.currentTimeMillis() + this.updateInterval;
 		
 		averages.put(name, this);
 	}
@@ -52,13 +61,18 @@ public class RollingAverage {
 	}
 	
 	private static void updateAll() {
+		long now = System.currentTimeMillis();
+		
 		for (RollingAverage average : averages.values()) {
-			long sample = average.currentSampleValue.getAndSet(0);
-			
-			average.samples.add(sample);
+			if (average.nextUpdate >= now) {
+				long sample = average.currentSampleValue.getAndSet(0);
 
-			if (average.samples.size() > MAX_SAMPLES) {
-				average.samples.removeFirst();
+				average.samples.add(sample);
+				average.nextUpdate = now + average.updateInterval;
+
+				if (average.samples.size() > MAX_SAMPLES) {
+					average.samples.removeFirst();
+				}
 			}
 		}
 	}

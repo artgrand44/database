@@ -32,8 +32,11 @@ public class PrometheusPublisher implements MetricsPublisher {
 		private final Gauge gauge;
 		private final RollingAverage average; 
 		
-		
 		GaugeWrapper(String name, String ...extra) {
+			this(name, 1000, extra);			
+		}
+		
+		GaugeWrapper(String name, long internal, String ...extra) {
 			List<Tag> list = new ArrayList<>();
 			
 			list.add(Tag.of("Shard",    shard));
@@ -44,7 +47,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 				list.add(Tag.of(extra[idx], extra[idx + 1]));
 			}
 			
-			this.average = new RollingAverage(name);
+			this.average = new RollingAverage(name, internal);
 			this.gauge = Gauge.builder(name, () -> average.getAverage()).tags(list).register(registry);
 			
 		}
@@ -198,11 +201,9 @@ public class PrometheusPublisher implements MetricsPublisher {
 		long memory = (long) (memoryBean.getHeapMemoryUsage().getUsed() / ONE_MEG);
 		long maxMemory = (long) (memoryBean.getHeapMemoryUsage().getMax() / ONE_MEG);
 		long percentMemory = (memory * 100) / maxMemory;
-		
-		
-		
-		gauges.get("db_cpu" + this.localInstance, x -> new GaugeWrapper(x)).increment(cpu);
-		gauges.get("db_mem" + this.localInstance, x -> new GaugeWrapper(x)).increment(percentMemory);
+				
+		gauges.get("db_cpu" + this.localInstance, x -> new GaugeWrapper(x, 10000)).increment(cpu);
+		gauges.get("db_mem" + this.localInstance, x -> new GaugeWrapper(x, 10000)).increment(percentMemory);
 		
 	}
 	
