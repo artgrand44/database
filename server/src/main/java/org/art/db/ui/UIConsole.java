@@ -1,7 +1,6 @@
 package org.art.db.ui;
 
 import org.art.db.common.ConnectionInfo;
-import org.art.db.storage.Environment;
 import org.art.db.storage.Metrics;
 
 import com.fasterxml.jackson.databind.ObjectMapper;;

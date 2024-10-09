@@ -15,11 +15,11 @@
       }
     ]
   },
-  "description": "Frequent Queries",
+  "description": "Recent Alerts",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 5,
   "links": [],
   "panels": [
     {
@@ -28,44 +28,20 @@
         "type": "prometheus",
         "uid": "fe0324z49vn5se"
       },
-      "description": "Top 10 Queries by Frequency",
+      "description": "Alerts and Messages",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
           },
           "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 1,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": false
             },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "inspect": false,
+            "minWidth": 50
           },
           "mappings": [],
           "thresholds": {
@@ -85,24 +61,32 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 12,
+        "h": 17,
+        "w": 20,
         "x": 0,
         "y": 0
       },
       "id": 1,
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
         },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "msg"
+          }
+        ]
       },
+      "pluginVersion": "11.2.1",
       "targets": [
         {
           "datasource": {
@@ -110,17 +94,31 @@
             "uid": "fe0324z49vn5se"
           },
           "editorMode": "code",
-          "exemplar": true,
-          "expr": "topk(10, {__name__=~\"db_select_count_gauge.*\", query=~\".*\",db=\"$db\"})",
-          "format": "time_series",
-          "instant": false,
-          "legendFormat": "{{query}}",
-          "range": true,
+          "exemplar": false,
+          "expr": "{__name__=~\"db_alert.*\", Message=~\".*\",db=\"$db\",Message!=\"\",Instance=~\".*\",Instance!=\"\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
           "refId": "A"
         }
       ],
-      "title": "Frequency",
-      "type": "timeseries"
+      "title": "Alerts",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Time",
+                "Instance",
+                "Message"
+              ]
+            }
+          }
+        }
+      ],
+      "type": "table"
     }
   ],
   "schemaVersion": 39,
@@ -138,7 +136,6 @@
           "uid": "fe0324z49vn5se"
         },
         "definition": "query_result(dbname_total)",
-        "description": "Database name",
         "hide": 0,
         "includeAll": false,
         "label": "Database",
@@ -150,7 +147,7 @@
           "query": "query_result(dbname_total)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "refresh": 2,
+        "refresh": 1,
         "regex": "/db_name=\"(?<text>[^\"]+)|db=\"(?<value>[^\"]+)/g",
         "skipUrlSync": false,
         "sort": 0,
@@ -159,13 +156,13 @@
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Queries",
-  "uid": "ae03xtmniv9j4b",
-  "version": 6,
+  "title": "Alerts",
+  "uid": "ae05rf7locxdsf",
+  "version": 12,
   "weekStart": ""
 }

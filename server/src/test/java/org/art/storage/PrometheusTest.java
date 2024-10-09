@@ -1,8 +1,6 @@
 package org.art.storage;
 
 import java.net.InetAddress;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.art.db.client.Client;
 import org.art.db.common.ConnectionInfo;
@@ -33,16 +31,6 @@ public class PrometheusTest extends BaseIntegrationTest {
 	public void test() {
 		
 			try  {
-				String qq = "thedb_total{db_name=\"cluster\",db_name=\"cluster\",} 1.0";
-				
-				String patt = "/db_name=\"(?<text>[^\"]+)|db=\"(?<value>[^\"]+)/g";
-				Pattern p = Pattern.compile("/db_name=\"(?<text>[^\"]+)|db=\"(?<value>[^\"]+)/g");
-				Matcher m = p.matcher(qq);
-				
-				if (!m.matches()) {
-					logger.info("no match");
-				}
-						
 				String host = InetAddress.getLocalHost().getHostAddress();
 				ConnectionInfo primary = new ConnectionInfo(host, "8080", "cluster", "shard1");
 				
@@ -90,7 +78,7 @@ public class PrometheusTest extends BaseIntegrationTest {
 				
 				for (;;) {
 					for (int idx = 2; idx < 200; idx++) {
-						DocumentSet set = primaryClient.executeQuery(query, idx % 20);
+						primaryClient.executeQuery(query, idx % 20);
 					}
 					Utils.sleepSafely(100);
 				}

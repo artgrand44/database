@@ -265,6 +265,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			UIConsole.getInstance().stop();	
 			BackupHandler.getInstance().stop();
 			Broadcaster.getInstance().stop();
+			PrometheusPublisher.getInstance().start();
 			RollingAverage.stop();
 			instance = null;
 		}
