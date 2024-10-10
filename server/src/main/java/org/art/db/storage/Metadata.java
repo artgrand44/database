@@ -44,9 +44,6 @@ public class Metadata  {
 	
 	public Metadata(String name, List<String> primaryKeyFields, SortedMap<String, ColumnInfo> columns, List<IndexInfo> indices, boolean isQueue)  { 
 		this.name = name;
-		if (name.indexOf('.') == -1 && !name.isEmpty()) {
-			logger.info("bad name");
-		}
 		this.primaryKeyFields = primaryKeyFields;
 		this.columns = columns;
 		this.indices = indices;

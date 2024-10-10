@@ -73,10 +73,8 @@ public class Dispatcher {
 		   HANDLERS.put("/db/getfile",     		new GetFileHandler());
 		   HANDLERS.put("/db/getnextfile",     	new GetNextFileHandler());
 		   HANDLERS.put("/db/getproperties",    new GetPropertiesHandler());
-		   HANDLERS.put("/db/stop" ,            new StopHandler());
 		   HANDLERS.put("/db/ping" ,            new PingHandler());
 		   HANDLERS.put("/db/backup" ,          new BackHandler());
-		   HANDLERS.put("/db/restart",          new RestartHandler());
 		   HANDLERS.put("/db/beginstartup",     new BeginStartupHandler());
 		   HANDLERS.put("/metrics",             new MetricsHandler());
 		   HANDLERS.put("/db/getstats",         new GetStatsHandler());
@@ -495,27 +493,6 @@ public class Dispatcher {
 		}		
 	}
 	
-	static class RestartHandler implements Handler {
-
-		@Override
-		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			String target = parameters.get("target");
-			URI localUri = DiscoveryHandler.getServerInstance().getLocalInstance();
-			
-			if (target.equals(localUri.getHost() + ":" + localUri.getPort())) {
-				Scheduler.DEFAULT.schedule(() -> Server.exit(-1), 2, TimeUnit.SECONDS);
-			} else {
-				RestClient client = new RestClient();
-				URI uri = client.buildURI(new URI("http://" + target), "/db/restart?target=" + target);
-				
-				client.get(uri);				
-			}
-			
-			return new byte[0];
-		}		
-	}
-	
-
 	static class MetricsHandler implements Handler {
 
 		@Override
@@ -568,27 +545,6 @@ public class Dispatcher {
 			}
 		}
 
-	}
-	
-	
-	static class StopHandler implements Handler {
-
-		@Override
-		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			String target = parameters.get("target");
-			URI localUri = DiscoveryHandler.getServerInstance().getLocalInstance();
-			
-			if (target.equals(localUri.getHost() + ":" + localUri.getPort())) {
-				Scheduler.DEFAULT.schedule(() -> Server.exit(0), 2, TimeUnit.SECONDS);
-			} else {
-				RestClient client = new RestClient();
-				URI uri = client.buildURI(new URI("http://" + target), "/db/stop?target=" + target);
-				
-				client.get(uri);				
-			}
-			
-			return new byte[0];		
-		}		
 	}
 	
 		
