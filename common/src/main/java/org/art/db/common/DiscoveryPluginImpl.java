@@ -46,6 +46,10 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 		return this.localInstance;
 	}
 	
+	public String getLocalInstanceName() {
+		return this.localInstance.getHost();
+	}
+	
 	public String getLocalPort() {
 		return this.localPort;
 	}

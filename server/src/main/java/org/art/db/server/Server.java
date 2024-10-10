@@ -3,7 +3,6 @@ package org.art.db.server;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.InetAddress;
-import java.security.CodeSource;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,9 +13,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import org.apache.commons.io.IOUtils;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
+import org.art.db.common.InstanceRecoveringException;
 import org.art.db.common.RestException;
 import org.art.db.common.RollingAverage;
-import org.art.db.common.InstanceRecoveringException;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
 import org.art.db.storage.BackupHandler;
@@ -64,7 +63,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 		this.handler =  new DiscoveryHandler(info, true);
 		this.port = Integer.valueOf(this.handler.getLocalPort());
 				
-		logger.info("start server on " + port + " process " + ProcessHandle.current().pid());
+		logger.info("start server on " + port + " process " + ProcessHandle.current().pid() + " " + handler.getLocalInstanceName());
 		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);
@@ -188,59 +187,12 @@ public class Server implements HttpHandler, FullBytesCallback {
 	
 	public static void main(String[] args) {
 		String properties = args.length == 0 ? "application.properties" : args[0];
-		boolean monitor = false;
+					
+		start(properties);
 		
-		if (args.length == 0) {
-			properties = "application.properties";
-			monitor = false;
-		} else {
-			properties = args[0];
-		}
-		
-		if (monitor) {
-			monitor(properties);
-		} else {
-			start(properties);
-		}
     }
 	
-	/**
-	 * This method starts the server in an subprocess and waits for the subprocess
-	 * to complete.  If the subprocess leaves a <pid>.dat file in the home directory
-	 * then monitor() restarts the subprocess.  See exit() for more details on the 
-	 *  <pid>.dat file.
-	 * @param properties
-	 */
-	private static void monitor(String properties) {
-		for (;;) {
-			String java = System.getProperty("java.home") + "/bin/java";
-			CodeSource source = Server.class.getProtectionDomain().getCodeSource();
-			File sourceFile = new File(source.getLocation().getFile());
-			ProcessBuilder pb;
 			
-			if (sourceFile.isDirectory()) {
-				String classpath = System.getProperty("java.class.path");
-				pb = new ProcessBuilder(java, "-cp", classpath, Server.class.getName(), properties);
-			} else {
-				pb = new ProcessBuilder(java, "-jar", sourceFile.getAbsolutePath(), Server.class.getName(), properties);
-			}
-			
-			pb.directory(new File("."));
-			pb.inheritIO();
-			
-			try {
-				Process process = pb.start();
-
-				if (process.waitFor() == 0) {
-					logger.info("Monitor existing...");
-					System.exit(0);
-				}
-			} catch (Exception exc) {
-				logger.error("There was an exception starting the child " + exc.getMessage());
-			}			
-		}
-	}
-		
 	public static void start(String properties) {
 		try {
 			logger.info("start with " + System.getProperty("java.home"));

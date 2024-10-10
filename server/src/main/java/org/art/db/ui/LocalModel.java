@@ -3,7 +3,6 @@ package org.art.db.ui;
 
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -38,7 +37,7 @@ public class LocalModel implements MetricsPublisher {
 			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 			this.database = handler.getLocalDatabase();
 			this.shard =  handler.getLocalShard();
-			this.server = InetAddress.getLocalHost().getHostAddress() + ":" + info.getPort();
+			this.server = handler.getLocalInstanceName();
 			this.serverStats = new ServerStats(info.getDatabase(), info.getShard(), this.server);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);

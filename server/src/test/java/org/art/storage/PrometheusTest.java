@@ -81,6 +81,7 @@ public class PrometheusTest extends BaseIntegrationTest {
 						primaryClient.executeQuery(query, idx % 20);
 					}
 					Utils.sleepSafely(100);
+					break;
 				}
 				
 		} catch (AssertionFailedError err) {

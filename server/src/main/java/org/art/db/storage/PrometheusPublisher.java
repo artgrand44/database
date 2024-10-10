@@ -91,7 +91,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
 		this.shard = handler.getLocalShard();
-		this.localInstance = handler.getLocalInstance().toString();
+		this.localInstance = handler.getLocalInstanceName();
 		this.database = Environment.getInstance().getProperty("org.art.db.database", "cluster");
 		this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.timer(), 0, 500, TimeUnit.MILLISECONDS);
 		
@@ -187,9 +187,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 	}
 	
 	public void start() {
-		if (Environment.getInstance().getProperty("org.art.db.logPrometheus", "false").equalsIgnoreCase("true")) {
-			Metrics.getInstance().addPublisher(this);
-		}
+		Metrics.getInstance().addPublisher(this);
 	}
 	
 	public void stop() {

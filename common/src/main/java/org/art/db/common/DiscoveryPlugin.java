@@ -19,6 +19,8 @@ public interface DiscoveryPlugin {
 	
 	public URI getLocalInstance();
 	
+	public String getLocalInstanceName();
+	
 	public default void poll() { }
 	
 	void initialize(ConnectionInfo config, boolean isServer);

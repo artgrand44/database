@@ -61,7 +61,7 @@ public class Model {
 		
 		for (List<URI> list : DiscoveryHandler.getServerInstance().getInstances().values()) {
 			for (URI uri : list) {
-				result.add(uri.getHost() + ":" + uri.getPort());
+				result.add(uri.getHost());
 			}
 		}
 		

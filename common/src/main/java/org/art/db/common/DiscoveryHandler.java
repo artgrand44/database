@@ -124,6 +124,10 @@ public class DiscoveryHandler {
 		return this.localInstance;
 	}
 	
+	public String getLocalInstanceName() {
+		return this.plugin.getLocalInstanceName();
+	}
+	
 	public String getLocalPort() {
 		return this.plugin.getLocalPort();
 	}
@@ -434,6 +438,10 @@ public class DiscoveryHandler {
 			return this.localURI;
 		}
 
+		public String getLocalInstanceName() {
+			return this.localURI.getHost();
+		}
+		
 		@Override
 		public void initialize(ConnectionInfo config, boolean isServer) {
 		}
