@@ -7,10 +7,10 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DiscoveryPluginImpl implements DiscoveryPlugin {
+public class HeartbeatPlugin implements DiscoveryPlugin {
 
 	@SuppressWarnings("unused")
-	private static final Logger logger = LoggerFactory.getLogger(DiscoveryPluginImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(HeartbeatPlugin.class);
 			
 	private HeartbeatPublisher publisher;
 	
@@ -21,7 +21,7 @@ public class DiscoveryPluginImpl implements DiscoveryPlugin {
 	private String localDatabase;
 	private URI localInstance;
 	
-	public DiscoveryPluginImpl() {
+	public HeartbeatPlugin() {
 		
 	}
 	

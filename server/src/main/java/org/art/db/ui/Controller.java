@@ -27,6 +27,8 @@ public class Controller {
 	
 	private final Model model;
 	
+	private final boolean kubernetes;
+	
 	private long lastUpdate = 0;
 	
 	private final TemplateEngine templateEngine;
@@ -69,6 +71,7 @@ public class Controller {
         this.templateEngine = new TemplateEngine();
         this.templateEngine.setTemplateResolver(resolver);
         this.templateEngine.setCacheManager(manager);
+        this.kubernetes = "kubernetes".equalsIgnoreCase(System.getenv("cloud")) || System.getenv("KUBERNETES_PORT") != null;
         
         Scheduler.DEFAULT.submit(() -> this.buildHtml(""));
 
@@ -94,7 +97,7 @@ public class Controller {
         String nextPage = StringUtils.isAllBlank(currentPage) ? "Clusters" : currentPage;
         
                
-        context.setVariable("admin",        KubernetesPlugin.isKubernetes() ? "false" : "true");
+        context.setVariable("admin",        this.kubernetes ? "false" : "true");
         context.setVariable("currentPage",  nextPage);
         context.setVariable("serversData",  services);
         context.setVariable("clustersData", shards);
