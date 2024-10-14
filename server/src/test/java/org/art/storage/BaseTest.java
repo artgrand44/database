@@ -25,6 +25,7 @@ public class BaseTest {
 			logger.info("Start test " + this.getClass().getSimpleName());
 		}
 		
+		System.setProperty("org.art.db.client", this.getClass().getSimpleName());
 		this.cleanDataDirectories();
 
 	}

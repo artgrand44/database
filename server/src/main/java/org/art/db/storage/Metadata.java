@@ -17,7 +17,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Metadata  {
 	
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Metadata.class);
+	
 	private static final ConcurrentMap<String, Metadata> cache = new ConcurrentHashMap<>();
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 	private String name;

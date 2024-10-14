@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.art.db.common.ApplicationContext;
 import org.art.db.common.CPUMeter;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RollingAverage;
@@ -91,7 +92,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
 		this.shard = handler.getLocalShard();
-		this.localInstance = handler.getLocalInstanceName();
+		this.localInstance = ApplicationContext.getInstance().getInstanceName();
 		this.database = Environment.getInstance().getProperty("org.art.db.database", "cluster");
 		this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.timer(), 0, 500, TimeUnit.MILLISECONDS);
 		

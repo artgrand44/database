@@ -27,7 +27,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	private final String localShard = System.getenv("org.art.db.shard");
 	private String database;
 	private URI localInstance;
-	private String localInstanceName;
 	private AtomicReference<Map<URI, String>> serverInstances = new AtomicReference<Map<URI,String>>();
 	private AtomicBoolean loading = new AtomicBoolean();
 	private long ttl;
@@ -56,10 +55,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	@Override
 	public URI getLocalInstance() {
 		return this.localInstance;
-	}
-	
-	public String getLocalInstanceName() {
-		return this.localInstanceName;
 	}
 	
 	public String getLocalShard() {
@@ -93,7 +88,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 
 						if (podIp.equals(localHostAddress)) {
 							this.localInstance = uri;
-							this.localInstanceName = pod.getMetadata().getName();
 						} 		
 					} 
 				}

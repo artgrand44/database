@@ -111,10 +111,6 @@ public class DiscoveryHandler {
 		return this.localInstance;
 	}
 	
-	public String getLocalInstanceName() {
-		return this.plugin.getLocalInstanceName();
-	}
-	
 	public String getLocalPort() {
 		return this.plugin.getLocalPort();
 	}

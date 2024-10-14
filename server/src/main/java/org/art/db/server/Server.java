@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.commons.io.IOUtils;
+import org.art.db.common.ApplicationContext;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.InstanceRecoveringException;
@@ -63,7 +64,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 		this.handler =  new DiscoveryHandler(info, true);
 		this.port = Integer.valueOf(this.handler.getLocalPort());
 				
-		logger.info("start server on " + port + " process " + ProcessHandle.current().pid() + " " + handler.getLocalInstanceName());
+		logger.info("start server on " + port + " process " + ProcessHandle.current().pid() + " app = " + ApplicationContext.getInstance());
 		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);

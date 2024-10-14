@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.client.ClientArgs;
@@ -20,7 +19,6 @@ import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.InstanceRecoveringException;
-import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;

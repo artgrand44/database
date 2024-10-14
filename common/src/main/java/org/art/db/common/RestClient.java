@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,20 +36,10 @@ public class RestClient {
 	private String password;
 	private Duration timeout = DEFAULT_TIMEOUT;
 	
-	private final static String clientName;
+	private final static String clientName = ApplicationContext.getInstance().getAppName();
 	
 	public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3000);
 		
-	static {
-		try {
-			String client = System.getenv("org.art.db.client");
-			
-			clientName = StringUtils.isEmpty(client) ? System.getProperty("org.art.db.client", "Unknown") : client;
-		} catch (Exception exc) {
-			throw new IllegalStateException(exc);
-		}			
-	}
-	
 	public RestClient() {
 		
 	}

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import org.art.db.common.ApplicationContext;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.storage.MetricsPublisher;
@@ -37,7 +38,7 @@ public class LocalModel implements MetricsPublisher {
 			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 			this.database = handler.getLocalDatabase();
 			this.shard =  handler.getLocalShard();
-			this.server = handler.getLocalInstanceName();
+			this.server = ApplicationContext.getInstance().getInstanceName();
 			this.serverStats = new ServerStats(info.getDatabase(), info.getShard(), this.server);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
