@@ -2,7 +2,6 @@ package org.art.db.common;
 
 import java.io.File;
 import java.net.ConnectException;
-import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -24,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,13 +37,15 @@ public class RestClient {
 	private String password;
 	private Duration timeout = DEFAULT_TIMEOUT;
 	
-	private final static String localHost;
+	private final static String clientName;
 	
 	public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3000);
 		
 	static {
 		try {
-			localHost = InetAddress.getLocalHost().getHostAddress();
+			String client = System.getenv("org.art.db.client");
+			
+			clientName = StringUtils.isEmpty(client) ? System.getProperty("org.art.db.client", "Unknown") : client;
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}			
@@ -119,7 +121,7 @@ public class RestClient {
 				.header("Content-Type", "application/json")
 				.header("accept", "application/json")
 				.header("Accept-Encoding", "gzip")
-				.header("Client", localHost)
+				.header("Client", clientName)
 				.timeout(this.timeout)
 				.version(HttpClient.Version.HTTP_2);
 		
@@ -214,7 +216,7 @@ public class RestClient {
 					.header("Content-Type", "application/json")
 					.header("accept", "application/json")
 					.header("Accept-Encoding", "gzip")
-					.header("Client", localHost)
+					.header("Client", clientName)
 					.timeout(this.timeout)
 					.version(HttpClient.Version.HTTP_2);
 
