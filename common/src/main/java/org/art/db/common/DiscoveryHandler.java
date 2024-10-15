@@ -65,7 +65,20 @@ public class DiscoveryHandler {
 		
 		// Create the plugin, initialize it, and wait while it discovers the other instances.
 			
-		this.plugin = new HeartbeatPlugin();	
+		DiscoveryPlugin plugin;
+		
+		if (KubernetesPlugin.isKubernetes() && isServer) {
+			plugin = new KubernetesPlugin(System.getenv("database"));
+		} else if (KubernetesPlugin.isKubernetes()) {
+			plugin = new KubernetesPlugin(config.getDatabase());
+		} else if (isServer || config.getHost() == null || config.getHost().equals(InetAddress.getLocalHost().getHostAddress())) {
+			plugin = new HeartbeatPlugin();
+		} else {
+			plugin = new SingletonDiscoveryPlugin(config.toURI());
+		}
+				
+		this.plugin = plugin;
+			
 		this.plugin.initialize(config, isServer);
 		
 		Utils.sleepSafely(300);

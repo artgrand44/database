@@ -81,7 +81,7 @@ public class UITest extends BaseIntegrationTest {
 				//logger.info(html);
 				
 				logger.info("sleep");
-				Thread.sleep(1000 * 60 * 3);
+				//Thread.sleep(1000 * 60 * 3);
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Throwable exc) {
