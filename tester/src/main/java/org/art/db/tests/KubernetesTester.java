@@ -25,7 +25,7 @@ public class KubernetesTester {
 	private static int totalErrors = 0;
 	private static List<String> messages = new ArrayList<>();
 	
-	private static final int NLOOPS = 1;
+	private static final int NLOOPS = 20;
 	
 	
 	public static void main(String[] args) {

@@ -20,6 +20,7 @@ public abstract class TestAdapter {
 	public static TestAdapter getInstance() {
 		return instance;
 	}
+	
 	public static void setInstance(TestAdapter instance) {
 		TestAdapter.instance = instance;
 	}
