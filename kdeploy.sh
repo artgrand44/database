@@ -115,14 +115,17 @@ diskname="$database""-""$shard"
 backupname="${diskname}""-back" 
 sed -e s/"volumname"/"$diskname"/g  -e  s/"volumesize"/"$size"/g -e  s/"thelabel"/"$label"/g -e  s/"backupname"/"$backupname"/g volume.yaml >customvolume.yaml
 sed -e s/"servicename"/"$service"/g  -e  s/"shardname"/"$shard"/g -e s/"databasename"/"$database"/g -e s/"reps"/"${replicas}"/g -e s/"volumname"/"$diskname"/g -e s/"theint"/"$theint"/g -e s/"maxbackup"/"$maxbackup"/g  sample.yaml > custom.yaml
+sed -e s/"databasename"/"$database"/g  sampleconfig.yaml > customconfig.yaml
 
 echo ""
 echo "Starting build..."
 
 
 mvn clean install  -DskipTests=true -q
-kubectl delete deployment.apps/${service} service/${service} service/my-service
+kubectl delete deployment.apps/${service} service/${service} service/my-service 
+kubectl delete configmap ${database}
 kubectl apply -f roles.yaml
 kubectl apply -f customvolume.yaml
+kubectl apply -f customconfig.yaml
 kubectl create -f custom.yaml
 kubectl expose deployment ${service} --type=LoadBalancer --name=${service}   

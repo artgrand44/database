@@ -144,7 +144,7 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	public void initialize(ConnectionInfo info, boolean isServer) {
 		
 		try {
-						
+			
 	        // Spin until we are able to find the instances and the local port, shard, and instance.
 	        
 	        Map<URI, String> instances = new HashMap<>();

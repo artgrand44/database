@@ -8,8 +8,12 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
+import org.art.db.common.KubernetesPlugin;
+import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +34,8 @@ public class Environment {
 				   "org.art.db.backupmax",      "2",
 				   "org.art.db.queueRecovery",  "3");
 
+	private final static File KUBERNETES_CONFIG_FILE = new File("/config/db.properties");
+	
 	private final static Environment instance = new Environment();
 	
 	public String source;
@@ -38,6 +44,7 @@ public class Environment {
 	
 	private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 	
+	
 	private Environment() {
 		for (String prop : defaults.keySet()) {
 			String value = System.getenv(prop);
@@ -45,6 +52,10 @@ public class Environment {
 			if (value != null && !value.isBlank()) {
 				this.properties.put(prop, value);
 			}
+		}
+		
+		if (KubernetesPlugin.isKubernetes() && KUBERNETES_CONFIG_FILE.exists()) {
+			Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.checkConfigMap(), 0, 5, TimeUnit.MINUTES);
 		}
 		
 	}
@@ -61,6 +72,25 @@ public class Environment {
 		
     }
 	
+	private void checkConfigMap() {
+
+		Properties props = new Properties();
+
+		try (InputStream stream = new FileInputStream(KUBERNETES_CONFIG_FILE)) {
+			props.load(stream);
+
+			for (String prop : defaults.keySet()) {
+				String value = props.getProperty(prop);
+
+				if (value != null) {
+					this.setProperty(prop, value);
+				}
+			}
+		} catch (Exception exc) {
+			logger.info("There was an error reading KUBERNETES_CONFIG_FILE " + exc.getMessage());
+		}
+
+	}
 	
 	public String getDefault(String key) {
 		return defaults.get(key);
@@ -128,7 +158,9 @@ public class Environment {
 	public void setProperty(String name, String value) {
 		String oldValue = this.properties.put(name, value);
 		
-		this.pcs.firePropertyChange(name, oldValue, value);
+		if (!Objects.equals(value, oldValue)) {
+			this.pcs.firePropertyChange(name, oldValue, value);
+		}
 	}
 
 	public static Environment getInstance() {

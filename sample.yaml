@@ -46,8 +46,17 @@ spec:
               mountPath: /data/files
             - name: databasename
               mountPath: /discovery
+            - name: config
+              mountPath: "/config"
+              readOnly: true
         ports:
         - containerPort: 8080
       volumes:
         - name: volumname
         - name: databasename
+        - name: config
+          configMap:
+            name: databasename
+            items:
+              - key: "db.properties"
+                path: "db.properties"

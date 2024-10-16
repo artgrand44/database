@@ -42,7 +42,17 @@ spec:
         volumeMounts:
             - name: db2-shard1
               mountPath: /data/files
+            - name: config
+              mountPath: "/config"
+              readOnly: true
         ports:
         - containerPort: 8080
       volumes:
         - name: db2-shard1
+        - name: config
+          configMap:
+            name: cluster
+            items:
+              - key: "db.properties"
+                path: "db.properties"
+        

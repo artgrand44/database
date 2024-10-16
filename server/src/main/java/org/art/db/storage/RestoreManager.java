@@ -334,7 +334,8 @@ public class RestoreManager {
 			
 			String name;
 			
-			logger.info("getting files");
+			logger.info("getting files from " + peer);
+			
 			while ((name = this.getNextFile(peer, tableName, ".seg", timestamp)) != null) {
 				File localFile = new File(Files.getTableDirectory(tableName), name);
 				DiskSegment segment = new DiskSegment(localFile);

@@ -19,6 +19,7 @@ import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -29,6 +30,7 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
+import io.fabric8.kubernetes.client.dsl.NonDeletingOperation;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 import io.fabric8.kubernetes.client.utils.Serialization;
 
@@ -115,11 +117,17 @@ public class KubernetestAdapter extends TestAdapter {
 	private Server start(String profile) {
 		try {
 			
+			// Make sure that the config map exists
+			
+			String configYaml = this.getResourceAsString("customconfig.yaml");
+			ConfigMap config =  Serialization.unmarshal(configYaml, ConfigMap.class);
+			
+			client.configMaps().inNamespace("default").resource(config).unlock().createOr(NonDeletingOperation::update);
+			
 			// Read the yaml template then set the application name to the name of the profile
 			
-			
-			String yaml = this.getResourceAsString("custom.yaml");
-			Deployment deployment = Serialization.unmarshal(yaml, Deployment.class);
+			String deployYaml = this.getResourceAsString("custom.yaml");
+			Deployment deployment = Serialization.unmarshal(deployYaml, Deployment.class);
 			
 			String name = new File(profile).getName();
 			int dot = name.lastIndexOf('.');
