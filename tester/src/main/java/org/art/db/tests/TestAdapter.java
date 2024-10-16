@@ -15,6 +15,8 @@ public abstract class TestAdapter {
 	public abstract URI getPrimaryURI();
 	public abstract URI getSecondardURI();
 	
+	public void killAll() {}
+	
 	private static TestAdapter instance;
 	
 	public static TestAdapter getInstance() {

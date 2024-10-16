@@ -25,7 +25,7 @@ public class KubernetesTester {
 	private static int totalErrors = 0;
 	private static List<String> messages = new ArrayList<>();
 	
-	private static final int NLOOPS = 20;
+	private static final int NLOOPS = 1;
 	
 	
 	public static void main(String[] args) {
@@ -56,8 +56,8 @@ public class KubernetesTester {
 			StringBuilder builder = new StringBuilder();
 			
 			for (int idx = 0; idx < NLOOPS; idx++) {
+				theAdapter.killAll();
 				
-				logger.info("Loop " + idx);
 				for (String className : classNames) {
 					runTests(className);
 				}

@@ -103,6 +103,23 @@ public class KubernetestAdapter extends TestAdapter {
 		return this.secondary != null ? "no seondart" : this.getLog(this.secondary); 
 	}
 	
+	public void killAll() {
+		try {
+			for (Deployment deployment : client.apps().deployments().inNamespace("default").list().getItems()) {
+				if (deployment.getMetadata().getName().startsWith("test-")) {
+					client.apps().deployments().inNamespace("default").resource(deployment).delete();
+				} 
+			}
+
+			for (Service service : client.services().inNamespace("default").list().getItems()) {
+				if (service.getMetadata().getName().startsWith("test-")) {
+					client.services().inNamespace("default").resource(service).delete();
+				}
+			}
+		} catch (Exception exc) {
+			logger.info("kill exception " + exc.getMessage());
+		}
+	}
 	private void setEnvironment(List<EnvVar> list, String name, String value) {
 		for (EnvVar var : list) {
 			if (var.getName().equals(name)) {
@@ -133,7 +150,7 @@ public class KubernetestAdapter extends TestAdapter {
 			int dot = name.lastIndexOf('.');
 			String shortName = name.substring(0,  dot);
 						
-			deployment.getMetadata().setName(shortName);
+			deployment.getMetadata().setName("test-" + shortName);
 			deployment.getSpec().getSelector().getMatchLabels().put("appname", shortName);
 			deployment.getSpec().getTemplate().getMetadata().getLabels().put("appname", shortName);
 						
@@ -152,7 +169,7 @@ public class KubernetestAdapter extends TestAdapter {
 			}			
 			
 			Service service = new ServiceBuilder()
-		            .withNewMetadata().withName(shortName).addToLabels("app", shortName).endMetadata()
+		            .withNewMetadata().withName("test-" + shortName).addToLabels("app", shortName).endMetadata()
 		            .withNewSpec()
 		            .addNewPort()
 		            .withName("http")
