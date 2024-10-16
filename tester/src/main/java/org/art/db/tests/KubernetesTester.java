@@ -25,6 +25,8 @@ public class KubernetesTester {
 	private static int totalErrors = 0;
 	private static List<String> messages = new ArrayList<>();
 	
+	private static final int NLOOPS = 1;
+	
 	
 	public static void main(String[] args) {
 		logger.info("*** in main");
@@ -51,20 +53,26 @@ public class KubernetesTester {
 
 			Collections.sort(classNames);
 
-			for (String className : classNames) {
-				runTests(className);
-			}
-
 			StringBuilder builder = new StringBuilder();
 			
-			builder.append("\nTotal tests: " + totalTests + " Total Errors: " + totalErrors);
-			
-			if (!messages.isEmpty()) {
-				builder.append("\nMesssages:\n");
+			for (int idx = 0; idx < NLOOPS; idx++) {
 				
-				for (String message : messages) {
-					builder.append("    " + message + "\n");
+				logger.info("Loop " + idx);
+				for (String className : classNames) {
+					runTests(className);
 				}
+
+				builder.append("\nTotal tests: " + totalTests + " Total Errors: " + totalErrors);
+
+				if (!messages.isEmpty()) {
+					builder.append("\nMesssages:\n");
+
+					for (String message : messages) {
+						builder.append("    " + message + "\n");
+					}
+					
+					break;
+				}				
 			}
 			
 			return builder.toString();
