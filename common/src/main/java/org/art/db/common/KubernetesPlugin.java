@@ -31,6 +31,8 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	private AtomicBoolean loading = new AtomicBoolean();
 	private long ttl;
 	
+	private static String appName;
+	
 	
 	public KubernetesPlugin(String database) {
 		try {
@@ -42,6 +44,36 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 			exc.printStackTrace();
 			throw new DBRuntimeException(exc);
 		}		
+	}
+	
+	public static String getAppName() {
+		if (appName == null) {
+			try {
+				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
+				KubernetesClient client = new KubernetesClientBuilder().build();
+				PodList podList =  client.pods().inNamespace("default").list();
+
+				for (Pod pod : podList.getItems()) {
+					String podIp = pod.getStatus().getPodIP();
+					String phase = pod.getStatus().getPhase();					
+
+					if (phase.equals("Running") && podIp != null && podIp.equals(localHostAddress)) {
+						String[] tokens = pod.getMetadata().getName().split("-");
+
+						if (tokens.length == 3) {
+							appName = tokens[0];
+						}
+					} 
+				}
+
+			} catch (Exception exc) {
+				logger.info("Error getting appname " + exc.getLocalizedMessage());
+				appName = "Unknown";
+			}
+		}
+		
+		return appName;
+
 	}
 	
 	@Override
