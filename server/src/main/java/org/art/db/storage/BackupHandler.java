@@ -1,17 +1,16 @@
 package org.art.db.storage;
 
 import java.io.File;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileLock;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.art.db.common.DBRuntimeException;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,19 +24,18 @@ public class BackupHandler {
 	
 	private final static BackupHandler instance = new BackupHandler();
 	
-	private final RandomAccessFile lockFile;
 	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 	
+	private static final long ONE_DAY = 1000 * 60 * 60 * 24;
+	
 	private BackupHandler() {
-		try {
-			this.lockFile =  new RandomAccessFile(Files.getLockFile("_backup"), "rw");;
-		} catch (Exception exc) {
-			throw new DBRuntimeException("Error creatinng lock file", exc);
-		}
+	
 	}
 	
 	public void backup() {
-		FileLock lock = null;
+		
+		// Get the property for the backup root.  If the root is not specified
+		// then assume that backups are disabled.
 		
 		String root = Environment.getInstance().getProperty("org.art.db.backuproot");
 		
@@ -45,43 +43,39 @@ public class BackupHandler {
 			return;
 		}
 		
+		// Generate a directory name for this backup using the form xxx-yyy where xxx is the
+		// system time in millis and and yyy is the host name.
+		
+		File rootFile = new File(root);
+		File backupDir  = this.getBackupDirectory(rootFile);
+		
+		// Use the directory name to see if we have already started a backup on another instance.
+		// This prevents us from doing two backups at the same time (and thus putting two nodes
+		// out of commission at the same time).
+		
+		if (this.alreadyBackedupToday(backupDir)) {
+			logger.info("Already backed up");
+			return;
+		}
+		
 		try {
-			lock = this.lockFile.getChannel().tryLock(0, Long.MAX_VALUE, false);
-
 			this.lock.writeLock().lock();
 			
-			if (lock != null) {
-				File rootFile = new File(root);
-				File backupDir = new File(rootFile, String.valueOf(System.currentTimeMillis()));
-				
-				rootFile.mkdirs();
-				
-				this.deleteOldBackups(rootFile);
-				
-				backupDir.mkdir();
-				
-				logger.info("Backing up to " + backupDir.getAbsolutePath());
-				
-				this.backupFile(Files.getSecurity(), backupDir);
-				
-				for (String table : Files.listTables()) {
-					this.backupTable(table, backupDir);
-				}
+			rootFile.mkdirs();
+			this.deleteOldBackups(rootFile);
+
+			this.backupFile(Files.getSecurity(), backupDir);
+
+			for (String table : Files.listTables()) {
+				this.backupTable(table, backupDir);
 			}
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			logger.info("Backup exception " + exc.getMessage());
 		} finally {
 			this.lock.writeLock().unlock();
-			
-			if (lock != null) {
-				try {
-					lock.release();
-				} catch (Exception exc) {
-					logger.info("Error releasing lock " + exc.getMessage());
-				}
-			}
 		}
+		
 	}
 	
 	private void backupTable(String table, File root) throws Exception  {
@@ -143,6 +137,7 @@ public class BackupHandler {
 		}
 		
 	}
+	
 	public void endUpdate() {
 		this.lock.readLock().unlock();		
 	}
@@ -151,9 +146,74 @@ public class BackupHandler {
 		return instance;
 	}
 	
+	private File getBackupDirectory(File rootFile) {
+		long start = System.currentTimeMillis();
+		String instance = DiscoveryHandler.getServerInstance().getLocalInstance().toString();
+		
+		File backupDir = new File(rootFile, String.valueOf(start) + "_" + instance);
+
+		backupDir.mkdir();
+		
+		return backupDir;
+	}
+	
+	private long getTimeFromFileName(String file) {
+		String[] tokens = file.split("_");
+		
+		return tokens.length == 2 ? Long.parseLong(tokens[0]) : 0;
+	}
+	
+	private String getInstanceFromFileName(String file) {
+		String[] tokens = file.split("_");
+		
+		return tokens.length == 2 ? tokens[1] : "";
+	}
+	
+	/**
+	 * See if we are the the database has already been backed up by another instance
+	 * @param backupDir
+	 * @return
+	 */
+	private boolean alreadyBackedupToday(File backupDir) {
+		long time = this.getTimeFromFileName(backupDir.getName());
+		Calendar calendar = new Calendar.Builder().setInstant(time).build();
+		String instance = this.getInstanceFromFileName(backupDir.getName());
+		File[] files = backupDir.getParentFile().listFiles(x -> !x.equals(backupDir));
+		
+		if (files != null) {
+			List<File> list = Arrays.asList(files);
+				
+			Collections.sort(list, (x, y) -> x.getName().compareTo(y.getName()));
+
+			for (File file : list) {
+				String name = file.getName();
+
+				try {
+					Calendar fileCalendar = new Calendar.Builder().setInstant(this.getTimeFromFileName(name)).build();
+					String fileInstance = getInstanceFromFileName(name);
+
+					if (calendar.get(Calendar.YEAR) == fileCalendar.get(Calendar.YEAR)  && calendar.get(Calendar.DAY_OF_YEAR) == fileCalendar.get(Calendar.DAY_OF_YEAR)) {
+						if (calendar.after(fileCalendar)) {
+							return true;
+						}
+
+						if (calendar.compareTo(fileCalendar) == 0 && instance.compareTo(fileInstance) > 0) {
+							return true;					
+						}
+					}
+
+				} catch (Exception exc) {
+
+				}
+
+			}
+		}
+		
+		return false;
+	}
 	
 	public void start() {
-		long interval = new Interval(Environment.getInstance().getPropertyWithDefault("org.art.db.backupinterval")).toMillis();
+		long interval = Math.max(ONE_DAY, new Interval(Environment.getInstance().getPropertyWithDefault("org.art.db.backupinterval")).toMillis());
 		
 		this.handler = Scheduler.DEFAULT.scheduleAtFixedRate(this::backup, interval, interval, TimeUnit.MILLISECONDS);
 	}
