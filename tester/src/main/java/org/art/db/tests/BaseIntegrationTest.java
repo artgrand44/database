@@ -1,5 +1,6 @@
 package org.art.db.tests;
 
+import org.art.db.client.dao.DAOCompiler;
 import org.art.db.common.DiscoveryHandler;
 
 import org.junit.jupiter.api.AfterEach;
@@ -18,6 +19,7 @@ public class BaseIntegrationTest  {
 		TestAdapter.getInstance().stopSecondary();
 		
 		DiscoveryHandler.clear();
+		DAOCompiler.getInstance().clear();
 		
 	}
 	

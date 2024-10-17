@@ -38,6 +38,9 @@ public class DAOCompiler {
 	
 	private static final DAOCompiler instance = new DAOCompiler();
 	
+	public void clear() {
+		this.delegates.clear();
+	}
 	@SuppressWarnings("unchecked")
 	private <TInterface, TEntity> TInterface compile(Client client, Class<TInterface> iface) throws Exception  {
 		
@@ -63,7 +66,7 @@ public class DAOCompiler {
 	}
 	
 	public <TInterface, TEntity> TInterface getDAO(Client client, Class<TInterface> clazz) throws Exception {
-		Object delegate = delegates.get(clazz);
+		Object delegate = this.delegates.get(clazz);
 		
 		if (delegate == null) {
 			TInterface dao = this.compile(client, clazz);
