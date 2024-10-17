@@ -111,13 +111,15 @@ public class KubernetesTester {
 
 			StringBuilder builder = new StringBuilder();
 			
-			builder.append("\n\n\n\n\nStarting test: " + clazz.getSimpleName());
+			builder.append("\n\n\n\n\nStarting class: " + clazz.getSimpleName());
 			builder.append("\n\n\n");
 			
 			logger.info(builder.toString());
 			
 			for (Method test : tests) {
 				totalTests++;
+				
+				logger.info("\nStart " + clazz.getSimpleName() + ":" + test.getName()+ "\n");
 				
 				try {
 					if (beforeEach != null) {
@@ -150,13 +152,18 @@ public class KubernetesTester {
 						}
 					}
 					
-					builder.append("\n\n\n\n\nEnd      test: " + clazz.getSimpleName());
-					builder.append("\nTotal tests:   " + totalTests + " Total Errors: " + totalErrors);
-					builder.append("\n\n\n");
-					logger.info(builder.toString());
-					
 				}
+				
+				logger.info("\nEnd " + clazz.getSimpleName() + ":" + test.getName()+ "\n");
+				
 			}			
+			
+			builder.setLength(0);
+			builder.append("\n\n\n\n\nEnd      test: " + clazz.getSimpleName());
+			builder.append("\nTotal tests:   " + totalTests + " Total Errors: " + totalErrors);
+			builder.append("\n\n\n");
+			logger.info(builder.toString());
+			
 		} catch (Throwable thr1) {
 			thr1.printStackTrace();
 		}
