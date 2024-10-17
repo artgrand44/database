@@ -110,7 +110,7 @@ public class RestClient {
 				.header("Content-Type", "application/json")
 				.header("accept", "application/json")
 				.header("Accept-Encoding", "gzip")
-				.header("Client", clientName == null ? "Unknown" : clientName)
+				.header("Client", clientName)
 				.timeout(this.timeout)
 				.version(HttpClient.Version.HTTP_2);
 		
@@ -205,7 +205,7 @@ public class RestClient {
 					.header("Content-Type", "application/json")
 					.header("accept", "application/json")
 					.header("Accept-Encoding", "gzip")
-					.header("Client", clientName == null ? "Unknown" : clientName)
+					.header("Client", clientName)
 					.timeout(this.timeout)
 					.version(HttpClient.Version.HTTP_2);
 

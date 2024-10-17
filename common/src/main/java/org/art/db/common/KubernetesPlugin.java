@@ -49,6 +49,8 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 	public static String getAppName() {
 		if (appName == null) {
 			try {
+				appName = "Unknown";
+				
 				String localHostAddress =  InetAddress.getLocalHost().getHostAddress();
 				KubernetesClient client = new KubernetesClientBuilder().build();
 				PodList podList =  client.pods().inNamespace("default").list();
@@ -65,10 +67,8 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 						}
 					} 
 				}
-
 			} catch (Exception exc) {
 				logger.info("Error getting appname " + exc.getLocalizedMessage());
-				appName = "Unknown";
 			}
 		}
 		
