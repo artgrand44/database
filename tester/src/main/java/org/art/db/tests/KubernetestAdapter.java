@@ -184,13 +184,9 @@ public class KubernetestAdapter extends TestAdapter {
 			client.apps().deployments().inNamespace("default").resource(deployment).delete();
 			client.services().inNamespace("default").resource(service).delete();
 			
-			logger.info("completed deletes");
-			
 			while (!client.pods().inNamespace("default").withLabel("appname=" + shortName).list().getItems().isEmpty()) {
 				Utils.sleepSafely(1000);
 			}
-			
-			logger.info("starting creates");
 			
 			this.client.apps().deployments().inNamespace("default").resource(deployment).create();
 			this.client.services().inNamespace("default").resource(service).create();
@@ -200,8 +196,6 @@ public class KubernetestAdapter extends TestAdapter {
 		    
 		    for (int idx = 0; idx < 100; idx++) {
 		    	PodList podList = client.pods().inNamespace("default").withLabel("appname=" + shortName).list();
-		    	
-		    	logger.info("total pods " + podList.getItems().size());
 		    	
 		    	for (Pod pod : podList.getItems()) {
 		    		if (pod.getStatus().getPhase().equals("Running") &&  pod.getStatus().getPodIP() != null) {
@@ -216,8 +210,7 @@ public class KubernetestAdapter extends TestAdapter {
 		    	} else {
 		    		String database = deployment.getMetadata().getLabels().get("database");
 					
-		    		logger.info("adapter found " + String.join(",", names));
-					return new Server(profile, shortName, database, deployment, service, uris, uris.get(0));
+		    		return new Server(profile, shortName, database, deployment, service, uris, uris.get(0));
 		    	}
 		    }
 		    
