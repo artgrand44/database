@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 public class Environment {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Environment.class);
 
 

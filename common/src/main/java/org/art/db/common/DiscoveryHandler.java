@@ -43,6 +43,8 @@ public class DiscoveryHandler {
 	
 	private final String localDatabase;
 	
+	private final String localShard;
+	
 	public String getLocalDatabase() {
 		return localDatabase;
 	}
@@ -83,9 +85,10 @@ public class DiscoveryHandler {
 		
 		Utils.sleepSafely(300);
 		
-		this.port = this.plugin.getLocalPort();
-		this.localDatabase = this.plugin.getDatabase();
-		this.localInstance = this.plugin.getLocalInstance();
+		this.port = config.getPort();
+		this.localDatabase = config.getDatabase();
+		this.localShard = config.getShard();
+		this.localInstance = config.toURI();
 			
 		if (isServer) {
 			serverInstance = this;
@@ -125,7 +128,7 @@ public class DiscoveryHandler {
 	}
 	
 	public String getLocalPort() {
-		return this.plugin.getLocalPort();
+		return this.port;
 	}
 
 	
@@ -156,7 +159,7 @@ public class DiscoveryHandler {
 	}
 	
 	public String getLocalShard() {
-		String shard = this.plugin.getLocalShard();
+		String shard = this.localShard;
 		
 		if (shard == null || shard.isEmpty()) {
 			new Exception().printStackTrace();
@@ -383,7 +386,7 @@ public class DiscoveryHandler {
 		
 		while (this.getInstanceCount(this.instances.get()) < desiredCount) {
 			if (totalTime >= timeout) {
-				throw new Exception("Unable to find services on " + this.plugin.getLocalPort() + " timeout " + timeout);
+				throw new Exception("Unable to find services on " + this.port + " timeout " + timeout);
 			}
 			
 			Utils.sleepSafely(Math.min(timeout, 1000));
@@ -415,24 +418,6 @@ public class DiscoveryHandler {
 		public void stop() {
 		}
 
-		@Override
-		public String getLocalPort() {
-			return "8080";
-		}
-		
-		public String getLocalShard() {
-			return "shard1";			
-		}
-
-		@Override
-		public String getDatabase() {
-			return "none";
-		}
-
-		@Override
-		public URI getLocalInstance() {
-			return this.localURI;
-		}
 
 		public String getLocalInstanceName() {
 			return this.localURI.getHost();

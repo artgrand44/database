@@ -76,18 +76,10 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 
 	}
 	
-	@Override
-	public String getDatabase() {
-		return this.database;
-	}
 	public String getLocalPort() { 
 		return this.localPort;
 	}
 	
-	@Override
-	public URI getLocalInstance() {
-		return this.localInstance;
-	}
 	
 	public String getLocalShard() {
 		return this.localShard;			

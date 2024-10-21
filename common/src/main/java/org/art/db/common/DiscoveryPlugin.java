@@ -11,14 +11,6 @@ public interface DiscoveryPlugin {
 		
 	public void start();
 	
-	public String getLocalPort();
-	
-	public String getLocalShard();
-	
-	public String getDatabase();
-	
-	public URI getLocalInstance();
-	
 	public default void poll() { }
 	
 	void initialize(ConnectionInfo config, boolean isServer);

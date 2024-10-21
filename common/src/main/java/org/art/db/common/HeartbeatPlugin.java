@@ -16,11 +16,6 @@ public class HeartbeatPlugin implements DiscoveryPlugin {
 	
 	private HeartbeatListener listener;
 	
-	private String localPort;
-	private String localShard;
-	private String localDatabase;
-	private URI localInstance;
-	
 	public HeartbeatPlugin() {
 		
 	}
@@ -36,30 +31,10 @@ public class HeartbeatPlugin implements DiscoveryPlugin {
 	}
 
 
-	@Override
-	public String getDatabase() {
-		return this.localDatabase;
-	}
 	
-	@Override
-	public URI getLocalInstance() {
-		return this.localInstance;
-	}
-	
-	public String getLocalPort() {
-		return this.localPort;
-	}
-	
-	public String getLocalShard() {
-		return this.localShard;
-	}
 	
 	public void initialize(ConnectionInfo info, boolean isServer) { 
 		this.listener = new HeartbeatListener(this.publisher, info.getDatabase(), info.toURI());
-		this.localPort = info.getPort();
-		this.localShard = info.getShard();
-		this.localDatabase = info.getDatabase();
-		this.localInstance = info.toURI();
 		
 		this.listener.intialize();
 		this.listener.start();
