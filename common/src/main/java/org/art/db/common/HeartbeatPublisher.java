@@ -24,6 +24,8 @@ public class HeartbeatPublisher {
 	
 	private static final ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("StandAloneDiscovery", 3);
 	
+	public static final int PUBLISH_INTERVAL = 20;
+	
 	private DatagramSocket sendSocket;
 	private InetAddress group;
 	private ScheduledFuture<?> publisher;
@@ -53,7 +55,7 @@ public class HeartbeatPublisher {
 
 			Utils.sleepSafely(5000);
 			
-			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
+			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, PUBLISH_INTERVAL, TimeUnit.SECONDS);
 		} catch (Exception exc) {
 			
 		}

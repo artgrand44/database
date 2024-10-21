@@ -52,12 +52,28 @@ public class AddShardTest extends BaseIntegrationTest {
 			}
 
 			TestAdapter.getInstance().startSecondary("./cluster2.properties");
+			Client shard1Client = TestAdapter.getInstance().getPrimaryClient("admin", "admin").batch(false);
 			Client shard2Client = TestAdapter.getInstance().getSecondaryClient("admin", "admin").batch(false);
 			boolean started = false;
+			
 			
 			for (int idx = 0; idx < 100; idx++) {
 				try {
 					shard2Client.waitServerCount(2);
+					started = true;
+				} catch(Exception exc) {
+					Utils.sleepSafely(10000);
+				}
+			}
+			
+			Assertions.assertThat(started).isTrue();
+			
+			started = false;
+			
+			
+			for (int idx = 0; idx < 100; idx++) {
+				try {
+					shard1Client.waitServerCount(2);
 					started = true;
 				} catch(Exception exc) {
 					Utils.sleepSafely(10000);

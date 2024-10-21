@@ -68,9 +68,9 @@ public class DiscoveryHandler {
 		DiscoveryPlugin plugin;
 		
 		if (KubernetesPlugin.isKubernetes() && isServer) {
-			plugin = new KubernetesPlugin(System.getenv("database"));
+			plugin = new HeartbeatPlugin();
 		} else if (KubernetesPlugin.isKubernetes()) {
-			plugin = new KubernetesPlugin(config.getDatabase());
+			plugin = new HeartbeatPlugin();
 		} else if (isServer || config.getHost() == null || config.getHost().equals(InetAddress.getLocalHost().getHostAddress())) {
 			plugin = new HeartbeatPlugin();
 		} else {

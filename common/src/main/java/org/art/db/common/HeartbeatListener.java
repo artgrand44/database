@@ -91,6 +91,7 @@ public class HeartbeatListener {
 			this.poller.setDaemon(true);
 			
 			this.poller.start();
+			Utils.sleepSafely(20000);
 		} catch (Exception exc) {
 			
 		}
