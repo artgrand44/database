@@ -22,6 +22,8 @@ public class HeartbeatPublisher {
 	
 	private static final Logger logger = LoggerFactory.getLogger(HeartbeatPublisher.class);
 	
+	public static final int PING_SECONDS = 10;
+	
 	private static final ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("StandAloneDiscovery", 3);
 	
 	private DatagramSocket sendSocket;
@@ -53,7 +55,7 @@ public class HeartbeatPublisher {
 
 			Utils.sleepSafely(5000);
 			
-			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 10, TimeUnit.SECONDS);
+			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, PING_SECONDS, TimeUnit.SECONDS);
 		} catch (Exception exc) {
 			
 		}

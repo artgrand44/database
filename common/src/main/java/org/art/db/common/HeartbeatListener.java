@@ -91,7 +91,7 @@ public class HeartbeatListener {
 			this.poller.setDaemon(true);
 			
 			this.poller.start();
-			Utils.sleepSafely(20000);
+			Utils.sleepSafely(2 * HeartbeatPublisher.PING_SECONDS * 1000);
 		} catch (Exception exc) {
 			
 		}
