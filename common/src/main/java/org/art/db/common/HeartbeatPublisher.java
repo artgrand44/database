@@ -53,7 +53,7 @@ public class HeartbeatPublisher {
 
 			Utils.sleepSafely(5000);
 			
-			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 20, TimeUnit.SECONDS);
+			this.publisher = SCHEDULER.scheduleAtFixedRate(this::publish, 1, 10, TimeUnit.SECONDS);
 		} catch (Exception exc) {
 			
 		}
