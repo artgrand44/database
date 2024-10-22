@@ -27,8 +27,14 @@ public class ConnectionInfo {
 		this.shard = shard;	
 	}
 
-	public ConnectionInfo(String propertyPath) throws Exception {
+	public static ConnectionInfo fromKubernetes() throws Exception {
+		String database = getenv("org.art.db.database", "cluster");
+		String shard = getenv("org.art.db.shard",  "shard");
 		
+		return new ConnectionInfo(InetAddress.getLocalHost().getHostAddress(), "8080", shard, database);
+	}
+	
+	public static ConnectionInfo fromProperties(String propertyPath) throws Exception {
 		File file = new File(propertyPath);
 		
 		try (InputStream stream = file.isAbsolute() ? new FileInputStream(file) : ConnectionInfo.class.getClassLoader().getResourceAsStream(propertyPath)) {
@@ -38,14 +44,24 @@ public class ConnectionInfo {
 			
 			String host = properties.getProperty("org.art.db.host", "localhost");
 			
-			this.host = host.contains("localhost") ? InetAddress.getLocalHost().getHostAddress() : host;
-			this.port = properties.getProperty("org.art.db.port", "8080");
-			this.database = properties.getProperty("org.art.db.database", "cluster");
-			this.shard = properties.getProperty("org.art.db.shard",  "shard");
-		}
-	}
+			String port = properties.getProperty("org.art.db.port", "8080");
+			String database = properties.getProperty("org.art.db.database", "cluster");
+			String shard = properties.getProperty("org.art.db.shard",  "shard");
 			
+			if (host.contains("localhost")) {
+				host = InetAddress.getLocalHost().getHostAddress(); 
+			}
+			
+			return new ConnectionInfo(host, port, shard, database);
+		}
+				
+	}
 	
+	private static String getenv(String name, String dflt) {
+		String value = System.getenv(name);
+		
+		return value == null ? dflt : value;
+	}
 	public String getHost() {
 		return host;
 	}

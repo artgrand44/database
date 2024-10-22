@@ -233,9 +233,11 @@ public class KubernetestAdapter extends TestAdapter {
 	@Override
 	public synchronized  URI startSecondary(String profile) {
 		if (this.primary != null && this.primary.profile.equals(profile)) {
+			logger.info("primary and secondary have same profiles");
 			this.secondary = new Server(this.primary, this.primary.uris.get(1));
 		} else {
 			this.secondary = start(profile);
+			logger.info("started secondary " + this.secondary.uri);
 		}
 		
 		return this.secondary.uri;

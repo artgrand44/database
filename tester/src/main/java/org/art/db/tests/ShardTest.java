@@ -36,15 +36,15 @@ public class ShardTest extends BaseIntegrationTest {
 				TestAdapter.getInstance().startSecondary("./cluster2.properties");
 				
 				
-				Client averlongshardnameClient = TestAdapter.getInstance().getPrimaryClient("admin", "admin").batch(false);
-				Client shard2Client = TestAdapter.getInstance().getSecondaryClient("admin", "admin").batch(false);
+				Client primaryClient = TestAdapter.getInstance().getPrimaryClient("admin", "admin").batch(false);
+				Client secondaryClient = TestAdapter.getInstance().getSecondaryClient("admin", "admin").batch(false);
 				Client clusterClient = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 				
-				averlongshardnameClient.waitServerCount(2);
-				shard2Client.waitServerCount(2);
+				primaryClient.waitServerCount(2);
+				secondaryClient.waitServerCount(2);
 				
-				this.load(averlongshardnameClient);
-				this.load(shard2Client);
+				this.load(primaryClient);
+				this.load(secondaryClient);
 				
 				logger.info("after loads");
 				
@@ -62,12 +62,14 @@ public class ShardTest extends BaseIntegrationTest {
 					
 					String shard = handler.getShard(key.toString());
 					
+					logger.info("insert into primary" + keyValue + " shard = "  + shard);
+					
 					String theInsert = String.format(insertTemplare, keyValue);
 					
-					averlongshardnameClient.execute(theInsert);
+					primaryClient.execute(theInsert);
 					
-					Client expected = shard.equals("averlongshardname") ? averlongshardnameClient : shard2Client;
-					Client other = shard.equals("averlongshardname") ? shard2Client : averlongshardnameClient;
+					Client expected = shard.equals("averlongshardname") ? primaryClient : secondaryClient;
+					Client other = shard.equals("averlongshardname") ? secondaryClient : primaryClient;
 					String query = String.format(queryTemplate, keyValue);
 					
 					DocumentSet set = expected.executeQuery(query);

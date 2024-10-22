@@ -12,8 +12,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-import org.art.db.common.KubernetesPlugin;
 import org.art.db.common.Scheduler;
+import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +53,7 @@ public class Environment {
 			}
 		}
 		
-		if (KubernetesPlugin.isKubernetes() && KUBERNETES_CONFIG_FILE.exists()) {
+		if (Utils.isKubernetes() && KUBERNETES_CONFIG_FILE.exists()) {
 			Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.checkConfigMap(), 0, 5, TimeUnit.MINUTES);
 		}
 		

@@ -24,4 +24,8 @@ public class Utils {
 		} catch (Exception exc) {
 		}
 	}
+	
+	public static boolean isKubernetes() {
+		return "kubernetes".equalsIgnoreCase(System.getenv("cloud")) || System.getenv("KUBERNETES_PORT") != null;
+	}
 }

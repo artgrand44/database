@@ -20,6 +20,7 @@
 			<pattern>%d{HH:mm:ss.SSS}  %-5level %logger{16} - %msg%n</pattern>
 		</encoder>
 	</appender>
+	<statusListener class="ch.qos.logback.core.status.NopStatusListener" />
   <root level="info">
     <appender-ref ref="STDOUT" />
      <appender-ref ref="FILE" />

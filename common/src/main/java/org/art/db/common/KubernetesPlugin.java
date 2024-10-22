@@ -177,8 +177,6 @@ public class KubernetesPlugin implements DiscoveryPlugin {
 		this.client.close();		
 	}
 
-	public static boolean isKubernetes() {
-		return "kubernetes".equalsIgnoreCase(System.getenv("cloud")) || System.getenv("KUBERNETES_PORT") != null;
-	}	
+	
 
 }

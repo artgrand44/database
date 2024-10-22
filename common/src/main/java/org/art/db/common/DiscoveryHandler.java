@@ -65,21 +65,7 @@ public class DiscoveryHandler {
 	
 	public DiscoveryHandler(ConnectionInfo config, boolean isServer) throws Exception {
 		
-		// Create the plugin, initialize it, and wait while it discovers the other instances.
-			
-		DiscoveryPlugin plugin;
-		
-		if (KubernetesPlugin.isKubernetes() && isServer) {
-			plugin = new HeartbeatPlugin();
-		} else if (KubernetesPlugin.isKubernetes()) {
-			plugin = new HeartbeatPlugin();
-		} else if (isServer || config.getHost() == null || config.getHost().equals(InetAddress.getLocalHost().getHostAddress())) {
-			plugin = new HeartbeatPlugin();
-		} else {
-			plugin = new SingletonDiscoveryPlugin(config.toURI());
-		}
-				
-		this.plugin = plugin;
+		this.plugin = Utils.isKubernetes() || isServer || config.toURI() == null ? new HeartbeatPlugin() : new SingletonDiscoveryPlugin(config.toURI());
 			
 		this.plugin.initialize(config, isServer);
 		
@@ -94,6 +80,10 @@ public class DiscoveryHandler {
 			serverInstance = this;
 		}
 				
+		if (isServer) {
+			logger.info("Created " + getServerName() + " shard=" + localShard);
+		}
+		
 		this.loadEnvironment();
 		
 		this.poller = SCHEDULER.scheduleAtFixedRate(this::loadEnvironment, 1, 20, TimeUnit.SECONDS);

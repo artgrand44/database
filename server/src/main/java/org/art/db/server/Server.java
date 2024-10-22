@@ -17,6 +17,7 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.InstanceRecoveringException;
 import org.art.db.common.RestException;
 import org.art.db.common.RollingAverage;
+import org.art.db.common.Utils;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
 import org.art.db.storage.BackupHandler;
@@ -59,8 +60,9 @@ public class Server implements HttpHandler, FullBytesCallback {
 	private static Server instance;
 	
 	public Server(String properties) throws Exception {
-		ConnectionInfo info = new ConnectionInfo(properties);
+		ConnectionInfo info = Utils.isKubernetes() ? ConnectionInfo.fromKubernetes() : ConnectionInfo.fromProperties(properties);
 		
+		logger.info("create server " + Utils.isKubernetes() + info);
 		this.handler =  new DiscoveryHandler(info, true);
 		this.port = Integer.valueOf(this.handler.getLocalPort());
 				

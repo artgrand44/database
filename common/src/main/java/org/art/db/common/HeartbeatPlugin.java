@@ -29,9 +29,6 @@ public class HeartbeatPlugin implements DiscoveryPlugin {
 	public Map<URI, String> getServerInstances() {
 		return this.listener == null ? Collections.emptyMap() : this.listener.getInstances();
 	}
-
-
-	
 	
 	public void initialize(ConnectionInfo info, boolean isServer) { 
 		this.listener = new HeartbeatListener(this.publisher, info.getDatabase(), info.toURI());
@@ -57,8 +54,7 @@ public class HeartbeatPlugin implements DiscoveryPlugin {
 			this.publisher.start();
 		}
 	}
-	
-	
+		
 	@Override
 	public void stop() {
 		if (this.listener != null) {
@@ -71,6 +67,5 @@ public class HeartbeatPlugin implements DiscoveryPlugin {
 			this.publisher = null;
 		}
 	}
-
 
 }
