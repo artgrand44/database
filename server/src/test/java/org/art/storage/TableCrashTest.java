@@ -119,9 +119,6 @@ public class TableCrashTest extends BaseTest {
 					for (int jdx = 0; jdx <= idx; jdx++) {
 						Key key = new Key("Key" + jdx);
 						
-						if (deleted.contains("Key" + jdx)) {
-							logger.info("getting " + ("Key" + jdx));
-						}
 						Document doc = manager.get(key);
 						
 						if (deleted.contains("Key" + jdx)) {
