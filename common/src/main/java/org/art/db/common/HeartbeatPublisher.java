@@ -22,7 +22,7 @@ public class HeartbeatPublisher {
 	
 	private static final Logger logger = LoggerFactory.getLogger(HeartbeatPublisher.class);
 	
-	public static final int PING_SECONDS = 10;
+	public static final int PING_SECONDS = 5;
 	
 	private static final ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("StandAloneDiscovery", 3);
 	
