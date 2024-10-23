@@ -31,7 +31,8 @@ public class Environment {
 				   "org.art.db.backuproot",     "./backup",
 				   "org.art.db.backupinterval", "1w",
 				   "org.art.db.backupmax",      "2",
-				   "org.art.db.queueRecovery",  "3");
+				   "org.art.db.queueRecovery",  "3",
+				   "org.art.db.console",        "false");
 
 	private final static File KUBERNETES_CONFIG_FILE = new File("/config/db.properties");
 	

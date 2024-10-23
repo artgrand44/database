@@ -1,6 +1,7 @@
 package org.art.db.ui;
 
 import org.art.db.common.ConnectionInfo;
+import org.art.db.storage.Environment;
 import org.art.db.storage.Metrics;
 
 import com.fasterxml.jackson.databind.ObjectMapper;;
@@ -60,7 +61,9 @@ public class UIConsole {
 		this.model = new Model(info, this.localModel);
 		this.controller = new Controller(this.model);	
 
-		Metrics.getInstance().addPublisher(this.localModel);
+		if ("true".equalsIgnoreCase(Environment.getInstance().getProperty("org.art.db.console"))) {
+			Metrics.getInstance().addPublisher(this.localModel);
+		}
 
 	}
 	

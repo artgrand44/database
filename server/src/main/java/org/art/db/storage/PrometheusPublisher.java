@@ -8,7 +8,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.art.db.common.ApplicationContext;
-import org.art.db.common.CPUMeter;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RollingAverage;
 import org.art.db.common.Scheduler;
@@ -17,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.sun.management.OperatingSystemMXBean;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
@@ -71,8 +71,8 @@ public class PrometheusPublisher implements MetricsPublisher {
 	private final String localInstance;
 	private final String database;
 	private final ScheduledFuture<?> timer;
-	private final CPUMeter cpuMeter = new CPUMeter();
 	private final MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+	private final OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 	
 	private final Cache<String, Counter> counters =   Caffeine.newBuilder()
 			                                                    .evictionListener((x, y, z) -> freeCounter((Counter)y))
@@ -94,13 +94,12 @@ public class PrometheusPublisher implements MetricsPublisher {
 		this.shard = handler.getLocalShard();
 		this.localInstance = ApplicationContext.getInstance().getInstanceName();
 		this.database = Environment.getInstance().getProperty("org.art.db.database", "cluster");
-		this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.timer(), 0, 500, TimeUnit.MILLISECONDS);
+		this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.timer(), 0, 30, TimeUnit.SECONDS);
 		
 		Counter dbCounter = this.registry.counter("dbname", "db_name", this.database, "db", this.database);
 		
 		dbCounter.increment();
 		this.logAlert("Starting...");
-		this.logAlert("AAA...");
 	}
 	
 	private Counter createCounter(String name, String ...extra) {
@@ -196,12 +195,13 @@ public class PrometheusPublisher implements MetricsPublisher {
 	}
 	
 	private void timer() {
-		long cpu = (long)(this.cpuMeter.getCPU() * 100);
-		long memory = (long) (memoryBean.getHeapMemoryUsage().getUsed() / ONE_MEG);
-		long maxMemory = (long) (memoryBean.getHeapMemoryUsage().getMax() / ONE_MEG);
+		
+        double cpu = this.osBean.getProcessCpuLoad();
+		long memory = (long) (this.memoryBean.getHeapMemoryUsage().getUsed() / ONE_MEG);
+		long maxMemory = (long) (this.memoryBean.getHeapMemoryUsage().getMax() / ONE_MEG);
 		long percentMemory = (memory * 100) / maxMemory;
 				
-		gauges.get("db_cpu" + this.localInstance, x -> new GaugeWrapper(x, 10000)).increment(cpu);
+		gauges.get("db_cpu" + this.localInstance, x -> new GaugeWrapper(x, 10000)).increment((long)cpu);
 		gauges.get("db_mem" + this.localInstance, x -> new GaugeWrapper(x, 10000)).increment(percentMemory);
 		
 	}

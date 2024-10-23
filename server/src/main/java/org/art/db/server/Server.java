@@ -62,7 +62,6 @@ public class Server implements HttpHandler, FullBytesCallback {
 	public Server(String properties) throws Exception {
 		ConnectionInfo info = Utils.isKubernetes() ? ConnectionInfo.fromKubernetes() : ConnectionInfo.fromProperties(properties);
 		
-		logger.info("create server " + Utils.isKubernetes() + info);
 		this.handler =  new DiscoveryHandler(info, true);
 		this.port = Integer.valueOf(this.handler.getLocalPort());
 				
