@@ -5,12 +5,14 @@ import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
@@ -38,7 +40,9 @@ public class Environment {
 	
 	private final static Environment instance = new Environment();
 	
-	public String source;
+	private File source;
+	
+	private long lastModified;
 	
 	private final Map<String, String> properties = new HashMap<>();
 	
@@ -55,7 +59,7 @@ public class Environment {
 		}
 		
 		if (Utils.isKubernetes() && KUBERNETES_CONFIG_FILE.exists()) {
-			Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.checkConfigMap(), 0, 5, TimeUnit.MINUTES);
+			Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.checkForRefresh(), 0, 5, TimeUnit.MINUTES);
 		}
 		
 	}
@@ -72,25 +76,41 @@ public class Environment {
 		
     }
 	
-	private void checkConfigMap() {
-
+	private synchronized void checkForRefresh() {
 		Properties props = new Properties();
+	
+		try {
+			if (Utils.isKubernetes() && KUBERNETES_CONFIG_FILE.exists()) {
+				try (InputStream stream = new FileInputStream(KUBERNETES_CONFIG_FILE)) {
+					props.load(stream);
 
-		try (InputStream stream = new FileInputStream(KUBERNETES_CONFIG_FILE)) {
-			props.load(stream);
+				} 
+			} else if (this.source.exists() && this.source.lastModified() > this.lastModified) {
+				this.lastModified = this.source.lastModified();
+				
+				try (InputStream stream = new FileInputStream(this.source)) {
+					props.load(stream);					
+				}
+			}		
 
 			for (String prop : defaults.keySet()) {
 				String value = props.getProperty(prop);
 
 				if (value != null) {
+					if (!Utils.isKubernetes() && !Objects.equals(value, this.properties.get(prop))) {
+						Broadcaster.getInstance().broadcast("/db/setproperty", (prop + "=" + this.properties.get(prop)).getBytes());
+					}
+					
 					this.setProperty(prop, value);
 				}
-			}
+			} 
 		} catch (Exception exc) {
-			logger.info("There was an error reading KUBERNETES_CONFIG_FILE " + exc.getMessage());
-		}
+			logger.info("There as an exception refreshing the environment " + exc.getMessage());
+		} 
+	} 
 
-	}
+
+
 	
 	public String getDefault(String key) {
 		return defaults.get(key);
@@ -139,7 +159,8 @@ public class Environment {
 				}
 			});
 			
-			this.source = propertyPath;
+			this.source = file;
+			this.lastModified = file.lastModified();
 		} catch (Exception exc) {
 			throw new Exception("There was an error reading " + propertyPath);
 		}
@@ -155,14 +176,27 @@ public class Environment {
 		this.pcs.removePropertyChangeListener(listener);
     }
 
-	public void setProperty(String name, String value) {
+	public synchronized void setProperty(String name, String value) {
 		String oldValue = this.properties.put(name, value);
 		
 		if (!Objects.equals(value, oldValue)) {
 			this.pcs.firePropertyChange(name, oldValue, value);
 		}
+		
+		if (!Utils.isKubernetes()) {
+			try (FileOutputStream stream = new FileOutputStream(this.source)) {
+				Properties props = new Properties();
+				
+				props.putAll(this.properties);
+				props.store(stream, "");
+			} catch (Exception exc) {
+				logger.info("There was an error saving the property file " + exc.getMessage());
+			}
+			
+			this.lastModified = this.source.lastModified();
+		}
 	}
-
+	
 	public static Environment getInstance() {
 		return instance;
 	}
@@ -173,6 +207,6 @@ public class Environment {
 	}
 
 	public String getSource() {
-		return source;
+		return this.source.getPath();
 	}
 }
