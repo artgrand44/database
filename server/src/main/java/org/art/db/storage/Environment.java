@@ -7,18 +7,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.WatchService;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.commons.io.comparator.LastModifiedFileComparator;
-import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
 import org.slf4j.Logger;
@@ -29,8 +23,12 @@ public class Environment {
 	private static final Logger logger = LoggerFactory.getLogger(Environment.class);
 
 
-	private final static Map<String, String> defaults = 
-			Map.of("org.art.db.logDelay",       "1s",
+	private final static Map<String, String> defaults = new HashMap<String, String>();
+	
+	
+	static {
+		defaults.putAll(Map.of(
+				   "org.art.db.logDelay",       "1s",
 				   "org.art.db.documentCache",  "1M",
 				   "org.art.db.maxSegmentSize", "100000",
 				   "org.art.db.nodeCache",      "10M",
@@ -39,7 +37,11 @@ public class Environment {
 				   "org.art.db.backupinterval", "1w",
 				   "org.art.db.backupmax",      "2",
 				   "org.art.db.queueRecovery",  "3",
-				   "org.art.db.console",        "false");
+				   "org.art.db.console",        "false"));
+		
+		defaults.putAll(Map.of(
+				   "org.art.db.refresh",        "5M"));
+	}
 
 	private final static File KUBERNETES_CONFIG_FILE = new File("/config/db.properties");
 	
@@ -63,8 +65,10 @@ public class Environment {
 			}
 		}
 		
-		Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.checkForRefresh(), 0, 10, TimeUnit.SECONDS);
-
+		if (Utils.isKubernetes()) {
+			Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.checkForRefresh(), 0, 10, TimeUnit.MINUTES);
+		}
+		
 	}
 	
 	public void addPropertyChangeListener(PropertyChangeListener listener) {
@@ -89,27 +93,22 @@ public class Environment {
 					props.load(stream);
 				} 
 			} else if (this.source.exists() && (newFile = new File(this.source.getAbsolutePath())).lastModified() > this.lastModified) {
-				logger.info("delta " + (newFile.lastModified() - this.lastModified) + " matches = " + (lastModified == this.source.lastModified()));
 				this.source = newFile;
 				this.lastModified = newFile.lastModified();
 								
 				try (InputStream stream = new FileInputStream(this.source)) {
-					logger.info(DiscoveryHandler.getServerName() + " loaded");
 					props.load(stream);					
 				}
 			} 
 			
 			boolean changed = false;
 
-			logger.info("read " + props.toString());
 			for (String prop : defaults.keySet()) {
 				String value = props.getProperty(prop);
 
 				if (value != null) {
-					logger.info("checking " + prop + " = " + value + " against " + this.properties.get(prop));
 					if (!Utils.isKubernetes() && !Objects.equals(value, this.properties.get(prop))) {
-						Broadcaster.getInstance().broadcast("/db/setproperty", (prop + "=" + value).getBytes());
-						logger.info("checkForRefresh " + DiscoveryHandler.getServerName() + " broadcast " + prop);						
+						Broadcaster.getInstance().broadcast("/db/setproperty", (prop + "=" + value).getBytes());						
 					}
 					
 					this.setProperty(prop, value);
@@ -179,6 +178,10 @@ public class Environment {
 			throw new Exception("There was an error reading " + propertyPath);
 		}
 		
+		Interval interval = new Interval(this.getPropertyWithDefault("org.art.db.refresh"));
+		
+		Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.checkForRefresh(), 0, interval.toMillis(), TimeUnit.MILLISECONDS);
+
 	}
 	
 	public void removeProperty(String name) {
@@ -191,7 +194,7 @@ public class Environment {
 		this.pcs.removePropertyChangeListener(listener);
     }
 
-	public void setProperty(String name, String value) {
+	public synchronized void setProperty(String name, String value) {
 		String oldValue = this.properties.put(name, value);
 		
 		if (!Objects.equals(value, oldValue)) {

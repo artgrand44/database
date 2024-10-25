@@ -1,16 +1,11 @@
 package org.art.storage;
 
 import java.io.File;
-import java.net.InetAddress;
 import java.net.URL;
 import java.nio.charset.Charset;
 
 import org.apache.commons.io.FileUtils;
 import org.art.db.client.Client;
-import org.art.db.common.ConnectionInfo;
-import org.art.db.common.Document;
-import org.art.db.common.DocumentSet;
-import org.art.db.common.RestClient;
 import org.art.db.common.Utils;
 import org.art.db.storage.Environment;
 import org.assertj.core.api.Assertions;
@@ -33,7 +28,7 @@ public class ChangePropertiesTest extends BaseIntegrationTest {
 				File primaryFile = new File(root, "primary.properties");
 				File secondaryFile = new File(root, "secondary.properties");
 
-				FileUtils.write(primaryFile, "org.art.db.console=true\n", Charset.defaultCharset().name(), false);
+				FileUtils.write(primaryFile, "org.art.db.console=true\norg.art.db.refresh=10s\n", Charset.defaultCharset().name(), false);
 				FileUtils.write(secondaryFile, "org.art.db.console=true\norg.art.db.port=8081\norg.art.db.dbroot=./secondroot\n", Charset.defaultCharset().name(), false);
 				
 				logger.info("before start = " + primaryFile.lastModified());
@@ -46,13 +41,9 @@ public class ChangePropertiesTest extends BaseIntegrationTest {
 				primaryClient.waitServerCount(2);
 				secondaryClient.waitServerCount(2);
 				
-				logger.info("before update = " + primaryFile.getAbsolutePath() + " " + primaryFile.lastModified());
 				FileUtils.write(primaryFile, "org.art.db.console=false\n", Charset.defaultCharset().name(), false);
-				logger.info("after update  = " + primaryFile.getAbsolutePath() + " "  + primaryFile.lastModified());
 				
 				Utils.sleepSafely(30 * 1000);
-				
-				logger.info("after sleep = " + primaryFile.getAbsolutePath() + " " + primaryFile.lastModified());
 				
 				String modified = FileUtils.readFileToString(secondaryFile, Charset.defaultCharset().name());
 				

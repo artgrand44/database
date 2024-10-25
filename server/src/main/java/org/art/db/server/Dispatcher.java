@@ -520,7 +520,6 @@ public class Dispatcher {
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			String[] params = new String(body).split("=");
 			
-			logger.info("Got setProperty " + params[0] + " = " + params[1]);
 			Environment.getInstance().setProperty(params[0], params[1]);
 			Environment.getInstance().save();
 			
