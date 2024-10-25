@@ -7,6 +7,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.WatchService;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -14,6 +17,8 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.commons.io.comparator.LastModifiedFileComparator;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
 import org.slf4j.Logger;
@@ -58,10 +63,8 @@ public class Environment {
 			}
 		}
 		
-		if (Utils.isKubernetes() && KUBERNETES_CONFIG_FILE.exists()) {
-			Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.checkForRefresh(), 0, 5, TimeUnit.MINUTES);
-		}
-		
+		Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.checkForRefresh(), 0, 10, TimeUnit.SECONDS);
+
 	}
 	
 	public void addPropertyChangeListener(PropertyChangeListener listener) {
@@ -78,30 +81,43 @@ public class Environment {
 	
 	private synchronized void checkForRefresh() {
 		Properties props = new Properties();
+		File newFile;
 	
 		try {
 			if (Utils.isKubernetes() && KUBERNETES_CONFIG_FILE.exists()) {
 				try (InputStream stream = new FileInputStream(KUBERNETES_CONFIG_FILE)) {
 					props.load(stream);
-
 				} 
-			} else if (this.source.exists() && this.source.lastModified() > this.lastModified) {
-				this.lastModified = this.source.lastModified();
-				
+			} else if (this.source.exists() && (newFile = new File(this.source.getAbsolutePath())).lastModified() > this.lastModified) {
+				logger.info("delta " + (newFile.lastModified() - this.lastModified) + " matches = " + (lastModified == this.source.lastModified()));
+				this.source = newFile;
+				this.lastModified = newFile.lastModified();
+								
 				try (InputStream stream = new FileInputStream(this.source)) {
+					logger.info(DiscoveryHandler.getServerName() + " loaded");
 					props.load(stream);					
 				}
-			}		
+			} 
+			
+			boolean changed = false;
 
+			logger.info("read " + props.toString());
 			for (String prop : defaults.keySet()) {
 				String value = props.getProperty(prop);
 
 				if (value != null) {
+					logger.info("checking " + prop + " = " + value + " against " + this.properties.get(prop));
 					if (!Utils.isKubernetes() && !Objects.equals(value, this.properties.get(prop))) {
-						Broadcaster.getInstance().broadcast("/db/setproperty", (prop + "=" + this.properties.get(prop)).getBytes());
+						Broadcaster.getInstance().broadcast("/db/setproperty", (prop + "=" + value).getBytes());
+						logger.info("checkForRefresh " + DiscoveryHandler.getServerName() + " broadcast " + prop);						
 					}
 					
 					this.setProperty(prop, value);
+					changed = true;
+				}
+				
+				if (changed && !Utils.isKubernetes()) {
+					this.save();
 				}
 			} 
 		} catch (Exception exc) {
@@ -144,9 +160,10 @@ public class Environment {
 	}	
 
 	public void load(String propertyPath) throws Exception {
-		File file = new File(propertyPath);
+		this.source = new File(propertyPath);
+		this.lastModified = this.source.lastModified();
 		
-		try (InputStream stream = file.isAbsolute() ? new FileInputStream(file) : Environment.class.getClassLoader().getResourceAsStream(propertyPath)) {
+		try (InputStream stream = this.source.isAbsolute() ? new FileInputStream(this.source) : Environment.class.getClassLoader().getResourceAsStream(propertyPath)) {
 			Properties properties = new Properties();
 			
 			properties.load(stream);
@@ -158,12 +175,10 @@ public class Environment {
 					this.setProperty((String)x, (String)y);
 				}
 			});
-			
-			this.source = file;
-			this.lastModified = file.lastModified();
 		} catch (Exception exc) {
 			throw new Exception("There was an error reading " + propertyPath);
 		}
+		
 	}
 	
 	public void removeProperty(String name) {
@@ -176,24 +191,11 @@ public class Environment {
 		this.pcs.removePropertyChangeListener(listener);
     }
 
-	public synchronized void setProperty(String name, String value) {
+	public void setProperty(String name, String value) {
 		String oldValue = this.properties.put(name, value);
 		
 		if (!Objects.equals(value, oldValue)) {
 			this.pcs.firePropertyChange(name, oldValue, value);
-		}
-		
-		if (!Utils.isKubernetes()) {
-			try (FileOutputStream stream = new FileOutputStream(this.source)) {
-				Properties props = new Properties();
-				
-				props.putAll(this.properties);
-				props.store(stream, "");
-			} catch (Exception exc) {
-				logger.info("There was an error saving the property file " + exc.getMessage());
-			}
-			
-			this.lastModified = this.source.lastModified();
 		}
 	}
 	
@@ -208,5 +210,19 @@ public class Environment {
 
 	public String getSource() {
 		return this.source.getPath();
+	}
+	
+	public void save() throws Exception {
+		try (FileOutputStream stream = new FileOutputStream(this.source)) {
+			Properties props = new Properties();
+
+			props.putAll(this.properties);
+			props.store(stream, "");
+		} catch (Exception exc) {
+			logger.info("There was an error saving the property file " + exc.getMessage());
+		}
+
+		this.lastModified = this.source.lastModified();
+
 	}
 }
