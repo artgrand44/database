@@ -70,7 +70,7 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 				metadata.store();
 			} catch (Exception exc) {
 				logger.info("There was an exception building the index for " + this.name + exc.getMessage());
-				Metrics.getInstance().logAlert("There was an exception building the index for " + this.name);
+				MetricsLogger.getInstance().logAlert("There was an exception building the index for " + this.name);
 			}
 			
 			return;
@@ -112,7 +112,7 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 			logger.info("Set built");
 		} catch (Exception exc) {
 			logger.info("There was an exception building the index for " + this.name + exc.getMessage());
-			Metrics.getInstance().logAlert("There was an exception building the index for " + this.name);
+			MetricsLogger.getInstance().logAlert("There was an exception building the index for " + this.name);
 		} finally {
 			this.building = false;
 			Utils.closeSafely(this.processed);

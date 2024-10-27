@@ -134,7 +134,7 @@ public class TableManager implements Closeable{
 				this.applySnapshot(entry, checkTimestamps);
 			}
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error recovering the log");
+			MetricsLogger.getInstance().logAlert("There was an error recovering the log");
 			logger.info("There was an exception recovering the log " + exc.getMessage());
 			exc.printStackTrace();
 		} 
@@ -177,12 +177,12 @@ public class TableManager implements Closeable{
 			}
 		} catch (DBRuntimeException exc) {
 			if (!exc.getMessage().startsWith("Duplicate")) {
-				Metrics.getInstance().logAlert("There was an db error recovering a log entry");
+				MetricsLogger.getInstance().logAlert("There was an db error recovering a log entry");
 				logger.info("There was an exception recovering a log entry " + exc.getMessage() + " " + entry + " check " + checkTimestamps);
 				exc.printStackTrace();
 			}
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error recovering a log entry");
+			MetricsLogger.getInstance().logAlert("There was an error recovering a log entry");
 			logger.info("There was an exception recovering a log entry " + exc.getMessage() + " " + entry + " check " + checkTimestamps);
 			exc.printStackTrace();
 		}
@@ -206,7 +206,7 @@ public class TableManager implements Closeable{
 			this.indices.get(name).buildIndex(this.table, metadata);
 		} catch (Exception exc) {
 			logger.info("There was an error building the index for " + name + " " + exc.getMessage());
-			Metrics.getInstance().logAlert("There was an error building the index for " + name);
+			MetricsLogger.getInstance().logAlert("There was an error building the index for " + name);
 		}
 	}
 	

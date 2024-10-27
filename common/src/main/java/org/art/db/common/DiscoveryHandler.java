@@ -80,10 +80,6 @@ public class DiscoveryHandler {
 			serverInstance = this;
 		}
 				
-		if (isServer) {
-			logger.info("Created " + getServerName() + " shard=" + localShard);
-		}
-		
 		this.loadEnvironment();
 		
 		this.poller = SCHEDULER.scheduleAtFixedRate(this::loadEnvironment, 1, 20, TimeUnit.SECONDS);

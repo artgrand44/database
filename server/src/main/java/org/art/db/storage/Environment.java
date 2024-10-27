@@ -40,7 +40,8 @@ public class Environment {
 				   "org.art.db.console",        "false"));
 		
 		defaults.putAll(Map.of(
-				   "org.art.db.refresh",        "5M"));
+				   "org.art.db.refresh",        "5M",
+				   "org.art.db.metricslogger",  "prometheus"));
 	}
 
 	private final static File KUBERNETES_CONFIG_FILE = new File("/config/db.properties");

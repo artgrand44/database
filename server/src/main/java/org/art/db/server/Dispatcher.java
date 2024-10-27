@@ -28,8 +28,8 @@ import org.art.db.sql.SQLHandler;
 import org.art.db.storage.BackupHandler;
 import org.art.db.storage.Environment;
 import org.art.db.storage.Files;
-import org.art.db.storage.Metrics;
-import org.art.db.storage.PrometheusPublisher;
+import org.art.db.storage.MetricsLogger;
+import org.art.db.storage.PrometheusLogger;
 import org.art.db.storage.RestoreManager;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
@@ -259,7 +259,7 @@ public class Dispatcher {
 				HeaderValues values = exchange.getRequestHeaders().get("Client");
 				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
 					
-				Metrics.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, 1);
+				MetricsLogger.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, 1);
 				
 				return new byte[0];
 			}
@@ -286,7 +286,7 @@ public class Dispatcher {
 				HeaderValues values = exchange.getRequestHeaders().get("Client");
 				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
 					
-				Metrics.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, set.size());
+				MetricsLogger.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, set.size());
 							
 				try (TypedOutputStream stream = new TypedOutputStream()) {
 					stream.writeObject(set);
@@ -495,7 +495,7 @@ public class Dispatcher {
 
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) {
-			return PrometheusPublisher.getInstance().scrape().getBytes();
+			return PrometheusLogger.getInstance().scrape().getBytes();
 		}		
 	}
 	
@@ -539,7 +539,7 @@ public class Dispatcher {
 				
 				return new byte[0];
 			} catch (Exception exc) {
-				Metrics.getInstance().logAlert("There was an error flushing the database");
+				MetricsLogger.getInstance().logAlert("There was an error flushing the database");
 				throw exc;
 			}
 		}

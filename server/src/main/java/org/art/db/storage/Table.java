@@ -159,7 +159,7 @@ public class Table implements Closeable {
 				}
 			}
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error creating a database segment");
+			MetricsLogger.getInstance().logAlert("There was an error creating a database segment");
 			logger.info("There was an error creating the new segment " + exc.getMessage());
 		} finally {
 			this.writeLock.unlock();
@@ -268,7 +268,7 @@ public class Table implements Closeable {
 				mergeQueue.add(new MergeQueueEntry(this, file));
 			}	
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error merging database segments");
+			MetricsLogger.getInstance().logAlert("There was an error merging database segments");
 			logger.info("Error merging files " + exc.getMessage());
 		}
 	}
@@ -358,7 +358,7 @@ public class Table implements Closeable {
 			}
 
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error merging database segments");
+			MetricsLogger.getInstance().logAlert("There was an error merging database segments");
 			exc.printStackTrace();
 			logger.info("Error merging files " + exc.getMessage());
 		}
@@ -382,7 +382,7 @@ public class Table implements Closeable {
 			
 			this.segments.addFirst(this.currentSegment);
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error switching database segments");
+			MetricsLogger.getInstance().logAlert("There was an error switching database segments");
 			logger.info("Exception switching segments " + exc.getMessage());
 		}
 	}

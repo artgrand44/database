@@ -292,7 +292,7 @@ public class TreeStore implements Closeable, BlobStore {
 			
 			this.logFile.delete();
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error flushing the database");
+			MetricsLogger.getInstance().logAlert("There was an error flushing the database");
 			exc.printStackTrace();
 			logger.info("Flush failed " + exc.getMessage());
 		} finally {
@@ -407,10 +407,10 @@ public class TreeStore implements Closeable, BlobStore {
 				}
 			}
 		} catch (EOFException exc) {
-			Metrics.getInstance().logAlert("The index log was not properly closed");
+			MetricsLogger.getInstance().logAlert("The index log was not properly closed");
 			logger.info("The index log was not properly closed");
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error recovering database");
+			MetricsLogger.getInstance().logAlert("There was an error recovering database");
 			logger.info("Recovery failed " + exc.getMessage());
 		}
 	}

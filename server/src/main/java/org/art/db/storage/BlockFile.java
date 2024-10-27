@@ -130,7 +130,7 @@ public class BlockFile implements Closeable {
 			this.readCount.incrementAndGet();
 			return bytes;
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error reading from the database");
+			MetricsLogger.getInstance().logAlert("There was an error reading from the database");
 			throw exc;
 		}
 	}
@@ -177,7 +177,7 @@ public class BlockFile implements Closeable {
 			this.freeBuffer(buffer);
 			this.writeCount.incrementAndGet();
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error writing to the database");
+			MetricsLogger.getInstance().logAlert("There was an error writing to the database");
 			throw exc;
 		}
 	}

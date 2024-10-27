@@ -106,7 +106,7 @@ public class LogOutputStream  implements Closeable{
 			this.fileStream.write(bytes);
 			this.fileStream.flush();
 		} catch (Exception exc) {
-			Metrics.getInstance().logAlert("There was an error writing to the log");
+			MetricsLogger.getInstance().logAlert("There was an error writing to the log");
 			throw exc;
 		} finally {
 			this.lock.unlock();

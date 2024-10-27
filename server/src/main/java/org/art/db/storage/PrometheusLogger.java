@@ -8,6 +8,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.art.db.common.ApplicationContext;
+import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RollingAverage;
 import org.art.db.common.Scheduler;
@@ -24,10 +25,10 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 
-public class PrometheusPublisher implements MetricsPublisher {
+public class PrometheusLogger extends MetricsLogger {
 
 	@SuppressWarnings("unused")
-	private static final Logger logger = LoggerFactory.getLogger(PrometheusPublisher.class);
+	private static final Logger logger = LoggerFactory.getLogger(PrometheusLogger.class);
 	
 	class GaugeWrapper {
 		private final Gauge gauge;
@@ -85,10 +86,10 @@ public class PrometheusPublisher implements MetricsPublisher {
                                                                 .build();
 
 
-	private final static PrometheusPublisher instance = new PrometheusPublisher();
+	private final static PrometheusLogger instance = new PrometheusLogger();
 	
 	
-	private PrometheusPublisher() {
+	private PrometheusLogger() {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
 		this.shard = handler.getLocalShard();
@@ -126,7 +127,7 @@ public class PrometheusPublisher implements MetricsPublisher {
 		this.registry.remove(wrapper.gauge);
 	}
 	
-	public static PrometheusPublisher getInstance() {
+	public static PrometheusLogger getInstance() {
 		return instance;
 	}
 	
@@ -186,8 +187,8 @@ public class PrometheusPublisher implements MetricsPublisher {
 		return this.registry.scrape();
 	}
 	
-	public void start() {
-		Metrics.getInstance().addPublisher(this);
+	public void start(ConnectionInfo info) {
+		
 	}
 	
 	public void stop() {

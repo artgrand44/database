@@ -20,7 +20,7 @@ import org.art.db.security.User;
 import org.art.db.storage.BackupHandler;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
-import org.art.db.storage.Metrics;
+import org.art.db.storage.MetricsLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -164,8 +164,8 @@ public class DMLHandler {
 			
 			metadata.unlock();
 			BackupHandler.getInstance().endUpdate();
-			Metrics.getInstance().logDelete();
-			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
+			MetricsLogger.getInstance().logDelete();
+			MetricsLogger.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		}
 				
 	}
@@ -263,8 +263,8 @@ public class DMLHandler {
 			QueryManager.getInstance().insert(table, doc);	
 			QueryManager.getInstance().unlockPrimaryKey(table, doc);
 			
-			Metrics.getInstance().logInsert();
-			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
+			MetricsLogger.getInstance().logInsert();
+			MetricsLogger.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -409,8 +409,8 @@ public class DMLHandler {
 
 			processSelectItems(set, plainSelect.getSelectItems(), evaluator, parameters);
 
-			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, set.size());
-			Metrics.getInstance().logGet();
+			MetricsLogger.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, set.size());
+			MetricsLogger.getInstance().logGet();
 			
 			return set;
 		} finally {
@@ -549,8 +549,8 @@ public class DMLHandler {
 			
 			metadata.unlock();
 			BackupHandler.getInstance().endUpdate();
-			Metrics.getInstance().logUpdate();
-			Metrics.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
+			MetricsLogger.getInstance().logUpdate();
+			MetricsLogger.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		}
 	}
 	

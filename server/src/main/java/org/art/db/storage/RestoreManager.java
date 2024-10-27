@@ -213,13 +213,13 @@ public class RestoreManager {
 							manager.mergeAll();
 						}
 					} catch (Exception exc) {
-						Metrics.getInstance().logAlert("There was an error recovering the database");
+						MetricsLogger.getInstance().logAlert("There was an error recovering the database");
 						exc.printStackTrace();
 						logger.info("There was an error recoverting " + table + " " + exc.getMessage());
 					}
 				}
 			} catch (Exception exc) {
-				Metrics.getInstance().logAlert("There was an exception restoring the backup.");
+				MetricsLogger.getInstance().logAlert("There was an exception restoring the backup.");
 				logger.info("There was an error synchronizing the configuration " + exc.getMessage());
 			}
 		} else if (useBackup) {
@@ -262,7 +262,7 @@ public class RestoreManager {
 			manager.applySnapshot(entry, true);
 		} catch (Exception exc) {
 			if (first) {
-				Metrics.getInstance().logAlert("There was an error recovering the indices");
+				MetricsLogger.getInstance().logAlert("There was an error recovering the indices");
 				logger.info("Error recovering index entries " + key + " " + exc.getMessage());
 				exc.printStackTrace();
 				first = false;

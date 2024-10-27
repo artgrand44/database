@@ -24,8 +24,8 @@ import org.art.db.storage.BackupHandler;
 import org.art.db.storage.Broadcaster;
 import org.art.db.storage.Environment;
 import org.art.db.storage.Files;
-import org.art.db.storage.Metrics;
-import org.art.db.storage.PrometheusPublisher;
+import org.art.db.storage.MetricsLogger;
+import org.art.db.storage.PrometheusLogger;
 import org.art.db.storage.RestoreManager;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
@@ -69,9 +69,14 @@ public class Server implements HttpHandler, FullBytesCallback {
 		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);
-			Metrics.getInstance().logStatus("Starting");
-			UIConsole.getInstance().start(info);
-			PrometheusPublisher.getInstance().start();
+			
+			if (Environment.getInstance().getPropertyWithDefault("org.art.db.metricslogger").equalsIgnoreCase("console")) {
+				MetricsLogger.setInstance(UIConsole.getInstance());
+			}
+				
+			MetricsLogger.getInstance().start(info);
+			MetricsLogger.getInstance().logAlert("Starting");
+						
 			BackupHandler.getInstance().start();
 			this.handler.start();
 			
@@ -88,8 +93,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			this.server.start();
 			
 			RestoreManager.getInstance().recover(handler);
-			Metrics.getInstance().logStatus("Running");
-			logger.info("Started WebServer on uri " + handler.getLocalInstance());
+			MetricsLogger.getInstance().logStatus("Running");
 		} catch (Throwable exc) {
 			exc.printStackTrace();
 			logger.error(exc.getClass().getName() + exc.getMessage());
@@ -211,7 +215,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 	
 	public static void stop() {		
 		if (instance != null) {
-			Metrics.getInstance().logStatus("Stopping");
+			MetricsLogger.getInstance().logStatus("Stopping");
 			instance.server.stop();
 			StorageManager.getInstance().closeAll();
 			instance.handler.stop();
@@ -219,7 +223,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			UIConsole.getInstance().stop();	
 			BackupHandler.getInstance().stop();
 			Broadcaster.getInstance().stop();
-			PrometheusPublisher.getInstance().start();
+			PrometheusLogger.getInstance().stop();
 			RollingAverage.stop();
 			instance = null;
 		}

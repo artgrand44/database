@@ -10,7 +10,6 @@ import java.util.function.Function;
 import org.art.db.common.ApplicationContext;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
-import org.art.db.storage.MetricsPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +18,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 
 
-public class LocalModel implements MetricsPublisher {
+public class LocalModel {
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(LocalModel.class);
@@ -110,7 +109,6 @@ public class LocalModel implements MetricsPublisher {
 		stats.log(1, time, matches);		
 	}
 	
-    @Override
 	public void logStatus(String status) {
 		this.serverStats.setStatus(status);
     }

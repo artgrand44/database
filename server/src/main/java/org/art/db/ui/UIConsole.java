@@ -1,12 +1,11 @@
 package org.art.db.ui;
 
 import org.art.db.common.ConnectionInfo;
-import org.art.db.storage.Environment;
-import org.art.db.storage.Metrics;
+import org.art.db.storage.MetricsLogger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;;
 
-public class UIConsole {
+public class UIConsole extends MetricsLogger {
 	
 	private LocalModel localModel;
 	private Model model;
@@ -20,7 +19,7 @@ public class UIConsole {
 	}
 
 	public String buildHtml(String currentPage) throws Exception {
-		return this.controller == null ? "" : this.controller.buildHtml(currentPage);
+		return this.controller == null ? "To enable the console set org.art.db.metricslogger=console" : this.controller.buildHtml(currentPage);
 	}
 	
 	public static UIConsole getInstance() {
@@ -39,6 +38,10 @@ public class UIConsole {
 		this.localModel.logDelete();
 	}
 	
+	public void logGet() {
+		this.localModel.logGet();
+	}
+	
 	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		this.localModel.logClient(clientName, sql, time, calls, matches);
 	}	
@@ -55,15 +58,14 @@ public class UIConsole {
 		this.localModel.logSelect(queryString, time, matches);
 	}
 
+	public void logStatus(String status) {
+		this.localModel.logStatus(status);
+	}
 	public void start(ConnectionInfo info) {
 		
 		this.localModel = new LocalModel(info);
 		this.model = new Model(info, this.localModel);
 		this.controller = new Controller(this.model);	
-
-		if ("true".equalsIgnoreCase(Environment.getInstance().getProperty("org.art.db.console"))) {
-			Metrics.getInstance().addPublisher(this.localModel);
-		}
 
 	}
 	
