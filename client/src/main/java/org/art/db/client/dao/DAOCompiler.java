@@ -6,10 +6,11 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.art.db.client.Client;
 import org.art.db.client.dao.BeanMetaData.Property;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.common.TypedOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.ResolvableType;
+import java.lang.reflect.*;
 
 /**
  * This class does the first phase of compiling the DAO's.  It scans the classpath,
@@ -33,8 +34,6 @@ public class DAOCompiler {
 	private static final Logger logger = LoggerFactory.getLogger(DAOCompiler.class);
 	
 	private ConcurrentMap<Class<?>, Object> delegates = new ConcurrentHashMap<>();
-	
-	private static final ResolvableType DAO_TYPE = ResolvableType.forClass(DAO.class);
 	
 	private static final DAOCompiler instance = new DAOCompiler();
 	
@@ -80,15 +79,20 @@ public class DAOCompiler {
 		
 	}
 	
-	private Class<?> getEntityClass(Class<?> daoClass) {
-		
-		for (ResolvableType iface : ResolvableType.forClass(daoClass).getInterfaces()) {
-			if (DAO_TYPE.isAssignableFrom(iface) && iface.hasGenerics()) {
-				return (Class<?>)iface.resolveGeneric(0);
-			}
+	private Class<?> getClassFromType(Type type) {
+		if (type instanceof Class cls) {
+			return cls;
+		} else if (type instanceof ParameterizedType ptype) {
+			return this.getClassFromType(ptype.getRawType());
+		} else {
+			throw new DBRuntimeException("Invalid type for DAO");
 		}
-		
-		throw new IllegalStateException("The entity class is invalid");
+	}
+	private Class<?> getEntityClass(Class<?> daoClass) {
+		ParameterizedType ptype = (ParameterizedType)daoClass.getGenericInterfaces()[0];
+
+		return this.getClassFromType(ptype.getActualTypeArguments()[0]);
+	
 	}	
 	
 	public static DAOCompiler getInstance() {

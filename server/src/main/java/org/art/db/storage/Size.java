@@ -1,13 +1,13 @@
 package org.art.db.storage;
 
-import org.springframework.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class Size {
 	private final String string;
 	private final long size;
 	
 	public Size(String string) {
-		if (!StringUtils.hasText(string)) {
+		if (StringUtils.isAllEmpty(string)) {
 			throw new IllegalArgumentException("Invalid size");
 		}
 		

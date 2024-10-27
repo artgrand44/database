@@ -72,7 +72,7 @@ public class PrometheusTest extends BaseIntegrationTest {
 				
 				Assertions.assertThat(stats != null);
 				
-				logger.info(stats);
+				//logger.info(stats);
 				
 				logger.info("sleep");
 				
