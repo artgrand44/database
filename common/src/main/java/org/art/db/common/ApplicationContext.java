@@ -27,7 +27,7 @@ public class ApplicationContext {
 		}
 				
 		if (appName == null) {
-			appName = Utils.isKubernetes() ? KubernetesPlugin.getAppName() : "Unknown";
+			appName = "Unknown";
 		}
 	
 		

@@ -12,6 +12,23 @@
 		<java.version>18</java.version>
 	</properties>
   <dependencies>
+  <dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-core</artifactId>
+    <version>1.12.5</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-prometheus -->
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-registry-prometheus</artifactId>
+    <version>1.12.5</version>
+</dependency>
+<dependency>
+    <groupId>org.thymeleaf</groupId>
+    <artifactId>thymeleaf</artifactId>
+    <version>3.1.2.RELEASE</version>
+</dependency>
+
 	  <dependency>
     	<groupId>org.apache.maven.plugins</groupId>
    	 	<artifactId>maven-shade-plugin</artifactId>
@@ -33,18 +50,7 @@
   			<version>0.0.1-SNAPSHOT</version>
   			<scope>test</scope>
 	  </dependency>
-	  <dependency>
-    	<groupId>io.micrometer</groupId>
-    	<artifactId>micrometer-core</artifactId>
-    	<version>1.12.5</version>
-	  </dependency>
-		<!-- https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-prometheus -->
-	  <dependency>
-   		<groupId>io.micrometer</groupId>
-    	<artifactId>micrometer-registry-prometheus</artifactId>
-    	<version>1.12.5</version>
-	</dependency>
-
+	  
 	  	  <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
 		<!-- https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
 		<dependency>
@@ -59,11 +65,6 @@
     		<version>4.7</version>
 	</dependency>
 	<!-- https://mvnrepository.com/artifact/org.thymeleaf/thymeleaf -->
-<dependency>
-    <groupId>org.thymeleaf</groupId>
-    <artifactId>thymeleaf</artifactId>
-    <version>3.1.2.RELEASE</version>
-</dependency>
 <!-- Thanks for using https://jar-download.com -->
 
 <dependency>
