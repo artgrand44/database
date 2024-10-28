@@ -12,8 +12,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.art.db.common.CPUMeter;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,11 +20,14 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.sun.management.OperatingSystemMXBean;
+
 public abstract class BaseQueryPounder extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(BaseQueryPounder.class);
 
 	private Deque<Throwable> errors = new ConcurrentLinkedDeque<Throwable>(); 
 
+	private final OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 	
 	private AtomicInteger readCount = new AtomicInteger(); 
 	
@@ -193,15 +194,14 @@ public abstract class BaseQueryPounder extends BaseIntegrationTest {
 	private void stats() {
 		MemoryMXBean bean = ManagementFactory.getMemoryMXBean(); 
 		int oneMeg = 1024 * 1024;
-		CPUMeter cpuMeter = new CPUMeter();
 		
 		while (!stop) {
 			long end = System.currentTimeMillis();
 			long elapsed = end - this.startTime;
 			float timePerRead = ((float)elapsed) / (float)readCount.get();
 			long transactions = readCount.get() + writeCount.get() + deleteCount.get();
+			long cpu =  Math.round(Math.ceil(this.osBean.getProcessCpuLoad() * 100));
 			float tps = ((float)transactions / (float)elapsed) * 1000;
-			long cpu = (long)(cpuMeter.getCPU() * 100);
 			
 			long totalGC = 0;
 		    
