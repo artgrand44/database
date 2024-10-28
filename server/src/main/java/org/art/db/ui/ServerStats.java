@@ -4,10 +4,16 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.List;
 
-import org.art.db.common.CPUMeter;
 import org.art.db.common.RollingAverage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.sun.management.OperatingSystemMXBean;
 
 public class ServerStats extends Stats {
+	
+	@SuppressWarnings("unused")
+	private static final Logger logger = LoggerFactory.getLogger(ServerStats.class);
 	
 	private long cpu; 
 	private long memory;  
@@ -29,8 +35,9 @@ public class ServerStats extends Stats {
 	private final RollingAverage hitsAverage  = new RollingAverage("hits");
 	private final RollingAverage selectsAverage = new RollingAverage("selects");
 	
-	private CPUMeter cpuMeter = new CPUMeter();
 	private final MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+	private final OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+	
 	
 	private static final long ONE_MEG = 1024 * 1024;
 	
@@ -92,8 +99,7 @@ public class ServerStats extends Stats {
 		this.selects = this.selectsAverage.getAverage();
 		this.hits = this.hitsAverage.getAverage();
 		this.updates = this.updatesAverage.getAverage();
-		
-		this.cpu = (long)(this.cpuMeter.getCPU() * 100);
+		this.cpu = Math.round(Math.ceil(this.osBean.getProcessCpuLoad() * 100));
 		this.memory = (long) (memoryBean.getHeapMemoryUsage().getUsed() / ONE_MEG);
 		this.maxMemory = (long) (memoryBean.getHeapMemoryUsage().getMax() / ONE_MEG);
 		this.redMemory = (long) (.7 * maxMemory);
