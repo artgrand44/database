@@ -10,7 +10,6 @@ import java.util.concurrent.TimeUnit;
 import org.art.db.common.ApplicationContext;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
-import org.art.db.common.RollingAverage;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

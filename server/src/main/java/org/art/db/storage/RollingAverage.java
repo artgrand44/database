@@ -1,4 +1,4 @@
-package org.art.db.common;
+package org.art.db.storage;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;

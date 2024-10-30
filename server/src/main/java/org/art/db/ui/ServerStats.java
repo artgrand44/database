@@ -4,7 +4,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.List;
 
-import org.art.db.common.RollingAverage;
+import org.art.db.storage.RollingAverage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

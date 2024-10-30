@@ -2,7 +2,7 @@ package org.art.db.ui;
 
 import java.util.List;
 
-import org.art.db.common.RollingAverage;
+import org.art.db.storage.RollingAverage;
 
 public class AlertStats extends Stats {
 	
