@@ -107,7 +107,6 @@ public class QueueSegment extends MemorySegment {
 	private DocumentSet lease(String owner, long timeout, boolean localOnly) {
 		Iterator<Map.Entry<Key, QueueEntry>> iterator = this.entries.asMap().entrySet().iterator();
 		DocumentSet result = new DocumentSet();
-		
 		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
 		
 		while (iterator.hasNext() && result.size() < 25) {
@@ -135,6 +134,20 @@ public class QueueSegment extends MemorySegment {
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.REMOVE, key, null, propagate, log);
 		this.entries.invalidate(key);
+	}
+	
+	public boolean renewLease(Key key, String owner, long timeout) {
+		QueueEntry entry = this.entries.getIfPresent(key);
+		
+		if (entry == null) {
+			return false;
+		}
+		
+		Lease oldLease = entry.lease.get();
+		Lease newLease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
+		
+		return ((oldLease == null || oldLease.owner.equals(owner)) && entry.lease.compareAndSet(oldLease, newLease));
+					
 	}
 	
 	public void update(Key key, Document doc, boolean propagate, boolean log) throws Exception {
