@@ -1,7 +1,6 @@
 package org.art.db.storage;
 
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -43,7 +42,7 @@ public class QueueSegment extends MemorySegment {
 	static record QueueEntry(Document doc, AtomicReference<Lease> lease) {
 		
 	}
-	private ConcurrentLinkedDeque<WeakReference<QueueEntry>> leases = new ConcurrentLinkedDeque<>();
+	private ConcurrentLinkedDeque<QueueEntry> leases = new ConcurrentLinkedDeque<>();
 	
 	/**
 	 * The queue entries
@@ -102,15 +101,10 @@ public class QueueSegment extends MemorySegment {
 	 * @return
 	 */
 	public DocumentSet lease(String owner, long timeout) {
-		DocumentSet result = new DocumentSet();
-		Document doc = this.lease(owner, timeout, true);
+		DocumentSet result = this.lease(owner, timeout, true);
 		
-		if (doc == null) {
-			doc = this.lease(owner, timeout, false);
-		}
-		
-		if (doc != null) {
-			result.add(doc);
+		if (result.size() < 5) {
+			result.addAll(this.lease(owner, timeout, false));
 		}
 		
 		return result;
@@ -123,14 +117,15 @@ public class QueueSegment extends MemorySegment {
 	 * @param localOnly True if we should only consider keys who's hash matches the local instance
 	 * @return
 	 */
-	private Document lease(String owner, long timeout, boolean localOnly) {
+	private DocumentSet lease(String owner, long timeout, boolean localOnly) {
 		Iterator<Map.Entry<Key, QueueEntry>> iterator = this.entries.entrySet().iterator();
+		DocumentSet result = new DocumentSet();
 		
 		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
 		int instanceCount = this.discoveryHandler.getLocalInstanceCount();
 		int localHash = this.discoveryHandler.getLocalInstance().hashCode() % instanceCount;
 		
-		while (iterator.hasNext()) {
+		while (iterator.hasNext() && result.size() < 25) {
 			Map.Entry<Key, QueueEntry> entry = iterator.next();
 			
 			Key key = entry.getKey();
@@ -141,12 +136,12 @@ public class QueueSegment extends MemorySegment {
 			}
 			
 			if (qentry.lease.compareAndSet(null, lease)) {
-				this.leases.add(new WeakReference<>(qentry));
-				return qentry.doc;
+				this.leases.add(qentry);
+				result.add(qentry.doc);
 			}			
 		}
 		
-		return null;
+		return result;
 	}
 
 	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
@@ -190,10 +185,10 @@ public class QueueSegment extends MemorySegment {
 	}
 	
 	private void timeoutLeases() {
-		Iterator<WeakReference<QueueEntry>> iterator = this.leases.iterator();
+		Iterator<QueueEntry> iterator = this.leases.iterator();
 		
 		while (iterator.hasNext()) {
-			QueueEntry entry = iterator.next().get();
+			QueueEntry entry = iterator.next();
 			Lease lease;
 			
 			if (entry != null && (lease = entry.lease.get()) != null && System.currentTimeMillis() > lease.expiration) {

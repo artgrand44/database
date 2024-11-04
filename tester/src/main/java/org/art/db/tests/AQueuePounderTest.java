@@ -14,7 +14,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	private static final Logger logger = LoggerFactory.getLogger(AQueuePounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 100;
+	private static int NLOOPS = 10000;
 	private static int NTHREADS = 150;
 	
 	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);
@@ -67,10 +67,11 @@ public class AQueuePounderTest extends BaseQueryPounder {
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				String owner = "art" + index;
 				
-				this.addRead();
+				
 				
 				DocumentSet set = this.lease(client, owner);
 				
+				this.addRead(set.size());
 				for (Document doc : set) {
 					GUID guid = doc.get("id", GUID.class);
 					
@@ -101,6 +102,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 			this.addError(exc);
 		}
 		
+		logger.info("completed " + NLOOPS);
 		this.addCompletion();
 	}
 	
