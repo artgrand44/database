@@ -4,12 +4,9 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
@@ -53,19 +50,6 @@ public class QueueSegment extends MemorySegment {
 	private final Cache<Key, QueueEntry> entries = Caffeine.newBuilder().build();
 	
 	private final ScheduledFuture<?> timeoutHandler;
-	
-	/**
-	 * The number of calls to remove().  Used to decide when to compact the documents map.
-	 */
-	private AtomicLong removeCount = new AtomicLong();
-	
-	/**
-	 * A lock used to synchronize updates and compactions.  The lock is necessary
-	 * so that we don't lose updates during compactions.
-	 */
-	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-	private final ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
-	private final ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
 	
 	
 	public QueueSegment(String table, DiscoveryHandler discoveryHandler, Environment config) throws Exception {
