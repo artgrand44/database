@@ -21,6 +21,9 @@ import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 /**
  * A specialized MemorySegment for queues.  QueueSegment adds a lease method,
  * overrides the remove method to actually remove the document, and adds some
@@ -47,8 +50,7 @@ public class QueueSegment extends MemorySegment {
 	/**
 	 * The queue entries
 	 */
-	private volatile ConcurrentSkipListMap<Key, QueueEntry> entries = new ConcurrentSkipListMap<>();
-	
+	private final Cache<Key, QueueEntry> entries = Caffeine.newBuilder().build();
 	
 	private final ScheduledFuture<?> timeoutHandler;
 	
@@ -80,7 +82,7 @@ public class QueueSegment extends MemorySegment {
 	
 	@Override
 	public Document get(Key key) throws Exception {
-		QueueEntry entry = this.entries.get(key);
+		QueueEntry entry = this.entries.getIfPresent(key);
 		
 		return entry == null ? null : entry.doc;
 	}
@@ -118,7 +120,7 @@ public class QueueSegment extends MemorySegment {
 	 * @return
 	 */
 	private DocumentSet lease(String owner, long timeout, boolean localOnly) {
-		Iterator<Map.Entry<Key, QueueEntry>> iterator = this.entries.entrySet().iterator();
+		Iterator<Map.Entry<Key, QueueEntry>> iterator = this.entries.asMap().entrySet().iterator();
 		DocumentSet result = new DocumentSet();
 		
 		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
@@ -145,38 +147,13 @@ public class QueueSegment extends MemorySegment {
 	}
 
 	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
-		this.readLock.lock();
-		
-		try {
-			this.log(Operation.INSERT,  key, doc, propagate, log);
-			
-			this.entries.put(key, new QueueEntry(doc, new AtomicReference<>()));
-		} finally {
-			this.readLock.unlock();
-		}
+		this.log(Operation.INSERT,  key, doc, propagate, log);
+		this.entries.put(key, new QueueEntry(doc, new AtomicReference<>()));
 	}
 	
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
-		if (this.entries.containsKey(key)) {
-			this.readLock.lock();
-			
-			try {
-				this.log(Operation.REMOVE, key, null, propagate, log);
-
-				this.entries.remove(key);
-				this.removeCount.incrementAndGet();
-			} finally {
-				this.readLock.unlock();
-			}
-			
-
-			if (this.removeCount.get() > 10000) {
-				this.writeLock.lock();
-				this.entries = new ConcurrentSkipListMap<>(this.entries);
-				this.removeCount.set(0);
-				this.writeLock.unlock();
-			}
-		}
+		this.log(Operation.REMOVE, key, null, propagate, log);
+		this.entries.invalidate(key);
 	}
 	
 	public void update(Key key, Document doc, boolean propagate, boolean log) throws Exception {
@@ -195,9 +172,7 @@ public class QueueSegment extends MemorySegment {
 				entry.lease.set(null);
 				iterator.remove();
 			}			
-		}
-		
+		}		
 	}
-	
-	
+		
 }
