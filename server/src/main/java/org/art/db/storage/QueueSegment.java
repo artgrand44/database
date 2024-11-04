@@ -39,9 +39,10 @@ public class QueueSegment extends MemorySegment {
 		
 	}
 	
-	static record QueueEntry(Document doc, AtomicReference<Lease> lease) {
+	static record QueueEntry(Document doc, AtomicReference<Lease> lease, boolean local) {
 		
 	}
+	
 	private ConcurrentLinkedDeque<QueueEntry> leases = new ConcurrentLinkedDeque<>();
 	
 	/**
@@ -108,16 +109,12 @@ public class QueueSegment extends MemorySegment {
 		DocumentSet result = new DocumentSet();
 		
 		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
-		int instanceCount = this.discoveryHandler.getLocalInstanceCount();
-		int localHash = this.discoveryHandler.getLocalInstance().hashCode() % instanceCount;
 		
 		while (iterator.hasNext() && result.size() < 25) {
 			Map.Entry<Key, QueueEntry> entry = iterator.next();
-			
-			Key key = entry.getKey();
 			QueueEntry qentry = entry.getValue();
 			
-			if (localOnly && key.hashCode() % instanceCount != localHash) {
+			if (localOnly && !qentry.local) {
 				continue;
 			}
 			
@@ -132,7 +129,7 @@ public class QueueSegment extends MemorySegment {
 
 	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.INSERT,  key, doc, propagate, log);
-		this.entries.put(key, new QueueEntry(doc, new AtomicReference<>()));
+		this.entries.put(key, new QueueEntry(doc, new AtomicReference<>(), this.discoveryHandler.isLocal(key)));
 	}
 	
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {

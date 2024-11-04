@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -44,6 +45,8 @@ public class DiscoveryHandler {
 	private final String localDatabase;
 	
 	private final String localShard;
+	
+	private AtomicInteger localHash = new AtomicInteger();
 	
 	public String getLocalDatabase() {
 		return localDatabase;
@@ -275,6 +278,10 @@ public class DiscoveryHandler {
 		throw new DBRuntimeException("getSourceShard timed out");
 	}
 	
+	public boolean isLocal(Key key) {
+		return key.hashCode() % this.instances.get().keySet().size() == this.localHash.get();
+	}
+	
 	public boolean hasServices() {
 		return !this.instances.get().isEmpty();
 	}
@@ -310,6 +317,7 @@ public class DiscoveryHandler {
 			this.instances.set(instances);
 			this.hosts.set(hosts);
 			this.shardFinder.set(finder);
+			this.localHash.set(this.localInstance == null ? 0 :this.localInstance.hashCode() % instances.keySet().size());
 			
 			if (!finder.equals(oldFinder)) {
 				this.pcs.firePropertyChange(SHARDS_CHANGED, oldFinder, finder);
