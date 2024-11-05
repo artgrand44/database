@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.art.db.client.Client;
 import org.art.db.common.Converter;
@@ -26,6 +27,8 @@ import org.slf4j.LoggerFactory;
 
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -48,6 +51,7 @@ public class DMLHandler {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(DMLHandler.class);
 	
+	private static Set<String> queryFuncs = Set.of("lease", "renew");
 	
 	private static List<OrderBy> buildOrderBy(List<OrderByElement> elements) {
 		List<OrderBy> orderByList = new ArrayList<>();
@@ -136,6 +140,10 @@ public class DMLHandler {
 				throw new DBRuntimeException("The delete must contain a where clause");
 			}
 			
+			if (metadata.isQueue() && !isValidQueueQuery(where, metadata, false)) {
+				throw new DBRuntimeException("The where clause is not supported for queries.");
+			}
+			
 			// Find the documents and delete them
 
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
@@ -187,6 +195,24 @@ public class DMLHandler {
 		
 		return false;
 	}
+	
+	private static boolean isValidQueueQuery(Expression where, Metadata metadata, boolean query) {
+		List<String> primaryKeys = metadata.getPrimaryKeyFields();
+		
+		
+		if (where instanceof EqualsTo eq) {
+			if (primaryKeys.size() == 1 && eq.getLeftExpression() instanceof Column col && col.getColumnName().equals(primaryKeys.get(0))) {
+				return true;
+			}
+			
+			if (primaryKeys.size() == 1 && eq.getRightExpression() instanceof Column col && col.getColumnName().equals(primaryKeys.get(0))) {
+				return true;
+			}
+		}
+		
+		 return query && where instanceof Function fun && queryFuncs.contains(fun.getName());
+	}
+	
 	
 	static void insert(Insert insert, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) {
 		
@@ -386,6 +412,7 @@ public class DMLHandler {
 		metadata.readLock();
 		
 		try {
+			
 			// Normalize the where clause
 
 			Expression where = plainSelect.getWhere();
@@ -394,6 +421,10 @@ public class DMLHandler {
 				throw new DBRuntimeException("The select must contain a where clause");
 			}
 
+			if (metadata.isQueue() && !isValidQueueQuery(where, metadata, true)) {
+				throw new DBRuntimeException("The where clause is not supported for queries.");
+			}
+			
 			Expression normalized = new ExpressionNormalizer().normalize(where);
 
 

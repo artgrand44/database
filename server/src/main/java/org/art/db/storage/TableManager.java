@@ -326,7 +326,7 @@ public class TableManager implements Closeable{
 		return this.table.lease(owner, timeout);
 	}
 	
-		public void remove(Document doc, boolean propagate, boolean log) throws Exception {
+	public void remove(Document doc, boolean propagate, boolean log) throws Exception {
 		Key primaryKey = this.buildKey(doc, this.metadata.getPrimaryKeyFields());
 		
 		this.timestamps.put(primaryKey, System.currentTimeMillis());
