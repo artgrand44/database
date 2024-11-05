@@ -39,7 +39,7 @@ public class QueueSegment extends MemorySegment {
 		
 	}
 	
-	static record QueueEntry(Document doc, AtomicReference<Lease> lease, boolean local) {
+	static record QueueEntry(Document doc, AtomicReference<Lease> lease, int priority) {
 		
 	}
 	
@@ -72,63 +72,48 @@ public class QueueSegment extends MemorySegment {
 		return entry == null ? null : entry.doc;
 	}
 	
+	private int getPriority(Key key) {
+		int instanceCount = this.discoveryHandler.getLocalInstanceCount();
+		int localHash = this.discoveryHandler.getLocalInstance().hashCode() % instanceCount;
+		
+		return key.hashCode() % instanceCount == localHash ? 1 : 0;
+		
+	}
+
 	/**
-	 * Find document that is not currently leased, obtain a lease
-	 * for it, and return the document.
-	 * 
-	 * This method makes two passes over the documents.  During the
-	 * first pass, it only examines documents whose keys have the same
-	 * hash code as the current instance.  During the second pass, it
-	 * looks at all of the documents.  This minimizes the chance that
-	 * two instances will give out leases for the same document at the
-	 * same time.
+	 * Find a set of documents that are not currently leased, create
+	 * leases for them, and return them.  In order to reduce conflicts,
+	 * we give priority to documents whose keys are associated with the 
+	 * current shard.
 	 * 
 	 * @param owner The owner for the new lease
 	 * @param timeout The timeout for the new lease
 	 * @return
 	 */
 	public DocumentSet lease(String owner, long timeout) {
-		DocumentSet result = this.lease(owner, timeout, true);
-		
-		if (result.size() < 5) {
-			result.addAll(this.lease(owner, timeout, false));
-		}
-		
-		return result;
-	}
-	
-	/**
-	 * Private method to obtain a lease.
-	 * @param owner  The owner for the new lease
-	 * @param timeout The timeout for the new lease
-	 * @param localOnly True if we should only consider keys who's hash matches the local instance
-	 * @return
-	 */
-	private DocumentSet lease(String owner, long timeout, boolean localOnly) {
-		Iterator<Map.Entry<Key, QueueEntry>> iterator = this.entries.asMap().entrySet().iterator();
 		DocumentSet result = new DocumentSet();
 		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
 		
-		while (iterator.hasNext() && result.size() < 25) {
-			Map.Entry<Key, QueueEntry> entry = iterator.next();
-			QueueEntry qentry = entry.getValue();
+		for (int priority = 1; priority >= 0 && result.size() < 5; priority--) {
+			Iterator<Map.Entry<Key, QueueEntry>> iterator = this.entries.asMap().entrySet().iterator();
 			
-			if (localOnly && !qentry.local) {
-				continue;
-			}
-			
-			if (qentry.lease.compareAndSet(null, lease)) {
-				this.leases.add(qentry);
-				result.add(qentry.doc);
+			while (iterator.hasNext() && result.size() < 25) {
+				Map.Entry<Key, QueueEntry> entry = iterator.next();
+				QueueEntry qentry = entry.getValue();
+				
+				if (qentry.priority <= priority &&  qentry.lease.compareAndSet(null, lease)) {
+					this.leases.add(qentry);
+					result.add(qentry.doc);
+				}			
 			}			
 		}
 		
 		return result;
 	}
-
+	
 	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.INSERT,  key, doc, propagate, log);
-		this.entries.put(key, new QueueEntry(doc, new AtomicReference<>(), this.discoveryHandler.isLocal(key)));
+		this.entries.put(key, new QueueEntry(doc, new AtomicReference<>(), this.getPriority(key)));
 	}
 	
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
