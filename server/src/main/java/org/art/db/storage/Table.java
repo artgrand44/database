@@ -208,20 +208,11 @@ public class Table implements Closeable {
 	public DocumentSet lease(String owner, long timeout) {
 		this.readLock.lock();
 		
-		DocumentSet result = new DocumentSet();
-		
 		try {
-			Iterator<Segment> iterator = this.segments.reversed().iterator();
-
-			while (iterator.hasNext() && result.size() < 5) {
-				QueueSegment segment = (QueueSegment)iterator.next();
-				result.addAll(segment.lease(owner, timeout));
-			}
+			return ((QueueSegment)this.currentSegment).lease(owner, timeout);
 		} finally {
 			this.readLock.unlock();
 		}
-
-		return result;
 	}
 	
 	
