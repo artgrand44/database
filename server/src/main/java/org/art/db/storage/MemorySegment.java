@@ -49,7 +49,7 @@ public class MemorySegment extends Segment {
 	/**
 	 * The log
 	 */
-	private final LogOutputStream log;
+	public final LogOutputStream log;
 	
 	/**
 	 * The table name
@@ -81,7 +81,7 @@ public class MemorySegment extends Segment {
 	/**
 	 * The current batch being build up
 	 */
-	private ConcurrentLinkedDeque<LogEntry> currentBroadcastBatch = new ConcurrentLinkedDeque<>();
+	protected ConcurrentLinkedDeque<LogEntry> currentBroadcastBatch = new ConcurrentLinkedDeque<>();
 	
 	/**
 	 * Has the segment been saved

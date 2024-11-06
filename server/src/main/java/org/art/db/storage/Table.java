@@ -213,7 +213,7 @@ public class Table implements Closeable {
 		try {
 			Iterator<Segment> iterator = this.segments.reversed().iterator();
 
-			while (iterator.hasNext()) {
+			while (iterator.hasNext() && result.size() < 5) {
 				QueueSegment segment = (QueueSegment)iterator.next();
 				result.addAll(segment.lease(owner, timeout));
 			}
@@ -224,7 +224,6 @@ public class Table implements Closeable {
 		return result;
 	}
 	
-
 	
 	private void merge(File file) {
 
@@ -315,13 +314,7 @@ public class Table implements Closeable {
 		try {
 			cache.invalidate(new DocId(this, key));
 			
-			if (this.isQueue) {
-				for (Segment segment : this.segments) {
-					((MemorySegment)segment).remove(key, segment == this.currentSegment && propagate, log);
-				}
-			} else {
-				this.currentSegment.remove(key, propagate, log);
-			}			
+			this.currentSegment.remove(key, propagate, log);		
 		} finally {
 			this.readLock.unlock();
 		}
@@ -375,12 +368,16 @@ public class Table implements Closeable {
 			
 			if (this.isQueue) {
 				this.currentSegment = new QueueSegment(this.table, this.discoveryHandler, this.environment);
+				this.segments.addFirst(this.currentSegment);
+				
+				((QueueSegment)this.currentSegment).merge((QueueSegment)this.prevSegment);
+				this.segments.remove(this.prevSegment);
+				this.prevSegment.close();
 			} else {
 				Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null;});
 				this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.environment, true);
+				this.segments.addFirst(this.currentSegment);
 			}
-			
-			this.segments.addFirst(this.currentSegment);
 		} catch (Exception exc) {
 			MetricsLogger.getInstance().logAlert("There was an error switching database segments");
 			logger.info("Exception switching segments " + exc.getMessage());

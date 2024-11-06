@@ -13,6 +13,7 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
+import org.art.db.common.LogEntry;
 import org.art.db.common.LogEntry.Operation;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
@@ -45,6 +46,8 @@ public class QueueSegment extends MemorySegment {
 	
 	private ConcurrentLinkedDeque<QueueEntry> leases = new ConcurrentLinkedDeque<>();
 	
+	private AtomicReference<ConcurrentLinkedDeque<LogEntry>> logEntries = new  AtomicReference<>(new ConcurrentLinkedDeque<>());
+	
 	/**
 	 * The queue entries
 	 */
@@ -52,12 +55,12 @@ public class QueueSegment extends MemorySegment {
 	
 	private final ScheduledFuture<?> timeoutHandler;
 	
+	private long lastFlush = System.currentTimeMillis();
 	
 	public QueueSegment(String table, DiscoveryHandler discoveryHandler, Environment config) throws Exception {
 		super(table, discoveryHandler, config, false);
 		
 		this.timeoutHandler = Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutLeases, 10, 10, TimeUnit.SECONDS);
-		
 	}
 	
 	public void close() throws IOException {
@@ -114,6 +117,41 @@ public class QueueSegment extends MemorySegment {
 	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.INSERT,  key, doc, propagate, log);
 		this.entries.put(key, new QueueEntry(doc, new AtomicReference<>(), this.getPriority(key)));
+	}
+	
+	protected void log(Operation op, Key key, Document value, boolean propagate, boolean log) throws Exception {
+
+		LogEntry entry = new LogEntry(op, key, value, System.currentTimeMillis(), propagate);
+
+		if (log) {
+			ConcurrentLinkedDeque<LogEntry> entries = this.logEntries.get();
+			ConcurrentLinkedDeque<LogEntry> newEntries = new ConcurrentLinkedDeque<LogEntry>();
+			long now = System.currentTimeMillis();
+			
+			entries.add(new LogEntry(op, key, value, System.currentTimeMillis(), propagate));
+						
+			if (now - this.lastFlush > 1000 && this.logEntries.compareAndSet(entries, newEntries)) {
+				this.log.write(entries);
+				this.lastFlush = now;
+			}		
+		}
+
+		if (propagate) {
+			this.currentBroadcastBatch.add(entry);
+		}
+	
+	}
+	
+	public void merge(QueueSegment prior) throws Exception {
+		for (Map.Entry<Key, QueueEntry> pair : prior.entries.asMap().entrySet()) {
+			Key key = pair.getKey();
+			QueueEntry entry = pair.getValue();
+			
+			this.log(Operation.INSERT,  key, entry.doc, false, true);
+			this.entries.put(key, entry);
+		}
+		
+		logger.info("at end of merge " + this.entries.estimatedSize() + " prior " + prior.entries.estimatedSize());
 	}
 	
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {

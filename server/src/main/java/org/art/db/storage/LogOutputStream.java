@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.art.db.common.LogEntry;
@@ -100,8 +102,32 @@ public class LogOutputStream  implements Closeable{
 			
 		this.lock.lock();
 		
-		try {
+		try {			
+			this.insureEOF(bytes.length + 5);
+			this.fileStream.write(bytes);
+			this.fileStream.flush();
+		} catch (Exception exc) {
+			MetricsLogger.getInstance().logAlert("There was an error writing to the log");
+			throw exc;
+		} finally {
+			this.lock.unlock();
+		}
+	}
+
+	public void write(Collection<LogEntry> entries) throws Exception {
+		byte[] bytes = null;
+		
+		try (TypedOutputStream stream = new TypedOutputStream()) {
+			for (LogEntry entry : entries) {
+				stream.writeObject(entry);
+			}
 			
+			bytes = stream.toByteArray();
+		}
+			
+		this.lock.lock();
+		
+		try {			
 			this.insureEOF(bytes.length + 5);
 			this.fileStream.write(bytes);
 			this.fileStream.flush();
