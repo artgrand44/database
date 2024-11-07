@@ -9,14 +9,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.LogEntry;
-import org.art.db.common.Scheduler;
 import org.art.db.common.TypedOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +31,10 @@ public class LogOutputStream  implements Closeable{
 	private static final Logger logger = LoggerFactory.getLogger(LogOutputStream.class);
 	
 	
+	static class Batch {
+		ConcurrentLinkedDeque<LogEntry> entries = new ConcurrentLinkedDeque<LogEntry>();
+		CountDownLatch latch = new CountDownLatch(1);
+	}
 	/**
 	 * The last block as recorded in the file system
 	 */
@@ -48,26 +50,19 @@ public class LogOutputStream  implements Closeable{
 	 */
 	private final FileChannel channel;
 	
-	//private final ScheduledFuture<?> timer;
-	
-	private File file;
-	
 	private ReentrantLock lock = new ReentrantLock();
 	
-	private AtomicReference<ConcurrentLinkedDeque<LogEntry>> logEntries = new  AtomicReference<>(new ConcurrentLinkedDeque<>());
+	private AtomicReference<Batch> currentBatch = new  AtomicReference<>(new Batch());
 	
 	
 	/**
 	 * The block size for extending the file
 	 */
-	private final static int BLOCK_SIZE = 1024 * 2024;
+	private final static int BLOCK_SIZE = 1024 * 2024 * 2;
 	
 	public LogOutputStream(File file) throws FileNotFoundException {
-		this.file = file;
-		
 		this.fileStream = new FileOutputStream(file);
 		this.channel = this.fileStream.getChannel();
-		//this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(this::timer, 1, 1, TimeUnit.SECONDS);
 	}
 	
 	private void insureEOF(int count) throws IOException {
@@ -99,18 +94,16 @@ public class LogOutputStream  implements Closeable{
 	@Override
 	public void close() throws IOException {
 		//this.timer.cancel(false);
-		this.flush(this.logEntries.get());
+		this.flush(this.currentBatch.get());
 		this.fileStream.close();		
 	}
 
-	public void flush(ConcurrentLinkedDeque<LogEntry> entries) {
-		this.lock.lock();
-		
+	public void flush(Batch batch) {
 		try {	
 			byte[] bytes = null;
 
 			try (TypedOutputStream stream = new TypedOutputStream()) {
-				for (LogEntry entry : entries) {
+				for (LogEntry entry : batch.entries) {
 					stream.writeObject(entry);
 				}
 
@@ -118,8 +111,12 @@ public class LogOutputStream  implements Closeable{
 			}
 
 			this.insureEOF(bytes.length + 5);
+			
+			this.lock.lock();
 			this.fileStream.write(bytes);
 			this.fileStream.flush();
+			
+			batch.latch.countDown();
 		} catch (Exception exc) {
 			MetricsLogger.getInstance().logAlert("There was an error writing to the log");
 		} finally {
@@ -133,24 +130,16 @@ public class LogOutputStream  implements Closeable{
 	}
 	
 	public void write(LogEntry entry) throws Exception {
-		this.logEntries.get().add(entry);
+		Batch batch = this.currentBatch.get();
+		Batch newBatch = new Batch();
 		
-		ConcurrentLinkedDeque<LogEntry> entries = this.logEntries.get();
-		ConcurrentLinkedDeque<LogEntry> newEntries = new ConcurrentLinkedDeque<LogEntry>();
+		batch.entries.add(entry);
 		
-		if (entries.size() >= 2 && this.logEntries.compareAndSet(entries, newEntries)) {
-			this.flush(entries);
-		}
+		if (batch.entries.size() >= 2 && this.currentBatch.compareAndSet(batch, newBatch)) {
+			this.flush(batch);
+		} else if (!batch.latch.await(50, TimeUnit.MICROSECONDS) && this.currentBatch.compareAndSet(batch, newBatch)) {
+			this.flush(newBatch);
+		}				
 	}
-
-	private void timer() {
-		ConcurrentLinkedDeque<LogEntry> entries = this.logEntries.get();
-		ConcurrentLinkedDeque<LogEntry> newEntries = new ConcurrentLinkedDeque<LogEntry>();
-		
-		if (entries.size() >= 1000 && this.logEntries.compareAndSet(entries, newEntries)) {
-			this.flush(entries);
-		}
-				
-	}
-		
+	
 }
