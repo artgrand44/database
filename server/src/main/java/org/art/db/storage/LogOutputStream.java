@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.LogEntry;
@@ -47,9 +48,11 @@ public class LogOutputStream  implements Closeable{
 	 */
 	private final FileChannel channel;
 	
-	private final ScheduledFuture<?> timer;
+	//private final ScheduledFuture<?> timer;
 	
 	private File file;
+	
+	private ReentrantLock lock = new ReentrantLock();
 	
 	private AtomicReference<ConcurrentLinkedDeque<LogEntry>> logEntries = new  AtomicReference<>(new ConcurrentLinkedDeque<>());
 	
@@ -61,9 +64,10 @@ public class LogOutputStream  implements Closeable{
 	
 	public LogOutputStream(File file) throws FileNotFoundException {
 		this.file = file;
+		
 		this.fileStream = new FileOutputStream(file);
 		this.channel = this.fileStream.getChannel();
-		this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(this::timer, 1, 1, TimeUnit.SECONDS);
+		//this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(this::timer, 1, 1, TimeUnit.SECONDS);
 	}
 	
 	private void insureEOF(int count) throws IOException {
@@ -94,12 +98,14 @@ public class LogOutputStream  implements Closeable{
 	
 	@Override
 	public void close() throws IOException {
-		this.timer.cancel(false);
+		//this.timer.cancel(false);
 		this.flush(this.logEntries.get());
 		this.fileStream.close();		
 	}
 
 	public void flush(ConcurrentLinkedDeque<LogEntry> entries) {
+		this.lock.lock();
+		
 		try {	
 			byte[] bytes = null;
 
@@ -116,7 +122,9 @@ public class LogOutputStream  implements Closeable{
 			this.fileStream.flush();
 		} catch (Exception exc) {
 			MetricsLogger.getInstance().logAlert("There was an error writing to the log");
-		} 
+		} finally {
+			this.lock.unlock();
+		}
 	}	
 
 	
@@ -126,6 +134,13 @@ public class LogOutputStream  implements Closeable{
 	
 	public void write(LogEntry entry) throws Exception {
 		this.logEntries.get().add(entry);
+		
+		ConcurrentLinkedDeque<LogEntry> entries = this.logEntries.get();
+		ConcurrentLinkedDeque<LogEntry> newEntries = new ConcurrentLinkedDeque<LogEntry>();
+		
+		if (entries.size() >= 2 && this.logEntries.compareAndSet(entries, newEntries)) {
+			this.flush(entries);
+		}
 	}
 
 	private void timer() {

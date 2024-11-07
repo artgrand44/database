@@ -64,6 +64,9 @@ public class QueueSegment extends MemorySegment {
 		super.close();
 	}
 	
+	public void delete() {
+		this.logFile.delete();
+	}
 	@Override
 	public Document get(Key key) throws Exception {
 		QueueEntry entry = this.entries.getIfPresent(key);

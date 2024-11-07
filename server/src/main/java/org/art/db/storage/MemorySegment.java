@@ -44,7 +44,7 @@ public class MemorySegment extends Segment {
 	/**
 	 * The log file
 	 */
-	private final File logFile;
+	protected final File logFile;
 	
 	/**
 	 * The log

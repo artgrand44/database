@@ -362,6 +362,7 @@ public class Table implements Closeable {
 				((QueueSegment)this.currentSegment).merge((QueueSegment)this.prevSegment);
 				this.segments.remove(this.prevSegment);
 				this.prevSegment.close();
+				((QueueSegment)this.prevSegment).delete();
 			} else {
 				Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null;});
 				this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.environment, true);
