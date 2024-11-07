@@ -321,15 +321,16 @@ public class Dispatcher {
 			String type = parameters.get("type");
 			File[] files = Files.listFiles(table, type);
 			
-			if (files == null) {
-				return "".getBytes();
-			}
+			logger.info(DiscoveryHandler.getServerName() + " table " + table + " type " + type + " count " + files.length);
 			
 			List<String> names = new ArrayList<>();
 			
 			for (File file : files) {
 				if (file.length() != 0) {
 					names.add(file.getName());
+					logger.info("added " + file.getName());
+				} else {
+					logger.info("Zero length for " + file.getAbsolutePath());
 				}
 			}
 			

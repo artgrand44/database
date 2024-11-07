@@ -71,6 +71,7 @@ public class MemorySegment extends Segment {
 	
 	private final String id;
 
+	private final boolean isQueue;
 		
 	/**
 	 * The batches that need to be broadcast
@@ -124,6 +125,7 @@ public class MemorySegment extends Segment {
 		
 		long delay = interval.toMillis();
 		
+		this.isQueue = isQueue;
 		this.logFile = Files.getTableLog(table);
 		this.log = new LogOutputStream(this.logFile);
 		this.table = table;
@@ -185,8 +187,11 @@ public class MemorySegment extends Segment {
 			
 			this.broadcastTimer();
 			this.log.close();
-			this.logFile.delete();
 			this.documents = null;
+			
+			if (!this.isQueue) {
+				this.logFile.delete();
+			}
 		} finally {
 			this.closed = true;
 		}

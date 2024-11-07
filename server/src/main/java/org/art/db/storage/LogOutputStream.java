@@ -8,11 +8,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.LogEntry;
+import org.art.db.common.Scheduler;
 import org.art.db.common.TypedOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +47,12 @@ public class LogOutputStream  implements Closeable{
 	 */
 	private final FileChannel channel;
 	
-	private final ReentrantLock lock = new ReentrantLock();
+	private final ScheduledFuture<?> timer;
+	
+	private File file;
+	
+	private AtomicReference<ConcurrentLinkedDeque<LogEntry>> logEntries = new  AtomicReference<>(new ConcurrentLinkedDeque<>());
+	
 	
 	/**
 	 * The block size for extending the file
@@ -52,8 +60,10 @@ public class LogOutputStream  implements Closeable{
 	private final static int BLOCK_SIZE = 1024 * 2024;
 	
 	public LogOutputStream(File file) throws FileNotFoundException {
+		this.file = file;
 		this.fileStream = new FileOutputStream(file);
 		this.channel = this.fileStream.getChannel();
+		this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(this::timer, 1, 1, TimeUnit.SECONDS);
 	}
 	
 	private void insureEOF(int count) throws IOException {
@@ -84,59 +94,48 @@ public class LogOutputStream  implements Closeable{
 	
 	@Override
 	public void close() throws IOException {
+		this.timer.cancel(false);
+		this.flush(this.logEntries.get());
 		this.fileStream.close();		
 	}
 
+	public void flush(ConcurrentLinkedDeque<LogEntry> entries) {
+		try {	
+			byte[] bytes = null;
+
+			try (TypedOutputStream stream = new TypedOutputStream()) {
+				for (LogEntry entry : entries) {
+					stream.writeObject(entry);
+				}
+
+				bytes = stream.toByteArray();
+			}
+
+			this.insureEOF(bytes.length + 5);
+			this.fileStream.write(bytes);
+			this.fileStream.flush();
+		} catch (Exception exc) {
+			MetricsLogger.getInstance().logAlert("There was an error writing to the log");
+		} 
+	}	
+
+	
 	public long getLength() {
 		return this.lastOSBlock * BLOCK_SIZE;
 	}
 	
 	public void write(LogEntry entry) throws Exception {
-		byte[] bytes = null;
-		
-		try (TypedOutputStream stream = new TypedOutputStream()) {
-			stream.writeObject(entry);
-			
-			bytes = stream.toByteArray();
-		}
-			
-		this.lock.lock();
-		
-		try {			
-			this.insureEOF(bytes.length + 5);
-			this.fileStream.write(bytes);
-			this.fileStream.flush();
-		} catch (Exception exc) {
-			MetricsLogger.getInstance().logAlert("There was an error writing to the log");
-			throw exc;
-		} finally {
-			this.lock.unlock();
-		}
+		this.logEntries.get().add(entry);
 	}
 
-	public void write(Collection<LogEntry> entries) throws Exception {
-		byte[] bytes = null;
+	private void timer() {
+		ConcurrentLinkedDeque<LogEntry> entries = this.logEntries.get();
+		ConcurrentLinkedDeque<LogEntry> newEntries = new ConcurrentLinkedDeque<LogEntry>();
 		
-		try (TypedOutputStream stream = new TypedOutputStream()) {
-			for (LogEntry entry : entries) {
-				stream.writeObject(entry);
-			}
-			
-			bytes = stream.toByteArray();
+		if (entries.size() >= 1000 && this.logEntries.compareAndSet(entries, newEntries)) {
+			this.flush(entries);
 		}
-			
-		this.lock.lock();
-		
-		try {			
-			this.insureEOF(bytes.length + 5);
-			this.fileStream.write(bytes);
-			this.fileStream.flush();
-		} catch (Exception exc) {
-			MetricsLogger.getInstance().logAlert("There was an error writing to the log");
-			throw exc;
-		} finally {
-			this.lock.unlock();
-		}
+				
 	}
-
+		
 }

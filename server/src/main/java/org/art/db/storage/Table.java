@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +41,6 @@ public class Table implements Closeable {
 	private final Environment environment;
 	private final int maxSegmentSize;
 	private final ScheduledFuture<?> switcher;
-	private final ScheduledFuture<?> timer;
 	private final boolean isQueue;
 	private boolean closed;
 	
@@ -84,7 +82,6 @@ public class Table implements Closeable {
 		}
 		
 		this.switcher = Scheduler.DEFAULT.scheduleAtFixedRate(this::switchSegmentIfNeeded, 5, 10, TimeUnit.MILLISECONDS);
-		this.timer = this.isQueue ? Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutSegments, 5, 5,  TimeUnit.MINUTES) : null;
 
 	}
 	
@@ -96,7 +93,7 @@ public class Table implements Closeable {
 			this.closed = true;
 			
 			if (this.isQueue) {
-				this.timer.cancel(true);
+				this.currentSegment.close();
 			} else {
 				while (this.prevSegment != null) {
 					this.writeLock.unlock();
@@ -134,6 +131,7 @@ public class Table implements Closeable {
 		MemorySegment segment = this.currentSegment;
 		boolean saving = false;
 		
+		logger.info(DiscoveryHandler.getServerName() + "table.flush");
 		if (this.isQueue) {
 			logger.info("flushing queue");
 		}
@@ -400,27 +398,6 @@ public class Table implements Closeable {
 			this.readLock.unlock();
 		}
 		
-	}
-	
-	private void timeoutSegments() {
-		
-		this.writeLock.lock();
-		
-		try {
-			Iterator<Segment> iterator = this.segments.iterator();
-			
-			while (iterator.hasNext()) {
-				MemorySegment segment = (MemorySegment)iterator.next();
-				
-				if (segment != this.currentSegment && segment.size() == 0) {
-					segment.deleteLog();
-					Utils.closeSafely(segment);
-					iterator.remove();
-				}
-			}
-		} finally {
-			this.writeLock.unlock();
-		}
 	}
 	
 	static record DocId(Table table, Key key) {

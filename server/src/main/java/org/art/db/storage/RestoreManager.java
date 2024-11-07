@@ -89,13 +89,19 @@ public class RestoreManager {
 		
 	
 	private List<String> getAllFiles(URI peer, String table, String type) throws Exception {
+		try {
 		List<String> names = this.getFilesNames(peer, table, type);
 
+		logger.info("got names " + names);
 		for (String name : names) {
 			this.getFile(peer, table, name);
 		}
 		
 		return names;	
+		} catch (Exception exc) {
+			exc.printStackTrace();
+			throw exc;
+		}
 	}
 	
 	

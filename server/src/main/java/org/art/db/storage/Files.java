@@ -153,6 +153,7 @@ public class Files {
 	public static File[] listFiles(String table, String type) {
 		File tableDir = new File(getRoot(), table);
 		
+		logger.info("Listing files in " + tableDir.getAbsolutePath());
 		return tableDir.listFiles((dir, name) -> name.endsWith(type));
 	}
 	

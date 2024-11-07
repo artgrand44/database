@@ -16,6 +16,7 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.GUID;
 import org.art.db.common.Key;
+import org.art.db.common.Utils;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Environment;
 import org.art.db.storage.Metadata;
@@ -128,6 +129,7 @@ public class QueueCrashTest extends BaseTest {
 				}
 				
 				if (idx % 200 == nextCrash) {
+					Utils.sleepSafely(2000);
 					manager.crash();
 					
 					manager = new TableManager("test");
