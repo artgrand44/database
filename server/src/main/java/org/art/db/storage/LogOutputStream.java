@@ -8,10 +8,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.art.db.common.LogEntry;
@@ -31,10 +27,6 @@ public class LogOutputStream  implements Closeable{
 	private static final Logger logger = LoggerFactory.getLogger(LogOutputStream.class);
 	
 	
-	static class Batch {
-		ConcurrentLinkedDeque<LogEntry> entries = new ConcurrentLinkedDeque<LogEntry>();
-		CountDownLatch latch = new CountDownLatch(1);
-	}
 	/**
 	 * The last block as recorded in the file system
 	 */
@@ -50,15 +42,12 @@ public class LogOutputStream  implements Closeable{
 	 */
 	private final FileChannel channel;
 	
-	private ReentrantLock lock = new ReentrantLock();
-	
-	private AtomicReference<Batch> currentBatch = new  AtomicReference<>(new Batch());
-	
+	private final ReentrantLock lock = new ReentrantLock();
 	
 	/**
 	 * The block size for extending the file
 	 */
-	private final static int BLOCK_SIZE = 1024 * 2024 * 2;
+	private final static int BLOCK_SIZE = 1024 * 2024;
 	
 	public LogOutputStream(File file) throws FileNotFoundException {
 		this.fileStream = new FileOutputStream(file);
@@ -93,53 +82,35 @@ public class LogOutputStream  implements Closeable{
 	
 	@Override
 	public void close() throws IOException {
-		//this.timer.cancel(false);
-		this.flush(this.currentBatch.get());
 		this.fileStream.close();		
 	}
 
-	public void flush(Batch batch) {
-		try {	
-			byte[] bytes = null;
-
-			try (TypedOutputStream stream = new TypedOutputStream()) {
-				for (LogEntry entry : batch.entries) {
-					stream.writeObject(entry);
-				}
-
-				bytes = stream.toByteArray();
-			}
-
-			this.insureEOF(bytes.length + 5);
-			
-			this.lock.lock();
-			this.fileStream.write(bytes);
-			this.fileStream.flush();
-			
-			batch.latch.countDown();
-		} catch (Exception exc) {
-			MetricsLogger.getInstance().logAlert("There was an error writing to the log");
-		} finally {
-			this.lock.unlock();
-		}
-	}	
-
-	
 	public long getLength() {
 		return this.lastOSBlock * BLOCK_SIZE;
 	}
 	
 	public void write(LogEntry entry) throws Exception {
-		Batch batch = this.currentBatch.get();
-		Batch newBatch = new Batch();
+		byte[] bytes = null;
 		
-		batch.entries.add(entry);
+		try (TypedOutputStream stream = new TypedOutputStream()) {
+			stream.writeObject(entry);
+			
+			bytes = stream.toByteArray();
+		}
+			
+		this.lock.lock();
 		
-		if (batch.entries.size() >= 2 && this.currentBatch.compareAndSet(batch, newBatch)) {
-			this.flush(batch);
-		} else if (!batch.latch.await(50, TimeUnit.MICROSECONDS) && this.currentBatch.compareAndSet(batch, newBatch)) {
-			this.flush(newBatch);
-		}				
+		try {
+			
+			this.insureEOF(bytes.length + 5);
+			this.fileStream.write(bytes);
+			this.fileStream.flush();
+		} catch (Exception exc) {
+			MetricsLogger.getInstance().logAlert("There was an error writing to the log");
+			throw exc;
+		} finally {
+			this.lock.unlock();
+		}
 	}
-	
+
 }
