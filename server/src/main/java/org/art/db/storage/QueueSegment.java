@@ -54,7 +54,7 @@ public class QueueSegment extends MemorySegment {
 	
 	
 	public QueueSegment(String table, DiscoveryHandler discoveryHandler, Environment config) throws Exception {
-		super(table, discoveryHandler, config, true);
+		super(table, discoveryHandler, config);
 		
 		this.timeoutHandler = Scheduler.DEFAULT.scheduleAtFixedRate(this::timeoutLeases, 10, 10, TimeUnit.SECONDS);
 	}
@@ -64,9 +64,7 @@ public class QueueSegment extends MemorySegment {
 		super.close();
 	}
 	
-	public void delete() {
-		this.logFile.delete();
-	}
+	
 	@Override
 	public Document get(Key key) throws Exception {
 		QueueEntry entry = this.entries.getIfPresent(key);

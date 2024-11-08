@@ -71,8 +71,6 @@ public class MemorySegment extends Segment {
 	
 	private final String id;
 
-	private final boolean isQueue;
-		
 	/**
 	 * The batches that need to be broadcast
 	 */
@@ -111,7 +109,7 @@ public class MemorySegment extends Segment {
 	private static ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("MemSeg", 5);
 	
 
-	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Environment config, boolean isQueue) throws Exception {
+	public MemorySegment(String table, DiscoveryHandler discoveryHandler, Environment config) throws Exception {
 		super();
 		
 		Interval interval;
@@ -125,7 +123,6 @@ public class MemorySegment extends Segment {
 		
 		long delay = interval.toMillis();
 		
-		this.isQueue = isQueue;
 		this.logFile = Files.getTableLog(table);
 		this.log = new LogOutputStream(this.logFile);
 		this.table = table;
@@ -188,10 +185,6 @@ public class MemorySegment extends Segment {
 			this.broadcastTimer();
 			this.log.close();
 			this.documents = null;
-			
-			if (!this.isQueue) {
-				this.logFile.delete();
-			}
 		} finally {
 			this.closed = true;
 		}
@@ -223,6 +216,7 @@ public class MemorySegment extends Segment {
 	
 	}
 	
+	@Override
 	public void deleteLog() {
 		this.logFile.delete();
 	}

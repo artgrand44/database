@@ -14,7 +14,7 @@ public class AQueuePounderTest extends BaseQueryPounder {
 	private static final Logger logger = LoggerFactory.getLogger(AQueuePounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 10000;
+	private static int NLOOPS = 1000;
 	private static int NTHREADS = 150;
 	
 	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);

@@ -66,7 +66,7 @@ public class Table implements Closeable {
 		
 		this.currentSegment = this.isQueue
 				              ? new QueueSegment(this.table, this.discoveryHandler, this.environment)
-				              : new MemorySegment(table, this.discoveryHandler, this.environment, false);
+				              : new MemorySegment(table, this.discoveryHandler, this.environment);
 		
 		this.segments.add(this.currentSegment);
 			
@@ -119,7 +119,7 @@ public class Table implements Closeable {
 			this.currentSegment.crash();
 			this.currentSegment = this.isQueue
 					              ? new QueueSegment(this.table, this.discoveryHandler, this.environment)
-					              : new MemorySegment(this.table, this.discoveryHandler, this.environment, false);
+					              : new MemorySegment(this.table, this.discoveryHandler, this.environment);
 			
 		}
 	}
@@ -334,6 +334,7 @@ public class Table implements Closeable {
 				}
 
 				segment.close();
+				segment.deleteLog();
 			} finally {
 				this.writeLock.unlock();
 				mergeQueue.add(new MergeQueueEntry(this, file));
@@ -362,10 +363,10 @@ public class Table implements Closeable {
 				((QueueSegment)this.currentSegment).merge((QueueSegment)this.prevSegment);
 				this.segments.remove(this.prevSegment);
 				this.prevSegment.close();
-				((QueueSegment)this.prevSegment).delete();
+				this.prevSegment.deleteLog();
 			} else {
 				Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null;});
-				this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.environment, true);
+				this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.environment);
 				this.segments.addFirst(this.currentSegment);
 			}
 		} catch (Exception exc) {

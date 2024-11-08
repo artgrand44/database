@@ -213,6 +213,7 @@ public class SegmentBuilder {
 		
 		for (Segment segment : segments) {
 			segment.close();
+			segment.deleteLog();
 		}
 	
 		

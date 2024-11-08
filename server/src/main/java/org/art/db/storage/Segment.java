@@ -33,6 +33,9 @@ public abstract class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeab
 		
 	}
 	
+	public void deleteLog() {
+		
+	}
 	
 	public abstract Document get(Key key) throws Exception;
 	
