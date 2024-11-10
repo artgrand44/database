@@ -23,6 +23,10 @@ import org.slf4j.LoggerFactory;
  * the length of the log in large chunks and filling the space at the end
  * with -1's.  This guarantees that the stream that reads the log will
  * detect an invalid object type and terminate the scan.
+ * 
+ * Log entries are written in batches corresponding to the batches that are 
+ * received from the client.  This reduces the i/o's to the log by at least 
+ * 2:1 while still honoring the contract with applications. 
  */
 public class LogOutputStream  implements Closeable{
 	
@@ -102,6 +106,13 @@ public class LogOutputStream  implements Closeable{
 		this.fileStream.close();		
 	}
 
+	/**
+	 * This method is called by the dispatcher at the end of every request.
+	 * If the request is a top-level request (as opposed to a recursive 
+	 * call to the dispatcher), it flushes all of the log entries for
+	 * the thread.
+	 * @throws Exception
+	 */
 	public static void endBatch() throws Exception {
 		try {
 			Batch batch = batches.get();
@@ -109,6 +120,13 @@ public class LogOutputStream  implements Closeable{
 			batch.level--;
 			
 			if (batch.level <= 1) {
+				
+				// Iterate over the logs used by this thread and try to flush them.
+				// If a log is closed, we assume that the corresponding segment has 
+				// been safe-stored or copied to a newer segment, so we skip the log.
+				// If we get an exception, we assume that the log was closed just as
+				// we were starting to flush it.
+				
 				for (Map.Entry<LogOutputStream, List<LogEntry>> pair : batch.entries.entrySet()) {
 					LogOutputStream stream = pair.getKey();
 					List<LogEntry> list = pair.getValue();
@@ -129,6 +147,9 @@ public class LogOutputStream  implements Closeable{
 		return this.lastOSBlock * BLOCK_SIZE;
 	}
 	
+	/**
+	 * Mark the beginning of a batchß
+	 */
 	public static void startBatch() {
 		batches.get().level++;
 	}
