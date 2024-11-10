@@ -64,7 +64,14 @@ public class QueueSegment extends MemorySegment {
 		super.close();
 	}
 	
-	
+	@Override
+	public void deleteLog() {
+		super.deleteLog();
+		this.entries.invalidateAll();
+		this.leases.clear();
+		
+		System.gc();
+	}
 	@Override
 	public Document get(Key key) throws Exception {
 		QueueEntry entry = this.entries.getIfPresent(key);
@@ -117,6 +124,8 @@ public class QueueSegment extends MemorySegment {
 	}
 		
 	public void merge(QueueSegment prior) throws Exception {
+		LogOutputStream.startBatch();
+		
 		for (Map.Entry<Key, QueueEntry> pair : prior.entries.asMap().entrySet()) {
 			Key key = pair.getKey();
 			QueueEntry entry = pair.getValue();
@@ -125,7 +134,7 @@ public class QueueSegment extends MemorySegment {
 			this.entries.put(key, entry);
 		}
 		
-		LogOutputStream.flush();
+		LogOutputStream.endBatch();
 	}
 	
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {

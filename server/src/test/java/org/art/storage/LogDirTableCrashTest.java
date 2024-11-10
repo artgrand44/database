@@ -13,6 +13,7 @@ import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Environment;
+import org.art.db.storage.LogOutputStream;
 import org.art.db.storage.MemorySegment;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
@@ -104,6 +105,7 @@ public class LogDirTableCrashTest extends BaseTest {
 				if (idx % 200 == nextCrash) {
 					logger.info("****crash " + idx);
 					
+					LogOutputStream.endBatch();
 					manager.crash();
 					
 					manager = new TableManager("test");

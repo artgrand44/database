@@ -96,7 +96,13 @@ public class Dispatcher {
 			return "Hello".getBytes();
 		}
 		
-		return handler.handle(exchange, parameters, body);
+		LogOutputStream.startBatch();
+		
+		try {
+			return handler.handle(exchange, parameters, body);
+		} finally {
+			LogOutputStream.endBatch();
+		}
 
 	}
 
@@ -170,7 +176,6 @@ public class Dispatcher {
 					}
 				}
 				
-				LogOutputStream.flush();
 				return output.toByteArray();
 			}
 		}

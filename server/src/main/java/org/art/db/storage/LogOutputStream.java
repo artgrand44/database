@@ -49,7 +49,13 @@ public class LogOutputStream  implements Closeable{
 	
 	private final ReentrantLock lock = new ReentrantLock();
 	
-	private static final ThreadLocal<MultiValueMap<LogOutputStream, LogEntry>> entries = ThreadLocal.withInitial(() -> new MultiValueMap<LogOutputStream, LogEntry>());
+	static class Batch {
+		MultiValueMap<LogOutputStream, LogEntry> entries = new MultiValueMap<LogOutputStream, LogEntry>();
+		int level;
+	}
+	
+	private static final ThreadLocal<Batch> batches = ThreadLocal.withInitial(() -> new Batch());
+	
 	/**
 	 * The block size for extending the file
 	 */
@@ -96,19 +102,23 @@ public class LogOutputStream  implements Closeable{
 		this.fileStream.close();		
 	}
 
-	public static void flush() throws Exception {
+	public static void endBatch() throws Exception {
 		try {
-			MultiValueMap<LogOutputStream, LogEntry> threadEntries = entries.get();
+			Batch batch = batches.get();
 
-			for (Map.Entry<LogOutputStream, List<LogEntry>> pair : threadEntries.entrySet()) {
-				LogOutputStream stream = pair.getKey();
-				List<LogEntry> list = pair.getValue();
+			batch.level--;
+			
+			if (batch.level <= 1) {
+				for (Map.Entry<LogOutputStream, List<LogEntry>> pair : batch.entries.entrySet()) {
+					LogOutputStream stream = pair.getKey();
+					List<LogEntry> list = pair.getValue();
 
-				if (!stream.closed) {
-					stream.writeBatch(list);
-					list.clear();
+					if (!stream.closed) {
+						stream.writeBatch(list);
+						list.clear();
+					}
+
 				}
-				
 			}
 		} catch (Exception exc) {
 			logger.info("Flush exception " + exc.getMessage());
@@ -119,8 +129,12 @@ public class LogOutputStream  implements Closeable{
 		return this.lastOSBlock * BLOCK_SIZE;
 	}
 	
+	public static void startBatch() {
+		batches.get().level++;
+	}
+	
 	public void write(LogEntry entry) throws Exception {
-		entries.get().add(this, entry);
+		batches.get().entries.add(this, entry);
 	}
 
 	private void writeBatch(List<LogEntry> batch) throws Exception {
