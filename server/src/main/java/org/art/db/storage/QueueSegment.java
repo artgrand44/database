@@ -124,6 +124,8 @@ public class QueueSegment extends MemorySegment {
 			this.log(Operation.INSERT,  key, entry.doc, false, true);
 			this.entries.put(key, entry);
 		}
+		
+		LogOutputStream.flush();
 	}
 	
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {

@@ -8,9 +8,12 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.art.db.common.LogEntry;
+import org.art.db.common.MultiValueMap;
 import org.art.db.common.TypedOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +26,7 @@ import org.slf4j.LoggerFactory;
  */
 public class LogOutputStream  implements Closeable{
 	
-	@SuppressWarnings("unused")
+	//@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(LogOutputStream.class);
 	
 	
@@ -31,6 +34,8 @@ public class LogOutputStream  implements Closeable{
 	 * The last block as recorded in the file system
 	 */
 	private long lastOSBlock = -1;
+	
+	private volatile boolean closed = true;
 	
 	/**
 	 * The underlying data stream
@@ -44,6 +49,7 @@ public class LogOutputStream  implements Closeable{
 	
 	private final ReentrantLock lock = new ReentrantLock();
 	
+	private static final ThreadLocal<MultiValueMap<LogOutputStream, LogEntry>> entries = ThreadLocal.withInitial(() -> new MultiValueMap<LogOutputStream, LogEntry>());
 	/**
 	 * The block size for extending the file
 	 */
@@ -52,9 +58,13 @@ public class LogOutputStream  implements Closeable{
 	public LogOutputStream(File file) throws FileNotFoundException {
 		this.fileStream = new FileOutputStream(file);
 		this.channel = this.fileStream.getChannel();
+		this.closed = false;
 	}
 	
 	private void insureEOF(int count) throws IOException {
+		if (!this.channel.isOpen()) {
+			logger.info("channel closed " + this.closed);
+		}
 		long currentPosition = this.channel.position();
 		long lastBlock = (currentPosition + count) / BLOCK_SIZE;
 		
@@ -81,27 +91,52 @@ public class LogOutputStream  implements Closeable{
 	}
 	
 	@Override
-	public void close() throws IOException {
+	public  void close() throws IOException {
+		this.closed = true;
 		this.fileStream.close();		
 	}
 
+	public static void flush() throws Exception {
+		try {
+			MultiValueMap<LogOutputStream, LogEntry> threadEntries = entries.get();
+
+			for (Map.Entry<LogOutputStream, List<LogEntry>> pair : threadEntries.entrySet()) {
+				LogOutputStream stream = pair.getKey();
+				List<LogEntry> list = pair.getValue();
+
+				if (!stream.closed) {
+					stream.writeBatch(list);
+					list.clear();
+				}
+				
+			}
+		} catch (Exception exc) {
+			logger.info("Flush exception " + exc.getMessage());
+		}
+	}
+	
 	public long getLength() {
 		return this.lastOSBlock * BLOCK_SIZE;
 	}
 	
 	public void write(LogEntry entry) throws Exception {
+		entries.get().add(this, entry);
+	}
+
+	private void writeBatch(List<LogEntry> batch) throws Exception {
 		byte[] bytes = null;
 		
 		try (TypedOutputStream stream = new TypedOutputStream()) {
-			stream.writeObject(entry);
+			for (LogEntry entry : batch) {
+				stream.writeObject(entry);
+			}
 			
 			bytes = stream.toByteArray();
 		}
 			
 		this.lock.lock();
 		
-		try {
-			
+		try {			
 			this.insureEOF(bytes.length + 5);
 			this.fileStream.write(bytes);
 			this.fileStream.flush();

@@ -312,6 +312,8 @@ public class Table implements Closeable {
 	
 	private void save(MemorySegment segment) {
 		try {
+			segment.close();
+			
 			File file  = Files.getDiskSegment(this.table, 1);
 
 			DiskSegment saved = segment.save(file);
@@ -332,8 +334,7 @@ public class Table implements Closeable {
 				if (!replaced) {					
 					logger.info("***** failed to replace segment " + segment + "\n" + this.segments);
 				}
-
-				segment.close();
+				
 				segment.deleteLog();
 			} finally {
 				this.writeLock.unlock();
@@ -365,9 +366,9 @@ public class Table implements Closeable {
 				this.prevSegment.close();
 				this.prevSegment.deleteLog();
 			} else {
-				Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null;});
 				this.currentSegment = new MemorySegment(this.table, this.discoveryHandler, this.environment);
 				this.segments.addFirst(this.currentSegment);
+				Scheduler.DEFAULT.submit(() -> { this.save(this.prevSegment); this.prevSegment = null;});
 			}
 		} catch (Exception exc) {
 			MetricsLogger.getInstance().logAlert("There was an error switching database segments");

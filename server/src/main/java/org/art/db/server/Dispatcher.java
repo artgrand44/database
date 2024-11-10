@@ -28,6 +28,7 @@ import org.art.db.sql.SQLHandler;
 import org.art.db.storage.BackupHandler;
 import org.art.db.storage.Environment;
 import org.art.db.storage.Files;
+import org.art.db.storage.LogOutputStream;
 import org.art.db.storage.MetricsLogger;
 import org.art.db.storage.PrometheusLogger;
 import org.art.db.storage.RestoreManager;
@@ -169,6 +170,7 @@ public class Dispatcher {
 					}
 				}
 				
+				LogOutputStream.flush();
 				return output.toByteArray();
 			}
 		}
