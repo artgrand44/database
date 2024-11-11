@@ -51,7 +51,7 @@ public class DMLHandler {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(DMLHandler.class);
 	
-	private static Set<String> queryFuncs = Set.of("lease", "renew");
+	private static Set<String> queryFuncs = Set.of("lease", "renewLease");
 	
 	private static List<OrderBy> buildOrderBy(List<OrderByElement> elements) {
 		List<OrderBy> orderByList = new ArrayList<>();

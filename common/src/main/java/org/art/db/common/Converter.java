@@ -78,6 +78,8 @@ public class Converter {
 			return Date.valueOf(s);
 		} else if (clazz == Timestamp.class) {
 			return Timestamp.valueOf(s);
+		} else if (clazz == Comparable.class && obj instanceof Comparable) {
+			return obj;
 		} else if (clazz == String.class) {
 			return s;
 		} else if (Enum.class.isAssignableFrom(clazz)) {

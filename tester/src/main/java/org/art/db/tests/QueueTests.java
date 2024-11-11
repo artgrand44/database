@@ -75,6 +75,11 @@ public class QueueTests extends BaseIntegrationTest {
 				DocumentSet other = client.executeQuery("select * from queue where id = ?", guid);
 
 				Assertions.assertThat(other.size() == 1).isTrue();
+				
+				DocumentSet renewedSet = client.executeQuery("select * from queue where renewLease(?, 'art', 2000)", guid);
+				Assertions.assertThat(renewedSet.size() == 1).isTrue();
+				Assertions.assertThat(renewedSet.iterator().next().get("id").equals(guid)).isTrue();
+				
 				Assertions.assertThat(this.remove(client, guid)).isTrue();
 			}	
 
@@ -84,6 +89,11 @@ public class QueueTests extends BaseIntegrationTest {
 			} catch (Exception exc) {
 				Assertions.assertThat("The where clause is not supported for queries.".equals(exc.getMessage()));
 			}
+			
+			/*DocumentSet counts = client.executeQuery("select count(*) from queue");
+			Assertions.assertThat(counts.size() == 1).isTrue();
+			Assertions.assertThat(counts.iterator().next().get("count") != null).isTrue();*/
+			
 
 		} catch (AssertionFailedError err) {
 			throw err;

@@ -27,6 +27,9 @@ public class FunctionEvaluator {
 		int end;
 		String str;
 		Calendar cal;
+		String owner;
+		Number timeout;
+		Comparable<?> key;
 
 		try {
 			switch (name.toLowerCase()) {
@@ -69,8 +72,8 @@ public class FunctionEvaluator {
 				return validate(name, parameters, 0, String.class).toLowerCase();
 
 			case "lease":
-				String owner = validate(name, parameters, 0, String.class);
-				Number timeout = parameters.size() == 2 ? validate(name, parameters, 1, Number.class) : 0;
+				owner = validate(name, parameters, 0, String.class);
+				timeout = parameters.size() == 2 ? validate(name, parameters, 1, Number.class) : 0;
 				
 				return StorageManager.getInstance().getTableManager(table).lease(owner, timeout.longValue());
 				
@@ -106,6 +109,13 @@ public class FunctionEvaluator {
 			
 			case "now":
 				return new Date(System.currentTimeMillis());
+				
+			case "renewlease":
+				key = validate(name, parameters, 0, Comparable.class);
+				owner = validate(name, parameters, 1, String.class);
+				timeout = validate(name, parameters, 2, Number.class);
+				
+				return StorageManager.getInstance().getTableManager(table).renewLease(key, owner, timeout.longValue());
 				
 			case "remove":
 				list = (List)validate(name, parameters, 0, List.class);

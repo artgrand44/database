@@ -213,7 +213,6 @@ public class Table implements Closeable {
 		}
 	}
 	
-	
 	private void merge(File file) {
 
 		try {
@@ -296,7 +295,6 @@ public class Table implements Closeable {
 
 	}
 	
-	
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
 		this.readLock.lock();
 		
@@ -308,6 +306,16 @@ public class Table implements Closeable {
 			this.readLock.unlock();
 		}
 		
+	}
+	
+	public DocumentSet renewLease(Comparable<?> key, String owner, long timeout) {
+		this.readLock.lock();
+		
+		try {
+			return ((QueueSegment)this.currentSegment).renewLease(new Key(key), owner, timeout);
+		} finally {
+			this.readLock.unlock();
+		}
 	}
 	
 	private void save(MemorySegment segment) {

@@ -334,6 +334,11 @@ public class TableManager implements Closeable{
 		this.updateIndices(doc, null, primaryKey);
 	}
 	
+	public DocumentSet renewLease(Comparable<?> key, String owner, long timeout) {
+		return this.table.renewLease(new Key(key), owner, timeout);
+	}
+	
+	
 	public void mergeAll() {
 		this.table.mergeAll();
 	}

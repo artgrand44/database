@@ -142,18 +142,23 @@ public class QueueSegment extends MemorySegment {
 		this.entries.invalidate(key);
 	}
 	
-	public boolean renewLease(Key key, String owner, long timeout) {
+	public DocumentSet renewLease(Key key, String owner, long timeout) {
 		QueueEntry entry = this.entries.getIfPresent(key);
+		DocumentSet result = new DocumentSet();
+		
 		
 		if (entry == null) {
-			return false;
+			return result;
 		}
 		
 		Lease oldLease = entry.lease.get();
 		Lease newLease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
 		
-		return ((oldLease == null || oldLease.owner.equals(owner)) && entry.lease.compareAndSet(oldLease, newLease));
+		if ((oldLease == null || oldLease.owner.equals(owner)) && entry.lease.compareAndSet(oldLease, newLease)) {
+			result.add(entry.doc);
+		}
 					
+		return result;
 	}
 	
 	public void update(Key key, Document doc, boolean propagate, boolean log) throws Exception {

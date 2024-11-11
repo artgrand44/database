@@ -16,7 +16,6 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.GUID;
 import org.art.db.common.Key;
-import org.art.db.common.Utils;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Environment;
 import org.art.db.storage.LogOutputStream;
