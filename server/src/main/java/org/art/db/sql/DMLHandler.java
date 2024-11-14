@@ -2,7 +2,6 @@ package org.art.db.sql;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +37,6 @@ import net.sf.jsqlparser.statement.ReturningClause;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.AllColumns;
-import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.Offset;
 import net.sf.jsqlparser.statement.select.OrderByElement;
@@ -355,15 +353,23 @@ public class DMLHandler {
 		return set;
 	}
 	
-	private static DocumentSet processGroupBy(DocumentSet set, List<SelectItem<?>> items, GroupByElement groupBy, Expression having, List<OrderBy> orderBy, Metadata metadata, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) throws Exception {
+	private static DocumentSet processGroupBy(DocumentSet set, PlainSelect plainSelect, Metadata metadata, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) throws Exception {
 		
 		if (set.isEmpty()) {
 			return set;
 		}
 		
-		ExpressionList<?> expressions = groupBy.getGroupByExpressionList();
+		// Unpack the pieces of the select statement
+		
+		ExpressionList<?> expressions = plainSelect.getGroupBy().getGroupByExpressionList();
+		Expression having = plainSelect.getHaving();
+		List<SelectItem<?>> items = plainSelect.getSelectItems();
+		
+		// Sort the documents by the group by fields.
 		
 		set.sort((x, y) -> getGroupByKey(x, expressions, evaluator, parameters).compareTo(getGroupByKey(y, expressions, evaluator, parameters)));
+		
+		// Build a set of accumulators to accumulate the column values for each group
 		
 		List<Accumulator<?>> accumulators = new ArrayList<>();
 		
@@ -373,7 +379,10 @@ public class DMLHandler {
 		
 		Key prevKey = null;
 		DocumentSet result = new DocumentSet();
-		 
+		
+		// Iterate over the documents and update the accumulators.  When you get to the
+		// end of a group, build a document representing the group and clear the accumulators.
+		
 		for (Document doc : set) {
 			Key groupKey = getGroupByKey(doc, expressions, evaluator, parameters);
 			
@@ -394,20 +403,28 @@ public class DMLHandler {
 			}
 		}
 		
+		// Add a document for the last group.
+		
 		Document groupDoc = buildGroup(items, accumulators);
 		
 		if (having == null || evaluator.evaluate(having, groupDoc, parameters, Boolean.class)) {
 			result.add(groupDoc);
 		}
 		
+		// Sort the groups
+		
+		List<OrderBy> orderBy = buildOrderBy(plainSelect.getOrderByElements());
+		
 		if (orderBy != null && !orderBy.isEmpty()) {
 			result.sort(new DocumentComparer(orderBy));
 		}
+		
 		return result;
 		
 	}
 	
 		
+	@SuppressWarnings("resource")
 	static DocumentSet select(Select select, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		if (select instanceof PlainSelect plainSelect && plainSelect.getFromItem() instanceof Table fromTable) {
 			String table = SQLUtils.getFQN(fromTable, database);
@@ -447,7 +464,7 @@ public class DMLHandler {
 				DocumentComparer comparer = new DocumentComparer(orderByList);
 				List<DocumentSet> others = SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters);
 				
-				return set.merge(others, comparer, offset, limit);
+				set = set.merge(others, comparer, offset, limit);
 			} 
 
 			// If the the select is coming from an application and the data is all local then
@@ -467,10 +484,14 @@ public class DMLHandler {
 					index++;
 				}
 
-				return newSet;			
+				set = newSet;			
 			}
 			
-			// Otherwise return the local document set
+			
+			
+			if (plainSelect.getGroupBy() != null) {
+				set = processGroupBy(set, plainSelect, Metadata.getMetadata(table), evaluator, parameters) ;
+			}
 			
 			return set;
 		}
@@ -517,16 +538,10 @@ public class DMLHandler {
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters, Long.MAX_VALUE, false);	
 			
-			List<SelectItem<?>> items = plainSelect.getSelectItems();
-			GroupByElement groupBy = plainSelect.getGroupBy();
-			Expression having = plainSelect.getHaving();
-			
-			if (groupBy != null && !groupBy.getGroupByExpressionList().isEmpty()) {				
-				set = processGroupBy(set, items, groupBy, having, orderByList, metadata, evaluator, parameters);
-			} else {
-				processSelectItems(set, items, evaluator, parameters);				
+			if (plainSelect.getGroupBy() == null) {
+				processSelectItems(set, plainSelect.getSelectItems(), evaluator, parameters);
 			}
-
+			
 			MetricsLogger.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, set.size());
 			MetricsLogger.getInstance().logGet();
 			
@@ -705,33 +720,5 @@ public class DMLHandler {
 		return new Key(keys);
 	}
 	
-	static class GroupByComparator implements Comparator<Document> {
-
-		private final List<Expression> groupByExpression;
-		private final ExpressionEvaluator evaluator;
-		List<Comparable<?>> parameters;
-		
-		GroupByComparator(List<Expression> groupByExpressions, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) {
-			this.groupByExpression = groupByExpressions;
-			this.evaluator = evaluator;
-			this.parameters = parameters;
-		}
-		
-		@Override
-		public int compare(Document doc1, Document doc2) {
-			return this.getKey(doc1).compareTo(this.getKey(doc2));
-		}
-		
-		private Key getKey(Document doc) {
-			List<Comparable<?>> keys = new ArrayList<>();
-			
-			for (Expression exp : this.groupByExpression) {
-				keys.add(evaluator.evaluate(exp, doc, parameters, Comparable.class));
-			}
-			
-			return new Key(keys);
-			
-		}
-	}
 
 }
