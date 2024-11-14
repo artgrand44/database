@@ -2,6 +2,7 @@ package org.art.db.sql;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.art.db.common.DBRuntimeException;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentComparer;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.Key;
 import org.art.db.common.OrderBy;
 import org.art.db.query.QueryManager;
 import org.art.db.security.SecurityHandler;
@@ -36,6 +38,7 @@ import net.sf.jsqlparser.statement.ReturningClause;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.Offset;
 import net.sf.jsqlparser.statement.select.OrderByElement;
@@ -53,6 +56,29 @@ public class DMLHandler {
 	
 	private static Set<String> queryFuncs = Set.of("lease", "renewLease");
 	
+	private static Document buildGroup(List<SelectItem<?>> items, List<Accumulator<?>> accumulators) {
+		Document doc = new Document();
+
+		for (int idx = 0; idx < accumulators.size(); idx++) {
+			SelectItem<?> item = items.get(idx);
+			Alias alias = item.getAlias();
+			Accumulator<?> accumulator = accumulators.get(idx);
+			String name;
+
+			if (alias == null && item.getExpression() instanceof Column col) {
+				name = col.getColumnName();
+			} else if (alias == null) {
+				throw new DBRuntimeException(item.getExpression() + " requires an alias");
+			} else {
+				name = alias.getName();
+			}
+
+			doc.put(name, accumulator.compute());
+		}
+		
+		return doc;
+	}
+
 	private static List<OrderBy> buildOrderBy(List<OrderByElement> elements) {
 		List<OrderBy> orderByList = new ArrayList<>();
 
@@ -329,6 +355,59 @@ public class DMLHandler {
 		return set;
 	}
 	
+	private static DocumentSet processGroupBy(DocumentSet set, List<SelectItem<?>> items, GroupByElement groupBy, Expression having, List<OrderBy> orderBy, Metadata metadata, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) throws Exception {
+		
+		if (set.isEmpty()) {
+			return set;
+		}
+		
+		ExpressionList<?> expressions = groupBy.getGroupByExpressionList();
+		
+		set.sort((x, y) -> getGroupByKey(x, expressions, evaluator, parameters).compareTo(getGroupByKey(y, expressions, evaluator, parameters)));
+		
+		List<Accumulator<?>> accumulators = new ArrayList<>();
+		
+		for (SelectItem<?> item : items) {
+			accumulators.add(Accumulators.getAccumulator(evaluator, item.getExpression(), parameters, metadata));
+		}
+		
+		Key prevKey = null;
+		DocumentSet result = new DocumentSet();
+		 
+		for (Document doc : set) {
+			Key groupKey = getGroupByKey(doc, expressions, evaluator, parameters);
+			
+			if (prevKey != null && !prevKey.equals(groupKey)) {
+				Document groupDoc = buildGroup(items, accumulators);
+				
+				if (having == null || evaluator.evaluate(having, groupDoc, parameters, Boolean.class)) {
+					result.add(groupDoc);
+				} 
+				
+				accumulators.forEach(x -> x.clear());
+			}
+				
+			prevKey = groupKey;
+			
+			for (Accumulator<?> accumulator : accumulators) {
+				accumulator.process(doc);
+			}
+		}
+		
+		Document groupDoc = buildGroup(items, accumulators);
+		
+		if (having == null || evaluator.evaluate(having, groupDoc, parameters, Boolean.class)) {
+			result.add(groupDoc);
+		}
+		
+		if (orderBy != null && !orderBy.isEmpty()) {
+			result.sort(new DocumentComparer(orderBy));
+		}
+		return result;
+		
+	}
+	
+		
 	static DocumentSet select(Select select, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		if (select instanceof PlainSelect plainSelect && plainSelect.getFromItem() instanceof Table fromTable) {
 			String table = SQLUtils.getFQN(fromTable, database);
@@ -437,8 +516,16 @@ public class DMLHandler {
 
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters, Long.MAX_VALUE, false);	
-
-			processSelectItems(set, plainSelect.getSelectItems(), evaluator, parameters);
+			
+			List<SelectItem<?>> items = plainSelect.getSelectItems();
+			GroupByElement groupBy = plainSelect.getGroupBy();
+			Expression having = plainSelect.getHaving();
+			
+			if (groupBy != null && !groupBy.getGroupByExpressionList().isEmpty()) {				
+				set = processGroupBy(set, items, groupBy, having, orderByList, metadata, evaluator, parameters);
+			} else {
+				processSelectItems(set, items, evaluator, parameters);				
+			}
 
 			MetricsLogger.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, set.size());
 			MetricsLogger.getInstance().logGet();
@@ -608,4 +695,43 @@ public class DMLHandler {
 
 	}
 	
+	static Key getGroupByKey(Document doc, ExpressionList<?> groupByExpressions, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) {
+		List<Comparable<?>> keys = new ArrayList<>();
+		
+		for (Object obj :groupByExpressions) {			
+			keys.add(evaluator.evaluate((Expression)obj, doc, parameters, Comparable.class));
+		}
+		
+		return new Key(keys);
+	}
+	
+	static class GroupByComparator implements Comparator<Document> {
+
+		private final List<Expression> groupByExpression;
+		private final ExpressionEvaluator evaluator;
+		List<Comparable<?>> parameters;
+		
+		GroupByComparator(List<Expression> groupByExpressions, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) {
+			this.groupByExpression = groupByExpressions;
+			this.evaluator = evaluator;
+			this.parameters = parameters;
+		}
+		
+		@Override
+		public int compare(Document doc1, Document doc2) {
+			return this.getKey(doc1).compareTo(this.getKey(doc2));
+		}
+		
+		private Key getKey(Document doc) {
+			List<Comparable<?>> keys = new ArrayList<>();
+			
+			for (Expression exp : this.groupByExpression) {
+				keys.add(evaluator.evaluate(exp, doc, parameters, Comparable.class));
+			}
+			
+			return new Key(keys);
+			
+		}
+	}
+
 }

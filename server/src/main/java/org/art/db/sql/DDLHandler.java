@@ -398,6 +398,11 @@ public class DDLHandler {
 	
 	private static ColumnInfo getColumnInfo(ColumnDefinition col) throws Exception {
 		Class<?> type =  sqlTypeToClass(col.getColDataType().getDataType());
+		
+		if (type == null) {
+			throw new DBRuntimeException("The type for column " + col.getColumnName() + " is not valid");
+		}
+		
 		List<String> specs = col.getColumnSpecs();
 		boolean nullable = true;
 		boolean primary = false;

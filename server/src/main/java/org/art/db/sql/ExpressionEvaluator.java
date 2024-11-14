@@ -503,7 +503,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 			}
 
 			if (left instanceof Boolean lbool && right instanceof Boolean rbool) {
-				this.result = Boolean.toString(lbool & rbool);
+				this.result = lbool & rbool;
 				return;
 			}
 
@@ -566,7 +566,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 			}
 
 			if (left instanceof Boolean lbool && right instanceof Boolean rbool) {
-				this.result = Boolean.toString(lbool & rbool);
+				this.result = lbool || rbool;
 				return;
 			}
 
@@ -587,7 +587,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		}
 		
 		if (left instanceof Boolean lbool && right instanceof Boolean rbool) {
-			this.result = Boolean.toString(lbool ^ rbool);
+			this.result = lbool ^ rbool;
 			return;
 		}
 		
