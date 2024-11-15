@@ -53,51 +53,43 @@ public class GroupByTests extends BaseIntegrationTest {
 
 		try  {
 			TestAdapter.getInstance().startPrimary("./application.properties");
-			
+
 			this.loadDabase();
 
 			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
+			DocumentSet set = client.executeQuery("select state, count(id) c from groups where country = 'us' group by state");
 
-			
-			try {
-				DocumentSet set = client.executeQuery("select state, count(id) c from groups where country = 'us' group by state");
-				
-				Assertions.assertThat(set.size() == 4).withFailMessage("Wrong size " + set.size()).isTrue();
-				
-				for (Document doc : set) {
-					Assertions.assertThat(doc.get("state") != null).withFailMessage("Null state " + doc).isTrue();
-					Assertions.assertThat(doc.get("state", String.class).startsWith("state")).withFailMessage("Bad state " + doc).isTrue();
-					Assertions.assertThat(doc.get("c") != null).withFailMessage("Null count " + doc).isTrue();
-					Assertions.assertThat(doc.get("c", Long.class) == 25).withFailMessage("Bad count " + doc).isTrue();
-				}
-				
-				set = client.executeQuery("select state, count(id) c from groups where country = 'us' group by state having state='state1' or state='state3'");
-				
-				Assertions.assertThat(set.size() == 2).withFailMessage("Wrong size for having" + set.size()).isTrue();
-				
-				for (Document doc : set) {
-					Assertions.assertThat(doc.get("state") != null).withFailMessage("Null state for having" + doc).isTrue();
-					Assertions.assertThat(doc.get("state", String.class).startsWith("state")).withFailMessage("Bad state for having " + doc).isTrue();
-					Assertions.assertThat(doc.get("c") != null).withFailMessage("Null count for having " + doc).isTrue();
-					Assertions.assertThat(doc.get("c", Long.class) == 25).withFailMessage("Bad count for having " + doc).isTrue();
-				}
-				
-				set = client.executeQuery("select state, count(id) c from groups where country = 'us' order by state desc group by state");
-				
-				String lastState = "zzzzzzzz";
-				
-				Assertions.assertThat(set.size() == 4).withFailMessage("Wrong size " + set.size()).isTrue();
-				
-				for (Document doc : set) {
-					String state = doc.get("state", String.class);
-					Assertions.assertThat(state.compareTo(lastState) < 0).withFailMessage("Bad sort last = " + lastState + " state = " + state).isTrue();
-					lastState = state;
-				}
-				
-			} catch (Exception exc) {
-				Assertions.assertThat("The where clause is not supported for queries.".equals(exc.getMessage()));
+			Assertions.assertThat(set.size() == 4).withFailMessage("Wrong size " + set.size()).isTrue();
+
+			for (Document doc : set) {
+				Assertions.assertThat(doc.get("state") != null).withFailMessage("Null state " + doc).isTrue();
+				Assertions.assertThat(doc.get("state", String.class).startsWith("state")).withFailMessage("Bad state " + doc).isTrue();
+				Assertions.assertThat(doc.get("c") != null).withFailMessage("Null count " + doc).isTrue();
+				Assertions.assertThat(doc.get("c", Long.class) == 25).withFailMessage("Bad count " + doc).isTrue();
 			}
-			
+
+			set = client.executeQuery("select state, count(id) c from groups where country = 'us' group by state having state='state1' or state='state3'");
+
+			Assertions.assertThat(set.size() == 2).withFailMessage("Wrong size for having" + set.size()).isTrue();
+
+			for (Document doc : set) {
+				Assertions.assertThat(doc.get("state") != null).withFailMessage("Null state for having" + doc).isTrue();
+				Assertions.assertThat(doc.get("state", String.class).startsWith("state")).withFailMessage("Bad state for having " + doc).isTrue();
+				Assertions.assertThat(doc.get("c") != null).withFailMessage("Null count for having " + doc).isTrue();
+				Assertions.assertThat(doc.get("c", Long.class) == 25).withFailMessage("Bad count for having " + doc).isTrue();
+			}
+
+			set = client.executeQuery("select state, count(id) c from groups where country = 'us' group by state order by state desc");
+
+			String lastState = "zzzzzzzz";
+
+			Assertions.assertThat(set.size() == 4).withFailMessage("Wrong size " + set.size()).isTrue();
+
+			for (Document doc : set) {
+				String state = doc.get("state", String.class);
+				Assertions.assertThat(state.compareTo(lastState) < 0).withFailMessage("Bad sort last = " + lastState + " state = " + state).isTrue();
+				lastState = state;
+			}			
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Throwable exc) {
