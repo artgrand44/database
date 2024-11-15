@@ -96,6 +96,7 @@ public class ShardTest extends BaseIntegrationTest {
 				}
 				Assertions.assertThat(set.size() == 10).isTrue();
 				
+				logger.info("bad select");
 				set = clusterClient.executeQuery("select * from sharded where color = 'red' order by id limit 5");
 				
 				if (set.size() != 5) {

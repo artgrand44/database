@@ -8,11 +8,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.art.db.client.Client;
+import org.art.db.common.Comparison;
 import org.art.db.common.Converter;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
-import org.art.db.common.DocumentComparer;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
 import org.art.db.common.OrderBy;
@@ -108,7 +109,36 @@ public class DMLHandler {
 		return result;
 	}
 	
-	
+	private static int compare(List<OrderBy> orderByList, Document first, Document second) {
+		
+		for (OrderBy orderBy : orderByList) {
+			String name = orderBy.field();
+
+			Object firstField = first.get(name);
+			Object secondField = second.get(name);
+
+			if (firstField == null || secondField == null) {
+				continue;
+			}
+			
+			if (firstField instanceof DBNull && ! (secondField instanceof DBNull)) {
+				return -1;
+			}
+			
+			if (secondField instanceof DBNull && ! (firstField instanceof DBNull)) {
+				return +1;
+			}
+			
+			int comp = Comparison.compare(firstField, secondField);
+
+			if (comp != 0) {
+				return orderBy.ascending() ? comp : - comp;
+			}
+		}
+		
+		return 0;
+	}
+
 	static DocumentSet delete(Delete delete, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		
 		String table = SQLUtils.getFQN(delete.getTable(), database);
@@ -175,7 +205,7 @@ public class DMLHandler {
 			long limit = getLimit(delete.getLimit(), table);
 			
 			lock = !isPrimaySearch(metadata, normalized);
-			docs = trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, lock), delete.getLimit(), evaluator);
+			docs = trim(evaluator.evaluateWhere(normalized, null, parameters, limit, lock), delete.getLimit(), evaluator);
 
 			for (Document doc : docs) {
 				QueryManager.getInstance().remove(table, doc);
@@ -411,14 +441,6 @@ public class DMLHandler {
 			result.add(groupDoc);
 		}
 		
-		// Sort the groups
-		
-		List<OrderBy> orderBy = buildOrderBy(plainSelect.getOrderByElements());
-		
-		if (orderBy != null && !orderBy.isEmpty()) {
-			result.sort(new DocumentComparer(orderBy));
-		}
-		
 		return result;
 		
 	}
@@ -441,36 +463,42 @@ public class DMLHandler {
 			}
 			
 			DocumentSet set = selectLocal(plainSelect, sqlString, fromTable, database, user, password, parameters);
-
-			// Get the offset and the limit
-			
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
+			
+			// If the select is coming from an application and the data is on multiple shards
+			// then get the document sets from the other shards and merge them together.
+			
+			if (shardContainingData.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
+				List<DocumentSet> others = SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters);
+				
+				for (DocumentSet other : others) {
+					set.addAll(other);
+				}
+			} 
+			
+			// Process the group by
+						
+			if (plainSelect.getGroupBy() != null) {
+				set = processGroupBy(set, plainSelect, Metadata.getMetadata(table), evaluator, parameters) ;
+			}
+			
+			// Process the order by
+			
+			List<OrderBy> orderBy = buildOrderBy(plainSelect.getOrderByElements());
+			
+			if (orderBy != null && !orderBy.isEmpty()) {
+				set.sort((x, y) -> compare(orderBy, x, y));
+			}
+			
+			// Enforce the offset and limit clauses.
+						
 			Limit limitClause = plainSelect.getLimit();
 			long limit = limitClause == null || limitClause.getRowCount() == null ? Long.MAX_VALUE : (long)evaluator.evaluate(limitClause.getRowCount(), Long.class);
 
 			Offset offsetClause = plainSelect.getOffset();
 			long offset = offsetClause == null  || offsetClause.getOffset() == null ? 0 : (long)evaluator.evaluate(offsetClause.getOffset(), Long.class);
 
-			// If the select is coming from an application and the data is on multiple shards
-			// then get the document sets from the other shards and merge them together.
-			
-			if (shardContainingData.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
-				List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
-				
-				if (orderByList.isEmpty()) {
-					orderByList = SQLUtils.buildDefaultOrderBy(Metadata.getMetadata(table));
-				}
-				
-				DocumentComparer comparer = new DocumentComparer(orderByList);
-				List<DocumentSet> others = SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters);
-				
-				set = set.merge(others, comparer, offset, limit);
-			} 
-
-			// If the the select is coming from an application and the data is all local then
-			// enforce the offset and limit clauses.
-			
-			if ((offset != 0 || limit != Long.MAX_VALUE) && !targetShard.equals(Client.WILDCARD)) {
+			if ((offset != 0 || limit != Long.MAX_VALUE) && targetShard.equals(Client.WILDCARD)) {
 				DocumentSet newSet = new DocumentSet();
 				long index = 0;
 
@@ -485,12 +513,6 @@ public class DMLHandler {
 				}
 
 				set = newSet;			
-			}
-			
-			
-			
-			if (plainSelect.getGroupBy() != null) {
-				set = processGroupBy(set, plainSelect, Metadata.getMetadata(table), evaluator, parameters) ;
 			}
 			
 			return set;
@@ -525,18 +547,12 @@ public class DMLHandler {
 				throw new DBRuntimeException("The where clause is not supported for queries.");
 			}
 			
+			// Normalize the parse tree then dp the actual search
+			
 			Expression normalized = new ExpressionNormalizer().normalize(where);
-
-
-			// Find the order by list and the selected columns
-
-			List<OrderBy> orderByList = buildOrderBy(plainSelect.getOrderByElements());
-			List<String> selectColumns = buildSelectList(plainSelect.getSelectItems());
-
-			// Get the document set then process any aliases and expressions in the select items
-
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
-			DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, orderByList, parameters, Long.MAX_VALUE, false);	
+			List<String> selectColumns = buildSelectList(plainSelect.getSelectItems());
+			DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, parameters, Long.MAX_VALUE, false);	
 			
 			if (plainSelect.getGroupBy() == null) {
 				processSelectItems(set, plainSelect.getSelectItems(), evaluator, parameters);
@@ -629,7 +645,7 @@ public class DMLHandler {
 			Expression normalized = new ExpressionNormalizer().normalize(where);
 			
 			lock = !isPrimaySearch(metadata, normalized);
-			docs =  trim(evaluator.evaluateWhere(normalized, null, null, parameters, limit, lock), update.getLimit(), evaluator);
+			docs =  trim(evaluator.evaluateWhere(normalized, null, parameters, limit, lock), update.getLimit(), evaluator);
 			
 			// Update the documents and create a DocumentSet with all of the new documents
 			

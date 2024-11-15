@@ -5,10 +5,8 @@ import java.util.Map;
 
 import org.art.db.common.DBNull;
 import org.art.db.common.Document;
-import org.art.db.common.DocumentComparer;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
-import org.art.db.common.OrderBy;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
@@ -35,7 +33,7 @@ public class QueryManager {
 	}
 	
 	@SuppressWarnings("resource")
-	public DocumentSet select(String table, List<String> selectColumns, List<OrderBy> orderBy, List<Filter> filters, long limit, boolean lock) throws Exception {
+	public DocumentSet select(String table, List<String> selectColumns, List<Filter> filters, long limit, boolean lock) throws Exception {
 		
 		// Find the documents that match the filter
 		
@@ -58,10 +56,6 @@ public class QueryManager {
 				}
 				
 			}
-		}
-		
-		if (orderBy != null && !orderBy.isEmpty()) {
-			set.sort(new DocumentComparer(orderBy));
 		}
 		
 		// Handle the selected columns

@@ -9,11 +9,9 @@ import java.util.Set;
 import org.art.db.common.Comparison;
 import org.art.db.common.Converter;
 import org.art.db.common.Document;
-import org.art.db.common.DocumentComparer;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
 import org.art.db.common.Key;
-import org.art.db.common.OrderBy;
 import org.art.db.query.QueryManager;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.common.DBNull;
@@ -123,7 +121,6 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	private final Metadata metadata;
 	private List<Comparable<?>> parameters;
 	private List<String> selectColumns;
-	private List<OrderBy> orderBy;
 	private long limit;
 	private boolean lock;
 	private Document document;
@@ -171,10 +168,9 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	
 	
 	
-	DocumentSet evaluateWhere(Expression exp, List<String> selectColumns, List<OrderBy> orderBy, List<Comparable<?>> parameters, long limit, boolean lock) {
+	DocumentSet evaluateWhere(Expression exp, List<String> selectColumns, List<Comparable<?>> parameters, long limit, boolean lock) {
 		this.selectColumns = selectColumns;
 		this.parameters = parameters;
-		this.orderBy = orderBy;
 		this.limit = limit;
 		this.lock = lock;
 		
@@ -226,7 +222,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 		}
 		
 		try {
-			result = QueryManager.getInstance().select(this.table, this.selectColumns, this.orderBy,  evaluatedFilters, this.limit, this.lock);
+			result = QueryManager.getInstance().select(this.table, this.selectColumns, evaluatedFilters, this.limit, this.lock);
 		} catch (DBRuntimeException exc) {
 			throw exc;
 		} catch (Exception exc) {
@@ -525,8 +521,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 			Object left = this.evaluate(orExpression.getLeftExpression());
 			Object right = this.evaluate(orExpression.getRightExpression());
 
-			// If left and right are document sets then merge the sets (skipping any
-			// duplicates) and resort the set.
+			// If left and right are document sets then concatenate the sets
 
 			if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
 				Set<Key> leftKeys = new HashSet<>();
@@ -540,11 +535,6 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 						lset.add(doc);
 					}
 				}
-
-				List<OrderBy> orderBy = this.orderBy == null ? SQLUtils.buildDefaultOrderBy(this.metadata) : this.orderBy;
-				DocumentComparer comparer = new DocumentComparer(orderBy);
-
-				lset.sort(comparer);
 
 				this.result = left;
 				return;
