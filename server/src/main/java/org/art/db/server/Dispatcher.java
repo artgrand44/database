@@ -56,6 +56,7 @@ public class Dispatcher {
 	
 	static {
 		   HANDLERS.put("/db/execute",          new ExecuteHandler());
+		   HANDLERS.put("/db/executeBatch",     new ExecuteBatchHandler());
 		   HANDLERS.put("/db/executeQuery",     new ExecuteQueryHandler());
 		   HANDLERS.put("/db/propagate",        new PropagateHandler());
 		   HANDLERS.put("/db/ui",               new UIHandler());
@@ -274,6 +275,37 @@ public class Dispatcher {
 		
 	}
 	
+	static class ExecuteBatchHandler implements Handler {
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			if (!RestoreManager.getInstance().isRecovered()) {
+				throw new InstanceRecoveringException();
+			}
+			
+			try (TypedInputStream stream = new TypedInputStream(body)) {
+				int count = stream.readInt();
+				
+				for (int idx = 0; idx < count; idx++) {
+					ClientArgs args = new ClientArgs().deserialize(stream);
+					List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
+					long start = System.currentTimeMillis();
+
+					SQLHandler.getInstance().execute(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
+					
+					HeaderValues values = exchange.getRequestHeaders().get("Client");
+					String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
+						
+					MetricsLogger.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, 1);
+				}
+				
+				return new byte[0];
+			}
+		}
+		
+	}
+
 	static class ExecuteQueryHandler implements Handler {
 
 		@SuppressWarnings("unchecked")

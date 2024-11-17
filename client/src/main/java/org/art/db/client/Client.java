@@ -139,6 +139,10 @@ public class Client {
 		}
 	}
 	
+	public Batch createBatch() {
+		return new Batch(this.database, this.shard);
+	}
+	
 	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
  		if (this.batch && this.uri == null && this.shard.equals("*")) {
  			return this.router.batch("/db/batch", url, body); 
@@ -174,6 +178,16 @@ public class Client {
 		}
 	}
 	
+	public void executeBatch(Batch batch) throws Exception {
+		
+		try (TypedOutputStream stream = new TypedOutputStream()) {
+			batch.serialize(stream);
+			
+			byte[] body = stream.toByteArray();
+			this.doPost("/db/executeBatch", Collections.emptyMap(), body);			
+		}
+	}
+
 	public DocumentSet executeQuery(String statement, Object ... parameters) throws Exception {
 		this.checkParameters(parameters);
 		
