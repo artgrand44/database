@@ -1,6 +1,8 @@
 package org.art.db.security;
 
 import java.io.File;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -67,6 +69,24 @@ public class SecurityHandler {
 			if (user.isAdmin()) {
 				return user.getName();
 			}
+		}
+		
+		Iterator<Map.Entry<Key, String>> iterator = tree.iterator();
+		
+		while (iterator.hasNext()) {
+			Map.Entry<Key, String> entry = iterator.next();
+			
+			try {
+				User user = MAPPER.readValue(entry.getValue(), User.class);
+				
+				if (user.isAdmin()) {
+					this.users.put(user.getName(), user);
+					return user.getName();
+				}
+			} catch (Exception exc) {
+				
+			}
+			
 		}
 		
 		throw new DBRuntimeException("Error getting admin user in " + this.users);
