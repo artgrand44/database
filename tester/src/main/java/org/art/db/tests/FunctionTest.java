@@ -86,11 +86,21 @@ public class FunctionTest extends BaseIntegrationTest {
 				Assertions.assertThat(set.iterator().hasNext()).isTrue();
 				
 				set = client.executeQuery("select upper(str) as UP from func where id = '1'");				
-				Assertions.assertThat(set.iterator().hasNext());
+				Assertions.assertThat(set.iterator().hasNext()).isTrue();
 				doc = set.iterator().next();
 				Assertions.assertThat(doc.get("UP").equals("ART")).isTrue();
 				
+				set = client.executeQuery("select count(*) from func");
+				Assertions.assertThat(set.size() == 1).isTrue();
+				Assertions.assertThat(set.iterator().hasNext()).isTrue();
+				doc = set.iterator().next();
+				Assertions.assertThat(doc.get("count", Long.class) == 1).isTrue();
 				
+				set = client.executeQuery("select count(*) as foo from func");
+				Assertions.assertThat(set.size() == 1).isTrue();
+				Assertions.assertThat(set.iterator().hasNext()).isTrue();
+				doc = set.iterator().next();
+				Assertions.assertThat(doc.get("foo", Long.class) == 1).isTrue();	
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Throwable exc) {

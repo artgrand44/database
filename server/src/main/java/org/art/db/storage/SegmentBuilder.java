@@ -59,6 +59,7 @@ public class SegmentBuilder {
 		Key lowKey = null;
 		Key highKey = null;
 		int count = 0;
+		long documentCount = 0;
 		
 		try (FileOutputStream fstream = new FileOutputStream(tempFile); 
 				BufferedOutputStream bstream = new BufferedOutputStream(fstream, 10 * 1024); 
@@ -89,15 +90,7 @@ public class SegmentBuilder {
 					
 					Map.Entry<Key, ? extends Object> entry = (Map.Entry<Key, ? extends Object>)iterator.next();
 					Key key = entry.getKey();
-					/*
-					if (!handler.getShard(key.toString()).equals(localShard)) {
-						logger.info("skipping " + segment.getName() + " on " + DiscoveryHandler.getServerInstance().getLocalInstance() + "  " + key + " " + isLeaf);
-						continue;
-					} else if (isLeaf) {
-						logger.info("creating " + segment.getName() + " on " + DiscoveryHandler.getServerInstance().getLocalInstance() + "  " + key);
-					}
-*/
-					
+									
 					// Compute the size of the entry
 					
 					Object value = entry.getValue();
@@ -106,11 +99,12 @@ public class SegmentBuilder {
 					count++;
 
 					if (isLeaf) {
+						documentCount++;
 						highKey = key;
 						
 						if (lowKey == null) {
 							lowKey = key;
-						}
+						}						
 					}
 					
 					// If the value is a big Blob then break it into chunks and
@@ -123,7 +117,6 @@ public class SegmentBuilder {
 						startBlock += nblocks.get();
 					}
 
-					
 					// If the key/value pair will fit in the current node then add it
 					// to the node.  Otherwise write out the current node, create
 					// a new node, and put the key/value pair in the new node.
@@ -185,6 +178,7 @@ public class SegmentBuilder {
 		try (TreeStore store = new TreeStore(tempFile, diskBlockSize)) {
 			store.setBloomFilter(bloomFilter);
 			store.setMetadata(metadata);
+			store.setDocumentCount(documentCount);
 			
 			String name = segment.getName();
 			int dash = name.indexOf('_');

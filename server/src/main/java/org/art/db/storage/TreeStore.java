@@ -490,6 +490,9 @@ public class TreeStore implements Closeable, BlobStore {
 		return this.header.createTime;
 	}
 	
+	public long getDocumentCount() {
+		return this.header.documentCount;
+	}
 	
 	public GUID getHighGUID()throws IOException {
 		return this.header.highGUID;
@@ -593,6 +596,12 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void setCreateTime(long createTime) throws Exception {
 		this.header.createTime = createTime;
+		
+		this.writeHeader();
+	}
+	
+	public void setDocumentCount(long documentCount) throws Exception {
+		this.header.documentCount = documentCount;
 		
 		this.writeHeader();
 	}
@@ -722,6 +731,7 @@ public class TreeStore implements Closeable, BlobStore {
 		int metadataSize = 0;
 		boolean flushed = false;
 		long createTime = 0;
+		long documentCount = 0;
 		
 		Header() {
 		}
@@ -736,8 +746,8 @@ public class TreeStore implements Closeable, BlobStore {
 			this.metadataSize = stream.readInt();
 			this.flushed = stream.readBoolean();
 			this.createTime = stream.readLong();
+			this.documentCount = stream.readLong();
 			this.highGUID = new GUID().deserialize(stream);
-			
 			
 			if (!this.magic.equals("MAGIC")) {
 				throw new Exception("Bad magic number");
@@ -756,6 +766,7 @@ public class TreeStore implements Closeable, BlobStore {
 				stream.writeInt(this.metadataSize);
 				stream.writeBoolean(this.flushed);
 				stream.writeLong(this.createTime);
+				stream.writeLong(this.documentCount);
 				
 				this.highGUID.serialize(stream);
 				

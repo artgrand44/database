@@ -61,6 +61,24 @@ public class BigSetTest extends BaseIntegrationTest {
 					Assertions.assertThat(doc.get("count").equals(Long.valueOf(count))).isTrue();
 					count++;
 				}
+				
+				set = client.executeQuery("select count(*) from bigset");
+				Assertions.assertThat(set.size() == 1).isTrue();
+				Assertions.assertThat(set.iterator().hasNext()).isTrue();
+				Document doc = set.iterator().next();
+				Assertions.assertThat(doc.get("count", Long.class) == 2000).isTrue();
+				
+				TestAdapter.getInstance().stopPrimary();
+				TestAdapter.getInstance().startPrimary("./application.properties");
+				
+				client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
+				
+				set = client.executeQuery("select count(*) from bigset");
+				Assertions.assertThat(set.size() == 1).isTrue();
+				Assertions.assertThat(set.iterator().hasNext()).isTrue();
+				doc = set.iterator().next();
+				Assertions.assertThat(doc.get("count", Long.class) == 2000).isTrue();
+				
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Throwable exc) {

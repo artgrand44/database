@@ -249,6 +249,10 @@ public class TableManager implements Closeable{
 		return this.table.get(key);
 	}
 	
+	public long getDocumentCount() {
+		return this.table.getDocumentCount();
+	}
+	
 	public Set<Key> getAllKeys(String indexName, Comparison comp, Key key) throws Exception {
 		return this.indices.get(indexName).getAllKeys(comp, key);
 	}

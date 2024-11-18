@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.art.db.common.DBRuntimeException;
@@ -52,6 +53,10 @@ public class QueueSegment extends MemorySegment {
 	
 	private final ScheduledFuture<?> timeoutHandler;
 	
+	/**
+	 * The number of documents in the segment
+	 */
+	private AtomicLong documentCount = new AtomicLong();
 	
 	public QueueSegment(String table, DiscoveryHandler discoveryHandler, Environment config) throws Exception {
 		super(table, discoveryHandler, config);
@@ -77,6 +82,11 @@ public class QueueSegment extends MemorySegment {
 		QueueEntry entry = this.entries.getIfPresent(key);
 		
 		return entry == null ? null : entry.doc;
+	}
+	
+	@Override
+	public long getDocumentCount() {
+		return this.documentCount.get();
 	}
 	
 	private int getPriority(Key key) {
@@ -120,7 +130,9 @@ public class QueueSegment extends MemorySegment {
 	
 	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.INSERT,  key, doc, propagate, log);
+		
 		this.entries.put(key, new QueueEntry(doc, new AtomicReference<>(), this.getPriority(key)));
+		this.documentCount.incrementAndGet();
 	}
 		
 	public void merge(QueueSegment prior) throws Exception {
@@ -140,6 +152,7 @@ public class QueueSegment extends MemorySegment {
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.REMOVE, key, null, propagate, log);
 		this.entries.invalidate(key);
+		this.documentCount.decrementAndGet();
 	}
 	
 	public DocumentSet renewLease(Key key, String owner, long timeout) {

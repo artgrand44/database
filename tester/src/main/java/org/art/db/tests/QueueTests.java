@@ -90,9 +90,9 @@ public class QueueTests extends BaseIntegrationTest {
 				Assertions.assertThat("The where clause is not supported for queries.".equals(exc.getMessage()));
 			}
 			
-			/*DocumentSet counts = client.executeQuery("select count(*) from queue");
+			DocumentSet counts = client.executeQuery("select count(*) from queue");
 			Assertions.assertThat(counts.size() == 1).isTrue();
-			Assertions.assertThat(counts.iterator().next().get("count") != null).isTrue();*/
+			Assertions.assertThat(counts.iterator().next().get("count") != null).isTrue();
 			
 
 		} catch (AssertionFailedError err) {

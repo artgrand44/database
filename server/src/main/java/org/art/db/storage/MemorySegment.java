@@ -66,6 +66,10 @@ public class MemorySegment extends Segment {
 	 */
 	private volatile ConcurrentSkipListMap<Key, Document> documents = new ConcurrentSkipListMap<>();
 	
+	/**
+	 * The number of documents in the segment
+	 */
+	private AtomicLong documentCount = new AtomicLong();
 	
 	private static AtomicLong nextId = new AtomicLong();
 	
@@ -226,6 +230,11 @@ public class MemorySegment extends Segment {
 		return this.documents.get(key);
 	}
 
+	@Override
+	public long getDocumentCount() {
+		return this.documentCount.get();
+	}
+	
 	public long getLogSize() {
 		return this.log.getLength();
 	}
@@ -238,6 +247,7 @@ public class MemorySegment extends Segment {
 		
 		this.documents.put(key, doc);
 		
+		this.documentCount.incrementAndGet();
 		this.getBloomFilter().set(this.getHash(key));
 		
 		GUID guid;
@@ -262,7 +272,11 @@ public class MemorySegment extends Segment {
 	 */
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.REMOVE, key, null, propagate, log);
-		this.documents.remove(key);
+		
+		if (this.documents.remove(key) != null) {
+			this.documentCount.decrementAndGet();
+		}
+		
 		this.documents.put(key, Document.ZOMBIE);	
 	}
 	

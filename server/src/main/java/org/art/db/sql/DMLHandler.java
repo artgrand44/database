@@ -23,6 +23,7 @@ import org.art.db.storage.BackupHandler;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.MetricsLogger;
+import org.art.db.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -382,6 +383,7 @@ public class DMLHandler {
 		return set;
 	}
 	
+	
 	private static DocumentSet processGroupBy(DocumentSet set, PlainSelect plainSelect, Metadata metadata, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) throws Exception {
 		
 		if (set.isEmpty()) {
@@ -460,8 +462,18 @@ public class DMLHandler {
 			if (!SQLUtils.isShardLocal(shardContainingData)) {
 				return SQLUtils.forwardExecuteQuery(database, shardContainingData, sqlString, user, password, parameters);
 			}
+						
+			// See if this is a select count(*) with no where clause.  If so, return the result.
 			
-			DocumentSet set = selectLocal(plainSelect, sqlString, fromTable, database, user, password, parameters);
+			DocumentSet set = selectCount(plainSelect, sqlString, targetShard, database, user, password, parameters);
+						
+			if (set != null) {
+				return set;
+			}
+			
+			// Go on to the normal case.
+			
+			set = selectLocal(plainSelect, sqlString, fromTable, database, user, password, parameters);
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			
 			// If the select is coming from an application and the data is on multiple shards
@@ -520,6 +532,48 @@ public class DMLHandler {
 		throw new UnsupportedOperationException("Syntax not supported.");
 	}
 	
+	private static DocumentSet selectCount(PlainSelect select, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
+
+		Table fromTable = (Table) select.getFromItem();
+		String table = SQLUtils.getFQN(fromTable, database);
+		Expression where = select.getWhere();
+
+		if (where == null 
+			&& select.getSelectItems() != null 
+			&& select.getSelectItems().size() == 1
+			&& select.getSelectItems().get(0).getExpression() instanceof Function func
+			&& func.getName().equalsIgnoreCase("count")
+			&& func.getParameters().size() == 1
+			&& func.getParameters().get(0) instanceof AllColumns) {
+			
+			long count = StorageManager.getInstance().getTableManager(table).getDocumentCount();
+			String shardContainingData = SQLUtils.getShard(table, where, parameters);
+
+			if (shardContainingData.equals(Client.WILDCARD) && targetShard.equals(Client.WILDCARD)) {
+				List<DocumentSet> others = SQLUtils.broadcastExecuteQuery(database, sqlString, user, password, parameters);
+
+				for (DocumentSet other : others) {
+					Document doc = other.iterator().next();
+					count += doc.get("count", Long.class);
+				}
+			} 
+
+			DocumentSet set = new DocumentSet();
+			Document doc = new Document();
+			SelectItem<?> item = select.getSelectItems().get(0);
+			Alias alias = item.getAlias();
+			String column = alias == null ? "count" : alias.getName();
+
+			doc.put(column, count);
+			set.add(doc);
+
+			return set;
+		}
+
+		return null;
+
+	}
+	
 	private static DocumentSet selectLocal(PlainSelect plainSelect, String sqlString, Table fromTable, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		
 		String table = SQLUtils.getFQN(fromTable, database);
@@ -537,7 +591,7 @@ public class DMLHandler {
 			// Normalize the where clause
 
 			Expression where = plainSelect.getWhere();
-
+			
 			if (where == null) {
 				throw new DBRuntimeException("The select must contain a where clause");
 			}

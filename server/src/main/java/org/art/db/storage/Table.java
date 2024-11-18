@@ -195,6 +195,24 @@ public class Table implements Closeable {
 		}
 	}
 	
+	public long getDocumentCount() {
+		long count = 0;
+		
+		this.readLock.lock();
+
+		
+		try {
+			for (Segment segment : this.segments) {
+				count += segment.getDocumentCount();
+			}
+		} finally {
+			this.readLock.unlock();
+		}
+		
+		return count;
+
+	}
+	
 	public List<Segment> getSegments() {
 		return Collections.unmodifiableList(this.segments);
 	}

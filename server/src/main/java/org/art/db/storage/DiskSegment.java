@@ -86,6 +86,10 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 	}
 	
 
+	public long getDocumentCount() {
+		return this.treeStore.getDocumentCount();
+	}
+	
  	public File getFile() {
 		return file;
 	}

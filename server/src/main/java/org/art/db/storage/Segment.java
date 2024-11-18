@@ -39,6 +39,8 @@ public abstract class Segment implements Iterable<Map.Entry<Key, Blob>>, Closeab
 	
 	public abstract Document get(Key key) throws Exception;
 	
+	public abstract long getDocumentCount();
+	
 	protected int getHash(Key key) {
 		return Math.abs(key.hashCode() % BLOOM_SIZE);
 	}
