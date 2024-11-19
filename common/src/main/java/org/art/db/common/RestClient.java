@@ -192,7 +192,7 @@ public class RestClient {
 		try {
 			return "Basic " + Base64.getEncoder().encodeToString((this.user + ":" + this.password).getBytes());
 		} catch (Exception exc) {
-			logger.info("There was an exception decrypting the password " + exc.getMessage());
+			logger.error("There was an exception decrypting the password " + exc.getMessage());
 			return "";
 		}
 	}
@@ -235,7 +235,7 @@ public class RestClient {
 			
 			return  response.headers().firstValue("filename").orElse(null);
 		} catch(Exception exc) {
-			logger.info("getfile " + exc.getMessage());
+			logger.error("getfile " + exc.getMessage());
 			throw new RestException(500, exc.getMessage());
 		}
 	}

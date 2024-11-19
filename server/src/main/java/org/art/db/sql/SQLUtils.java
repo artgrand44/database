@@ -88,7 +88,7 @@ public class SQLUtils {
 					try {
 						result.add(forwardExecuteQuery(database, shard, statement, user, password, parameters));
 					} catch (Exception exc) {
-						logger.info("forward on handler.getLocalPort() got exception " + exc.getMessage()); 
+						logger.error("forward on handler.getLocalPort() got exception " + exc.getMessage()); 
 					}
 				}
 			}
@@ -122,7 +122,7 @@ public class SQLUtils {
 										
 						shardLimit = shardLimit - set.size();
 					} catch (Exception exc) {
-						logger.info("forward on handler.getLocalPort() got exception " + exc.getMessage()); 
+						logger.error("forward on handler.getLocalPort() got exception " + exc.getMessage()); 
 					}
 				}
 			}

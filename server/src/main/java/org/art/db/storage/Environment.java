@@ -121,7 +121,7 @@ public class Environment {
 				}
 			} 
 		} catch (Exception exc) {
-			logger.info("There as an exception refreshing the environment " + exc.getMessage());
+			logger.error("There as an exception refreshing the environment " + exc.getMessage());
 		} 
 	} 
 
@@ -223,7 +223,7 @@ public class Environment {
 			props.putAll(this.properties);
 			props.store(stream, "");
 		} catch (Exception exc) {
-			logger.info("There was an error saving the property file " + exc.getMessage());
+			logger.error("There was an error saving the property file " + exc.getMessage());
 		}
 
 		this.lastModified = this.source.lastModified();

@@ -221,19 +221,19 @@ public class RestoreManager {
 					} catch (Exception exc) {
 						MetricsLogger.getInstance().logAlert("There was an error recovering the database");
 						exc.printStackTrace();
-						logger.info("There was an error recoverting " + table + " " + exc.getMessage());
+						logger.error("There was an error recoverting " + table + " " + exc.getMessage());
 					}
 				}
 			} catch (Exception exc) {
 				MetricsLogger.getInstance().logAlert("There was an exception restoring the backup.");
-				logger.info("There was an error synchronizing the configuration " + exc.getMessage());
+				logger.error("There was an error synchronizing the configuration " + exc.getMessage());
 			}
 		} else if (useBackup) {
 			try {
 				logger.info("Restoring database from backup");
 				FileUtils.copyDirectory(root, backupDirectory);
 			} catch (Exception exc) {
-				logger.info("There was an exception restoring the backup " + exc.getMessage());
+				logger.error("There was an exception restoring the backup " + exc.getMessage());
 			}
 		}
 

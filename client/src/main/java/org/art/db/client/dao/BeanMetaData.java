@@ -130,7 +130,7 @@ public class BeanMetaData{
 				this.propertiesByColumn.put(prop.getColumn(), prop);
 			}
 		} catch (Exception exc) {
-			logger.info("Exception getting relationships " + exc.getMessage());
+			logger.error("Exception getting relationships " + exc.getMessage());
 		}
 	}
 	

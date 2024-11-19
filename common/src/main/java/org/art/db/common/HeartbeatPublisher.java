@@ -44,7 +44,7 @@ public class HeartbeatPublisher {
 			this.group = InetAddress.getByName("230.0.0.0");
 		
 		} catch (Exception exc) {
-			logger.info("init exception " + exc.getMessage());
+			logger.error("init exception " + exc.getMessage());
 		}
 	
 	}

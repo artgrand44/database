@@ -56,7 +56,7 @@ public class HeartbeatListener {
 			this.localInstance = localInstance;
 			this.port = localInstance == null ? 0 : localInstance.getPort();
 		} catch (Exception exc) {
-			logger.info("init exception " + exc.getMessage());
+			logger.error("init exception " + exc.getMessage());
 		}
 	}
 	

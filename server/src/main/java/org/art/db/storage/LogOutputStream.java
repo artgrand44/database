@@ -139,7 +139,7 @@ public class LogOutputStream  implements Closeable{
 				}
 			}
 		} catch (Exception exc) {
-			logger.info("Flush exception " + exc.getMessage());
+			logger.error("Flush exception " + exc.getMessage());
 		}
 	}
 	

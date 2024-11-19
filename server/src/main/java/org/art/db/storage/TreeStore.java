@@ -138,7 +138,7 @@ public class TreeStore implements Closeable, BlobStore {
 				this.logFile.delete();		
 			}
 		} catch (Exception exc) {
-			logger.info(exc.getMessage());
+			logger.error("Error closing segment " + exc.getMessage());
 		} finally {
 			this.lock.unlock();
 		}
@@ -294,7 +294,7 @@ public class TreeStore implements Closeable, BlobStore {
 		} catch (Exception exc) {
 			MetricsLogger.getInstance().logAlert("There was an error flushing the database");
 			exc.printStackTrace();
-			logger.info("Flush failed " + exc.getMessage());
+			logger.error("Flush failed " + exc.getMessage());
 		} finally {
 			this.flushLock.unlock();
 		}
@@ -310,7 +310,7 @@ public class TreeStore implements Closeable, BlobStore {
 			this.header.flushed = true;
 			this.writeHeader();
 		} catch (Exception exc) {
-			logger.info("Error flushing header " + exc.getMessage());
+			logger.error("Error flushing header " + exc.getMessage());
 		} finally {
 			this.lock.unlock();
 		}
@@ -411,7 +411,7 @@ public class TreeStore implements Closeable, BlobStore {
 			logger.info("The index log was not properly closed");
 		} catch (Exception exc) {
 			MetricsLogger.getInstance().logAlert("There was an error recovering database");
-			logger.info("Recovery failed " + exc.getMessage());
+			logger.error("Recovery failed " + exc.getMessage());
 		}
 	}
 	
@@ -456,7 +456,7 @@ public class TreeStore implements Closeable, BlobStore {
 				this.freeBlocks.add(id);
 			}
 		} catch (Exception exc) {
-			logger.info("Exception freeing node " + exc.getMessage());
+			logger.error("Exception freeing node " + exc.getMessage());
 		} finally {
 			this.lock.unlock();
 		}

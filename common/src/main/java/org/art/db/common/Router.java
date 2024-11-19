@@ -178,12 +178,12 @@ public class Router {
 								entry.future.completeExceptionally(new DBRuntimeException(message));
 							}
 						} catch (Exception exc) {
-							logger.info("Got exception on " + exc.getMessage());
+							logger.error("Got exception on " + exc.getMessage());
 						}
 					}
 				}
 			} catch (Exception exc) {
-				logger.info("Batch error on " + exc.getMessage());
+				logger.error("Batch error on " + exc.getMessage());
 			}
 		} 
 	}

@@ -71,7 +71,7 @@ public class BackupHandler {
 			}
 		} catch (Exception exc) {
 			exc.printStackTrace();
-			logger.info("Backup exception " + exc.getMessage());
+			logger.error("Backup exception " + exc.getMessage());
 		} finally {
 			this.lock.writeLock().unlock();
 		}
@@ -133,7 +133,7 @@ public class BackupHandler {
 				}
 			}
 		} catch (Exception exc) {
-			logger.info("There was an error deleting the old backups " + exc.getMessage());
+			logger.error("There was an error deleting the old backups " + exc.getMessage());
 		}
 		
 	}

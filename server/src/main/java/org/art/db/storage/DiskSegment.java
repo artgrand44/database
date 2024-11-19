@@ -40,7 +40,7 @@ public class DiskSegment extends Segment implements Iterable<Map.Entry<Key, Blob
 			this.setBloomFilter(this.treeStore.getBloomFilter());
 		} catch (Exception exc) {
 			MetricsLogger.getInstance().logAlert("There was an error opening the database");
-			logger.info("Got exception on file " + file.getAbsolutePath() + " " + exc.getMessage());
+			logger.error("Got exception on file " + file.getAbsolutePath() + " " + exc.getMessage());
 			exc.printStackTrace();
 			throw exc;
 		}

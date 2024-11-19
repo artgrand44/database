@@ -131,10 +131,8 @@ public class Table implements Closeable {
 		MemorySegment segment = this.currentSegment;
 		boolean saving = false;
 		
-		logger.info(DiscoveryHandler.getServerName() + "table.flush");
-		if (this.isQueue) {
-			logger.info("flushing queue");
-		}
+		logger.error(DiscoveryHandler.getServerName() + "table.flush");
+		
 		this.writeLock.lock();
 		
 		try {
@@ -274,7 +272,7 @@ public class Table implements Closeable {
 			}	
 		} catch (Exception exc) {
 			MetricsLogger.getInstance().logAlert("There was an error merging database segments");
-			logger.info("Error merging files " + exc.getMessage());
+			logger.error("Error merging files " + exc.getMessage());
 		}
 	}
 	
@@ -287,7 +285,7 @@ public class Table implements Closeable {
 			} catch (InterruptedException exc) {
 				break;
 			} catch (Exception exc) {
-				logger.info("Merge exception " + exc.getMessage());
+				logger.error("Merge exception " + exc.getMessage());
 			}
 				
 		}
@@ -368,8 +366,7 @@ public class Table implements Closeable {
 
 		} catch (Exception exc) {
 			MetricsLogger.getInstance().logAlert("There was an error merging database segments");
-			exc.printStackTrace();
-			logger.info("Error merging files " + exc.getMessage());
+			logger.error("Error merging files " + exc.getMessage());
 		}
 
 	}
@@ -397,7 +394,7 @@ public class Table implements Closeable {
 			}
 		} catch (Exception exc) {
 			MetricsLogger.getInstance().logAlert("There was an error switching database segments");
-			logger.info("Exception switching segments " + exc.getMessage());
+			logger.error("Exception switching segments " + exc.getMessage());
 		}
 	}
 	
