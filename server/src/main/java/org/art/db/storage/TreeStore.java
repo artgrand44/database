@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -233,17 +232,6 @@ public class TreeStore implements Closeable, BlobStore {
 				return;
 			}
 
-			Map<LogKey, LogValue> serialized = new HashMap<>();
-			
-			for (Map.Entry<LogKey, LogValue> entry : batch.entrySet()) {
-				if (entry.getKey().op == Operation.Update) {
-					LogValue value = entry.getValue();
-					TreeNode node = (TreeNode)value.value;
-					
-					serialized.put(entry.getKey(), new LogValue(node.serialize(), value.transactional));
-				}
-			}
-			
 			// Write the log entries then close the log.  This is the fastest way 
 			// to guarantee that the end of file marker has been written to the
 			// operating system.
@@ -271,7 +259,7 @@ public class TreeStore implements Closeable, BlobStore {
 							log.writeUTF(key.op.toString());
 
 							if (key.op == Operation.Update) {
-								byte[] bytes = (byte[])serialized.get(key).value;
+								byte[] bytes = ((TreeNode)value.value).serialize();
 								log.writeInt(bytes.length);
 								log.write(bytes);
 							} else if (key.op == Operation.SetRoot) {
@@ -301,7 +289,7 @@ public class TreeStore implements Closeable, BlobStore {
 					this.writeHeader();
 					break;
 				case Update:
-					this.file.writeBlock((byte[])serialized.get(key).value, key.id);
+					this.file.writeBlock(((TreeNode)value.value).serialize(), key.id);
 					break;
 				}
 			}
