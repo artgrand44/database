@@ -170,10 +170,10 @@ public class TreeStore implements Closeable, BlobStore {
 			
 			for (Map.Entry<LogKey, LogValue> change : changes.entrySet()) {
 				LogKey key = change.getKey();
-				LogValue oldValue = this.currentBatch.get(key);
-				boolean transactional = oldValue == null ? changes.size() > 1 : oldValue.transactional || changes.size() > 1;
 				
-				this.currentBatch.put(key, new LogValue(change.getValue().value, transactional));
+				this.currentBatch.compute(key, (x, y) -> y == null 
+						                                 ? new LogValue(change.getValue().value, changes.size() > 1) 
+						                                 : new LogValue(change.getValue().value, changes.size() > 1 || y.transactional));
 			}
 					 
 			threadChanges.get().clear();
