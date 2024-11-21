@@ -59,7 +59,7 @@ public class StorageManager  {
 	
 	public File getNextFile(String table, long timestamp, String type) {
 		
-		File[] files = Files.listFiles(table, type);
+		File[] files = DBFiles.listFiles(table, type);
 		
 		if (files == null) {
 			logger.info("no files for " + type);
@@ -70,7 +70,7 @@ public class StorageManager  {
 		Collections.sort(list, (a, b) -> a.getName().compareTo(b.getName()));
 
 		for (File file : list) {
-			long fileTimeStamp = Files.getTimestampFromFile(file.getName());
+			long fileTimeStamp = DBFiles.getTimestampFromFile(file.getName());
 			
 			if (fileTimeStamp > timestamp) {
 				return file;

@@ -127,7 +127,7 @@ public class MemorySegment extends Segment {
 		
 		long delay = interval.toMillis();
 		
-		this.logFile = Files.getTableLog(table);
+		this.logFile = DBFiles.getTableLog(table);
 		this.log = new LogOutputStream(this.logFile);
 		this.table = table;
 		this.discoveryHandler = discoveryHandler;

@@ -20,7 +20,7 @@ import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
 import org.art.db.storage.BackupHandler;
 import org.art.db.storage.ColumnInfo;
-import org.art.db.storage.Files;
+import org.art.db.storage.DBFiles;
 import org.art.db.storage.IndexInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
@@ -156,7 +156,7 @@ public class DDLHandler {
 		boolean unique = "unique".equalsIgnoreCase(index.getType());
 		List<String> fields = new ArrayList<>();
 
-		File file = Files.getIndex(SQLUtils.getFQN(table, database), indexName);
+		File file = DBFiles.getIndex(SQLUtils.getFQN(table, database), indexName);
 		
 		if (file.exists()) {
 			throw new DBRuntimeException("Index " + indexName + " already exists");
@@ -220,7 +220,7 @@ public class DDLHandler {
 		}
 					
 		Table table = createTable.getTable();
-		File file = Files.getMetadata(SQLUtils.getFQN(table, database));
+		File file = DBFiles.getMetadata(SQLUtils.getFQN(table, database));
 		
 		if (file.exists()) {
 			throw new DBRuntimeException("Table " + table + " already exists " + file.getAbsolutePath());
@@ -342,7 +342,7 @@ public class DDLHandler {
 					SQLUtils.broadcastAll(database, drop.toString());
 				}
 			} else if (type.equalsIgnoreCase("TABLE")) {
-				File tableDir = Files.getTableDirectory(table);
+				File tableDir = DBFiles.getTableDirectory(table);
 				StorageManager.getInstance().closeTable(table);
 				FileUtils.deleteDirectory(tableDir);
 				metadata.removeFromCache();

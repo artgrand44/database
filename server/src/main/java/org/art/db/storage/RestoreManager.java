@@ -3,6 +3,8 @@ package org.art.db.storage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,7 +26,6 @@ import org.art.db.common.LogEntry.Operation;
 import org.art.db.security.SecurityHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -80,7 +81,7 @@ public class RestoreManager {
 	
 	private void getFile(URI peer, String table, String name) throws Exception {
 		URI uri = this.restClient.buildURI(peer, "/db/getfile?table=%s&name=%s", table, name);
-		File localFile = new File(Files.getTableDirectory(table), name);
+		File localFile = new File(DBFiles.getTableDirectory(table), name);
 		
 		localFile.delete();		
 		this.restClient.getFile(uri, localFile);
@@ -114,7 +115,7 @@ public class RestoreManager {
 			int dash = name.indexOf('_');
 			
 			timestamp = Long.valueOf(name.substring(0, dash)) + 1;
-			file.renameTo(new File(Files.getTableDirectory(table) + "/" + name));
+			file.renameTo(new File(DBFiles.getTableDirectory(table) + "/" + name));
 			return name;
 		} 
 
@@ -150,7 +151,7 @@ public class RestoreManager {
 		// Determine whether we need to restore the entire database from the backup.
 		// We do a restore if the root is empty and a backup is available.
 		
-		File root = Files.getRoot();
+		File root = DBFiles.getRoot();
 		File[] tableDirs = root.listFiles();
 		File backupDirectory = this.getBackupDirectory();
 		boolean useBackup = (tableDirs == null || tableDirs.length == 0) && backupDirectory != null;
@@ -190,12 +191,12 @@ public class RestoreManager {
 
 				// Recovery the tables
 
-				for (String table : Files.listTables()) {
+				for (String table : DBFiles.listTables()) {
 					logger.info("recovering " + table);
 					try {
 						if (useBackup) {
 							logger.info("Restoring " + table + " from backup");
-							FileUtils.copyDirectory(new File(backupDirectory, table), new File(root, table));
+							Files.copy(new File(backupDirectory, table).toPath(), new File(root, table).toPath(), StandardCopyOption.REPLACE_EXISTING);
 						}
 
 						// Tell the peer to flush its current segment 
@@ -231,7 +232,7 @@ public class RestoreManager {
 		} else if (useBackup) {
 			try {
 				logger.info("Restoring database from backup");
-				FileUtils.copyDirectory(root, backupDirectory);
+				Files.copy(root.toPath(), backupDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING);
 			} catch (Exception exc) {
 				logger.error("There was an exception restoring the backup " + exc.getMessage());
 			}
@@ -288,7 +289,7 @@ public class RestoreManager {
 			RestClient restClient = new RestClient();
 
 			for (String table : tables.split(",")) {
-				File file = Files.getMetadata(table);
+				File file = DBFiles.getMetadata(table);
 
 				restClient.getFile(restClient.buildURI(peer, "/db/getmetadata?table=%s", table, 0), file);
 			}		
@@ -298,7 +299,7 @@ public class RestoreManager {
 	
 	private void recoverQueue(TableManager manager, URI peer, String tableName) throws Exception { 
 		for (String name : this.getAllFiles(peer, tableName, ".log")) {
-			File localFile = new File(Files.getTableDirectory(tableName), name);
+			File localFile = new File(DBFiles.getTableDirectory(tableName), name);
 			boolean save = manager.isCheckConstraints();
 			
 			manager.setCheckConstraints(false);
@@ -317,7 +318,7 @@ public class RestoreManager {
 		
 		// Find the timestamp of the most recent segment on this node.
 		
-		File[] files = Files.listDiskSegments(tableName);
+		File[] files = DBFiles.listDiskSegments(tableName);
 		long timestamp;
 		
 		if (files == null || files.length == 0) {			
@@ -343,7 +344,7 @@ public class RestoreManager {
 			logger.info("getting files from " + peer);
 			
 			while ((name = this.getNextFile(peer, tableName, ".seg", timestamp)) != null) {
-				File localFile = new File(Files.getTableDirectory(tableName), name);
+				File localFile = new File(DBFiles.getTableDirectory(tableName), name);
 				DiskSegment segment = new DiskSegment(localFile);
 
 				logger.info("got file " + localFile);

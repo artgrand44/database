@@ -46,7 +46,7 @@ public class Broadcaster {
 			this.uri = uri;
 			this.path = path;
 			this.timestamp = System.currentTimeMillis();
-			this.file = File.createTempFile("msg", ".dat", Files.getRoot());
+			this.file = File.createTempFile("msg", ".dat", DBFiles.getRoot());
 			this.file.deleteOnExit();
 			
 			FileUtils.writeByteArrayToFile(this.file, body);

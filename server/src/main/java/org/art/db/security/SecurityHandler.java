@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.art.db.common.Key;
 import org.art.db.common.Comparison;
 import org.art.db.common.DBRuntimeException;
-import org.art.db.storage.Files;
+import org.art.db.storage.DBFiles;
 import org.art.db.storage.Tree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,10 +33,10 @@ public class SecurityHandler {
 	
 	private SecurityHandler()  {
 		try {
-			File file = Files.getSecurity();
+			File file = DBFiles.getSecurity();
 			boolean exists = file.exists();
 			
-			this.tree = new Tree<>(Files.getSecurity(), String.class);
+			this.tree = new Tree<>(DBFiles.getSecurity(), String.class);
 			
 			if (!exists) {
 				logger.info("creating admin");

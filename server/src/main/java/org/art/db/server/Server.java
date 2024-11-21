@@ -22,7 +22,7 @@ import org.art.db.security.SecurityHandler;
 import org.art.db.storage.BackupHandler;
 import org.art.db.storage.Broadcaster;
 import org.art.db.storage.Environment;
-import org.art.db.storage.Files;
+import org.art.db.storage.DBFiles;
 import org.art.db.storage.MetricsLogger;
 import org.art.db.storage.PrometheusLogger;
 import org.art.db.storage.RestoreManager;
@@ -162,7 +162,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 				exchange.getOutputStream().write(bytes);
 			} else if (response != null){
 				File file = (File)response;
-				File tempFile = Files.changeExtention(file, ".zip");
+				File tempFile = DBFiles.changeExtention(file, ".zip");
 				
 				exchange.getResponseHeaders().add(new HttpString("filename"), file.getName());
 				

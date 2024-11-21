@@ -149,7 +149,7 @@ public class Metadata  {
 			return cache.get(table);
 		}
 				
-		File file = Files.getMetadata(table);
+		File file = DBFiles.getMetadata(table);
 		
 		if (file.exists()) {
 			Metadata result = load(file);
@@ -170,7 +170,7 @@ public class Metadata  {
 	}
 
 	public void store() throws Exception {
-		File file = Files.getMetadata(this.name);
+		File file = DBFiles.getMetadata(this.name);
 		
 		MAPPER.writeValue(file, this); 
 		cache.put(this.name, this);

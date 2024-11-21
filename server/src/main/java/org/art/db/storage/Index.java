@@ -84,7 +84,7 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 	private void buildIndexInBackground(Table table, Metadata metadata) {
 		
 		IndexInfo info = metadata.getIndex(this.name);
-		File inverseFile = Files.getInverseIndex(metadata.getName(), info.getName());
+		File inverseFile = DBFiles.getInverseIndex(metadata.getName(), info.getName());
 		
 		try {
 			this.processed = new Tree<>(inverseFile, Boolean.class);

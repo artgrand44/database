@@ -70,7 +70,7 @@ public class Table implements Closeable {
 		
 		this.segments.add(this.currentSegment);
 			
-		File[] files = Files.listDiskSegments(table);
+		File[] files = DBFiles.listDiskSegments(table);
 		
 		if (files != null) {
 			List<File> list = Arrays.asList(files);
@@ -238,11 +238,11 @@ public class Table implements Closeable {
 			String[] tokens = file.getName().split("_");
 			String size = tokens[1].split("\\.")[0];
 
-			File[] files = Files.list(this.table, x -> x.getName().endsWith(size + ".seg"));
+			File[] files = DBFiles.list(this.table, x -> x.getName().endsWith(size + ".seg"));
 
 			if (files != null && files.length >= 10) {
 				List<File> fileList = Arrays.asList(files);
-				File merged = Files.getDiskSegment(this.table, Integer.parseInt(size) * 10);
+				File merged = DBFiles.getDiskSegment(this.table, Integer.parseInt(size) * 10);
 
 				SegmentBuilder.merge(merged, Segment.DISK_BLOCK_SIZE, files);
 
@@ -336,7 +336,7 @@ public class Table implements Closeable {
 	
 	private void save(MemorySegment segment) {
 		try {
-			File file  = Files.getDiskSegment(this.table, 1);
+			File file  = DBFiles.getDiskSegment(this.table, 1);
 
 			DiskSegment saved = segment.save(file);
 			

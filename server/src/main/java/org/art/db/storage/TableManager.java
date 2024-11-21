@@ -49,18 +49,18 @@ public class TableManager implements Closeable{
 	
 	public TableManager(String tableName) throws Exception {
 		this.tableName = tableName;
-		this.metadataFile = Files.getMetadata(tableName);
+		this.metadataFile = DBFiles.getMetadata(tableName);
 		this.metadata = metadataFile.exists() ? new ObjectMapper().readValue(metadataFile, Metadata.class) : new Metadata(tableName);
 		this.indexInfo = metadata.getIndices();
 		
 		for (IndexInfo info : this.indexInfo) {
 			String name = info.getName();
-			File indexFile = Files.getIndex(tableName, name);
+			File indexFile = DBFiles.getIndex(tableName, name);
 			
 			this.indices.put(name, new Index(indexFile, name, info.isUnique()));
 		}
 		
-		File[] logs =  Files.listTableLogs(tableName);
+		File[] logs =  DBFiles.listTableLogs(tableName);
 		
 		this.table = new Table(tableName, this.indices);
 				
@@ -195,7 +195,7 @@ public class TableManager implements Closeable{
 			
 			if (!this.indices.containsKey(name)) {
 				IndexInfo info = this.metadata.getIndex(name);
-				Index index = new Index(Files.getIndex(this.tableName, name), name, info.isUnique());
+				Index index = new Index(DBFiles.getIndex(this.tableName, name), name, info.isUnique());
 
 				this.indices.put(name, index);
 			}

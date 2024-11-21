@@ -9,10 +9,10 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Files {
+public class DBFiles {
 		
 	@SuppressWarnings("unused")
-	private static final Logger logger = LoggerFactory.getLogger(Files.class);
+	private static final Logger logger = LoggerFactory.getLogger(DBFiles.class);
 	
 	private final static String META_DATA = "%s/meta.dat";
 	

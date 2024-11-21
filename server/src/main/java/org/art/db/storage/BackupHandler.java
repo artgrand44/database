@@ -1,6 +1,8 @@
 package org.art.db.storage;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -10,11 +12,11 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.io.FileUtils;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 public class BackupHandler {
 	
@@ -64,9 +66,9 @@ public class BackupHandler {
 			rootFile.mkdirs();
 			this.deleteOldBackups(rootFile);
 
-			this.backupFile(Files.getSecurity(), backupDir);
+			this.backupFile(DBFiles.getSecurity(), backupDir);
 
-			for (String table : Files.listTables()) {
+			for (String table : DBFiles.listTables()) {
 				this.backupTable(table, backupDir);
 			}
 		} catch (Exception exc) {
@@ -85,16 +87,16 @@ public class BackupHandler {
 		
 		StorageManager.getInstance().getTableManager(table).flush();
 		
-		File[] segments = Files.listDiskSegments(table);
-		File[] indices = Files.listFiles(table, ".idx");
-		File meta = Files.getMetadata(table);
+		File[] segments = DBFiles.listDiskSegments(table);
+		File[] indices = DBFiles.listFiles(table, ".idx");
+		File meta = DBFiles.getMetadata(table);
 		
 		if (segments != null) {
 			for (File segment : segments) {
 				File backup = new File(backupDir, segment.getName());
 				
 				if (!backup.exists()) {
-					FileUtils.copyFile(segment, backup);
+					Files.copy(segment.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				}
 			}
 		}
@@ -114,7 +116,7 @@ public class BackupHandler {
 	private void backupFile(File source, File backupDir) throws Exception {
 		File backup = new File(backupDir, source.getName());
 
-		FileUtils.copyFile(source, backup);
+		Files.copy(source.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 	
 	private void deleteOldBackups(File rootFile) {

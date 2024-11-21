@@ -27,7 +27,7 @@ import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
 import org.art.db.storage.BackupHandler;
 import org.art.db.storage.Environment;
-import org.art.db.storage.Files;
+import org.art.db.storage.DBFiles;
 import org.art.db.storage.LogOutputStream;
 import org.art.db.storage.MetricsLogger;
 import org.art.db.storage.PrometheusLogger;
@@ -358,7 +358,7 @@ public class Dispatcher {
 			
 			String table = parameters.get("table");
 			String type = parameters.get("type");
-			File[] files = Files.listFiles(table, type);
+			File[] files = DBFiles.listFiles(table, type);
 			
 			logger.info(DiscoveryHandler.getServerName() + " table " + table + " type " + type + " count " + files.length);
 			
@@ -381,7 +381,7 @@ public class Dispatcher {
 		
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			return String.join(",", Files.listTables()).getBytes();
+			return String.join(",", DBFiles.listTables()).getBytes();
 		}
 	}
 
@@ -392,7 +392,7 @@ public class Dispatcher {
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try {
 				String table = parameters.get("table");
-				File file = Files.getMetadata(table);
+				File file = DBFiles.getMetadata(table);
 
 				return file.exists() ? file : new byte[0];
 			} catch (Exception exc) {
@@ -414,7 +414,7 @@ public class Dispatcher {
 			String table = parameters.get("table");
 			String type = parameters.get("type");
 			long timestamp = Long.parseLong(parameters.get("timestamp"));
-			File[] array = Files.listFiles(table, type);
+			File[] array = DBFiles.listFiles(table, type);
 			
 			if (array == null) {
 				logger.info("getnext no files");
@@ -457,7 +457,7 @@ public class Dispatcher {
 			
 			String table = parameters.get("table");
 			String name = parameters.get("name");
-			File file = new File(Files.getTableDirectory(table), name);
+			File file = new File(DBFiles.getTableDirectory(table), name);
 
 			logger.info("send back " + file.getAbsolutePath() + " " + file.length() + " " + file.exists());
 			return file.exists() ? file : null;
