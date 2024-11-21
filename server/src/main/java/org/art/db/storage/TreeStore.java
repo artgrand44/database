@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -47,7 +48,32 @@ public class TreeStore implements Closeable, BlobStore {
 		EOF
 	}
 	
-	static record LogKey(Operation op, long id) {
+	static class LogKey {
+		private final Operation op;
+		private final long id;
+		private boolean transactional;
+		
+		LogKey(Operation op, long id) {
+			this.op = op;
+			this.id = id;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(id, op);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			LogKey other = (LogKey) obj;
+			return id == other.id && op == other.op;
+		}
 		
 	}
 	
@@ -167,6 +193,10 @@ public class TreeStore implements Closeable, BlobStore {
 			
 			// Merge the changes for this thread into the current batch
 					 
+			if (changes.size() > 1) {
+				changes.keySet().forEach(x -> x.transactional = true);
+			}
+			
 			this.currentBatch.putAll(changes);
 			this.currentBatch.transactional |= changes.size() > 1;
 			
@@ -244,24 +274,34 @@ public class TreeStore implements Closeable, BlobStore {
 			// to guarantee that the end of file marker has been written to the
 			// operating system.
 			
-			if (batch.transactional) {
+			int transactionCount = 0;
+			
+			for (LogKey key : batch.keySet()) {
+				if (key.transactional) {
+					transactionCount++;
+				}
+			}
+			
+			if (transactionCount != 0) {
 				try (DataOutputStream log = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(this.logFile)))){
 					this.writeCount.addAndGet(batch.size());
 
-					log.writeInt(batch.size());
+					log.writeInt(transactionCount);
 
 					for (Map.Entry<LogKey, Object> entry : batch.entrySet()) {
 						LogKey key = entry.getKey();
 
-						log.writeLong(key.id);
-						log.writeUTF(key.op.toString());
+						if (key.transactional) {
+							log.writeLong(key.id);
+							log.writeUTF(key.op.toString());
 
-						if (key.op == Operation.Update) {
-							byte[] bytes = serialized.get(key);
-							log.writeInt(bytes.length);
-							log.write(bytes);
-						} else if (key.op == Operation.SetRoot) {
-							log.writeLong((Long)entry.getValue());
+							if (key.op == Operation.Update) {
+								byte[] bytes = serialized.get(key);
+								log.writeInt(bytes.length);
+								log.write(bytes);
+							} else if (key.op == Operation.SetRoot) {
+								log.writeLong((Long)entry.getValue());
+							}
 						}
 					} 
 
