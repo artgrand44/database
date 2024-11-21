@@ -78,12 +78,7 @@ public class TreeStore implements Closeable, BlobStore {
 	}
 	
 	
-	static class Batch extends ConcurrentHashMap<LogKey, Object> {
-		private static final long serialVersionUID = 1L;
-		
-		private boolean transactional;
-		
-	}
+	
 	private final ReentrantLock lock = new ReentrantLock();
 	private final ReentrantLock flushLock = new ReentrantLock();
 	private final BlockFile file;
@@ -103,8 +98,8 @@ public class TreeStore implements Closeable, BlobStore {
 	private static final TreeNode NULL_NODE = new TreeNode();
 	
 	
-	private volatile Batch currentBatch = new Batch();	
-	private volatile Batch prevBatch;
+	private volatile ConcurrentHashMap<LogKey, Object> currentBatch = new ConcurrentHashMap<>();	
+	private volatile ConcurrentHashMap<LogKey, Object> prevBatch;
 	
 	private final static ThreadLocal<Map<LogKey, Object>> threadChanges = ThreadLocal.withInitial(() -> new HashMap<>());
 	
@@ -198,18 +193,13 @@ public class TreeStore implements Closeable, BlobStore {
 			}
 			
 			this.currentBatch.putAll(changes);
-			this.currentBatch.transactional |= changes.size() > 1;
-			
-			if (changes.size() > 1 && !this.currentBatch.transactional) {
-				logger.info("not set");
-			}
 			threadChanges.get().clear();
 
 			// If the batch is full then flush it.
 			
 			if (this.prevBatch == null && this.currentBatch.size() > 200) {
 				this.prevBatch = this.currentBatch;
-				this.currentBatch = new Batch();
+				this.currentBatch = new ConcurrentHashMap<>();
 				
 				doFlush = true;
 			} 
@@ -252,7 +242,7 @@ public class TreeStore implements Closeable, BlobStore {
 		
 	}
 
-	private void flush(Batch batch)  {
+	private void flush(ConcurrentHashMap<LogKey, Object> batch)  {
 		this.flushLock.lock();
 		
 		try {
