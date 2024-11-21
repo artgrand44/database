@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -48,37 +47,18 @@ public class TreeStore implements Closeable, BlobStore {
 		EOF
 	}
 	
-	static class LogKey {
-		private final Operation op;
-		private final long id;
-		private boolean transactional;
+	static record LogKey(Operation op, long id) {
 		
-		LogKey(Operation op, long id) {
-			this.op = op;
-			this.id = id;
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(id, op);
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			LogKey other = (LogKey) obj;
-			return id == other.id && op == other.op;
-		}
+	}	
+	
+	static record LogValue(Object value, boolean transactional) {
 		
 	}
 	
 	
-	
+	static class Batch extends HashMap<LogKey, LogValue> {
+		private static final long serialVersionUID = 1L;
+	}
 	private final ReentrantLock lock = new ReentrantLock();
 	private final ReentrantLock flushLock = new ReentrantLock();
 	private final BlockFile file;
@@ -98,10 +78,10 @@ public class TreeStore implements Closeable, BlobStore {
 	private static final TreeNode NULL_NODE = new TreeNode();
 	
 	
-	private volatile ConcurrentHashMap<LogKey, Object> currentBatch = new ConcurrentHashMap<>();	
-	private volatile ConcurrentHashMap<LogKey, Object> prevBatch;
+	private volatile Batch currentBatch = new Batch();	
+	private volatile Batch prevBatch;
 	
-	private final static ThreadLocal<Map<LogKey, Object>> threadChanges = ThreadLocal.withInitial(() -> new HashMap<>());
+	private final static ThreadLocal<Map<LogKey, LogValue>> threadChanges = ThreadLocal.withInitial(() -> new HashMap<>());
 	
 	private final static LogKey ROOT_KEY = new LogKey(Operation.SetRoot, -1);
 	
@@ -172,7 +152,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void commit() throws Exception {
 		
-		Map<LogKey, Object> changes = threadChanges.get();
+		Map<LogKey, LogValue> changes = threadChanges.get();
 		
 		if (changes.isEmpty()) {
 			return;
@@ -187,19 +167,22 @@ public class TreeStore implements Closeable, BlobStore {
 		try {
 			
 			// Merge the changes for this thread into the current batch
-					 
-			if (changes.size() > 1) {
-				changes.keySet().forEach(x -> x.transactional = true);
-			}
 			
-			this.currentBatch.putAll(changes);
+			for (Map.Entry<LogKey, LogValue> change : changes.entrySet()) {
+				LogKey key = change.getKey();
+				LogValue oldValue = this.currentBatch.get(key);
+				boolean transactional = oldValue == null ? changes.size() > 1 : oldValue.transactional || changes.size() > 1;
+				
+				this.currentBatch.put(key, new LogValue(change.getValue().value, transactional));
+			}
+					 
 			threadChanges.get().clear();
 
 			// If the batch is full then flush it.
 			
 			if (this.prevBatch == null && this.currentBatch.size() > 200) {
 				this.prevBatch = this.currentBatch;
-				this.currentBatch = new ConcurrentHashMap<>();
+				this.currentBatch = new Batch();
 				
 				doFlush = true;
 			} 
@@ -242,7 +225,7 @@ public class TreeStore implements Closeable, BlobStore {
 		
 	}
 
-	private void flush(ConcurrentHashMap<LogKey, Object> batch)  {
+	private void flush(Batch batch)  {
 		this.flushLock.lock();
 		
 		try {
@@ -250,13 +233,14 @@ public class TreeStore implements Closeable, BlobStore {
 				return;
 			}
 
-			Map<LogKey, byte[]> serialized = new HashMap<>();
+			Map<LogKey, LogValue> serialized = new HashMap<>();
 			
-			for (Map.Entry<LogKey, Object> entry : batch.entrySet()) {
+			for (Map.Entry<LogKey, LogValue> entry : batch.entrySet()) {
 				if (entry.getKey().op == Operation.Update) {
-					TreeNode node = (TreeNode)entry.getValue();
+					LogValue value = entry.getValue();
+					TreeNode node = (TreeNode)value.value;
 					
-					serialized.put(entry.getKey(), node.serialize());
+					serialized.put(entry.getKey(), new LogValue(node.serialize(), value.transactional));
 				}
 			}
 			
@@ -266,8 +250,8 @@ public class TreeStore implements Closeable, BlobStore {
 			
 			int transactionCount = 0;
 			
-			for (LogKey key : batch.keySet()) {
-				if (key.transactional) {
+			for (LogValue value : batch.values()) {
+				if (value.transactional) {
 					transactionCount++;
 				}
 			}
@@ -278,19 +262,20 @@ public class TreeStore implements Closeable, BlobStore {
 
 					log.writeInt(transactionCount);
 
-					for (Map.Entry<LogKey, Object> entry : batch.entrySet()) {
+					for (Map.Entry<LogKey, LogValue> entry : batch.entrySet()) {
 						LogKey key = entry.getKey();
+						LogValue value = entry.getValue();
 
-						if (key.transactional) {
+						if (value.transactional) {
 							log.writeLong(key.id);
 							log.writeUTF(key.op.toString());
 
 							if (key.op == Operation.Update) {
-								byte[] bytes = serialized.get(key);
+								byte[] bytes = (byte[])serialized.get(key).value;
 								log.writeInt(bytes.length);
 								log.write(bytes);
 							} else if (key.op == Operation.SetRoot) {
-								log.writeLong((Long)entry.getValue());
+								log.writeLong((Long)value.value);
 							}
 						}
 					} 
@@ -301,8 +286,9 @@ public class TreeStore implements Closeable, BlobStore {
 				}	
 			}
 						
-			for (Map.Entry<LogKey, Object> entry : batch.entrySet()) {
+			for (Map.Entry<LogKey, LogValue> entry : batch.entrySet()) {
 				LogKey key = entry.getKey();
+				LogValue value = entry.getValue();
 				
 				switch (key.op) {
 				case EOF:
@@ -311,11 +297,11 @@ public class TreeStore implements Closeable, BlobStore {
 					this.freeNode(key.id);
 					break;
 				case SetRoot:
-					this.header.root = (long)entry.getValue();
+					this.header.root = (long)value.value;
 					this.writeHeader();
 					break;
 				case Update:
-					this.file.writeBlock(serialized.get(key), key.id);
+					this.file.writeBlock((byte[])serialized.get(key).value, key.id);
 					break;
 				}
 			}
@@ -447,12 +433,12 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void releaseNode(long id) throws IOException {
 		
-		threadChanges.get().put(new LogKey(Operation.Release, id), NULL_NODE);
+		threadChanges.get().put(new LogKey(Operation.Release, id), new LogValue(NULL_NODE, false));
 	}
 	
 	
 	public void rollback() {
-		for (Map.Entry<LogKey, Object> entry : threadChanges.get().entrySet()) {
+		for (Map.Entry<LogKey, LogValue> entry : threadChanges.get().entrySet()) {
 			cache.invalidate(new NodeId(this, entry.getKey().id));
 		}
 		
@@ -572,14 +558,14 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void saveRoot(long id) throws IOException {
 		
-		threadChanges.get().put(ROOT_KEY, id);
+		threadChanges.get().put(ROOT_KEY, new LogValue(id, false));
 	}
 	
 	public void saveNode(TreeNode node) throws Exception {
 		NodeId id = new NodeId(this, node.getId());
 		
 		cache.put(id, node);	
-		threadChanges.get().put(new LogKey(Operation.Update, node.getId()), new TreeNode(node));
+		threadChanges.get().put(new LogKey(Operation.Update, node.getId()), new LogValue(new TreeNode(node), false));
 		
 	}
 
