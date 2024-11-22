@@ -19,6 +19,9 @@ public class Blob extends Serializable<Blob> {
 	}
 	
 	public Blob(byte[] bytes) {
+		if (bytes == null) {
+			new Exception().printStackTrace();
+		}
 		this.bytes = bytes;	
 		this.size = bytes.length;
 		this.onDisk = false;
@@ -55,6 +58,8 @@ public class Blob extends Serializable<Blob> {
 			this.bytes = new byte[this.size];
 		
 			stream.read(this.bytes);
+		} else {
+			this.bytes = new byte[0];
 		}
 		
 		return this;
