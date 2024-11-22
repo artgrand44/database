@@ -102,6 +102,7 @@ public class Table implements Closeable {
 				}
 
 				if (!this.currentSegment.isClosed() && this.currentSegment.size() != 0) {
+					logger.info("close calling lock");
 					this.save(this.currentSegment);
 				}
 			}
@@ -241,6 +242,8 @@ public class Table implements Closeable {
 			File[] files = DBFiles.list(this.table, x -> x.getName().endsWith(size + ".seg"));
 
 			if (files != null && files.length >= 10) {
+				logger.info("Merge size " + size + " count " + files.length);
+				
 				List<File> fileList = Arrays.asList(files);
 				File merged = DBFiles.getDiskSegment(this.table, Integer.parseInt(size) * 10);
 
@@ -292,6 +295,7 @@ public class Table implements Closeable {
 	}
 		
 	public void mergeAll() {
+		logger.info("mergeall");
 		for (Segment segment : this.segments) {
 			if (segment instanceof DiskSegment disk) {
 				mergeQueue.add(new MergeQueueEntry(this, disk.getFile()));
@@ -398,11 +402,18 @@ public class Table implements Closeable {
 		}
 	}
 	
+	long lastSwitch = System.currentTimeMillis();
+	
 	private void switchSegmentIfNeeded() {
 		this.writeLock.lock();
 
+		long time = System.currentTimeMillis();
+		long delta = time - lastSwitch;
+		
 		try {
-			if (this.currentSegment.size() > this.maxSegmentSize && this.prevSegment == null && !this.closed) {
+			if ((this.currentSegment.getDocumentCount() > 10000 || this.currentSegment.getLogSize() > MAX_LOG_SIZE) && this.prevSegment == null && !this.closed) {
+				lastSwitch = time;
+				logger.info("switching delta " + delta + " count = " + this.currentSegment.getDocumentCount() + " size " + this.currentSegment.size());
 				switchSegments();
 			} else if (this.isQueue && this.currentSegment.getLogSize() > MAX_LOG_SIZE) {
 				switchSegments();

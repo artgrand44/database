@@ -30,7 +30,7 @@ public class Environment {
 		defaults.putAll(Map.of(
 				   "org.art.db.logDelay",       "1s",
 				   "org.art.db.documentCache",  "1M",
-				   "org.art.db.maxSegmentSize", "100000",
+				   "org.art.db.maxSegmentSize", "10000",
 				   "org.art.db.nodeCache",      "10M",
 				   "org.art.db.indexCache",     "10M",
 				   "org.art.db.backuproot",     "./backup",
