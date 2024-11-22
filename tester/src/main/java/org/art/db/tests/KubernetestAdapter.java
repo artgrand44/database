@@ -177,7 +177,7 @@ public class KubernetestAdapter extends TestAdapter {
 		            .withTargetPort(new IntOrString(8080))
 		            .endPort()
 		            .withSelector(Collections.singletonMap("app", "name"))
-		            .withType("NodePort")
+		            .withType("LoadBalancer")
 		            .endSpec()
 		            .build();
 			
