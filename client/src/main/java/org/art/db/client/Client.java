@@ -63,7 +63,7 @@ public class Client {
 		ConnectionInfo info = new ConnectionInfo(host, port, shard, database);
 		
 		this.handler = DiscoveryHandler.getHandler(info);
-		this.router = Router.getRouter(handler, user, password);
+		this.router = serverURI == null ? Router.getRouter(handler, user, password) : Router.getRouter(serverURI, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = serverURI;
 		this.shard = "*";	
@@ -82,7 +82,7 @@ public class Client {
 		ConnectionInfo info = new ConnectionInfo(host, String.valueOf(uri.getPort()), shard, "cluster");
 		
 		this.handler = DiscoveryHandler.getHandler(info);
-		this.router = Router.getRouter(handler, user, password);
+		this.router = Router.getRouter(uri, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = uri;
 		this.shard = shard;	
@@ -98,7 +98,7 @@ public class Client {
 	 */
 	public Client(DiscoveryHandler handler, URI uri, String shard, String user, String password) throws Exception {
 		this.handler = handler;
-		this.router = Router.getRouter(handler, user, password);
+		this.router = Router.getRouter(uri, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = uri;
 		this.shard = shard;	
@@ -144,7 +144,7 @@ public class Client {
 	}
 	
 	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
- 		if (this.batch && this.uri == null && this.shard.equals("*")) {
+ 		if (this.batch && this.shard.equals("*")) {
  			return this.router.batch("/db/batch", url, body); 
  		} else {
  			return doPost(url, parameters, body);

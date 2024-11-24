@@ -23,17 +23,28 @@ import org.slf4j.LoggerFactory;
 public class Router {
 	private static final Logger logger = LoggerFactory.getLogger(Router.class);
 	
-	static record RouterKey(DiscoveryHandler discoveryHandler, String user, String password) {	
+	static record DiscoveryKey(DiscoveryHandler discoveryHandler, String user, String password) {	
 		
 	}
 	
+	static record URIKey(URI uri, String user, String password) {	
+		
+	}
 	private record BatchEntry(String uri, byte[] body, CompletableFuture<byte[]> future, long startTime) {
 		
 	}
 	
 	private RestClient restClient;
 	
+	/**
+	 * The discovery handler for routers that use a discovery handler
+	 */
 	private final DiscoveryHandler discoveryHandler;
+	
+	/**
+	 * The URI for routers than use a dedicated URI (i.e. a Kubernetes load balancer)
+	 */
+	private final URI uri;
 	
 	private final  LinkedBlockingQueue<BatchEntry> batchQueue = new  LinkedBlockingQueue<>();
 	
@@ -41,16 +52,45 @@ public class Router {
 	private static final ScheduledExecutorService SCHEDULER =  Scheduler.createScheduler("Rest", 10);
 
 	
-	private static final ConcurrentMap<RouterKey, Router> routers = new ConcurrentHashMap<>();
+	/**
+	 * A map for finding discovery handler-based routers
+	 */
+	private static final ConcurrentMap<DiscoveryKey, Router> discoveryRouters = new ConcurrentHashMap<>();
+	
+	
+	/**
+	 * A map for finding uri-based routers
+	 */
+	
+	private static final ConcurrentMap<URIKey, Router> uriRouters = new ConcurrentHashMap<>();
 	
 	private int maxBatchSize = MAX_SIZE;
 	
 	private static final int MAX_SIZE = 10;
 	
 	
+	/**
+	 * Create a DiscoveryHandler based router
+	 * @param discoveryHandler
+	 * @param user
+	 * @param password
+	 */
 	private Router(DiscoveryHandler discoveryHandler, String user, String password) {
 		this.discoveryHandler = discoveryHandler;
 		this.restClient = new RestClient(user, password);
+		this.uri = null;
+	}
+	
+	/**
+	 * Create a URI based router
+	 * @param uri
+	 * @param user
+	 * @param password
+	 */
+	private Router(URI uri, String user, String password) {
+		this.discoveryHandler = null;
+		this.restClient = new RestClient(user, password);
+		this.uri = uri;
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
@@ -79,22 +119,27 @@ public class Router {
 	}
 	
 	private byte[] doCall(String method, String shardKey, String template, Object body, Object ... args) throws Exception {
-		URI server = null;
 		
-		for (;;) {
-			try {			
-				server = this.discoveryHandler.getServiceAddressForKey(shardKey == null ? UUID.randomUUID().toString() : shardKey);
-				URI uri = this.restClient.buildURI(server, template, args);
+		if (this.uri == null) {
+			URI server = null;
 
-				return this.restClient.call(method, uri, body);
-			} catch (RestException exc) {
-				if (exc.getStatus() == RestException.NO_CONNECTION || exc.getStatus() == RestException.SERVER_DOWN) {
-					logger.info("doCall got fail on " + server);
-					this.discoveryHandler.removeInstance(server);
-				} else {
-					throw exc;
-				}
-			} 
+			for (;;) {
+				try {			
+					server = this.discoveryHandler.getServiceAddressForKey(shardKey == null ? UUID.randomUUID().toString() : shardKey);
+					URI uri = this.restClient.buildURI(server, template, args);
+
+					return this.restClient.call(method, uri, body);
+				} catch (RestException exc) {
+					if (exc.getStatus() == RestException.NO_CONNECTION || exc.getStatus() == RestException.SERVER_DOWN) {
+						logger.info("doCall got fail on " + server);
+						this.discoveryHandler.removeInstance(server);
+					} else {
+						throw exc;
+					}
+				} 
+			}
+		} else {
+			return this.restClient.call(method, this.restClient.buildURI(this.uri, template), body);
 		}
 	}
 	
@@ -118,10 +163,30 @@ public class Router {
 		
 	}	
 	
+	/**
+	 * Find or create a DiscoveryHander-based router
+	 * @param discoveryHandler
+	 * @param user
+	 * @param password
+	 * @return
+	 */
 	public static Router getRouter(DiscoveryHandler discoveryHandler, String user, String password) {
-		RouterKey key = new RouterKey(discoveryHandler, user, password);
+		DiscoveryKey key = new DiscoveryKey(discoveryHandler, user, password);
 		
-		return routers.computeIfAbsent(key, x-> new Router(discoveryHandler, user, password));
+		return discoveryRouters.computeIfAbsent(key, x-> new Router(discoveryHandler, user, password));
+	}
+	
+	/**
+	 * Find or create a URI-based router
+	 * @param discoveryHandler
+	 * @param user
+	 * @param password
+	 * @return
+	 */
+	public static Router getRouter(URI uri, String user, String password) {
+		URIKey key = new URIKey(uri, user, password);
+		
+		return uriRouters.computeIfAbsent(key, x-> new Router(uri, user, password));
 	}
 	
 	public String getShard(String key) {
