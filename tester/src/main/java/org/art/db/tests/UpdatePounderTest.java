@@ -1,12 +1,10 @@
 package org.art.db.tests;
 
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
-
 import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,18 +14,17 @@ public class UpdatePounderTest extends BaseQueryPounder {
 	private static final Logger logger = LoggerFactory.getLogger(UpdatePounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 10000;
+	private static int NLOOPS = 100000;
 	private static int NUPDATERS = 100;
 	private static int NTHREADS = 150 + NUPDATERS;
-	
-	private AtomicInteger deleteNextId  = new AtomicInteger(2 * NITEMS);
+	private static int DOCS_PER_UPDATER = 1000;
 	
 	public UpdatePounderTest() {
 		super("./bigcache.properties", NITEMS, NTHREADS);		
 	}
 
 	private String getName(int idx) {
-		return "Name" + idx;
+		return idx + "Name";
 	}
 	
 	private int getId(int idx) {
@@ -97,15 +94,16 @@ public class UpdatePounderTest extends BaseQueryPounder {
 		try {
 
 			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin");
-
+			
 			for (int loop = 0; loop < NLOOPS; loop++) {
-				int id = -(this.deleteNextId.incrementAndGet());
-
-				this.insert(client, id);
-				this.addWrite();
-
-				this.remove(client, id);
+				
+				int key = NITEMS + (index * DOCS_PER_UPDATER);
+				
+				this.remove(client, key);
 				this.addDelete();
+				
+				this.insert(client, key);
+				this.addWrite();
 			}
 		} catch (InterruptedException exc) {
 
@@ -138,6 +136,18 @@ public class UpdatePounderTest extends BaseQueryPounder {
 			}
 		}
 		
+ 
+		for (int idx = 0; idx < NUPDATERS; idx++) {
+			for (int jdx = 0; jdx < DOCS_PER_UPDATER; jdx++) {
+				int key = NITEMS + (idx * DOCS_PER_UPDATER) + jdx;
+				
+				this.insert(client, key);
+				
+				if (key % 1000 == 0) {
+					logger.info("Inserted key" + key);
+				}
+			}
+		}
 		logger.info("inserts complete");
 	}
 
