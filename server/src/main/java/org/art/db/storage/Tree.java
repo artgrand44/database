@@ -805,7 +805,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 			// Remove the node from the child. If we removed the first child of the
 			// child then update node
 
-			this.removeInternal(child, key, level + 1, node, stamp, index != 0);
+			this.removeInternal(child, key, level + 1, node, stamp, canUnlockParent && index != 0);
 
 			if (index == 0 && !child.isEmpty()) {
 				this.lockManager.checkLock(child.getId());
