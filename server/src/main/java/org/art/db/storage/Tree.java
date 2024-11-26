@@ -558,7 +558,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 				this.putInternal(key, value);
 				return;
 			} catch (UpgradeException exc) {
-
+				this.treeStore.rollback();
 			} catch (Exception exc) {
 				this.treeStore.rollback();
 				throw exc;
@@ -725,7 +725,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 				this.removeInternal(key);
 				return;
 			} catch (UpgradeException exc) {
-
+				this.treeStore.rollback();
 			} catch (Exception exc) {
 				this.treeStore.rollback();
 				throw exc;

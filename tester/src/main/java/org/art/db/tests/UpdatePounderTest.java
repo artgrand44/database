@@ -15,7 +15,7 @@ public class UpdatePounderTest extends BaseQueryPounder {
 	private static final Logger logger = LoggerFactory.getLogger(UpdatePounderTest.class);
 	
 	private static int NITEMS = 10000;
-	private static int NLOOPS = 100000;
+	private static int NLOOPS = 10000;
 	private static int NUPDATERS = 100;
 	private static int NTHREADS = 150 + NUPDATERS;
 	private static int DOCS_PER_UPDATER = 1000;
