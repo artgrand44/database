@@ -2,6 +2,7 @@ package org.art.db.tests;
 
 import java.util.Random;
 
+import org.art.db.client.Batch;
 import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
@@ -123,31 +124,34 @@ public class UpdatePounderTest extends BaseQueryPounder {
 		String drop = "drop table if exists pounder";
 		String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
 		String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
+		String insert = "insert into pounder (ID, FirstName, LastName, Age) values (?, ?, 'grand', '1')";
 		
 		client.execute(drop);
 		client.execute(create);
 		client.execute(createIndex);
 		
+		Batch batch = client.createBatch();
+		
 		for (int idx = 0; idx < NITEMS; idx++) {
-			this.insert(client, idx);
-			
-			if (idx % 1000 == 0) {
-				logger.info("Inserted " + idx);
-			}
+			batch.add(insert, getId(idx), getName(idx));
 		}
 		
- 
+		client.executeBatch(batch);
+		
 		for (int idx = 0; idx < NUPDATERS; idx++) {
+			batch = client.createBatch();
+			
 			for (int jdx = 0; jdx < DOCS_PER_UPDATER; jdx++) {
 				int key = NITEMS + (idx * DOCS_PER_UPDATER) + jdx;
 				
-				this.insert(client, key);
+				batch.add(insert, getId(key), getName(key));
 				
-				if (key % 1000 == 0) {
+				if (idx % 10 == 0) {
 					logger.info("Inserted key" + key);
 				}
 			}
 		}
+		
 		logger.info("inserts complete");
 	}
 
