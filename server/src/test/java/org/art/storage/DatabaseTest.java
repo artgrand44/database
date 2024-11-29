@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.art.db.common.Comparison;
@@ -68,7 +67,7 @@ public class DatabaseTest extends BaseTreeTest {
 			}
 					                       
 			for (int idx = 0; idx < 10; idx++) {
-				Set<Key> keys = manager.getAll("name", Comparison.EQ,  new Key("Name" + idx));
+				List<Key> keys = manager.getAll("name", Comparison.EQ,  new Key("Name" + idx));
 				
 				Assertions.assertThat(keys.size() == 1).isTrue();
 				

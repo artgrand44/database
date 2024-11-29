@@ -4,8 +4,8 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -153,9 +153,9 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 		return keys.isEmpty() ? null :  keys.iterator().next();
 	}
 	
-	public Set<Key> getAll(Comparison comparison, Key key) throws Exception {
+	public List<Key> getAll(Comparison comparison, Key key) throws Exception {
 		IndexKey indexKey = new IndexKey(this, key);
-		Set<Key> keys;
+		List<Key> keys;
 		
 		if (this.unique && comparison == Comparison.EQ && (keys = cache.getIfPresent(indexKey)) != null) {
 			return keys;
@@ -200,7 +200,7 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 		if (this.unique) {
 			this.tree.put(key, value);
 			
-			Set<Key> set = new HashSet<>();
+			List<Key> set = new LinkedList<>();
 			
 			set.add(value);
 			cache.put(new IndexKey(this, key), set);
@@ -226,7 +226,7 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 		
 	}
 	
-	static class IndexCache extends ConfigurableCache<IndexKey, Set<Key>> {
+	static class IndexCache extends ConfigurableCache<IndexKey, List<Key>> {
 		IndexCache() {
 			super("org.art.db.indexCache");
 		}

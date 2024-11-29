@@ -141,7 +141,7 @@ public abstract class BaseTreeTest extends BaseTest {
 		List<String> expectedValues = new ArrayList<>();
 		List<String> actualValues = new ArrayList<>();
 		String fullKey = getKey(key);
-		Set<String> result = this.tree.getAll(comparison, new Key(fullKey));
+		List<String> result = this.tree.getAll(comparison, new Key(fullKey));
 		
 		for (int exp : expected) {
 			for (int idx = 0; idx < nvalues; idx++) {

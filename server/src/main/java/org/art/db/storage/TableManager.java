@@ -257,7 +257,7 @@ public class TableManager implements Closeable{
 		return this.indices.get(indexName).getAllKeys(comp, key);
 	}
 	
-	public Set<Key> getAll(String indexName, Comparison comp, Key key) throws Exception {
+	public List<Key> getAll(String indexName, Comparison comp, Key key) throws Exception {
 		return this.indices.get(indexName).getAll(comp, key);
 	}
 	

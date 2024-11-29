@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -181,18 +182,18 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	}
 
 	public TValue get(Comparison comparison, Key key) throws Exception {
-		Set<TValue> set = this.getAll(comparison, key);
+		List<TValue> list = this.getAll(comparison, key);
 
-		return set.isEmpty() ? null : set.iterator().next();
+		return list.isEmpty() ? null : list.getFirst();
 	}
 
-	public Set<TValue> getAll(Comparison comparison, Key key) throws Exception {
+	public List<TValue> getAll(Comparison comparison, Key key) throws Exception {
 		try {
-			Set<TValue> result;
+			List<TValue> result;
 			
 			do {
 				Iterator<Map.Entry<Key, TValue>> iterator = this.getRange(comparison, key);
-				result = new HashSet<>();
+				result = new LinkedList<>();
 
 				while (iterator.hasNext()) {
 					TValue value = iterator.next().getValue();

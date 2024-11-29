@@ -3,6 +3,7 @@ package org.art.storage;
 import java.io.ByteArrayOutputStream;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -103,7 +104,7 @@ public class TreeTest extends BaseTreeTest {
 					//doFlush();
 					
 					for (Integer added : addedSinceCrash) {
-						Set<String> result = this.tree.getAll(Comparison.EQ, new Key("Key" + added));
+						List<String> result = this.tree.getAll(Comparison.EQ, new Key("Key" + added));
 						
 						Assertions.assertThat(result.size() == 1).isTrue();
 						Assertions.assertThat(result.iterator().next().equals("Value" + added)).isTrue();
@@ -113,7 +114,7 @@ public class TreeTest extends BaseTreeTest {
 					doOpen();
 					
 					for (Integer added : addedSinceCrash) {
-						Set<String> result = this.tree.getAll(Comparison.EQ, new Key("Key" + added));
+						List<String> result = this.tree.getAll(Comparison.EQ, new Key("Key" + added));
 						
 						if (result.size() != 1) {
 							logger.info("size is " + result.size() + " added = " + added + " last " + lastCrash + " idx " + idx);

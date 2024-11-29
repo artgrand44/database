@@ -34,4 +34,11 @@ public class Scan{
 	public Key getExtraKey() {
 		return extraKey;
 	}
+
+	@Override
+	public String toString() {
+		return "Scan [index=" + index + ", comparison=" + comparison + ", key=" + key + ", extraKey=" + extraKey + "]";
+	}
+	
+	
 }

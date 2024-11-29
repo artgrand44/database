@@ -44,6 +44,7 @@ public class PlanTest {
 		doc.put("amount", getAmount(idx));
 		doc.put("color", colors[idx % colors.length]);
 		doc.put("model", models[idx % models.length]);
+		doc.put("year", "2024");
 		
 		return doc;
 	}
@@ -137,7 +138,7 @@ public class PlanTest {
 	@Test
 	public void test() {
 		try {
-			Metadata metadata = getMetadata("test", "id,name,amount,color,model", "id", "name-N-name,amount-N-amount,modelAndColor-Y-model-color");
+			Metadata metadata = getMetadata("test", "id,name,amount,color,model, year", "id", "name-N-name,amount-N-amount,modelAndColor-Y-model-color,year-Y-year");
 			
 			TableManager manager = StorageManager.getInstance().getTableManager("test");
 			
@@ -149,6 +150,18 @@ public class PlanTest {
 					metadata,
 					new int[] {1},
 					new Filter(Comparison.EQ, "name", "Name1"));
+			
+			doQuery(manager,
+					metadata,
+					new int[] {1},
+					new Filter(Comparison.EQ, "name", "Name1"),
+					new Filter(Comparison.EQ, "year", "2024"));
+			
+			doQuery(manager,
+					metadata,
+					new int[] {0, 1, 2},
+					new Filter(Comparison.LT, "name", "Name3"),
+					new Filter(Comparison.EQ, "year", "2024"));
 			
 			doQuery(manager,
 					metadata,
