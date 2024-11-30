@@ -6,13 +6,11 @@ import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.art.db.common.Blob;
@@ -215,26 +213,26 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	
 	}
 
-	public Set<TValue> getAllBetween(Key firstKey, Key lastKey) throws Exception {
+	public List<TValue> getAllBetween(Key firstKey, Key lastKey) throws Exception {
 		if (firstKey.compareTo(lastKey) > 0) {
-			return new HashSet<>();
+			return new LinkedList<>();
 		}
 		
 		try {
 			this.lockManager.readLock(this.root.getId());
 
-			Set<TValue> result;
+			List<TValue> result;
 			Cursor first = this.getFirstGE(firstKey);
 			Cursor last = this.getFirstLE(lastKey.with(Key.MAX));
 
 			if (first.currentKey().compareTo(firstKey) < 0) {
 				this.commit();
-				return new HashSet<>();
+				return new LinkedList<>();
 			}
 
 			do {
 				Iterator<Map.Entry<Key, TValue>> iterator = new RangeIterator(first, last);
-				result = new HashSet<>();
+				result = new LinkedList<>();
 
 				while (iterator.hasNext()) {
 					result.add(iterator.next().getValue());
@@ -248,12 +246,13 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		}
 	}
 
-	public Set<Key> getAllKeys(Comparison comparison, Key key) throws Exception {
+	public List<Key> getAllKeys(Comparison comparison, Key key) throws Exception {
 		try {
-			Set<Key> result;
+			List<Key> result;
+			
 			do {
 				Iterator<Map.Entry<Key, TValue>> iterator = this.getRange(comparison, key);
-				result = new HashSet<>();
+				result = new LinkedList<>();
 
 				while (iterator.hasNext()) {
 					Key value = iterator.next().getKey();

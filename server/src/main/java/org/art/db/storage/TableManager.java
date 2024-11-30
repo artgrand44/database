@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -253,7 +252,7 @@ public class TableManager implements Closeable{
 		return this.table.getDocumentCount();
 	}
 	
-	public Set<Key> getAllKeys(String indexName, Comparison comp, Key key) throws Exception {
+	public List<Key> getAllKeys(String indexName, Comparison comp, Key key) throws Exception {
 		return this.indices.get(indexName).getAllKeys(comp, key);
 	}
 	
@@ -261,7 +260,7 @@ public class TableManager implements Closeable{
 		return this.indices.get(indexName).getAll(comp, key);
 	}
 	
-	public Set<Key> getAllBetween(String indexName, Key first, Key last) throws Exception {
+	public List<Key> getAllBetween(String indexName, Key first, Key last) throws Exception {
 		return this.indices.get(indexName).getAllBetween(first, last);
 	}
 	

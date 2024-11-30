@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.StringUtils;
@@ -171,7 +170,7 @@ public abstract class BaseTreeTest extends BaseTest {
 		
 		List<String> expectedValues = new ArrayList<>();
 		List<String> actualValues = new ArrayList<>();
-		Set<String> result = this.tree.getAllBetween(new Key(getKey(first)), new Key(getKey(last)));
+		List<String> result = this.tree.getAllBetween(new Key(getKey(first)), new Key(getKey(last)));
 		
 		for (int exp : expected) {
 			for (int idx = 0; idx < nvalues; idx++) {

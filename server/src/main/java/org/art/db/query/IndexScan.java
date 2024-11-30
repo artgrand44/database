@@ -1,12 +1,11 @@
 package org.art.db.query;
 
 import java.util.List;
-import java.util.Set;
 
 import org.art.db.common.Document;
-import org.art.db.common.Key;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
+import org.art.db.common.Key;
 import org.art.db.storage.TableManager;
 
 public class IndexScan extends Plan {
@@ -29,7 +28,7 @@ public class IndexScan extends Plan {
 	
 	@Override
 	public DocumentSet execute(TableManager engine, long limit, boolean lock) throws Exception {
-		Set<Key> keys = engine.getAllKeys(scan.getIndex(), scan.getComparison(), key);
+		List<Key> keys = engine.getAllKeys(scan.getIndex(), scan.getComparison(), key);
 		DocumentSet result = new DocumentSet();
 		
 		for (Key key : keys) {

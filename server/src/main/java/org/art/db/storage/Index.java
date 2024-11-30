@@ -9,7 +9,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.art.db.common.Blob;
 import org.art.db.common.Comparison;
@@ -148,9 +147,9 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 	}
 	
 	public Key get(Comparison comparison, Key key) throws Exception {
-		Set<Key> keys = this.getAllKeys(comparison, key);
+		List<Key> keys = this.getAllKeys(comparison, key);
 		
-		return keys.isEmpty() ? null :  keys.iterator().next();
+		return keys.isEmpty() ? null :  keys.getFirst();
 	}
 	
 	public List<Key> getAll(Comparison comparison, Key key) throws Exception {
@@ -170,11 +169,11 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 		return keys;
 	}
 	
-	public Set<Key> getAllBetween(Key first, Key last) throws Exception {
+	public List<Key> getAllBetween(Key first, Key last) throws Exception {
 		return this.tree.getAllBetween(first, last);
 	}
 	
-	public Set<Key> getAllKeys(Comparison comparison, Key key) throws Exception {
+	public List<Key> getAllKeys(Comparison comparison, Key key) throws Exception {
 		return this.tree.getAllKeys(comparison, key);
 	}
 	
