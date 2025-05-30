@@ -1,6 +1,7 @@
 package org.art.db.tests;
 
 import java.net.URI;
+import java.time.Duration;
 
 import org.art.db.client.Client;
 
@@ -10,6 +11,7 @@ public abstract class TestAdapter {
 	public abstract URI startSecondary(String profile);
 	public abstract void stopSecondary();
 	public abstract Client getClusterClient(String user, String password) throws Exception;
+	public abstract Client getClusterClient(String user, String password, int cacheSize, Duration cacheDuration) throws Exception;
 	public abstract Client getPrimaryClient(String user, String password) throws Exception;
 	public abstract Client getSecondaryClient(String user, String password) throws Exception;
 	public abstract URI getPrimaryURI();

@@ -49,6 +49,10 @@ public class Client {
 	private final static Map<String, LightWeightCache<QueryKey, DocumentSet>> caches = new ConcurrentHashMap<>();
 	
 	public Client(URI uri, String user, String password) throws Exception {
+		this(uri, user, password, 0, null);
+	}
+	
+	public Client(URI uri, String user, String password, int cacheSize, Duration cacheDuration) throws Exception {
 		String database;
 		String shard;
 		String host;
@@ -76,7 +80,7 @@ public class Client {
 		this.client = new RestClient(user, password);
 		this.uri = serverURI;
 		this.shard = "*";	
-		this.cache = caches.computeIfAbsent(database, x -> new LightWeightCache<>(1000, Duration.ofSeconds(30), set -> set.size()));
+		this.cache = cacheSize == 0 ? null :caches.computeIfAbsent(database, x -> new LightWeightCache<>(cacheSize, cacheDuration, set -> set.size()));
 	}
 	
 	/**

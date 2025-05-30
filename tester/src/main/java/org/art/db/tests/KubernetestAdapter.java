@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +49,9 @@ public class KubernetestAdapter extends TestAdapter {
 		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password);
 	}
 	
+	public Client getClusterClient(String user, String password, int cacheSize, Duration cacheDuration) throws Exception {
+		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password, cacheSize, cacheDuration);
+	}
 	private String getLog(Server server) {
 		try {
 			PodList podList  = client.pods().inNamespace("default").withLabel("appname=" + server.name).list();

@@ -1,5 +1,6 @@
 package org.art.db.tests;
 
+import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -54,7 +55,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 			String idQuery = "select * from pounder where ID = ?";
 			String update = "update pounder set Age = '2' where ID = ? limit 1";
 			Random random = new Random(index);
-			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin");
+			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin", 1000, Duration.ofSeconds(30));
 
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				int idx = super.getRandom(random);

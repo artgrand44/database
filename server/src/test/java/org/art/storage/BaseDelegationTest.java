@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.InetAddress;
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -189,6 +190,11 @@ public abstract class BaseDelegationTest extends TestAdapter {
 	@Override
 	public Client getClusterClient(String user, String password) throws Exception {
 		return new Client(new URI("database:/cluster"), user, password);
+	}
+	
+	@Override
+	public Client getClusterClient(String user, String password, int cacheSize, Duration cacheDuration) throws Exception {
+		return new Client(new URI("database:/cluster"), user, password, cacheSize, cacheDuration);
 	}
 	
 	@Override
