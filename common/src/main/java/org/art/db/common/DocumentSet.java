@@ -112,7 +112,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		if (this.isRemote) {
 			return new RemoteIterator(this.file, this.list, this.size, this.serverURI);
 		} else if (this.file == null) {
-			return  this.list.iterator();
+			return this.list.iterator();
 		} else {
 			return new FileBasedIterator(this.file, this.size);
 		}
@@ -278,6 +278,16 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	@Override
 	public String toString() {
 		return "DocumentSet [size=" + size + ", list=" + list + "]";
+	}
+	
+	public int weight() {
+		if (this.list.isEmpty()) {
+			return 1;
+		} else if (this.isRemote) {
+			return this.list.getFirst().getSize() * MAX_MEMORY;
+		} else {
+			return this.list.getFirst().getSize() * this.size;
+		} 
 	}
 	
 	static class FileBasedIterator implements Iterator<Document> {

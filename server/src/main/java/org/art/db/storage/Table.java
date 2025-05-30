@@ -39,7 +39,6 @@ public class Table implements Closeable {
 	private final WriteLock writeLock = lock.writeLock();
 	private final DiscoveryHandler discoveryHandler;
 	private final Environment environment;
-	private final int maxSegmentSize;
 	private final ScheduledFuture<?> switcher;
 	private final boolean isQueue;
 	private boolean closed;
@@ -62,7 +61,6 @@ public class Table implements Closeable {
 		this.discoveryHandler = DiscoveryHandler.getServerInstance();
 		this.environment = Environment.getInstance();
 		this.isQueue = meta.isQueue();
-		this.maxSegmentSize = Integer.parseInt(this.environment.getProperty("org.art.db.maxSegmentSize", this.environment.getDefault("org.art.db.maxSegmentSize")));
 		
 		this.currentSegment = this.isQueue
 				              ? new QueueSegment(this.table, this.discoveryHandler, this.environment)
