@@ -2,6 +2,7 @@ package org.art.db.client;
 
 import java.net.ConnectException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -9,12 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.art.db.client.dao.DAOCompiler;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
+import org.art.db.common.LightWeightCache;
 import org.art.db.common.RestClient;
 import org.art.db.common.RestException;
 import org.art.db.common.Router;
@@ -29,15 +32,21 @@ public class Client {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Client.class);
 	
+	static record QueryKey(String query, List<Object> args) {
+		
+	}
 	private final Router router;
 	private final DiscoveryHandler handler;
 	private final RestClient client;
+	private final LightWeightCache<QueryKey, DocumentSet> cache;
 	private URI uri;
 	private String database = "";
 	private final String shard;
 	private boolean batch = true;
 	
 	public static final String WILDCARD = "*";
+	
+	private final static Map<String, LightWeightCache<QueryKey, DocumentSet>> caches = new ConcurrentHashMap<>();
 	
 	public Client(URI uri, String user, String password) throws Exception {
 		String database;
@@ -67,6 +76,7 @@ public class Client {
 		this.client = new RestClient(user, password);
 		this.uri = serverURI;
 		this.shard = "*";	
+		this.cache = caches.computeIfAbsent(database, x -> new LightWeightCache<>(1000, Duration.ofSeconds(30), set -> set.size()));
 	}
 	
 	/**
@@ -86,6 +96,7 @@ public class Client {
 		this.client = new RestClient(user, password);
 		this.uri = uri;
 		this.shard = shard;	
+		this.cache = null;
 	}
 	
 	/**
@@ -102,6 +113,7 @@ public class Client {
 		this.client = new RestClient(user, password);
 		this.uri = uri;
 		this.shard = shard;	
+		this.cache = null;
 	}
 	
 	/**
@@ -120,6 +132,7 @@ public class Client {
 		this.client = new RestClient(user, password);
 		this.uri = null;
 		this.shard = shard;
+		this.cache = null;
 	}
 	
 	public Client batch(boolean batch) {
@@ -191,6 +204,13 @@ public class Client {
 	public DocumentSet executeQuery(String statement, Object ... parameters) throws Exception {
 		this.checkParameters(parameters);
 		
+		QueryKey key = new QueryKey(statement, Arrays.asList(parameters));
+		DocumentSet set;
+		
+		if (this.cache != null && (set = this.cache.get(key)) != null) {
+			return set;
+		}
+			
 		try (TypedOutputStream stream = new TypedOutputStream()) {
 			List<Object> list = new ArrayList<>(Arrays.asList(parameters));
 
@@ -200,7 +220,13 @@ public class Client {
 			byte[] result = this.doBatch("/db/executeQuery", Collections.emptyMap(), body);
 		
 			try (TypedInputStream istream = new TypedInputStream(result)) {
-				return (DocumentSet)istream.readObject();
+				set =  (DocumentSet)istream.readObject();
+				
+				if (this.cache != null) {
+					this.cache.put(key, set);
+				}
+				
+				return set;
 			}
 		}
 	}

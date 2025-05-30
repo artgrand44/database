@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.art.db.common.Comparison;
 import org.art.db.common.Document;
@@ -32,7 +34,26 @@ public class PlanTest {
 	
 	private static String[] models = new String[] {"ford", "gm", "dodge", "toyoya", "honda" };
 	
-	
+	public PlanTest() {
+		String pattern = "select\\s+from(?<table>[a-zA-Z0-9]*X)";//\\s+where\\s+(?<where>[a-zA-Z0-9]*X)";
+		pattern = "select\\s+[a-zA-Z0-9,]*from\\s+(?<table>[a-zA-Z0-9]*)\\swhere\\s(?<where>[a-zA-Z0-9\\s=]*)";
+		//pattern = "select\\s+[a-zA-Z0-9,]*from\\s+[a-zA-Z0-9]*\\swhere\\s";
+		String sql = "select from foo where x=1";
+		
+		try {
+			Pattern p = Pattern.compile(pattern);
+			Matcher m = p.matcher(sql);
+		 
+		 
+			if (m.matches()) {
+				logger.info("matches table = " + m.group("table") + " where " + m.group("where"));
+			} else {
+				logger.info("No match");
+			}
+		} catch (Exception exc) {
+			logger.info("Match exception " + exc.getMessage());
+		}
+	}
 	
 	private Document getDocument(int idx) throws Exception {
 		

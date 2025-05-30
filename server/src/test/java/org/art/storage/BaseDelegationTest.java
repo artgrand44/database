@@ -47,6 +47,7 @@ public abstract class BaseDelegationTest extends TestAdapter {
 	
 	protected BaseDelegationTest(Class<?> delegate) {
 		this.delegate = delegate;
+		logger.info("path is " + delegate.getProtectionDomain().getCodeSource().getLocation().getPath());
 		
 		for (File dir : DATA_DIRECTORIES) {
 			if (dir.exists()) {
