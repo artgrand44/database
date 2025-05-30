@@ -88,6 +88,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 		} catch (InterruptedException exc) {
 			
 		} catch (Throwable exc) {
+			exc.printStackTrace();
 			logger.error(exc.getMessage());
 			this.addError(exc);
 		}

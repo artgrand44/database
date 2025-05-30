@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -19,7 +20,6 @@ public class LightWeightCache<TKey, TValue> {
 	private final AtomicBoolean lock = new AtomicBoolean();
 	private final EntryMap entries;
 	private final Function<TValue, Integer> weigher;
-	private long totalWeight;
 	
 	
 	public LightWeightCache(int size, Duration timeout) {
@@ -81,22 +81,16 @@ public class LightWeightCache<TKey, TValue> {
 		this.lock();
 		
 		Entry old = this.entries.get(key);
-		long weight = old == null ? this.weigher.apply(value) : this.weigher.apply(value) - old.weight;
+		int weight = old == null ? this.weigher.apply(value) : this.weigher.apply(value) - old.weight;
 		
 		this.entries.put(key, new Entry(value, System.currentTimeMillis(), weight));
-		this.totalWeight += weight;
 		
 		this.unlock();
 	}
 	
 	public void remove(TKey key) {
 		this.lock();
-		Entry entry = this.entries.remove(key);
-		
-		if (entry != null) {
-			this.totalWeight -= entry.weight;
-		}
-		
+		this.entries.remove(key);
 		this.unlock();
 	}
 	
@@ -106,11 +100,11 @@ public class LightWeightCache<TKey, TValue> {
 	
 	class Entry {
 		private final TValue value;
-		private final long weight;
+		private final int weight;
 		private long timestamp;
 		
 		
-		Entry(TValue value, long timestamp, long weight) {
+		Entry(TValue value, long timestamp, int weight) {
 			this.value = value;
 			this.timestamp = timestamp;
 			this.weight = weight;
@@ -120,6 +114,7 @@ public class LightWeightCache<TKey, TValue> {
 	class EntryMap extends LinkedHashMap<TKey, Entry> {
 		private final int max;
 		private final long timeout;
+		private AtomicLong totalWeight = new AtomicLong();
 		
 		private static final long serialVersionUID = 1L;
 		
@@ -131,9 +126,30 @@ public class LightWeightCache<TKey, TValue> {
 		}
 		
 		@Override
+		public Entry put(TKey key, Entry value) {
+			Entry old = super.put(key, value);
+			int weight = old == null ? value.weight : value.weight - old.weight;
+			
+			this.totalWeight.addAndGet(weight);
+			
+			return old;			
+		}
+		
+		@Override
+		public Entry remove(Object key) {
+			Entry old = super.remove(key);
+			
+			if (old != null) {
+				this.totalWeight.addAndGet(-old.weight);
+			}
+			
+			return old;
+		}
+		
+		@Override
 		protected boolean removeEldestEntry(Map.Entry<TKey, Entry> eldest) { 
-			if (totalWeight > this.max || eldest.getValue().timestamp + this.timeout < System.currentTimeMillis()) {
-				totalWeight -= eldest.getValue().weight;
+			if (this.totalWeight.get() > this.max || eldest.getValue().timestamp + this.timeout < System.currentTimeMillis()) {
+				this.totalWeight.addAndGet(-eldest.getValue().weight);
 				return true;
 			}
 			
