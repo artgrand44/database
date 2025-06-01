@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +54,7 @@ public class LightWeightCache<TKey, TValue> implements Closeable {
 			this.timer = null;
 		}
 	}
+	
 	public TValue get(TKey key) {
 		Entry entry  = this.entries.get(key);
 
