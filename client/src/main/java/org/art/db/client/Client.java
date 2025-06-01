@@ -208,10 +208,11 @@ public class Client {
 	public DocumentSet executeQuery(String statement, Object ... parameters) throws Exception {
 		this.checkParameters(parameters);
 		
+		boolean select = statement.trim().toLowerCase().startsWith("select");
 		QueryKey key = new QueryKey(statement, Arrays.asList(parameters));
 		DocumentSet set;
 		
-		if (this.cache != null && (set = this.cache.get(key)) != null) {
+		if (select && this.cache != null && (set = this.cache.get(key)) != null) {
 			return set;
 		}
 			
@@ -226,7 +227,7 @@ public class Client {
 			try (TypedInputStream istream = new TypedInputStream(result)) {
 				set =  (DocumentSet)istream.readObject();
 				
-				if (this.cache != null) {
+				if (select && this.cache != null) {
 					this.cache.put(key, set);
 				}
 				
