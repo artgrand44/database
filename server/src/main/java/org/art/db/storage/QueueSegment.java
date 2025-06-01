@@ -1,11 +1,16 @@
 package org.art.db.storage;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.SequencedSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -18,9 +23,6 @@ import org.art.db.common.LogEntry.Operation;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * A specialized MemorySegment for queues.  QueueSegment adds a lease method,
@@ -47,9 +49,14 @@ public class QueueSegment extends MemorySegment {
 	private ConcurrentLinkedDeque<QueueEntry> leases = new ConcurrentLinkedDeque<>();
 	
 	/**
+	 * Spin lock for the entry cache
+	 */
+	private AtomicBoolean lock = new AtomicBoolean();
+	
+	/**
 	 * The queue entries
 	 */
-	private final Cache<Key, QueueEntry> entries = Caffeine.newBuilder().build();
+	private final LinkedHashMap<Key, QueueEntry> entries = new LinkedHashMap<Key, QueueSegment.QueueEntry>(10000, .75f);
 	
 	private final ScheduledFuture<?> timeoutHandler;
 	
@@ -72,15 +79,21 @@ public class QueueSegment extends MemorySegment {
 	@Override
 	public void deleteLog() {
 		super.deleteLog();
-		this.entries.invalidateAll();
+		this.lock();
+		this.entries.clear();
+		this.unlock();
 		this.leases.clear();
 		
 		System.gc();
 	}
 	@Override
 	public Document get(Key key) throws Exception {
-		QueueEntry entry = this.entries.getIfPresent(key);
+		QueueEntry entry;
 		
+		this.lock();
+		entry = this.entries.get(key);
+		this.unlock();
+				
 		return entry == null ? null : entry.doc;
 	}
 	
@@ -110,9 +123,11 @@ public class QueueSegment extends MemorySegment {
 	public DocumentSet lease(String owner, long timeout) {
 		DocumentSet result = new DocumentSet();
 		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
+		try {
+		this.lock();
 		
 		for (int priority = 1; priority >= 0 && result.size() < 5; priority--) {
-			Iterator<Map.Entry<Key, QueueEntry>> iterator = this.entries.asMap().entrySet().iterator();
+			Iterator<Map.Entry<Key, QueueEntry>> iterator = this.entries.entrySet().iterator();
 			
 			while (iterator.hasNext() && result.size() < 25) {
 				Map.Entry<Key, QueueEntry> entry = iterator.next();
@@ -124,21 +139,38 @@ public class QueueSegment extends MemorySegment {
 				}			
 			}			
 		}
+		} catch (Exception exc) {
+			logger.info("Ex " + exc.getMessage());
+			exc.printStackTrace();
+			logger.info("hi");
+		}
 		
+		this.unlock();
 		return result;
+	}
+	
+	private void lock() {
+		while (!this.lock.compareAndSet(false, true)) {
+			Thread.onSpinWait();
+		}
 	}
 	
 	public void insert(Key key, Document doc, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.INSERT,  key, doc, propagate, log);
 		
+		this.lock();
 		this.entries.put(key, new QueueEntry(doc, new AtomicReference<>(), this.getPriority(key)));
+		this.unlock();
+		
 		this.documentCount.incrementAndGet();
 	}
 		
 	public void merge(QueueSegment prior) throws Exception {
 		LogOutputStream.startBatch();
 		
-		for (Map.Entry<Key, QueueEntry> pair : prior.entries.asMap().entrySet()) {
+		this.lock();
+		
+		for (Map.Entry<Key, QueueEntry> pair : prior.entries.entrySet()) {
 			Key key = pair.getKey();
 			QueueEntry entry = pair.getValue();
 			
@@ -146,19 +178,26 @@ public class QueueSegment extends MemorySegment {
 			this.entries.put(key, entry);
 		}
 		
+		this.unlock();
 		LogOutputStream.endBatch();
 	}
 	
 	public void remove(Key key, boolean propagate, boolean log) throws Exception {
 		this.log(Operation.REMOVE, key, null, propagate, log);
-		this.entries.invalidate(key);
+		
+		this.lock();
+		this.entries.remove(key);
+		this.unlock();
 		this.documentCount.decrementAndGet();
 	}
 	
 	public DocumentSet renewLease(Key key, String owner, long timeout) {
-		QueueEntry entry = this.entries.getIfPresent(key);
 		DocumentSet result = new DocumentSet();
+		QueueEntry entry;
 		
+		this.lock();
+		entry = this.entries.get(key);
+		this.unlock();
 		
 		if (entry == null) {
 			return result;
@@ -172,6 +211,10 @@ public class QueueSegment extends MemorySegment {
 		}
 					
 		return result;
+	}
+	
+	private void unlock() {
+		this.lock.set(false);
 	}
 	
 	public void update(Key key, Document doc, boolean propagate, boolean log) throws Exception {
