@@ -80,7 +80,7 @@ public class Client {
 		this.client = new RestClient(user, password);
 		this.uri = serverURI;
 		this.shard = "*";	
-		this.cache = cacheSize == 0 ? null : caches.computeIfAbsent(database, x -> new LightWeightCache<>(cacheSize, cacheDuration, set -> set.weight()));
+		this.cache = cacheSize == 0 ? null : caches.computeIfAbsent(database, x -> new LightWeightCache<>(cacheSize, cacheDuration));
 	}
 	
 	/**
