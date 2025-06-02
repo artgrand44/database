@@ -171,19 +171,19 @@ public class QueueSegment extends MemorySegment {
 	public DocumentSet lease(String owner, long timeout) {
 		DocumentSet result = new DocumentSet();
 		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
+		
 		this.lock();
 		
-		for (int priority = 1; priority >= 0 && result.size() < 5; priority--) {
-			Iterator<Map.Entry<Key, QueueEntry>> iterator = this.entries.entrySet().iterator();
+		for (int priority = 1; priority >= 0 && result.size() < 25; priority--) {
+			Iterator<QueueEntry> iterator = this.entries.values().iterator();
 			
 			while (iterator.hasNext() && result.size() < 25) {
-				Map.Entry<Key, QueueEntry> entry = iterator.next();
-				QueueEntry qentry = entry.getValue();
+				QueueEntry entry = iterator.next();
 				
-				if (qentry.priority <= priority &&  qentry.lease == null) {
-					qentry.lease = lease;
-					this.leases.add(qentry);
-					result.add(qentry.doc);
+				if (entry.priority <= priority && entry.lease == null) {
+					entry.lease = lease;
+					this.leases.add(entry);
+					result.add(entry.doc);
 				}			
 			}			
 		}
