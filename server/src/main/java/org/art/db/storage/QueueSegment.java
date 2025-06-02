@@ -39,9 +39,17 @@ public class QueueSegment extends MemorySegment {
 		
 	}
 	
-	static record QueueEntry(Document doc, AtomicReference<Lease> lease, int priority) {
+	class QueueEntry {
+		final Document doc;
+		final int priority;
+		Lease lease;
 		
+		QueueEntry(Document doc, int priority) {
+			this.doc = doc;
+			this.priority = priority;
+		}
 	}
+	
 	
 	private ConcurrentLinkedDeque<QueueEntry> leases = new ConcurrentLinkedDeque<>();
 	
@@ -124,7 +132,7 @@ public class QueueSegment extends MemorySegment {
 		DocumentSet result = new DocumentSet();
 		
 		this.lock();
-		this.entries.values().stream().filter(x -> x.lease.get() != null).forEach(x -> result.add(x.doc));
+		this.entries.values().stream().filter(x -> x.lease != null).forEach(x -> result.add(x.doc));
 		this.unlock();
 		
 		return result;
@@ -134,7 +142,7 @@ public class QueueSegment extends MemorySegment {
 		DocumentSet result = new DocumentSet();
 		
 		this.lock();
-		this.entries.values().stream().filter(x -> x.lease.get() != null && x.lease.get().owner().equals(owner)).forEach(x -> result.add(x.doc));
+		this.entries.values().stream().filter(x -> x.lease != null && x.lease.owner().equals(owner)).forEach(x -> result.add(x.doc));
 		this.unlock();
 		
 		return result;
@@ -144,7 +152,7 @@ public class QueueSegment extends MemorySegment {
 		DocumentSet result = new DocumentSet();
 		
 		this.lock();
-		this.entries.values().stream().filter(x -> x.lease.get() == null).forEach(x -> result.add(x.doc));
+		this.entries.values().stream().filter(x -> x.lease == null).forEach(x -> result.add(x.doc));
 		this.unlock();
 		
 		return result;
@@ -172,7 +180,8 @@ public class QueueSegment extends MemorySegment {
 				Map.Entry<Key, QueueEntry> entry = iterator.next();
 				QueueEntry qentry = entry.getValue();
 				
-				if (qentry.priority <= priority &&  qentry.lease.compareAndSet(null, lease)) {
+				if (qentry.priority <= priority &&  qentry.lease == null) {
+					qentry.lease = lease;
 					this.leases.add(qentry);
 					result.add(qentry.doc);
 				}			
@@ -185,12 +194,12 @@ public class QueueSegment extends MemorySegment {
 	
 	public DocumentSet leaseByKey(Key key, String owner, long timeout) {
 		DocumentSet result = new DocumentSet();
-		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
 		this.lock();
 		
 		QueueEntry entry = this.entries.get(key);
 		
-		if (entry != null && entry.lease.compareAndSet(null, lease)) {
+		if (entry != null && entry.lease == null) {
+			entry.lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));;
 			this.leases.add(entry);
 			result.add(entry.doc);
 		}
@@ -209,7 +218,7 @@ public class QueueSegment extends MemorySegment {
 		this.log(Operation.INSERT,  key, doc, propagate, log);
 		
 		this.lock();
-		this.entries.put(key, new QueueEntry(doc, new AtomicReference<>(), this.getPriority(key)));
+		this.entries.put(key, new QueueEntry(doc, this.getPriority(key)));
 		this.unlock();
 		
 		this.documentCount.incrementAndGet();
@@ -253,10 +262,8 @@ public class QueueSegment extends MemorySegment {
 			return result;
 		}
 		
-		Lease oldLease = entry.lease.get();
-		Lease newLease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
-		
-		if ((oldLease == null || oldLease.owner.equals(owner)) && entry.lease.compareAndSet(oldLease, newLease)) {
+		if ((entry.lease == null || entry.lease.owner.equals(owner))) {
+			entry.lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
 			result.add(entry.doc);
 		}
 					
@@ -268,22 +275,25 @@ public class QueueSegment extends MemorySegment {
 	}
 	
 	public void update(Key key, Document doc, boolean propagate, boolean log) throws Exception {
-		throw new DBRuntimeException("Queue entries cannot be updated");
-		
+		throw new DBRuntimeException("Queue entries cannot be updated");		
 	}
 	
 	private void timeoutLeases() {
+		this.lock();
+		
 		Iterator<QueueEntry> iterator = this.leases.iterator();
 		
 		while (iterator.hasNext()) {
 			QueueEntry entry = iterator.next();
 			Lease lease;
 			
-			if (entry != null && (lease = entry.lease.get()) != null && System.currentTimeMillis() > lease.expiration) {
-				entry.lease.set(null);
+			if (entry != null && (lease = entry.lease) != null && System.currentTimeMillis() > lease.expiration) {
+				entry.lease = null;
 				iterator.remove();
 			}			
-		}		
+		}
+		
+		this.unlock();
 	}
 		
 }
