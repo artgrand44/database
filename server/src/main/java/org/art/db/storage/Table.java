@@ -192,6 +192,14 @@ public class Table implements Closeable {
 		}
 	}
 	
+	public DocumentSet getLeased() {
+		return ((QueueSegment)this.currentSegment).getLeased();
+	}
+	
+	public DocumentSet getLeasedBy(String owner) {
+		return ((QueueSegment)this.currentSegment).getLeasedBy(owner);
+	}
+	
 	public long getDocumentCount() {
 		long count = 0;
 		
@@ -214,6 +222,11 @@ public class Table implements Closeable {
 		return Collections.unmodifiableList(this.segments);
 	}
 	
+	public DocumentSet getUnleased() {
+		return ((QueueSegment)this.currentSegment).getUnleased();
+	}
+	
+	
 	boolean isEmpty() {
 		return this.segments.isEmpty() || this.segments.size() == 1 && this.segments.get(0).size() == 0;
 	}
@@ -228,6 +241,15 @@ public class Table implements Closeable {
 		}
 	}
 	
+	public DocumentSet leaseByKey(Key key, String owner, long timeout) {
+		this.readLock.lock();
+		
+		try {
+			return ((QueueSegment)this.currentSegment).leaseByKey(key, owner, timeout);
+		} finally {
+			this.readLock.unlock();
+		}
+	}
 	private void merge(File file) {
 
 		try {

@@ -26,6 +26,10 @@ public class QueueTests extends BaseIntegrationTest {
 		return client.executeQuery("select * from queue where lease(?)", owner);
 	}
 	
+	private DocumentSet leaseByKey(Client client, GUID key, String owner) throws Exception {
+		return client.executeQuery("select * from queue where leaseByKey(?, ?, ?)", owner, 1000, key);
+	}
+	
 	private void loadDabase() throws Exception {
 		Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 		String drop = "drop table if exists queue";
@@ -36,10 +40,6 @@ public class QueueTests extends BaseIntegrationTest {
 		
 		for (int idx = 0; idx < 100; idx++) {
 			this.insert(client, idx);
-			
-			if (idx % 1000 == 0) {
-				logger.info("Inserted " + idx);
-			}
 		}
 		
 		logger.info("inserts complete");
@@ -68,7 +68,17 @@ public class QueueTests extends BaseIntegrationTest {
 			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 
 			DocumentSet set = this.lease(client, "art");
-
+			DocumentSet leased = client.executeQuery("select * from queue where isLeased()");
+			DocumentSet unleased = client.executeQuery("select * from queue where isUnleased()");
+			
+			Assertions.assertThat(set.equals(leased)).isTrue();
+			Assertions.assertThat(leased.size() + unleased.size() == 100).isTrue();
+			
+			GUID g = unleased.iterator().next().get("id", GUID.class);
+			DocumentSet leasedby = this.leaseByKey(client, g, "art");
+			Assertions.assertThat(leasedby.size() == 1).isTrue();
+			Assertions.assertThat(this.remove(client, g)).isTrue();
+			
 			for (Document doc : set) {
 				GUID guid = doc.get("id", GUID.class);
 

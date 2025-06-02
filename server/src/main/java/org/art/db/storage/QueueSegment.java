@@ -1,12 +1,9 @@
 package org.art.db.storage;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.SequencedSet;
-import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -86,6 +83,7 @@ public class QueueSegment extends MemorySegment {
 		
 		System.gc();
 	}
+	
 	@Override
 	public Document get(Key key) throws Exception {
 		QueueEntry entry;
@@ -96,6 +94,18 @@ public class QueueSegment extends MemorySegment {
 				
 		return entry == null ? null : entry.doc;
 	}
+	
+	public DocumentSet getAll() {
+		DocumentSet result = new DocumentSet();
+		
+		this.lock();
+		this.entries.values().forEach(x -> result.add(x.doc));
+		this.unlock();
+		
+		return result;
+	}
+	
+	
 	
 	@Override
 	public long getDocumentCount() {
@@ -110,6 +120,36 @@ public class QueueSegment extends MemorySegment {
 		
 	}
 
+	public DocumentSet getLeased() {
+		DocumentSet result = new DocumentSet();
+		
+		this.lock();
+		this.entries.values().stream().filter(x -> x.lease.get() != null).forEach(x -> result.add(x.doc));
+		this.unlock();
+		
+		return result;
+	}
+	
+	public DocumentSet getLeasedBy(String owner) {
+		DocumentSet result = new DocumentSet();
+		
+		this.lock();
+		this.entries.values().stream().filter(x -> x.lease.get() != null && x.lease.get().owner().equals(owner)).forEach(x -> result.add(x.doc));
+		this.unlock();
+		
+		return result;
+	}
+	
+	public DocumentSet getUnleased() {
+		DocumentSet result = new DocumentSet();
+		
+		this.lock();
+		this.entries.values().stream().filter(x -> x.lease.get() == null).forEach(x -> result.add(x.doc));
+		this.unlock();
+		
+		return result;
+	}
+	
 	/**
 	 * Find a set of documents that are not currently leased, create
 	 * leases for them, and return them.  In order to reduce conflicts,
@@ -123,7 +163,6 @@ public class QueueSegment extends MemorySegment {
 	public DocumentSet lease(String owner, long timeout) {
 		DocumentSet result = new DocumentSet();
 		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
-		try {
 		this.lock();
 		
 		for (int priority = 1; priority >= 0 && result.size() < 5; priority--) {
@@ -139,10 +178,21 @@ public class QueueSegment extends MemorySegment {
 				}			
 			}			
 		}
-		} catch (Exception exc) {
-			logger.info("Ex " + exc.getMessage());
-			exc.printStackTrace();
-			logger.info("hi");
+		
+		this.unlock();
+		return result;
+	}
+	
+	public DocumentSet leaseByKey(Key key, String owner, long timeout) {
+		DocumentSet result = new DocumentSet();
+		Lease lease = new Lease(owner, System.currentTimeMillis() + (timeout == 0 ? 10000 : timeout));
+		this.lock();
+		
+		QueueEntry entry = this.entries.get(key);
+		
+		if (entry != null && entry.lease.compareAndSet(null, lease)) {
+			this.leases.add(entry);
+			result.add(entry.doc);
 		}
 		
 		this.unlock();

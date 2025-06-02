@@ -208,9 +208,7 @@ public class TableManager implements Closeable{
 			MetricsLogger.getInstance().logAlert("There was an error building the index for " + name);
 		}
 	}
-	
-	
-	
+		
 	private Key buildKey(Document doc, List<String> names) {
 		List<Comparable<?>> keys = new ArrayList<>();
 		
@@ -283,6 +281,28 @@ public class TableManager implements Closeable{
 		return this.indices.get(indexName).getSelectivity();
 	}
 	
+	public DocumentSet getLeased() {
+		if (!this.metadata.isQueue()) {
+			throw new DBRuntimeException("The lease() function is only supported for queue tables");
+		}
+		return this.table.getLeased();
+	}
+	
+	public DocumentSet getLeasedBy(String owner) {
+		if (!this.metadata.isQueue()) {
+			throw new DBRuntimeException("The lease() function is only supported for queue tables");
+		}
+		return this.table.getLeasedBy(owner);
+	}
+	
+	public DocumentSet getUnleased() {
+		if (!this.metadata.isQueue()) {
+			throw new DBRuntimeException("The lease() function is only supported for queue tables");
+		}
+		return this.table.getUnleased();
+	}
+	
+	
 	public Metadata getMetadata() {
 		return this.metadata;
 	}
@@ -327,6 +347,13 @@ public class TableManager implements Closeable{
 			throw new DBRuntimeException("The lease() function is only supported for queue tables");
 		}
 		return this.table.lease(owner, timeout);
+	}
+	
+	public DocumentSet leaseByKey(List<Comparable<?>> keys, String owner, long timeout) {
+		if (!this.metadata.isQueue()) {
+			throw new DBRuntimeException("The lease() function is only supported for queue tables");
+		}		
+		return this.table.leaseByKey(new Key(keys), owner, timeout);
 	}
 	
 	public void remove(Document doc, boolean propagate, boolean log) throws Exception {

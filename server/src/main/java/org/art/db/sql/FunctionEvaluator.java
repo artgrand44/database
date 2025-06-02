@@ -1,5 +1,6 @@
 package org.art.db.sql;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -30,6 +31,7 @@ public class FunctionEvaluator {
 		String owner;
 		Number timeout;
 		Comparable<?> key;
+		List<Comparable<?>> keys;
 
 		try {
 			switch (name.toLowerCase()) {
@@ -63,6 +65,12 @@ public class FunctionEvaluator {
 				
 				return Long.valueOf(cal.get(Calendar.DAY_OF_WEEK));
 				
+			case "isleased":
+				return StorageManager.getInstance().getTableManager(table).getLeased();
+			
+			case "isunleased":
+				return StorageManager.getInstance().getTableManager(table).getUnleased();
+				
 			case "hours":
 				cal = toCalendar(validate(name, parameters, 0, Date.class));
 				
@@ -76,6 +84,21 @@ public class FunctionEvaluator {
 				timeout = parameters.size() == 2 ? validate(name, parameters, 1, Number.class) : 0;
 				
 				return StorageManager.getInstance().getTableManager(table).lease(owner, timeout.longValue());
+				
+			case "leasebykey":
+				if (parameters.size() < 3) {
+					throw new DBRuntimeException("You must specify the primary key fields");
+				}
+				
+				owner = validate(name, parameters, 0, String.class);
+				timeout = validate(name, parameters, 1, Number.class);
+				keys = new ArrayList<>();
+				
+				for (int idx = 2; idx < parameters.size(); idx++) {
+					keys.add(validate(name, parameters, idx, Comparable.class));
+				}
+				
+				return StorageManager.getInstance().getTableManager(table).leaseByKey(keys, owner, timeout.longValue());
 				
 			case "max":
 				first = validate(name, parameters, 0, Number.class);

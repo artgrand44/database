@@ -53,7 +53,7 @@ public class DMLHandler {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(DMLHandler.class);
 	
-	private static Set<String> queryFuncs = Set.of("lease", "renewLease");
+	private static Set<String> queueFuncs = Set.of("lease", "leaseByKey", "renewLease", "isLeased", "isLeasedBy", "isUnleased");
 	
 	private static Document buildGroup(List<SelectItem<?>> items, List<Accumulator<?>> accumulators) {
 		Document doc = new Document();
@@ -264,7 +264,7 @@ public class DMLHandler {
 			}
 		}
 		
-		 return query && where instanceof Function fun && queryFuncs.contains(fun.getName());
+		 return query && where instanceof Function fun && queueFuncs.contains(fun.getName());
 	}
 	
 	
