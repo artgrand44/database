@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ public class LightWeightCache<TKey, TValue> implements Closeable {
 	
 	private final long timeout;
 	private final ConcurrentMap<TKey, Entry> entries;
+	private final AtomicInteger referenceCount = new AtomicInteger();
 	private ScheduledFuture<?> timer;
 	
 	
@@ -41,6 +43,10 @@ public class LightWeightCache<TKey, TValue> implements Closeable {
 		 }
 		 
 		 return result;
+	}
+	
+	public void addReference() {
+		this.referenceCount.incrementAndGet();
 	}
 	
 	public void clear() {
@@ -73,6 +79,10 @@ public class LightWeightCache<TKey, TValue> implements Closeable {
 	
 	public void remove(TKey key) {
 		this.entries.remove(key);
+	}
+	
+	public int removeReference() {
+		return this.referenceCount.decrementAndGet();
 	}
 	
 	private void timer() {
