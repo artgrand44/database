@@ -1,20 +1,16 @@
 package org.art.db.client;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.client.dao.DAOCompiler;
 import org.art.db.common.ConnectionInfo;
@@ -31,7 +27,7 @@ import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Client implements Closeable {
+public class Client {
 
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Client.class);
@@ -39,7 +35,6 @@ public class Client implements Closeable {
 	static record QueryKey(String query, List<Object> args) {
 		
 	}
-	
 	private final Router router;
 	private final DiscoveryHandler handler;
 	private final RestClient client;
@@ -51,7 +46,7 @@ public class Client implements Closeable {
 	
 	public static final String WILDCARD = "*";
 	
-	private final static Map<String, LightWeightCache<QueryKey, DocumentSet>> caches = new HashMap<>();
+	private final static Map<String, LightWeightCache<QueryKey, DocumentSet>> caches = new ConcurrentHashMap<>();
 	
 	public Client(URI uri, String user, String password) throws Exception {
 		this(uri, user, password, 0, null);
@@ -85,12 +80,10 @@ public class Client implements Closeable {
 		this.client = new RestClient(user, password);
 		this.uri = serverURI;
 		this.shard = "*";	
-		this.cache = getCache(database, cacheSize, cacheDuration);
-				
-				
+		this.cache = cacheSize == 0 ? null : caches.computeIfAbsent(database, x -> new LightWeightCache<>(cacheSize, cacheDuration));
 	}
 	
-		/**
+	/**
 	 * Used by tests that need to talk to a particular instance.
 	 * @param uri
 	 * @param shard
@@ -165,20 +158,6 @@ public class Client implements Closeable {
 	
 	public Batch createBatch() {
 		return new Batch(this.database, this.shard);
-	}
-	
-	@Override
-	public void close() throws IOException {
-		if (this.cache != null) {	
-			synchronized (caches) {
-				LightWeightCache<QueryKey, DocumentSet> cache = caches.get(this.database);
-
-				if (cache.removeReference() == 0) {
-					cache.close();
-					caches.remove(this.database);
-				}
-			}
-		}
 	}
 	
 	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
@@ -257,19 +236,7 @@ public class Client implements Closeable {
 		}
 	}
 	
-	private LightWeightCache<QueryKey, DocumentSet> getCache(String database, int cacheSize, Duration cacheDuration) {
-		if (cacheSize == 0) {
-			return null;
-		}
-
-		synchronized (caches) {
-			LightWeightCache<QueryKey, DocumentSet> cache = caches.computeIfAbsent(database, x -> new LightWeightCache<>(cacheSize, cacheDuration));
-
-			cache.addReference();
-			return cache;
-		}		
-	}
-
+	
 	public <T> T getDAO(Class<T> iface) throws Exception {
 		return DAOCompiler.getInstance().getDAO(this, iface);
 	}

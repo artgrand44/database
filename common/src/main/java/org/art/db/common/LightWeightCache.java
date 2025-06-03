@@ -1,36 +1,35 @@
 package org.art.db.common;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LightWeightCache<TKey, TValue> implements Closeable {
+public class LightWeightCache<TKey, TValue> {
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(LightWeightCache.class);
 	
 	private final long timeout;
 	private final ConcurrentMap<TKey, Entry> entries;
-	private final AtomicInteger referenceCount = new AtomicInteger();
-	private ScheduledFuture<?> timer;
 	
+	private static ConcurrentLinkedDeque<LightWeightCache<?, ?>> caches = new ConcurrentLinkedDeque<>();
+	static {
+		Scheduler.DEFAULT.scheduleAtFixedRate(() -> timer(), 1, 1, TimeUnit.MINUTES);
+	}
 	
 	public LightWeightCache(int size, Duration timeout) {
 		this.timeout = timeout.toMillis();
 		this.entries = new ConcurrentHashMap<>(size);
-		this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(this::timer, timeout.toSeconds(), timeout.toSeconds(), TimeUnit.SECONDS);
+		caches.add(this);
 	}
 	
 	public Map<TKey, TValue> asMap() {
@@ -45,20 +44,8 @@ public class LightWeightCache<TKey, TValue> implements Closeable {
 		 return result;
 	}
 	
-	public void addReference() {
-		this.referenceCount.incrementAndGet();
-	}
-	
 	public void clear() {
 		this.entries.clear();
-	}
-	
-	@Override
-	public void close() throws IOException {
-		if (this.timer != null) {
-			this.timer.cancel(true);
-			this.timer = null;
-		}
 	}
 	
 	public TValue get(TKey key) {
@@ -81,11 +68,14 @@ public class LightWeightCache<TKey, TValue> implements Closeable {
 		this.entries.remove(key);
 	}
 	
-	public int removeReference() {
-		return this.referenceCount.decrementAndGet();
+	private static void timer() {
+		for (LightWeightCache<?, ?> cache : caches) {
+			cache.timeoutEntries();
+		}
 	}
 	
-	private void timer() {
+	private void timeoutEntries() {
+		
 		List<TKey> expired = new LinkedList<>();
 		
 		for (Map.Entry<TKey, Entry> entry : this.entries.entrySet()) {
