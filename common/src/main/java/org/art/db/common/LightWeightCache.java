@@ -22,6 +22,7 @@ public class LightWeightCache<TKey, TValue> {
 	private final ConcurrentMap<TKey, Entry> entries;
 	
 	private static ConcurrentLinkedDeque<LightWeightCache<?, ?>> caches = new ConcurrentLinkedDeque<>();
+	
 	static {
 		Scheduler.DEFAULT.scheduleAtFixedRate(() -> timer(), 1, 1, TimeUnit.MINUTES);
 	}
