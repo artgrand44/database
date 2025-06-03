@@ -9,7 +9,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
@@ -41,12 +40,12 @@ public class QueueSegment extends MemorySegment {
 	
 	class QueueEntry {
 		final Document doc;
-		final int priority;
+		final boolean local;
 		Lease lease;
 		
-		QueueEntry(Document doc, int priority) {
+		QueueEntry(Document doc, boolean local) {
 			this.doc = doc;
-			this.priority = priority;
+			this.local = local;
 		}
 	}
 	
@@ -92,6 +91,13 @@ public class QueueSegment extends MemorySegment {
 		System.gc();
 	}
 	
+	private boolean isLocal(Key key) {
+		int instanceCount = this.discoveryHandler.getLocalInstanceCount();
+		int localHash = this.discoveryHandler.getLocalInstance().hashCode() % instanceCount;
+		
+		return key.hashCode() % instanceCount == localHash;		
+	}
+	
 	@Override
 	public Document get(Key key) throws Exception {
 		QueueEntry entry;
@@ -118,14 +124,6 @@ public class QueueSegment extends MemorySegment {
 	@Override
 	public long getDocumentCount() {
 		return this.documentCount.get();
-	}
-	
-	private int getPriority(Key key) {
-		int instanceCount = this.discoveryHandler.getLocalInstanceCount();
-		int localHash = this.discoveryHandler.getLocalInstance().hashCode() % instanceCount;
-		
-		return key.hashCode() % instanceCount == localHash ? 1 : 0;
-		
 	}
 
 	public DocumentSet getLeased() {
@@ -174,22 +172,26 @@ public class QueueSegment extends MemorySegment {
 		
 		this.lock();
 		
-		for (int priority = 1; priority >= 0 && result.size() < 25; priority--) {
-			Iterator<QueueEntry> iterator = this.entries.values().iterator();
-			
-			while (iterator.hasNext() && result.size() < 25) {
-				QueueEntry entry = iterator.next();
-				
-				if (entry.priority <= priority && entry.lease == null) {
-					entry.lease = lease;
-					this.leases.add(entry);
-					result.add(entry.doc);
-				}			
-			}			
-		}
+		this.lease(result, lease, true);
+		this.lease(result, lease, false);
+		
 		
 		this.unlock();
 		return result;
+	}
+	
+	private void lease(DocumentSet result, Lease lease, boolean local) {
+		Iterator<QueueEntry> iterator = this.entries.values().iterator();
+		
+		while (iterator.hasNext() && result.size() < 25) {
+			QueueEntry entry = iterator.next();
+			
+			if (entry.local == local && entry.lease == null) {
+				entry.lease = lease;
+				this.leases.add(entry);
+				result.add(entry.doc);
+			}			
+		}	
 	}
 	
 	public DocumentSet leaseByKey(Key key, String owner, long timeout) {
@@ -218,7 +220,7 @@ public class QueueSegment extends MemorySegment {
 		this.log(Operation.INSERT,  key, doc, propagate, log);
 		
 		this.lock();
-		this.entries.put(key, new QueueEntry(doc, this.getPriority(key)));
+		this.entries.put(key, new QueueEntry(doc, this.isLocal(key)));
 		this.unlock();
 		
 		this.documentCount.incrementAndGet();
