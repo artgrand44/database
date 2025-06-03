@@ -160,7 +160,7 @@ public class QueueSegment extends MemorySegment {
 	 * Find a set of documents that are not currently leased, create
 	 * leases for them, and return them.  In order to reduce conflicts,
 	 * we give priority to documents whose keys are associated with the 
-	 * current shard.
+	 * current instance.
 	 * 
 	 * @param owner The owner for the new lease
 	 * @param timeout The timeout for the new lease
@@ -174,8 +174,7 @@ public class QueueSegment extends MemorySegment {
 		
 		this.lease(result, lease, true);
 		this.lease(result, lease, false);
-		
-		
+				
 		this.unlock();
 		return result;
 	}
