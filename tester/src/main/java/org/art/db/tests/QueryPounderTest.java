@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
-
 import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,53 +54,52 @@ public class QueryPounderTest extends BaseQueryPounder {
 			String idQuery = "select * from pounder where ID = ?";
 			String update = "update pounder set Age = '2' where ID = ? limit 1";
 			Random random = new Random(index);
-			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin", 1000, Duration.ofSeconds(30));
+			
+			try (Client client = TestAdapter.getInstance().getClusterClient("admin", "admin", 1000, Duration.ofSeconds(30))) {
+				for (int loop = 0; loop < NLOOPS; loop++) {
+					int idx = super.getRandom(random);
+					int id = this.getId(idx);
+					String name = this.getName(idx);
 
-			for (int loop = 0; loop < NLOOPS; loop++) {
-				int idx = super.getRandom(random);
-				int id = this.getId(idx);
-				String name = this.getName(idx);
-				
-				DocumentSet ids = client.executeQuery(idQuery, id);
-				DocumentSet names = client.executeQuery(nameQuery, name);
-				
-				this.addRead();
-				this.addRead();
-				
-				Assertions.assertThat(ids.size() == 1).isTrue();
-				Assertions.assertThat(ids.iterator().next().get("ID").equals(Long.valueOf(id))).isTrue();
-				
-				if (names.size() != 1) {
-					logger.info("Names is bad " + name);				
-				}
-				
-				Assertions.assertThat(names.size() == 1).isTrue();
-				
-				Document doc = ids.iterator().next();
-				
-				Assertions.assertThat(doc.get("FirstName").equals(name)).isTrue();
-				
-				if (loop % 10  == 0) {
-					client.execute(update, index);
-					this.addWrite();
-				}
+					DocumentSet ids = client.executeQuery(idQuery, id);
+					DocumentSet names = client.executeQuery(nameQuery, name);
+
+					this.addRead();
+					this.addRead();
+
+					Assertions.assertThat(ids.size() == 1).isTrue();
+					Assertions.assertThat(ids.iterator().next().get("ID").equals(Long.valueOf(id))).isTrue();
+
+					if (names.size() != 1) {
+						logger.info("Names is bad " + name);				
+					}
+
+					Assertions.assertThat(names.size() == 1).isTrue();
+
+					Document doc = ids.iterator().next();
+
+					Assertions.assertThat(doc.get("FirstName").equals(name)).isTrue();
+
+					if (loop % 10  == 0) {
+						client.execute(update, index);
+						this.addWrite();
+					}
+				}					
 			}
 		} catch (InterruptedException exc) {
-			
+
 		} catch (Throwable exc) {
 			exc.printStackTrace();
 			logger.error(exc.getMessage());
 			this.addError(exc);
 		}
-		
+
+
 		this.addCompletion();
 	}
 
 	protected void doUpdates(int index) {	
-		try {
-
-			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin");
-
+		try (Client client = TestAdapter.getInstance().getClusterClient("admin", "admin")) {
 			for (int loop = 0; loop < NLOOPS; loop++) {
 				int id = -(this.deleteNextId.incrementAndGet());
 
@@ -151,7 +149,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 		try {
 			client.execute(insert, getId(idx), getName(idx));	
 		} catch (Exception exc) {
-			logger.info("exception on " + idx);
+			logger.info("exception on " + idx + " " + exc.getMessage());
 		}
 	}
 	

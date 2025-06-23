@@ -46,7 +46,7 @@ public class HeartbeatListener {
 		
 		try {
 			this.recieveSocket = new MulticastSocket(4445);
-			this.group = InetAddress.getByName("230.0.0.0");
+			this.group = InetAddress.getByName("230.0.0.2");
 			
 			InetSocketAddress address = new InetSocketAddress(group, 4445);
 			NetworkInterface netInterface = NetworkInterface.getByInetAddress(this.group);

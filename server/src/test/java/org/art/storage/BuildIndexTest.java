@@ -96,8 +96,7 @@ public class BuildIndexTest extends BaseIntegrationTest {
 	}
 	
 	private void backgroundJob() {
-		try {
-			Client client = new Client(getLocalURI("8081"), "*", "admin", "admin");
+		try (Client client = new Client(getLocalURI("8081"), "*", "admin", "admin")){
 			String update = "update builder set FirstName='sam' where ID=?";
 			
 			

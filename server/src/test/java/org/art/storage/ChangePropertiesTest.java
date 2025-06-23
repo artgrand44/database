@@ -35,9 +35,8 @@ public class ChangePropertiesTest extends BaseIntegrationTest {
 				startInternal(primaryFile.getAbsolutePath());
 				startExternal(secondaryFile.getAbsolutePath());
 				
-				Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin");
-				Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin");
-				
+				try (Client primaryClient = new Client(getLocalURI("8080"), "*", "admin", "admin"); 
+					 Client secondaryClient = new Client(getLocalURI("8081"), "*", "admin", "admin")) {	
 				primaryClient.waitServerCount(2);
 				secondaryClient.waitServerCount(2);
 				
@@ -52,6 +51,7 @@ public class ChangePropertiesTest extends BaseIntegrationTest {
 				}
 				
 				Assertions.assertThat(modified.contains("console=false")).withFailMessage("Modified not changed").isTrue();
+				} 
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Throwable exc) {

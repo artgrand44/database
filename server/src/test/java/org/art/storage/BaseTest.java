@@ -27,7 +27,6 @@ public class BaseTest {
 		
 		System.setProperty("org.art.db.client", this.getClass().getSimpleName());
 		this.cleanDataDirectories();
-
 	}
 	
 	@AfterEach

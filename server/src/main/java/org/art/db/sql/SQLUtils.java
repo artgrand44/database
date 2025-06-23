@@ -145,10 +145,10 @@ public class SQLUtils {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
 		if (handler != null) {
-			Client client = new Client(handler, shard, user, password);
-			
-			client.use(database);
-			client.execute(statement, parameters.toArray());			
+			try (Client client = new Client(handler, shard, user, password)) {			
+				client.use(database);
+				client.execute(statement, parameters.toArray());		
+			}
 		}
 	}
 	
@@ -157,10 +157,10 @@ public class SQLUtils {
 		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		
 		if (handler != null) {
-			Client client = new Client(handler, shard, user, password);
-			
-			client.use(database);
-			set.addAll(client.executeQuery(statement, parameters.toArray()));
+			try (Client client = new Client(handler, shard, user, password)) {
+				client.use(database);
+				set.addAll(client.executeQuery(statement, parameters.toArray()));
+			}
 		}
 		
 		return set;

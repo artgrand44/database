@@ -1,5 +1,7 @@
 package org.art.db.client;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
 import java.time.Duration;
@@ -11,6 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.art.db.client.dao.DAOCompiler;
 import org.art.db.common.ConnectionInfo;
@@ -27,7 +30,7 @@ import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Client {
+public class Client implements Closeable {
 
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Client.class);
@@ -43,6 +46,7 @@ public class Client {
 	private String database = "";
 	private final String shard;
 	private boolean batch = true;
+	private AtomicBoolean closed = new AtomicBoolean();
 	
 	public static final String WILDCARD = "*";
 	
@@ -80,7 +84,7 @@ public class Client {
 		this.client = new RestClient(user, password);
 		this.uri = serverURI;
 		this.shard = "*";	
-		this.cache = cacheSize == 0 ? null : caches.computeIfAbsent(database, x -> new LightWeightCache<>(cacheSize, cacheDuration));
+		this.cache = getCache(database, cacheSize, cacheDuration);
 	}
 	
 	/**
@@ -152,6 +156,18 @@ public class Client {
 			
 			if (!TypedOutputStream.isSerializable(param)) {
 				throw new DBRuntimeException("Parameter " + idx + " is not a valid type");
+			}
+		}
+	}
+	
+	@Override
+	public void close() throws IOException {
+		if (this.closed.compareAndSet(false,  true) && this.cache != null) {	
+			LightWeightCache<QueryKey, DocumentSet> cache = caches.get(this.database);
+
+			if (cache != null && cache.removeReference() == 0) {
+				cache.close();
+				caches.remove(this.database);
 			}
 		}
 	}
@@ -236,7 +252,19 @@ public class Client {
 		}
 	}
 	
-	
+	private LightWeightCache<QueryKey, DocumentSet> getCache(String database, int cacheSize, Duration cacheDuration) {
+		if (cacheSize == 0) {
+			return null;
+		}
+
+		LightWeightCache<QueryKey, DocumentSet> cache = caches.computeIfAbsent(database, x -> new LightWeightCache<>(cacheSize, cacheDuration));
+
+		cache.addReference();
+		
+		return cache;
+		
+	}
+
 	public <T> T getDAO(Class<T> iface) throws Exception {
 		return DAOCompiler.getInstance().getDAO(this, iface);
 	}
@@ -244,10 +272,7 @@ public class Client {
 	public DiscoveryHandler getDiscoveryHandler() {
 		return this.handler;
 	}
-	
-
- 	
-	
+		
 	public void use(String database) {
 		this.database = database;
 	}
@@ -267,5 +292,4 @@ public class Client {
 		throw new Exception("Timeout waiting for other server");
 			
 	}
-
 }

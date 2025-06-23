@@ -41,7 +41,7 @@ public class HeartbeatPublisher {
 		
 		try {
 			this.sendSocket = new DatagramSocket();
-			this.group = InetAddress.getByName("230.0.0.0");
+			this.group = InetAddress.getByName("230.0.0.2");
 		
 		} catch (Exception exc) {
 			logger.error("init exception " + exc.getMessage());

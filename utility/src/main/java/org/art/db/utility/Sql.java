@@ -42,6 +42,7 @@ public class Sql {
 		return result;
 	}
 	
+	@SuppressWarnings("resource")
 	public static void main(String[] args) {
 		Client client = null;
 		boolean verbose = false;
@@ -148,6 +149,11 @@ public class Sql {
 					success = true;
 					break;
 				case "Quit":
+					
+					if (client != null) {
+						client.close();
+					}
+					
 					if (verbose || fileName == null) {
 						System.out.println("Exiting...");
 						System.out.flush();
@@ -171,7 +177,6 @@ public class Sql {
 				System.out.println("The " + verb.toLowerCase() + " failed. " + exc.getMessage());
 				System.out.flush();
 			}
-
 		}
 	}
 	
