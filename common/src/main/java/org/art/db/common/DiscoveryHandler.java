@@ -46,7 +46,12 @@ public class DiscoveryHandler {
 	
 	private final String localShard;
 	
-	private AtomicInteger localHash = new AtomicInteger();
+	private final AtomicInteger localHash = new AtomicInteger();
+	
+	private final ConnectionInfo config;
+	
+	private final AtomicInteger referenceCount = new AtomicInteger();
+	
 	
 	public String getLocalDatabase() {
 		return localDatabase;
@@ -66,8 +71,7 @@ public class DiscoveryHandler {
 	private static DiscoveryHandler serverInstance;
 	
 	
-	public DiscoveryHandler(ConnectionInfo config, boolean isServer) throws Exception {
-		
+	public DiscoveryHandler(ConnectionInfo config, boolean isServer)  {
 		this.plugin = Utils.isKubernetes() || isServer || config.toURI() == null ? new HeartbeatPlugin() : new SingletonDiscoveryPlugin(config.toURI());
 			
 		this.plugin.initialize(config, isServer);
@@ -78,6 +82,7 @@ public class DiscoveryHandler {
 		this.localDatabase = config.getDatabase();
 		this.localShard = config.getShard();
 		this.localInstance = config.toURI();
+		this.config = config;
 			
 		if (isServer) {
 			serverInstance = this;
@@ -87,12 +92,13 @@ public class DiscoveryHandler {
 		
 		this.poller = SCHEDULER.scheduleAtFixedRate(this::loadEnvironment, 1, 20, TimeUnit.SECONDS);
 			
-		this.waitInstanceCount(1,  300);
-		
+		try {
+			this.waitInstanceCount(1,  300);
+		} catch (Exception exc) {
+			throw new IllegalStateException(exc);
+		}
 	}
-	
-
-	
+		
 	public static void clear() {
 		for (DiscoveryHandler handler : handlers.values()) {
 			handler.stop();
@@ -102,15 +108,23 @@ public class DiscoveryHandler {
 		serverInstance = null;
 	}
 	
-	public synchronized static DiscoveryHandler getHandler(ConnectionInfo info) {
-		return handlers.computeIfAbsent(info, name -> {
-			try {
-				return  new DiscoveryHandler(info, false);
-			} catch (Exception exc) {
-				throw new IllegalStateException(exc);
+	public void free() {
+		synchronized (DiscoveryHandler.class) {
+			if (this.referenceCount.decrementAndGet() == 0) {
+				this.stop();
+				handlers.remove(this.config);
 			}
-		});
+		}
 	}
+	
+	public synchronized static DiscoveryHandler getHandler(ConnectionInfo info) {
+		DiscoveryHandler handler = handlers.computeIfAbsent(info, name -> new DiscoveryHandler(info, false));
+		
+		handler.referenceCount.incrementAndGet();
+		
+		return handler;
+	}
+	
 	
 	public URI getLocalInstance() {
 		return this.localInstance;

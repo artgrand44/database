@@ -2,14 +2,15 @@ package org.art.db.common;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,13 +24,10 @@ import org.slf4j.LoggerFactory;
 public class Router {
 	private static final Logger logger = LoggerFactory.getLogger(Router.class);
 	
-	static record DiscoveryKey(DiscoveryHandler discoveryHandler, String user, String password) {	
+	static record RouterKey(ConnectionInfo info, URI uri, String user, String password) {	
 		
 	}
 	
-	static record URIKey(URI uri, String user, String password) {	
-		
-	}
 	private record BatchEntry(String uri, byte[] body, CompletableFuture<byte[]> future, long startTime) {
 		
 	}
@@ -46,7 +44,11 @@ public class Router {
 	 */
 	private final URI uri;
 	
+	private final RouterKey key;
+	
 	private final  LinkedBlockingQueue<BatchEntry> batchQueue = new  LinkedBlockingQueue<>();
+	
+	private final AtomicInteger referenceCount = new AtomicInteger();
 	
 	
 	private static final ScheduledExecutorService SCHEDULER =  Scheduler.createScheduler("Rest", 10);
@@ -55,44 +57,45 @@ public class Router {
 	/**
 	 * A map for finding discovery handler-based routers
 	 */
-	private static final ConcurrentMap<DiscoveryKey, Router> discoveryRouters = new ConcurrentHashMap<>();
+	private static final Map<RouterKey, Router> routers = new HashMap<>();
 	
-	
-	/**
-	 * A map for finding uri-based routers
-	 */
-	
-	private static final ConcurrentMap<URIKey, Router> uriRouters = new ConcurrentHashMap<>();
 	
 	private int maxBatchSize = MAX_SIZE;
 	
 	private static final int MAX_SIZE = 10;
 	
-	
 	/**
-	 * Create a DiscoveryHandler based router
+	 * Create a router for internal server connections
 	 * @param discoveryHandler
 	 * @param user
 	 * @param password
 	 */
-	private Router(DiscoveryHandler discoveryHandler, String user, String password) {
-		this.discoveryHandler = discoveryHandler;
+	public Router(DiscoveryHandler handler, String user, String password) {
+		this.discoveryHandler = handler;
 		this.restClient = new RestClient(user, password);
 		this.uri = null;
+		this.key = null;
 	}
 	
 	/**
-	 * Create a URI based router
-	 * @param uri
+	 * Create a client router
+	 * @param discoveryHandler
 	 * @param user
 	 * @param password
 	 */
-	private Router(URI uri, String user, String password) {
-		this.discoveryHandler = null;
-		this.restClient = new RestClient(user, password);
-		this.uri = uri;
+	private Router(RouterKey key) {
+		this.key = key;
+		this.discoveryHandler = key.uri == null ?  DiscoveryHandler.getHandler(key.info) : null;
+		
+		if (trace) {
+			logger.info("In router " + this.discoveryHandler);
+			new Exception().printStackTrace();
+		}
+		this.restClient = new RestClient(key.user, key.password);
+		this.uri = key.uri;
 	}
-	
+		
+	public static boolean trace = false;
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public byte[] batch(String batchURI, String uri, byte[] body) throws Exception {
 		
@@ -170,30 +173,33 @@ public class Router {
 	 * @param password
 	 * @return
 	 */
-	public static Router getRouter(DiscoveryHandler discoveryHandler, String user, String password) {
-		DiscoveryKey key = new DiscoveryKey(discoveryHandler, user, password);
+	public static Router getRouter(ConnectionInfo info, URI uri, String user, String password) {
+		synchronized (routers) {
+		RouterKey key = new RouterKey(info, uri, user, password);
 		
-		return discoveryRouters.computeIfAbsent(key, x-> new Router(discoveryHandler, user, password));
+		Router router =  routers.computeIfAbsent(key, x-> new Router(key));
+		
+		router.referenceCount.incrementAndGet();
+		return router;
+		}
 	}
 	
-	/**
-	 * Find or create a URI-based router
-	 * @param discoveryHandler
-	 * @param user
-	 * @param password
-	 * @return
-	 */
-	public static Router getRouter(URI uri, String user, String password) {
-		URIKey key = new URIKey(uri, user, password);
-		
-		return uriRouters.computeIfAbsent(key, x-> new Router(uri, user, password));
-	}
 	
 	public String getShard(String key) {
 		return this.discoveryHandler.getShard(key);
 	}
 	
-	
+	public void free() {
+		synchronized (routers) {
+			if (this.referenceCount.decrementAndGet() == 0) {
+				routers.remove(this.key);
+				
+				if (this.discoveryHandler != null) {
+					this.discoveryHandler.free();
+				}
+			}
+		}	
+	}
 	public byte[] post(String shardKey, String template, Object body, Object ... args) throws Exception {
 		return doCall("POST", shardKey, template, body, args);		
 	}

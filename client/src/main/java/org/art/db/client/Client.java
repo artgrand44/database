@@ -38,8 +38,8 @@ public class Client implements Closeable {
 	static record QueryKey(String query, List<Object> args) {
 		
 	}
+	
 	private final Router router;
-	private final DiscoveryHandler handler;
 	private final RestClient client;
 	private final LightWeightCache<QueryKey, DocumentSet> cache;
 	private URI uri;
@@ -79,8 +79,7 @@ public class Client implements Closeable {
 		
 		ConnectionInfo info = new ConnectionInfo(host, port, shard, database);
 		
-		this.handler = DiscoveryHandler.getHandler(info);
-		this.router = serverURI == null ? Router.getRouter(handler, user, password) : Router.getRouter(serverURI, user, password);
+		this.router = Router.getRouter(info, serverURI, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = serverURI;
 		this.shard = "*";	
@@ -99,31 +98,13 @@ public class Client implements Closeable {
 		String host = uri == null ? null : uri.getHost();
 		ConnectionInfo info = new ConnectionInfo(host, String.valueOf(uri.getPort()), shard, "cluster");
 		
-		this.handler = DiscoveryHandler.getHandler(info);
-		this.router = Router.getRouter(uri, user, password);
+		this.router = Router.getRouter(info, uri, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = uri;
 		this.shard = shard;	
 		this.cache = null;
 	}
-	
-	/**
-	 * Used internally by SQLUtils to forward a specific instance in the same shard.
-	 * @param uri
-	 * @param shard
-	 * @param user
-	 * @param password
-	 * @throws Exception
-	 */
-	public Client(DiscoveryHandler handler, URI uri, String shard, String user, String password) throws Exception {
-		this.handler = handler;
-		this.router = Router.getRouter(uri, user, password);
-		this.client = new RestClient(user, password);
-		this.uri = uri;
-		this.shard = shard;	
-		this.cache = null;
-	}
-	
+		
 	/**
 	 * Used internally by SQLUtils to forward requests to a random instance in some other shard. 
 	 * 
@@ -135,8 +116,7 @@ public class Client implements Closeable {
 	 * @throws Exception
 	 */
 	public Client(DiscoveryHandler handler, String shard, String user, String password) throws Exception {
-		this.handler = handler;
-		this.router = Router.getRouter(handler, user, password);
+		this.router = new Router(handler, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = null;
 		this.shard = shard;
@@ -162,14 +142,16 @@ public class Client implements Closeable {
 	
 	@Override
 	public void close() throws IOException {
-		if (this.closed.compareAndSet(false,  true) && this.cache != null) {	
-			LightWeightCache<QueryKey, DocumentSet> cache = caches.get(this.database);
-
-			if (cache != null && cache.removeReference() == 0) {
-				cache.close();
+		if (this.closed.compareAndSet(false,  true)) {
+			if (this.cache != null && cache.removeReference() == 0) {					
+				this.cache.close();
 				caches.remove(this.database);
 			}
-		}
+			
+			if (this.router != null) {
+				this.router.free();
+			}
+		}		
 	}
 	
 	public Batch createBatch() {
@@ -269,10 +251,6 @@ public class Client implements Closeable {
 		return DAOCompiler.getInstance().getDAO(this, iface);
 	}
 	
-	public DiscoveryHandler getDiscoveryHandler() {
-		return this.handler;
-	}
-		
 	public void use(String database) {
 		this.database = database;
 	}
