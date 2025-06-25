@@ -145,10 +145,6 @@ public class UpdatePounderTest extends BaseQueryPounder {
 				int key = NITEMS + (idx * DOCS_PER_UPDATER) + jdx;
 				
 				batch.add(insert, getId(key), getName(key));
-				
-				if (idx % 10 == 0) {
-					logger.info("Inserted key" + key);
-				}
 			}
 		}
 		

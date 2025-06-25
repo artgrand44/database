@@ -10,7 +10,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,7 @@ public class Router {
 	
 	private final  LinkedBlockingQueue<BatchEntry> batchQueue = new  LinkedBlockingQueue<>();
 	
-	private final AtomicInteger referenceCount = new AtomicInteger();
+	private int referenceCount;
 	
 	
 	private static final ScheduledExecutorService SCHEDULER =  Scheduler.createScheduler("Rest", 10);
@@ -86,11 +85,6 @@ public class Router {
 	private Router(RouterKey key) {
 		this.key = key;
 		this.discoveryHandler = key.uri == null ?  DiscoveryHandler.getHandler(key.info) : null;
-		
-		if (trace) {
-			logger.info("In router " + this.discoveryHandler);
-			new Exception().printStackTrace();
-		}
 		this.restClient = new RestClient(key.user, key.password);
 		this.uri = key.uri;
 	}
@@ -179,7 +173,7 @@ public class Router {
 		
 		Router router =  routers.computeIfAbsent(key, x-> new Router(key));
 		
-		router.referenceCount.incrementAndGet();
+		router.referenceCount++;
 		return router;
 		}
 	}
@@ -191,7 +185,7 @@ public class Router {
 	
 	public void free() {
 		synchronized (routers) {
-			if (this.referenceCount.decrementAndGet() == 0) {
+			if (--this.referenceCount == 0) {
 				routers.remove(this.key);
 				
 				if (this.discoveryHandler != null) {

@@ -102,7 +102,6 @@ public class AQueuePounderTest extends BaseQueryPounder {
 			this.addError(exc);
 		}
 		
-		logger.info("completed " + NLOOPS);
 		this.addCompletion();
 	}
 	

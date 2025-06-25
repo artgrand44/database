@@ -50,7 +50,7 @@ public class DiscoveryHandler {
 	
 	private final ConnectionInfo config;
 	
-	private final AtomicInteger referenceCount = new AtomicInteger();
+	private int referenceCount;
 	
 	
 	public String getLocalDatabase() {
@@ -110,7 +110,7 @@ public class DiscoveryHandler {
 	
 	public void free() {
 		synchronized (DiscoveryHandler.class) {
-			if (this.referenceCount.decrementAndGet() == 0) {
+			if (--this.referenceCount == 0) {
 				this.stop();
 				handlers.remove(this.config);
 			}
@@ -120,8 +120,7 @@ public class DiscoveryHandler {
 	public synchronized static DiscoveryHandler getHandler(ConnectionInfo info) {
 		DiscoveryHandler handler = handlers.computeIfAbsent(info, name -> new DiscoveryHandler(info, false));
 		
-		handler.referenceCount.incrementAndGet();
-		
+		handler.referenceCount++;
 		return handler;
 	}
 	
@@ -371,8 +370,6 @@ public class DiscoveryHandler {
 	}
 	
 	public void start() {
-		logger.info("Warmup completed");
-		
 		this.plugin.start();
 	}
 	

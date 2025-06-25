@@ -9,7 +9,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +21,6 @@ public class LightWeightCache<TKey, TValue> implements Closeable {
 	private final long timeout;
 	 
 	private final List<Segment> segments = new ArrayList<>();
-	private final AtomicInteger referenceCount = new AtomicInteger();
 	
 	public LightWeightCache(int size, Duration timeout) {
 		this.timeout = timeout.toMillis();
@@ -30,10 +28,6 @@ public class LightWeightCache<TKey, TValue> implements Closeable {
 		for (int idx = 0; idx < 4; idx++) {
 			this.segments.add(new Segment(size / 4, this.timeout));
 		}
-	}
-	
-	public void addReference() {
-		this.referenceCount.incrementAndGet();
 	}
 	
 	public Map<TKey, TValue> asMap() {
@@ -86,9 +80,6 @@ public class LightWeightCache<TKey, TValue> implements Closeable {
 		segment.remove(key);
 	}
 	
-	public int removeReference() {
-		return this.referenceCount.decrementAndGet();
-	}
 	class Entry {
 		private TValue value;
 		private long timestamp;

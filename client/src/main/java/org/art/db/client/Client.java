@@ -8,11 +8,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.art.db.client.dao.DAOCompiler;
@@ -41,7 +41,7 @@ public class Client implements Closeable {
 	
 	private final Router router;
 	private final RestClient client;
-	private final LightWeightCache<QueryKey, DocumentSet> cache;
+	private final ClientCache cache;
 	private URI uri;
 	private String database = "";
 	private final String shard;
@@ -50,7 +50,6 @@ public class Client implements Closeable {
 	
 	public static final String WILDCARD = "*";
 	
-	private final static Map<String, LightWeightCache<QueryKey, DocumentSet>> caches = new ConcurrentHashMap<>();
 	
 	public Client(URI uri, String user, String password) throws Exception {
 		this(uri, user, password, 0, null);
@@ -83,7 +82,7 @@ public class Client implements Closeable {
 		this.client = new RestClient(user, password);
 		this.uri = serverURI;
 		this.shard = "*";	
-		this.cache = getCache(database, cacheSize, cacheDuration);
+		this.cache = ClientCache.getCache(database, cacheSize, cacheDuration);
 	}
 	
 	/**
@@ -143,9 +142,8 @@ public class Client implements Closeable {
 	@Override
 	public void close() throws IOException {
 		if (this.closed.compareAndSet(false,  true)) {
-			if (this.cache != null && cache.removeReference() == 0) {					
-				this.cache.close();
-				caches.remove(this.database);
+			if (this.cache != null) {
+				this.cache.free();
 			}
 			
 			if (this.router != null) {
@@ -234,19 +232,7 @@ public class Client implements Closeable {
 		}
 	}
 	
-	private LightWeightCache<QueryKey, DocumentSet> getCache(String database, int cacheSize, Duration cacheDuration) {
-		if (cacheSize == 0) {
-			return null;
-		}
-
-		LightWeightCache<QueryKey, DocumentSet> cache = caches.computeIfAbsent(database, x -> new LightWeightCache<>(cacheSize, cacheDuration));
-
-		cache.addReference();
-		
-		return cache;
-		
-	}
-
+	
 	public <T> T getDAO(Class<T> iface) throws Exception {
 		return DAOCompiler.getInstance().getDAO(this, iface);
 	}
@@ -269,5 +255,35 @@ public class Client implements Closeable {
 		
 		throw new Exception("Timeout waiting for other server");
 			
+	}
+	
+	static class ClientCache extends LightWeightCache<QueryKey, DocumentSet> {
+		private int referenceCount;
+		
+		private final static Map<String,  ClientCache> caches = new HashMap<>();
+		
+		public ClientCache(int size, Duration timeout) {
+			super(size, timeout);
+		}
+		
+		static synchronized ClientCache getCache(String database, int cacheSize, Duration cacheDuration) {
+			if (cacheSize == 0) {
+				return null;
+			}
+
+			ClientCache cache = caches.computeIfAbsent(database, x -> new ClientCache(cacheSize, cacheDuration));
+
+			cache.referenceCount++;
+
+			return cache;
+		}
+		
+		void free() {
+			synchronized (caches) {
+				if (--this.referenceCount == 0) {
+					Utils.closeSafely(this);
+				}
+			}
+		}		
 	}
 }

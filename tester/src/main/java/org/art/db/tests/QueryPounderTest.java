@@ -123,23 +123,24 @@ public class QueryPounderTest extends BaseQueryPounder {
 
 	@Override
 	protected void loadDabase() throws Exception {
-		Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
-		String drop = "drop table if exists pounder";
-		String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
-		String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
-		
-		client.execute(drop);
-		client.execute(create);
-		client.execute(createIndex);
-		
-		for (int idx = 0; idx < NITEMS; idx++) {
-			this.insert(client, idx);
-			
-			if (idx % 1000 == 0) {
-				logger.info("Inserted " + idx);
+		try (Client client = TestAdapter.getInstance().getClusterClient("admin", "admin", 1000, Duration.ofSeconds(30)).batch(false)) {
+			String drop = "drop table if exists pounder";
+			String create = "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)";
+			String createIndex = "CREATE INDEX firstname ON pounder(FirstName)";
+
+			client.execute(drop);
+			client.execute(create);
+			client.execute(createIndex);
+
+			for (int idx = 0; idx < NITEMS; idx++) {
+				this.insert(client, idx);
+
+				if (idx % 1000 == 0) {
+					logger.info("Inserted " + idx);
+				}
 			}
 		}
-		
+				
 		logger.info("inserts complete");
 	}
 
@@ -149,7 +150,7 @@ public class QueryPounderTest extends BaseQueryPounder {
 		try {
 			client.execute(insert, getId(idx), getName(idx));	
 		} catch (Exception exc) {
-			logger.info("exception on " + idx + " " + exc.getMessage());
+			logger.info("exception on " + idx + " " + exc.getClass().getSimpleName());
 		}
 	}
 	
