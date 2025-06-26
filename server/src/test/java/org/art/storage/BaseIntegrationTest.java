@@ -99,4 +99,12 @@ public class BaseIntegrationTest extends BaseSQLTest {
 			return new Client(new URI(uri.toString() + "/" + cluster), user, password);
 		}
 	}
+	
+	public Client getPrimaryClient(String user, String password) throws Exception {
+		return new Client(new URI(getLocalURI("8080").toString() + "/cluster"), user, password);
+	}
+	
+	public Client getSecondaryClient(String user, String password) throws Exception {
+		return new Client(new URI(getLocalURI("8081").toString() + "/cluster"), user, password);
+	}
 }

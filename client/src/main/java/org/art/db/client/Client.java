@@ -84,25 +84,6 @@ public class Client implements Closeable {
 		this.shard = "*";	
 		this.cache = ClientCache.getCache(database, cacheSize, cacheDuration);
 	}
-	
-	/**
-	 * Used by tests that need to talk to a particular instance.
-	 * @param uri
-	 * @param shard
-	 * @param user
-	 * @param password
-	 * @throws Exception
-	 */
-	public Client(URI uri, String shard, String user, String password) throws Exception {
-		String host = uri == null ? null : uri.getHost();
-		ConnectionInfo info = new ConnectionInfo(host, String.valueOf(uri.getPort()), shard, "cluster");
-		
-		this.router = Router.getRouter(info, uri, user, password);
-		this.client = new RestClient(user, password);
-		this.uri = uri;
-		this.shard = shard;	
-		this.cache = null;
-	}
 		
 	/**
 	 * Used internally by SQLUtils to forward requests to a random instance in some other shard. 

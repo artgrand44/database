@@ -1,13 +1,11 @@
 package org.art.storage;
 
 import java.io.File;
-import java.time.Duration;
 
 import org.art.db.client.Client;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.RestClient;
-import org.art.db.common.Router;
 import org.art.db.common.Utils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -15,7 +13,7 @@ import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BuildIndexTest extends BaseIntegrationTest implements Runnable{
+public class BuildIndexTest extends BaseIntegrationTest {
 	
 	private static final Logger logger = LoggerFactory.getLogger(BuildIndexTest.class);
 	
@@ -25,7 +23,7 @@ public class BuildIndexTest extends BaseIntegrationTest implements Runnable{
 	
 	@Test
 	public void test() {
-		/*try {
+		try {
 			startInternal("./application.properties");
 			
 			Client client = this.getClient().batch(false);
@@ -58,49 +56,38 @@ public class BuildIndexTest extends BaseIntegrationTest implements Runnable{
 					break;
 				}
 				
-				if (idx % 1000 == 0) {
+				if (idx % 10000 == 0) {
 					logger.info("idx " + idx);
 				}
 			}
 			
-			try (Client xclient = new Client(getLocalURI("8080"), "*", "admin", "admin").batch(false)){
-				logger.info("*******got connection " + this.doUpdates);
-				String update = "update builder set FirstName='sam' where ID=?";
-				
-				
-				for (int idx = 0; idx < 100; idx++) {
-					xclient.execute(update, idx);
-					logger.info("did updates");
-					this.extraCount++;
-				}
-			} catch(Throwable exc) {
-				logger.info("*******got exception " + exc.getMessage());
-				exc.printStackTrace();
-				Assertions.fail(exc.getMessage());
-			} 
+			this.doUpdates = true;
+			
+			Thread thread = new Thread(() -> this.backgroundJob());
+			logger.info("Starting background");
+			thread.start();
 			
 			client.execute(createIndex);
-			logger.info("after create index");
+			
+			this.doUpdates = false;
+			thread.join();
 			
 			boolean found = false;
 			
-			for (int idx = 0; idx < 1000 && !found; idx++) {
+			for (int idx = 0; idx < 120; idx++) {
 				try {
 					DocumentSet art = client.executeQuery("select * from builder where FirstName = 'art'");
+					DocumentSet sam = client.executeQuery("select * from builder where FirstName = 'sam'");
 					
-					if (art.isEmpty()) {
-						Utils.sleepSafely(1000);
-					} else {
+					if (!art.isEmpty() && !sam.isEmpty()) {
 						found = true;
-						logger.info("found");
 						break;
-					}					
+					};
 				} catch (DBRuntimeException exc) {
-					logger.info("Got exception " + exc.getMessage());
-					if (exc.getMessage().equals("The query does must include one of more indexed fields")) {
-						Utils.sleepSafely(1000);
-					}
+					
 				}
+				
+				Utils.sleepSafely(1000);
 			}	
 			
 			Assertions.assertThat(found).isTrue();
@@ -109,29 +96,23 @@ public class BuildIndexTest extends BaseIntegrationTest implements Runnable{
 		} catch(Exception exc) {
 			exc.printStackTrace();
 			Assertions.fail(exc.getMessage());
-		}*/
+		}
 	}
 	
-	public void run() {
-		logger.info("*******in background job");
-		Router.trace = true;
-		try (Client client = new Client(getLocalURI("8081"), "*", "admin", "admin")){
-			logger.info("*******got connection " + this.doUpdates);
+	private void backgroundJob() {
+		try (Client client = this.getClient().batch(false)){
 			String update = "update builder set FirstName='sam' where ID=?";
 			
 			
 			for (int idx = 0; this.doUpdates; idx++) {
-				client.execute(update, idx);
-				logger.info("did updates");
+				client.execute(update, idx);	
+				logger.info("update");
 				this.extraCount++;
 			}
 		} catch(Throwable exc) {
-			logger.info("*******got exception " + exc.getMessage());
 			exc.printStackTrace();
 			Assertions.fail(exc.getMessage());
 		} 
-		
-		logger.info("***********Background exiting");
 	}
 
 
