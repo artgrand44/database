@@ -35,8 +35,8 @@ public class ChangePropertiesTest extends BaseIntegrationTest {
 				startInternal(primaryFile.getAbsolutePath());
 				startExternal(secondaryFile.getAbsolutePath());
 				
-				try (Client primaryClient = getPrimaryClient("admin", "admin"); 
-					 Client secondaryClient = getSecondaryClient("admin", "admin")) {	
+				try (Client primaryClient = this.getPrimaryClient("admin", "admin"); 
+					 Client secondaryClient = this.getSecondaryClient("admin", "admin")) {	
 				primaryClient.waitServerCount(2);
 				secondaryClient.waitServerCount(2);
 				
