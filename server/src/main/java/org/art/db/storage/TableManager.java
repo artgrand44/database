@@ -197,6 +197,7 @@ public class TableManager implements Closeable{
 				Index index = new Index(DBFiles.getIndex(this.tableName, name), name, info.isUnique());
 
 				this.indices.put(name, index);
+				this.indexInfo.add(info);
 			}
 			
 			if (this.table == null) {
