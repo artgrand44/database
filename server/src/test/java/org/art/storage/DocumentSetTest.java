@@ -1,5 +1,6 @@
 package org.art.storage;
 
+import java.io.File;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -60,7 +61,7 @@ public class DocumentSetTest extends BaseSQLTest {
 			
 			Assertions.assertThat(count == 2000).isTrue();
 			
-			set.sort(this::compare);
+			set.sort(new File("."), this::compare);
 			
 			String prev = "";
 			

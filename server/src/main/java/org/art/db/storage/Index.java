@@ -3,20 +3,15 @@ package org.art.db.storage;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.art.db.common.Blob;
 import org.art.db.common.Comparison;
-import org.art.db.common.DBNull;
-import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.Scheduler;
-import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,17 +33,6 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 	 * The underlying tree
 	 */
 	private final Tree<Key> tree;
-	
-	/**
-	 * A persistent "set" containing of the primary keys that
-	 * have been processed during a buildIndex operation
-	 */
-	private Tree<Boolean> processed;
-	
-	/**
-	 * Are we building the index?
-	 */
-	private volatile boolean building;
 			
 	private static final IndexCache cache = new IndexCache();
 	
@@ -82,56 +66,16 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 	
 	private void buildIndexInBackground(Table table, Metadata metadata) {
 		
-		IndexInfo info = metadata.getIndex(this.name);
-		File inverseFile = DBFiles.getInverseIndex(metadata.getName(), info.getName());
-		
 		try {
-			this.processed = new Tree<>(inverseFile, Boolean.class);
-			this.building = true;
-			
-			for (Segment segment : table.getSegments()) {
-				Iterator<Map.Entry<Key, Blob>> iterator = segment.iterator();
-
-				while (iterator.hasNext()) {
-					Map.Entry<Key, Blob> entry = iterator.next();
-					Key primaryKey = entry.getKey();
-					Document doc = BlobConverter.toDocument(metadata, entry.getValue());
-
-					if (processed.get(Comparison.EQ, primaryKey) == null) {
-						Key key = this.buildKey(doc, info.getFields());
-					
-						this.put(key, primaryKey);
-						processed.put(primaryKey, Boolean.TRUE);
-					}
-				}
-			}
-			
-			info.setBuilt(true);
-			metadata.store();
-			logger.info("Set built");
+			IndexBuilder.build(table, this, metadata);
 		} catch (Exception exc) {
+			exc.printStackTrace();
 			logger.error("There was an exception building the index for " + this.name + exc.getMessage());
 			MetricsLogger.getInstance().logAlert("There was an exception building the index for " + this.name);
-		} finally {
-			this.building = false;
-			Utils.closeSafely(this.processed);
-			this.processed = null;
-		}
-		
+		} 	
 	}
 	
-	private Key buildKey(Document doc, List<String> names) {
-		List<Comparable<?>> keys = new ArrayList<>();
-		
-		for (String name : names) {
-			Comparable<?>  value = (Comparable<?>)doc.get(name);
-			
-			keys.add(value == null ? DBNull.NULL : value);
-		}
-		
-		return new Key(keys);
-	}
-
+	
 	@Override
 	public void close() throws IOException {
 		this.tree.close();
@@ -187,15 +131,8 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 		return this.tree.iterator();
 	}
 	
-	private void markUpdated(Key primaryKey) throws Exception {
-		if (this.building) {
-			this.processed.put(primaryKey, true);
-		}
-	}
 
 	public void put(Key key, Key value) throws Exception {
-		this.markUpdated(value);
-		
 		if (this.unique) {
 			this.tree.put(key, value);
 			
@@ -210,8 +147,6 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 	
 	
 	public void remove(Key key, Key value) throws Exception {
-		this.markUpdated(value);
-		
 		if (this.unique) {
 			this.tree.remove(key);
 			cache.invalidate(new IndexKey(this, key));
@@ -229,6 +164,10 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 		IndexCache() {
 			super("org.art.db.indexCache");
 		}
+	}
+
+	public String getName() {
+		return name;
 	}
 	
 }

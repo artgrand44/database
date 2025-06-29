@@ -21,6 +21,7 @@ import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
 import org.art.db.storage.BackupHandler;
 import org.art.db.storage.ColumnInfo;
+import org.art.db.storage.DBFiles;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.MetricsLogger;
 import org.art.db.storage.StorageManager;
@@ -398,7 +399,8 @@ public class DMLHandler {
 		
 		// Sort the documents by the group by fields.
 		
-		set.sort((x, y) -> getGroupByKey(x, expressions, evaluator, parameters).compareTo(getGroupByKey(y, expressions, evaluator, parameters)));
+		
+		set.sort(DBFiles.getRoot(), (x, y) -> getGroupByKey(x, expressions, evaluator, parameters).compareTo(getGroupByKey(y, expressions, evaluator, parameters)));
 		
 		// Build a set of accumulators to accumulate the column values for each group
 		
@@ -498,7 +500,7 @@ public class DMLHandler {
 			List<OrderBy> orderBy = buildOrderBy(plainSelect.getOrderByElements());
 			
 			if (orderBy != null && !orderBy.isEmpty()) {
-				set.sort((x, y) -> compare(orderBy, x, y));
+				set.sort(DBFiles.getRoot(), (x, y) -> compare(orderBy, x, y));
 			}
 			
 			// Enforce the offset and limit clauses.
@@ -621,6 +623,7 @@ public class DMLHandler {
 		
 	}
 
+	
 	static DocumentSet update(Update update, String sqlString, String targetShard, String database, String user, String password, List<Comparable<?>> parameters) throws Exception {
 		String table = SQLUtils.getFQN(update.getTable(), database);
 		

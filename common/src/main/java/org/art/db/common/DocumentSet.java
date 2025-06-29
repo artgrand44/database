@@ -39,8 +39,6 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 	
 	private static final int MAX_MEMORY = 1000;
 	
-	private static final Sorter<Document> SORTER = new Sorter<>(Document.class);
-	
 	private static final Cache<File, TypedInputStream> cache = Caffeine.newBuilder().maximumSize(10000).removalListener(DocumentSet::onRemoval).build();
 		
 	public void add(Document doc)  {
@@ -126,60 +124,14 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		return this.size;
 	}
 	
-	public DocumentSet merge(List<DocumentSet> others, Comparator<Document> comparator, long offset, long limit) {
-		DocumentSet result = new DocumentSet();
-		List<Document> current = new ArrayList<>();
-		List<Iterator<Document>> iterators = new ArrayList<>();
-		long skipped = 0;
-
-		iterators.add(this.iterator());
-
-		for (DocumentSet set : others) {
-			iterators.add(set.iterator());
-		}
-
-		for (Iterator<Document> iterator : iterators) {
-			current.add(iterator.hasNext() ? iterator.next() : null);
-		}
 		
-		while (result.size < limit) {
-			int smallestIndex = -1;
-			Document smallestDoc = null;
-			Iterator<Document> smallestIterator = null;
-
-			for (int idx = 0; idx < current.size(); idx++) {
-				Document doc  = current.get(idx);
-				
-				if (doc == null) {
-					continue;
-				} else if (smallestDoc == null || comparator.compare(doc, smallestDoc) < 0) {
-					smallestIndex = idx;
-					smallestDoc = doc;
-					smallestIterator = iterators.get(idx);
-				} 
-			}
-
-			if (smallestDoc == null) {
-				break;
-			} else if (skipped >= offset) {
-				result.add(smallestDoc);
-			} else {
-				skipped++;
-			}
-
-			current.set(smallestIndex, smallestIterator.hasNext() ? smallestIterator.next() : null);
-		}
-
-		return result;
-		
-	}
 	
-	
-	public void sort(Comparator<Document> comparator) throws DBRuntimeException {
+	public void sort(File tempDir, Comparator<Document> comparator) throws DBRuntimeException {
 		if (this.file == null) {
 			Collections.sort(this.list, comparator);
 		} else {
-			File newFile = SORTER.sort(this.file, comparator);
+			Sorter<Document> sorter = new Sorter<>(tempDir, Document.class);
+			File newFile = sorter.sort(this.file, comparator);
 			
 			this.file.delete();
 			

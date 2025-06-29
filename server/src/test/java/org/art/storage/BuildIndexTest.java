@@ -18,7 +18,8 @@ public class BuildIndexTest extends BaseIntegrationTest {
 	private static final Logger logger = LoggerFactory.getLogger(BuildIndexTest.class);
 	
 	private volatile boolean doUpdates = true;
-	private volatile int extraCount = 0;
+	
+	private volatile int updateCount;
 	
 	
 	@Test
@@ -37,18 +38,19 @@ public class BuildIndexTest extends BaseIntegrationTest {
 			client.execute(dropIfExists);
 			client.execute(create);
 			
-			int count = 0;
 			File externalDir = new File("./dbroot/SYS.SYS.builder");
+			int insertCount = 0;
 			
 			for (int idx = 0; ; idx++) {
 				client.execute(insert, idx);
+				
+				insertCount++;
 				
 				if (idx % 10 == 0) {
 					logger.info("send flush");
 					restClient.get(restClient.buildURI(this.getLocalURI("8080"), "/db/flush?table=SYS.SYS.builder"));
 					logger.info("after send flush");
 				}
-				count++;
 								
 				File[] segments = externalDir.listFiles((dir, name) -> name.endsWith(".seg"));
 				
@@ -73,16 +75,18 @@ public class BuildIndexTest extends BaseIntegrationTest {
 			thread.join();
 			
 			boolean found = false;
+			int artExpected = insertCount - this.updateCount;
+			int samExpected = this.updateCount;
 			
 			for (int idx = 0; idx < 120; idx++) {
 				try {
 					DocumentSet art = client.executeQuery("select * from builder where FirstName = 'art'");
 					DocumentSet sam = client.executeQuery("select * from builder where FirstName = 'sam'");
 					
-					if (!art.isEmpty() && !sam.isEmpty()) {
+					if (art.size()== artExpected && sam.size() == samExpected) {
 						found = true;
 						break;
-					};
+					}
 				} catch (DBRuntimeException exc) {
 					
 				}
@@ -106,8 +110,7 @@ public class BuildIndexTest extends BaseIntegrationTest {
 			
 			for (int idx = 0; this.doUpdates; idx++) {
 				client.execute(update, idx);	
-				logger.info("update");
-				this.extraCount++;
+				updateCount++;
 			}
 		} catch(Throwable exc) {
 			exc.printStackTrace();
