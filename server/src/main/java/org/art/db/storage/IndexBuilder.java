@@ -59,7 +59,8 @@ public class IndexBuilder {
 			
 		// Sort the file by primary key and version then filter out the duplicates
 
-		Sorter<List> sorter = new Sorter(DBFiles.getRoot(), List.class);
+
+		Sorter<List> sorter = new Sorter(List.class);
 
 		File sortFile = sorter.sort(builderFile, IndexBuilder::compareByPrimaryAndSegment);
 
