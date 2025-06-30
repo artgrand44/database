@@ -9,7 +9,7 @@ import org.art.db.common.Serializable;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 
-public class Batch extends Serializable<Batch> {
+public class Batch implements Serializable<Batch> {
 	private String database;
 	private String shard;
 	private List<ClientArgs> clientArgs = new ArrayList<>();

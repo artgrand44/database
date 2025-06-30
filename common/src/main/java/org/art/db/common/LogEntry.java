@@ -2,7 +2,7 @@ package org.art.db.common;
 
 import java.io.IOException;
 
-public class LogEntry  extends Serializable<LogEntry>{
+public class LogEntry  implements Serializable<LogEntry>{
 	
 	public enum Operation {
 		INSERT,

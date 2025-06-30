@@ -25,7 +25,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 
 
-public class DocumentSet extends Serializable<DocumentSet> implements Iterable<Document>, Closeable {
+public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document>, Closeable {
 	
 	private static final Logger logger = LoggerFactory.getLogger(DocumentSet.class);
 	

@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class GUID extends  Serializable<GUID> implements Comparable<GUID> {
+public class GUID implements  Serializable<GUID>, Comparable<GUID> {
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(GUID.class);

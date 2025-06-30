@@ -7,7 +7,7 @@ import org.art.db.common.Serializable;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 
-public class ClientArgs extends Serializable<ClientArgs>{
+public class ClientArgs implements Serializable<ClientArgs>{
 	private String database;
 	private String shard;
 	private String sql;

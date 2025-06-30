@@ -8,7 +8,7 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Key extends Serializable<Key> implements Comparable<Key> {
+public class Key implements Serializable<Key>, Comparable<Key> {
 	
 	private static final Logger logger = LoggerFactory.getLogger(Key.class);
 	

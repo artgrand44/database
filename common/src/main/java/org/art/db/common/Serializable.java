@@ -2,13 +2,13 @@ package org.art.db.common;
 
 import java.io.IOException;
 
-public abstract class Serializable<T> {
+public interface Serializable<T> {
 	public abstract void serialize(TypedOutputStream stream) throws IOException;
 	
 	public abstract T deserialize(TypedInputStream stream) throws IOException;
 	
 	
-	public int getSize() {
+	default int getSize() {
 		try (TypedOutputStream stream = new TypedOutputStream()) {
 			this.serialize(stream);
 			

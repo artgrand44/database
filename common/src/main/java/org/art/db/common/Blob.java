@@ -6,7 +6,7 @@ import java.lang.ref.SoftReference;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class Blob extends Serializable<Blob> {
+public class Blob implements Serializable<Blob> {
 
 	private int size;
 	private byte[] bytes;

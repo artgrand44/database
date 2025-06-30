@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Document extends Serializable<Document> implements Iterable<Map.Entry<String, Object>>{
+public class Document implements Serializable<Document>, Iterable<Map.Entry<String, Object>>{
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Document.class);
