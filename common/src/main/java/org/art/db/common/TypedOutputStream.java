@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class TypedOutputStream extends DataOutputStream {
@@ -88,11 +89,8 @@ public class TypedOutputStream extends DataOutputStream {
 	}
 	
 	public static boolean isSerializable(Object obj) {
-		return isSerializable(obj.getClass());
-	}
-
-	public static boolean isSerializable(Class<?> clazz) {
-		
+		Class<?> clazz = obj.getClass();
+				
 		for (int idx = 0; idx < SUPPORTED_TYPES.length; idx++) {			
 			if (clazz == SUPPORTED_TYPES[idx]) {
 				return true;
@@ -112,77 +110,91 @@ public class TypedOutputStream extends DataOutputStream {
 		}
 	}
 	
-	
 	@SuppressWarnings("rawtypes")
 	public void writeObject(Object obj) throws IOException {
-		Class<?> clazz = obj.getClass();
-		
-		if (clazz == Boolean.class) {
+		switch (obj) {
+		case Boolean bool:
 			this.writeByte(Types.Boolean.ordinal());
-			this.writeBoolean((Boolean)obj);
-		} else if (clazz == Byte.class) {
+			this.writeBoolean(bool);
+			break;
+		case Byte b:
 			this.writeByte(Types.Byte.ordinal());
-			this.writeByte((Byte)obj);
-		} else if ((clazz == Character.class)) {
+			this.writeByte(b);
+			break;
+		case Character chr:
 			this.writeByte(Types.Character.ordinal());
-			this.writeChar((Character)obj);
-		} else if (clazz == Double.class) {
+			this.writeChar(chr);
+			break;
+		case Double dbl:
 			this.writeByte(Types.Double.ordinal());
-			this.writeDouble((Double)obj);
-		} else if (clazz == Float.class) {
+			this.writeDouble(dbl);
+			break;
+		case Float fl:
 			this.writeByte(Types.Float.ordinal());
-			this.writeFloat((Float)obj);
-		} else if (clazz == Integer.class) {
+			this.writeFloat(fl);
+			break;
+		case Integer in:
 			this.writeByte(Types.Integer.ordinal());
-			this.writeInt((Integer)obj);
-		} else if (clazz == Long.class) {
+			this.writeInt(in);
+			break;
+		case Long lng:
 			this.writeByte(Types.Long.ordinal());
-			this.writeLong((Long)obj);
-		} else if (clazz == Short.class) {
-			this.writeByte(Types.Short.ordinal());
-			this.writeShort((Short)obj);
-		} else if (clazz == Date.class) {
+			this.writeLong(lng);
+			break;
+		case Short shrt:
+			this.writeByte(Types.Long.ordinal());
+			this.writeShort(shrt);
+			break;
+		case Date date:
 			this.writeByte(Types.Date.ordinal());
-			this.writeLong((((Date)obj).getTime()));
-		} else if (clazz == String.class) {
-			byte[] bytes = ((String)obj).getBytes();
+			this.writeLong(date.getTime());
+			break;
+		case String str:
+			byte[] bytes = str.getBytes();
 			
 			this.writeByte(Types.String.ordinal());
 			this.writeInt(bytes.length);
 			this.write(bytes);
-		} else if (clazz == LogEntry.class) {
+			break;
+		case LogEntry entry:
 			this.writeByte(Types.LogEntry.ordinal());
-			((LogEntry)obj).serialize(this);
-		} else if (List.class.isAssignableFrom(clazz)) {
-			List list = (List)obj;
-			
+			entry.serialize(this);
+			break;
+		case List list:
 			this.writeByte(Types.List.ordinal());
 			this.writeInt(list.size()); 
 			
 			for (Object item : list) {
 				this.writeObject(item);
 			}
-		} else if (clazz == DocumentSet.class) {
-			this.writeByte(Types.DocumentSet.ordinal());
-			((DocumentSet)obj).serialize(this);
-		} else if (clazz == Key.class) {
-			this.writeByte(Types.Key.ordinal());
-			((Key)obj).serialize(this);
-		} else if (clazz == Document.class) {
+			break;
+		case Document doc:
 			this.writeByte(Types.Document.ordinal());
-			((Document)obj).serialize(this);
-		} else if (clazz == DBNull.class) {
+			doc.serialize(this);
+			break;
+		case DocumentSet set:
+			this.writeByte(Types.DocumentSet.ordinal());
+			set.serialize(this);
+			break;
+		case Key key:
+			this.writeByte(Types.Key.ordinal());
+			key.serialize(this);
+			break;
+		case DBNull nl:
 			this.writeByte(Types.DBNull.ordinal());
-		} else if (clazz == Blob.class) {
+			break;
+		case Blob blob:
 			this.writeByte(Types.Blob.ordinal());
-			((Blob)obj).serialize(this);
-		} else if (clazz == GUID.class) {
+			blob.serialize(this);
+			break;
+		case GUID guid:
 			this.writeByte(Types.GUID.ordinal());
-			((GUID)obj).serialize(this);
-		} else {
-			throw new IOException("Illegal field type");
+			guid.serialize(this);
+			break;
+		default:
+			throw new IOException("Illegal field type");			
 		}
-		
+	
 	}
 		
 	public static int getSize(Object obj) {
@@ -190,29 +202,30 @@ public class TypedOutputStream extends DataOutputStream {
 			return 0;
 		}
 		
+		Class<?> clazz = obj.getClass();
+		
 		if (obj instanceof String str) {
 			return str.getBytes().length + 5;
-		} else if (obj instanceof List list) {
-			int size = 5;
-			
-			for (Object item : list) {
-				size += getSize(item);
-			}
-			
-			return size;
-		} else if (obj instanceof Key key) {
-			return key.getSize();
-		} else if (obj instanceof Document doc) {
-			return doc.getSize() + 5;
-		} else if (obj instanceof Blob blob) {
-			return blob.getSize() + 5;
-		} else if (obj instanceof GUID guid) {
-			return guid.getSize() + 5;
-		} else if (obj instanceof LogEntry entry) {
-			return entry.getSize() + 5;
-		} else {
-			return sizes.get(obj.getClass()) + 1;
 		}
 		
+		if (sizes.containsKey(clazz)) {
+			return sizes.get(clazz) + 1;
+		} 
+		
+		if (Serializable.class.isAssignableFrom(clazz)) {
+			return ((Serializable<?>)obj).getSize();
+		} 
+
+		if (List.class.isAssignableFrom(clazz)) {
+			List<?> list = (List<?>)obj;
+			
+			AtomicInteger size = new AtomicInteger(5);
+			
+			list.forEach(x -> size.addAndGet(getSize(x)));
+			
+			return size.intValue();
+		} 
+		
+		throw new DBRuntimeException("Illegal field type");				
 	}
 }
