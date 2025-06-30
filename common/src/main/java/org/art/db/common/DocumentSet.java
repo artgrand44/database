@@ -130,7 +130,7 @@ public class DocumentSet extends Serializable<DocumentSet> implements Iterable<D
 		if (this.file == null) {
 			Collections.sort(this.list, comparator);
 		} else {
-			Sorter<Document> sorter = new Sorter<>(tempDir, Document.class);
+			Sorter<Document> sorter = new Sorter<>(Document.class);
 			File newFile = sorter.sort(this.file, comparator);
 			
 			this.file.delete();

@@ -13,17 +13,16 @@ import org.slf4j.LoggerFactory;
 
 public class Sorter<T> {
 	private final Class<T> clazz;
-	private final File tempDir;
 	
-	public Sorter(File tempFir, Class<T> clazz) {
-		this.tempDir = tempFir;
+	public Sorter(Class<T> clazz) {
 		this.clazz = clazz;
 	}
 	
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Sorter.class);
 	
-	private File createTempFile() throws IOException {
-		File file = File.createTempFile("sort", ".dat", this.tempDir);
+	private static File createTempFile() throws IOException {
+		File file = File.createTempFile("sort", ".dat");
 		
 		file.deleteOnExit();
 		
@@ -99,7 +98,7 @@ public class Sorter<T> {
 						list.add(this.clazz.cast(stream.readObject())); 
 					}
 				} catch (EOFException exc) {
-					logger.info("sort eof exception");
+
 				}
 
 				Collections.sort(list, comparator);
@@ -133,7 +132,7 @@ public class Sorter<T> {
 		}
 	}
 
-	private List<File> splitFile(File file) throws IOException {
+	private static List<File> splitFile(File file) throws IOException {
 		File temp1 = createTempFile();
 		File temp2 = createTempFile();
 		int count = 0;
