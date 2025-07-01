@@ -3,6 +3,7 @@ package org.art.db.common;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ public class Utils {
 	private static final Logger logger = LoggerFactory.getLogger(Utils.class);
 	
 	private static File tempDir = null;
+	private static AtomicLong tempCounter = new AtomicLong();
 	
 	public static void closeSafely(Closeable closable) {
 		if (closable != null) {
@@ -23,7 +25,8 @@ public class Utils {
 	}
 	
 	public static File createTempFile(String name, String extension) throws IOException {
-		File file = tempDir == null ? File.createTempFile(name, extension) : File.createTempFile("sort", ".dat", tempDir.getAbsoluteFile());
+		File file = tempDir == null ? File.createTempFile(name, extension) 
+				                    : new File(tempDir.getAbsoluteFile(), name + tempCounter.incrementAndGet() + extension);
 		
 		file.deleteOnExit();
 		
