@@ -230,10 +230,10 @@ public class RestClient {
 			
 			if (name != null) {
 				ZipUtils.decompress(tempFile, file);
-				logger.info("zip " + tempFile.length() + " file " + file.length());
+				tempFile.delete();
 			}
 			
-			return  response.headers().firstValue("filename").orElse(null);
+			return response.headers().firstValue("filename").orElse(null);
 		} catch(Exception exc) {
 			logger.error("getfile " + exc.getMessage());
 			throw new RestException(500, exc.getMessage());

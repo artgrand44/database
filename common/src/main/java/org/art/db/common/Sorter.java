@@ -21,6 +21,8 @@ public class Sorter<T> {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Sorter.class);
 	
+	
+	
 	private File merge(List<File> files, Comparator<T> comparator) throws Exception {
 		List<T> current = new ArrayList<>();
 		File result = Utils.createTempFile("sort", ".dat");
