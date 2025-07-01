@@ -66,7 +66,9 @@ public class BackupHandler {
 			rootFile.mkdirs();
 			this.deleteOldBackups(rootFile);
 
-			this.backupFile(DBFiles.getSecurity(), backupDir);
+			if (DBFiles.getSecurity().exists()) {
+				this.backupFile(DBFiles.getSecurity(), backupDir);
+			}
 
 			for (String table : DBFiles.listTables()) {
 				this.backupTable(table, backupDir);
