@@ -21,7 +21,6 @@ public class Sorter<T> {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Sorter.class);
 	
-	
 	private File merge(List<File> files, Comparator<T> comparator) throws Exception {
 		List<T> current = new ArrayList<>();
 		File result = Utils.createTempFile("sort", ".dat");
@@ -65,8 +64,6 @@ public class Sorter<T> {
 			for (TypedInputStream input : inputs) {
 				Utils.closeSafely(input);
 			}
-			
-			//files.forEach(x -> x.delete());
 		}
 
 		return result;

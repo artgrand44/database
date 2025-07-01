@@ -47,6 +47,6 @@ public class Utils {
 	}
 
 	public static void setTempDir(File tempDir) {
-		Utils.tempDir = tempDir;
+		Utils.tempDir = tempDir.isAbsolute() ? tempDir : tempDir.getAbsoluteFile();
 	}
 }
