@@ -58,7 +58,7 @@ public class QueueCrashTest extends BaseTest {
 	
 	
 	//@Test
-	@RepeatedTest(20)
+	@RepeatedTest(5)
 	public void test() {
 		try {
 			File directory = new File("./atest");

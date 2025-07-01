@@ -10,36 +10,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Date;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-
-
 
 public class TypedInputStream extends DataInputStream {
 
-	private static final Class<?>[] SUPPORTED_TYPES = {
-			Boolean.class,
-			Byte.class,
-			Character.class,
-			Double.class,
-			Float.class,
-			Integer.class,
-			Long.class,
-			Short.class,
-			String.class,
-			Document.class,
-			Key.class,
-			List.class,
-			ArrayList.class,
-			LinkedList.class,
-			DocumentSet.class,
-			DBNull.class,
-			Blob.class,
-			GUID.class,
-			Date.class,
-			LogEntry.class,
-	};
-	
 	public TypedInputStream(File file) throws FileNotFoundException {
 		super(new BufferedInputStream(new FileInputStream(file)));
 	}
@@ -56,40 +30,42 @@ public class TypedInputStream extends DataInputStream {
 		return this.in;
 	}
 	
-	@SuppressWarnings({ "rawtypes", "unchecked", "resource" })
+	@SuppressWarnings("resource")
 	public Object readObject() throws IOException {
-		int typeIndex = this.readByte();
-		Class<?> clazz = SUPPORTED_TYPES[typeIndex];
+		StreamType type = StreamType.values()[this.readByte()];
 		
-		if (clazz == Boolean.class) {
+		switch (type) {
+		case Boolean:
 			return this.readBoolean();
-		} else if (clazz == Byte.class) {
+		case Byte:
 			return this.readByte();
-		} else if ((clazz == Character.class)) {
+		case Character:
 			return this.readChar();
-		} else if (clazz == Double.class) {
+		case Double:
 			return this.readDouble();
-		} else if (clazz == Float.class) {
+		case Float:
 			return this.readFloat();
-		} else if (clazz == Integer.class) {
+		case Integer:
 			return this.readInt();
-		} else if (clazz == Long.class) {
+		case Long:
 			return this.readLong();
-		} else if (clazz == Short.class) {
+		case Short:
 			return this.readShort();
-		} else if (clazz == Date.class) {
-			return new Date(this.readLong());
-		} else if (clazz == LogEntry.class) {
-			return new LogEntry().deserialize(this);
-		} else if (clazz == String.class) {
+		case String:
 			int length = this.readInt();
 			byte[] bytes = new byte[length];
 			
 			this.read(bytes);
 			
 			return new String(bytes);
-		} else if (List.class.isAssignableFrom(clazz)) {
-			List list = new ArrayList();
+		case Document:
+			return new Document().deserialize(this);
+		case Key:
+			return new Key().deserialize(this);
+		case List:
+		case ArrayList:
+		case LinkedList:
+			List<Object> list = new ArrayList<>();
 			int size = this.readInt();
 			
 			for (int idx = 0; idx < size; idx++) {
@@ -97,22 +73,21 @@ public class TypedInputStream extends DataInputStream {
 			}
 			
 			return list;
-		} else if (clazz == DocumentSet.class) {
+		case DocumentSet:
 			return new DocumentSet().deserialize(this); 
-		} else if (clazz == Document.class) {
-			return new Document().deserialize(this);
-		} else if (clazz == Key.class) {
-			return new Key().deserialize(this);
-		} else if (clazz == DBNull.class) {
+		case DBNull:
 			return DBNull.NULL;
-		} else if (clazz == Blob.class) {
+		case Blob:
 			return new Blob().deserialize(this);
-		} else if (clazz == GUID.class) {
-				return new GUID().deserialize(this);
-		} else {
-			throw new IOException("Illegal field type");
-		}		
-
+		case GUID:
+			return new GUID().deserialize(this);
+		case Date:
+			return new Date(this.readLong());
+		case LogEntry:
+			return new LogEntry().deserialize(this);
+		default:
+			throw new DBRuntimeException("Error deserializng " + type);
+		}
 	}
 	
 }

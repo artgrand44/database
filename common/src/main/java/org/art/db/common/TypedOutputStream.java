@@ -41,28 +41,6 @@ public class TypedOutputStream extends DataOutputStream {
 			LogEntry.class,
 	};
 	
-	static enum Types {
-		Boolean,
-		Byte,
-		Character,
-		Double,
-		Float,
-		Integer,
-		Long,
-		Short,
-		String,
-		Document,
-		Key,
-		List,
-		ArrayList,
-		LinkedList,
-		DocumentSet,
-		DBNull,
-		Blob,
-		GUID,
-		Date,
-		LogEntry,
-	}
 	
 	private static final Map<Object, Integer> sizes = Map.of(
 			Boolean.class,   1,
@@ -114,54 +92,54 @@ public class TypedOutputStream extends DataOutputStream {
 	public void writeObject(Object obj) throws IOException {
 		switch (obj) {
 		case Boolean bool:
-			this.writeByte(Types.Boolean.ordinal());
+			this.writeByte(StreamType.Boolean.ordinal());
 			this.writeBoolean(bool);
 			break;
 		case Byte b:
-			this.writeByte(Types.Byte.ordinal());
+			this.writeByte(StreamType.Byte.ordinal());
 			this.writeByte(b);
 			break;
 		case Character chr:
-			this.writeByte(Types.Character.ordinal());
+			this.writeByte(StreamType.Character.ordinal());
 			this.writeChar(chr);
 			break;
 		case Double dbl:
-			this.writeByte(Types.Double.ordinal());
+			this.writeByte(StreamType.Double.ordinal());
 			this.writeDouble(dbl);
 			break;
 		case Float fl:
-			this.writeByte(Types.Float.ordinal());
+			this.writeByte(StreamType.Float.ordinal());
 			this.writeFloat(fl);
 			break;
 		case Integer in:
-			this.writeByte(Types.Integer.ordinal());
+			this.writeByte(StreamType.Integer.ordinal());
 			this.writeInt(in);
 			break;
 		case Long lng:
-			this.writeByte(Types.Long.ordinal());
+			this.writeByte(StreamType.Long.ordinal());
 			this.writeLong(lng);
 			break;
 		case Short shrt:
-			this.writeByte(Types.Long.ordinal());
+			this.writeByte(StreamType.Long.ordinal());
 			this.writeShort(shrt);
 			break;
 		case Date date:
-			this.writeByte(Types.Date.ordinal());
+			this.writeByte(StreamType.Date.ordinal());
 			this.writeLong(date.getTime());
 			break;
 		case String str:
 			byte[] bytes = str.getBytes();
 			
-			this.writeByte(Types.String.ordinal());
+			this.writeByte(StreamType.String.ordinal());
 			this.writeInt(bytes.length);
 			this.write(bytes);
 			break;
 		case LogEntry entry:
-			this.writeByte(Types.LogEntry.ordinal());
+			this.writeByte(StreamType.LogEntry.ordinal());
 			entry.serialize(this);
 			break;
 		case List list:
-			this.writeByte(Types.List.ordinal());
+			this.writeByte(StreamType.List.ordinal());
 			this.writeInt(list.size()); 
 			
 			for (Object item : list) {
@@ -169,26 +147,26 @@ public class TypedOutputStream extends DataOutputStream {
 			}
 			break;
 		case Document doc:
-			this.writeByte(Types.Document.ordinal());
+			this.writeByte(StreamType.Document.ordinal());
 			doc.serialize(this);
 			break;
 		case DocumentSet set:
-			this.writeByte(Types.DocumentSet.ordinal());
+			this.writeByte(StreamType.DocumentSet.ordinal());
 			set.serialize(this);
 			break;
 		case Key key:
-			this.writeByte(Types.Key.ordinal());
+			this.writeByte(StreamType.Key.ordinal());
 			key.serialize(this);
 			break;
 		case DBNull nl:
-			this.writeByte(Types.DBNull.ordinal());
+			this.writeByte(StreamType.DBNull.ordinal());
 			break;
 		case Blob blob:
-			this.writeByte(Types.Blob.ordinal());
+			this.writeByte(StreamType.Blob.ordinal());
 			blob.serialize(this);
 			break;
 		case GUID guid:
-			this.writeByte(Types.GUID.ordinal());
+			this.writeByte(StreamType.GUID.ordinal());
 			guid.serialize(this);
 			break;
 		default:
