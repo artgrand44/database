@@ -80,12 +80,6 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	private final static LogKey ROOT_KEY = new LogKey(Operation.SetRoot, -1);
 	
-	public TreeStore() throws IOException, Exception {
-		this(File.createTempFile("tree", ".dat"));
-	}
-	
-	
-	
 	public TreeStore(File file) throws Exception { 
 		this(file, 2048);
 	}

@@ -217,7 +217,7 @@ public class RestClient {
 
 
 			HttpRequest request = builder.build();
-			File tempFile = File.createTempFile("temp", ".zip", file.getParentFile());
+			File tempFile = Utils.createTempFile("temp", ".zip");
 			HttpResponse<Path> response = client.send(request, BodyHandlers.ofFile(tempFile.toPath()));
 			int status = response.statusCode();
 

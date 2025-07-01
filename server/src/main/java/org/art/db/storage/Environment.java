@@ -17,6 +17,7 @@ import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 public class Environment {
 	
@@ -178,6 +179,14 @@ public class Environment {
 		} catch (Exception exc) {
 			throw new Exception("There was an error reading " + propertyPath);
 		}
+		
+		File root = new File(getProperty("org.art.db.dbroot", "./dbroot"));
+		File temp = new File(root, "temp");
+		
+		temp.mkdirs();
+		FileUtils.cleanDirectory(temp);
+		
+		Utils.setTempDir(temp);
 		
 		Interval interval = new Interval(this.getPropertyWithDefault("org.art.db.refresh"));
 		

@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -39,8 +40,6 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 	
 	private static final int MAX_MEMORY = 1000;
 	
-	private static final Cache<File, TypedInputStream> cache = Caffeine.newBuilder().maximumSize(10000).removalListener(DocumentSet::onRemoval).build();
-		
 	public void add(Document doc)  {
 		try {
 			if (this.outputStream == null) {
@@ -48,7 +47,7 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 				this.size++;
 				
 				if (this.size == MAX_MEMORY) {
-					this.file = File.createTempFile("docsset", ".dat");
+					this.file = Utils.createTempFile("docsset", ".dat");
 					this.outputStream = new TypedOutputStream(new FileOutputStream(file));
 
 					for (Document adoc : this.list) {
@@ -212,16 +211,13 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 
 	}
 
-	private static void onRemoval(@Nullable File key, @Nullable TypedInputStream stream, RemovalCause cause) {
-		Utils.closeSafely(stream);
-	}
-
+	
 	@Override
 	public void close() throws IOException {
 		this.freeze();
 		
 		if (this.file != null) {
-			cache.invalidate(this.file);
+			FileBasedIterator.cache.invalidate(this.file);
 			this.file.delete();
 		}
 	}
@@ -248,6 +244,14 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 		private final File file;
 		private final int size;
 		
+		private static final Duration TIMEOUT = Duration.ofMinutes(5);
+		
+		private static final Cache<File, TypedInputStream> cache = Caffeine.newBuilder()
+				                                                  		   .maximumSize(10000)
+				                                                  		   .expireAfterWrite(TIMEOUT)
+				                                                  		   .removalListener(FileBasedIterator::onRemoval).build();
+		
+	
 		FileBasedIterator(File file, int size) {
 			this.file = file;
 			this.size = size;
@@ -268,10 +272,12 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 			try {
 				TypedInputStream stream = cache.getIfPresent(this.file);
 			
-				if (stream == null) {
+				if (stream == null && this.file.exists()) {
 					stream = new TypedInputStream(new CountingInputStream(new FileInputStream(this.file)));
 					stream.skip(this.position);
 					cache.put(this.file, stream);
+				} else if (stream == null) {
+					throw new DBRuntimeException("The cursor has been times out");
 				}
 				
 				Document doc = (Document)stream.readObject();
@@ -289,13 +295,19 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 				throw new IllegalStateException(exc);
 			}
 		}
+		
+		private static void onRemoval(@Nullable File key, @Nullable TypedInputStream stream, RemovalCause cause) {
+			Utils.closeSafely(stream);
+			
+			if (key.exists() && key.lastModified() + TIMEOUT.toMillis() < System.currentTimeMillis()) {
+				key.delete();
+			}
+		}
 
 		@Override
 		public String toString() {
 			return "FileBasedIterator [count=" + count + ", size=" + size + "]";
-		}
-		
-		
+		}		
 	}
 
 	static class RemoteIterator implements Iterator<Document> {

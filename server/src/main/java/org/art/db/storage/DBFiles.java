@@ -2,7 +2,6 @@ package org.art.db.storage;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,16 +38,6 @@ public class DBFiles {
 		int dot = path.lastIndexOf('.');
 		
 		return new File(path.substring(0,  dot) + extension);
-	}
-	
-	public static File createTempFile(String table, String prefix, String suffix) throws IOException {
-		File dir = new File(getRoot(), table);
-		File tempFile = File.createTempFile(prefix, suffix, dir);
-		
-		tempFile.deleteOnExit();
-		
-		return tempFile;
-		
 	}
 	
 	public static File getRoot() {

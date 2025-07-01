@@ -19,6 +19,7 @@ import org.apache.commons.io.FileUtils;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
+import org.art.db.common.Utils;
 import org.art.db.security.SecurityHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +47,7 @@ public class Broadcaster {
 			this.uri = uri;
 			this.path = path;
 			this.timestamp = System.currentTimeMillis();
-			this.file = File.createTempFile("msg", ".dat", DBFiles.getRoot());
+			this.file = Utils.createTempFile("msg", ".dat");
 			this.file.deleteOnExit();
 			
 			FileUtils.writeByteArrayToFile(this.file, body);

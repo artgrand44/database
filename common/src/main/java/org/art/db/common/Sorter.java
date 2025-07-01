@@ -21,18 +21,10 @@ public class Sorter<T> {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Sorter.class);
 	
-	private static File createTempFile() throws IOException {
-		File file = File.createTempFile("sort", ".dat");
-		
-		file.deleteOnExit();
-		
-		return file;
-		
-	}
 	
 	private File merge(List<File> files, Comparator<T> comparator) throws Exception {
 		List<T> current = new ArrayList<>();
-		File result = createTempFile();
+		File result = Utils.createTempFile("sort", ".dat");
 		List<TypedInputStream> inputs = new ArrayList<>();
 
 		try (TypedOutputStream outStream = new TypedOutputStream(result)) {
@@ -73,6 +65,8 @@ public class Sorter<T> {
 			for (TypedInputStream input : inputs) {
 				Utils.closeSafely(input);
 			}
+			
+			//files.forEach(x -> x.delete());
 		}
 
 		return result;
@@ -103,7 +97,7 @@ public class Sorter<T> {
 
 				Collections.sort(list, comparator);
 
-				File result = createTempFile();
+				File result = Utils.createTempFile("sort", ".dat");
 
 				try (TypedOutputStream stream = new TypedOutputStream(result)) {
 					for (T doc : list) {
@@ -133,8 +127,8 @@ public class Sorter<T> {
 	}
 
 	private static List<File> splitFile(File file) throws IOException {
-		File temp1 = createTempFile();
-		File temp2 = createTempFile();
+		File temp1 = Utils.createTempFile("sort", ".dat");
+		File temp2 = Utils.createTempFile("sort", ".dat");
 		int count = 0;
 		
 		try (TypedInputStream inStream = new TypedInputStream(file);

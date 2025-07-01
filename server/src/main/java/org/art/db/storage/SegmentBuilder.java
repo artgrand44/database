@@ -16,6 +16,7 @@ import org.art.db.common.Blob;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.TypedOutputStream;
+import org.art.db.common.Utils;
 import org.art.db.storage.TreeStore.Header;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,7 @@ public class SegmentBuilder {
 		// Write out the nodes using a buffered output steam with a big buffer size.
 		// This should be considerably faster than using a BlockFile.
 		
-		File tempFile = File.createTempFile("segment", "tmp", segment.getParentFile());
+		File tempFile = Utils.createTempFile("segment", "tmp");
 		Key lowKey = null;
 		Key highKey = null;
 		int count = 0;

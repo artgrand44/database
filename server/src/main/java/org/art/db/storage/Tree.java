@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.art.db.common.Blob;
 import org.art.db.common.Comparison;
 import org.art.db.common.Key;
+import org.art.db.common.Utils;
 import org.art.db.storage.LockManager.UpgradeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,7 +90,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 	private final static ThreadLocal<List<Visit>> visits = ThreadLocal.withInitial(() -> new ArrayList<>());
 
 	public Tree(Class<TValue> clazz) throws Exception {
-		this(File.createTempFile("tree", ".dat"), 2048, clazz);
+		this(Utils.createTempFile("tree", ".dat"), 2048, clazz);
 	}
 
 	public Tree(File file, Class<TValue> clazz) throws Exception {

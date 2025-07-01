@@ -108,7 +108,7 @@ public class RestoreManager {
 	
 	private String getNextFile(URI peer, String table, String type, long timestamp) throws Exception {
 		URI uri = this.restClient.buildURI(peer, "/db/getnextfile?table=%s&type=%s&timestamp=%s", table, type, timestamp);
-		File file = File.createTempFile("temp", ".seg");
+		File file = Utils.createTempFile("temp", ".seg");
 		String name = this.restClient.getFile(uri, file);
 		
 		if (name != null && !name.isEmpty()) {
@@ -310,6 +310,7 @@ public class RestoreManager {
 				manager.setCheckConstraints(save);
 			}
 			
+			localFile.delete();
 		}
 	}
 	
