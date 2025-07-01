@@ -23,7 +23,7 @@ public class Utils {
 	}
 	
 	public static File createTempFile(String name, String extension) throws IOException {
-		File file = tempDir == null ? File.createTempFile(name, extension) : File.createTempFile("sort", ".dat", tempDir);
+		File file = tempDir == null ? File.createTempFile(name, extension) : File.createTempFile("sort", ".dat", tempDir.getAbsoluteFile());
 		
 		file.deleteOnExit();
 		
@@ -47,6 +47,6 @@ public class Utils {
 	}
 
 	public static void setTempDir(File tempDir) {
-		Utils.tempDir = tempDir.isAbsolute() ? tempDir : tempDir.getAbsoluteFile();
+		Utils.tempDir = tempDir;
 	}
 }
