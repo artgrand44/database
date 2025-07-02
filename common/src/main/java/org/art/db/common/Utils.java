@@ -26,7 +26,7 @@ public class Utils {
 	
 	public static File createTempFile(String name, String extension) throws IOException {
 		File file = tempDir == null ? File.createTempFile(name, extension) 
-				                    : new File(tempDir.getAbsoluteFile(), name + tempCounter.incrementAndGet() + extension);
+				                    : new File(tempDir, name + tempCounter.incrementAndGet() + extension);
 		
 		file.deleteOnExit();
 		

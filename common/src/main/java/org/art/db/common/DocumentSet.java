@@ -165,7 +165,7 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 		if (this.hasFile()) {
 			stream.writeBoolean(true);
 			stream.writeInt(this.size);
-			stream.writeUTF(this.file.getAbsolutePath());
+			stream.writeUTF(this.file.getPath());
 			stream.writeUTF(DiscoveryHandler.getServerInstance().getLocalInstance().toString());
 			
 			int count = 0;
@@ -336,7 +336,7 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 		
 			if (this.listOffset == this.list.size()) {
 				try {
-					String suffix = String.format("%s?file=%s&index=%s&size=%s", "/db/fetch", this.file.getAbsoluteFile(), this.index, this.size);
+					String suffix = String.format("%s?file=%s&index=%s&size=%s", "/db/fetch", this.file.getPath(), this.index, this.size);
 					byte[] bytes = restClient.get(restClient.buildURI(this.serverURI, suffix));
 					
 					this.list.clear();
