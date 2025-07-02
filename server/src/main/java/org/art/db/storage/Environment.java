@@ -42,7 +42,8 @@ public class Environment {
 		
 		defaults.putAll(Map.of(
 				   "org.art.db.refresh",        "5M",
-				   "org.art.db.metricslogger",  "prometheus"));
+				   "org.art.db.metricslogger",  "prometheus",
+				   "org.art.db.dbtemp",         "./dbtemp"));
 	}
 
 	private final static File KUBERNETES_CONFIG_FILE = new File("/config/db.properties");
@@ -180,8 +181,7 @@ public class Environment {
 			throw new Exception("There was an error reading " + propertyPath);
 		}
 		
-		File root = new File(getProperty("org.art.db.dbroot", "./dbroot"));
-		File temp = new File(root, "temp");
+		File temp = new File(getProperty("org.art.db.dbtemp", "./dbtemp"));
 		
 		temp.mkdirs();
 		FileUtils.cleanDirectory(temp);

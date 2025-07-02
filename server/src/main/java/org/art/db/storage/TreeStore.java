@@ -89,7 +89,7 @@ public class TreeStore implements Closeable, BlobStore {
 		
 		this.blockSize = blockSize;
 		this.file = new BlockFile(file, blockSize);
-		this.logFile = new File(file.getAbsoluteFile() + ".log");
+		this.logFile = new File(file + ".log");
 		
 		this.rawFile = file;
 		this.logFile.getParentFile().mkdirs();
