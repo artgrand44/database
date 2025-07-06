@@ -123,7 +123,7 @@ public class PlanTest {
 				keys.add(tokens[idx]);
 			}
 			
-			IndexInfo info = new IndexInfo(indexName, unique, keys);
+			IndexInfo info = new IndexInfo(indexName, unique, false, keys);
 			logger.info("add " + info);
 			indexList.add(info);
 		}

@@ -57,7 +57,7 @@ public abstract class BaseSQLTest extends BaseTest {
 					keys.add(tokens[idx]);
 				}
 
-				IndexInfo info = new IndexInfo(indexName, unique, keys);
+				IndexInfo info = new IndexInfo(indexName, unique, false, keys);
 				indexList.add(info);
 			}
 		}

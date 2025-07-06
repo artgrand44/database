@@ -4,17 +4,19 @@ import java.util.List;
 import java.util.Objects;
 
 public class IndexInfo  {
-	String name; 
-	boolean unique; 
-	boolean built;
-	List<String> fields;
+	private String name; 
+	private boolean unique; 
+	private boolean fulltext;
+	private boolean built;
+	private List<String> fields;
 	
 	public IndexInfo() {
 		
 	}
-	public IndexInfo(String name, boolean unique, List<String> fields) {
+	public IndexInfo(String name, boolean unique, boolean fulltext, List<String> fields) {
 		this.name = name;
 		this.unique = unique;
+		this.fulltext = fulltext;
 		this.fields = fields;
 		this.built = false;
 	}
@@ -70,6 +72,12 @@ public class IndexInfo  {
 	@Override
 	public String toString() {
 		return "IndexInfo [name=" + name + ", unique=" + unique + ", built=" + built + ", fields=" + fields + "]";
+	}
+	public boolean isFulltext() {
+		return fulltext;
+	}
+	public void setFulltext(boolean fulltext) {
+		this.fulltext = fulltext;
 	}
 	
 	

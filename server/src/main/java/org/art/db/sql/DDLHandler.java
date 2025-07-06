@@ -149,13 +149,13 @@ public class DDLHandler {
 		if (!SecurityHandler.getInstance().isAdmin(user, password)) {
 			throw new SQLException("User " + user + " is not an admin.");
 		}
-		
-		
+				
 		Index index = createIndex.getIndex();
 		String indexName = index.getName();
 		boolean unique = "unique".equalsIgnoreCase(index.getType());
+		boolean fulltext = createIndex.getTailParameters().stream().anyMatch(x -> x.equalsIgnoreCase("(fulltext)"));
 		List<String> fields = new ArrayList<>();
-
+	
 		File file = DBFiles.getIndex(SQLUtils.getFQN(table, database), indexName);
 		
 		if (file.exists()) {
@@ -169,20 +169,32 @@ public class DDLHandler {
 			throw new DBRuntimeException("Table " + SQLUtils.getFQN(table, database) + " does not exist.");
 		}
 		
+		if (unique && fulltext) {
+			throw new DBRuntimeException("Fulltext indices cannot be unique.");
+		}
 		metadata.writeLock();
 		
 		try {
 			for (ColumnParams param : index.getColumns()) {
 				String name = param.getColumnName();
+				ColumnInfo info = metadata.getColumn(name);
 
-				if (!metadata.getColumns().containsKey(name)) {
+				if (info == null) {
 					throw new DBRuntimeException(name + " is not a valid comlumn");
 				}
 
+				if (fulltext && (info.type() != String.class)) {
+					throw new DBRuntimeException(name + " is not a column type for fulltext indices");
+				}
+				
 				fields.add(name);
 			}
-
-			IndexInfo indexInfo = new IndexInfo(indexName, unique, fields);
+		
+			if (fulltext && fields.size() != 1) {
+				throw new DBRuntimeException("A full text must have a single column");
+			}
+			
+			IndexInfo indexInfo = new IndexInfo(indexName, unique, fulltext, fields);
 
 			BackupHandler.getInstance().startUpdate();
 
@@ -239,7 +251,7 @@ public class DDLHandler {
 					fields.add(param.getColumnName());
 				}
 
-				indices.add(new IndexInfo(indexName, true, fields));
+				indices.add(new IndexInfo(indexName, true, false, fields));
 			}
 		}
 		

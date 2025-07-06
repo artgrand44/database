@@ -64,7 +64,7 @@ public class Metadata  {
 	}
 	
 	public IndexInfo getIndex(String name) {
-		return this.indices.stream().filter(x -> x.name.equals(name)).findFirst().orElse(null);
+		return this.indices.stream().filter(x -> x.getName().equals(name)).findFirst().orElse(null);
 	}
 	
 	public List<IndexInfo> getIndices() {
