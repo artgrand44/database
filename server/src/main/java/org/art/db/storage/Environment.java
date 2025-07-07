@@ -43,7 +43,8 @@ public class Environment {
 		defaults.putAll(Map.of(
 				   "org.art.db.refresh",        "5M",
 				   "org.art.db.metricslogger",  "prometheus",
-				   "org.art.db.dbtemp",         "./dbtemp"));
+				   "org.art.db.dbtemp",         "./dbtemp",
+				   "org.art.db.lang",           "en"));
 	}
 
 	private final static File KUBERNETES_CONFIG_FILE = new File("/config/db.properties");
