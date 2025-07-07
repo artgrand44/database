@@ -43,8 +43,7 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 		this.tree = new Tree<>(file, Key.class);
 	}
 	
-	public void buildIndex(Table table, Metadata metadata)  {
-		
+	public void buildIndex(Table table, Metadata metadata)  {		
 		if (table.isEmpty()) {
 			try {
 				IndexInfo info = metadata.getIndex(this.name);
@@ -132,28 +131,33 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 	}
 	
 
-	public void put(Key key, Key value) throws Exception {
+	public void insert(Key key, Key primaryKey) throws Exception {
 		if (this.unique) {
-			this.tree.put(key, value);
+			this.tree.put(key, primaryKey);
 			
 			List<Key> set = new LinkedList<>();
 			
-			set.add(value);
+			set.add(primaryKey);
 			cache.put(new IndexKey(this, key), set);
 		} else {		
-			this.tree.put(key.with(value), value);
+			this.tree.put(key.with(primaryKey), primaryKey);
 		} 
 	}
 	
 	
-	public void remove(Key key, Key value) throws Exception {
+	public void remove(Key key, Key primaryKey) throws Exception {
 		if (this.unique) {
 			this.tree.remove(key);
 			cache.invalidate(new IndexKey(this, key));
 		} else {
-			this.tree.remove(key.with(value));
+			this.tree.remove(key.with(primaryKey));
 		}
 		
+	}
+	
+	public void update(Key oldKey, Key newKey, Key primaryKey) throws Exception {
+		this.remove(oldKey, primaryKey);
+		this.insert(newKey, primaryKey);
 	}
 	
 	static record IndexKey(Index index, Key key) {

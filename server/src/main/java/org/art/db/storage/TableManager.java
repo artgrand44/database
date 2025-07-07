@@ -55,8 +55,9 @@ public class TableManager implements Closeable{
 		for (IndexInfo info : this.indexInfo) {
 			String name = info.getName();
 			File indexFile = DBFiles.getIndex(tableName, name);
+			Index index = info.isFulltext() ? new FullTextIndex(indexFile, name) : new Index(indexFile, name, info.isUnique());
 			
-			this.indices.put(name, new Index(indexFile, name, info.isUnique()));
+			this.indices.put(name, index);
 		}
 		
 		File[] logs =  DBFiles.listTableLogs(tableName);
@@ -419,6 +420,14 @@ public class TableManager implements Closeable{
 			IndexInfo info = this.indexInfo.get(idx);
 			Index index = this.indices.get(info.getName());
 			
+			if (newDoc == null || newDoc.isZombie()) {
+				index.remove(this.buildKey(oldDoc, info.getFields()), primaryKey);
+			} else if (oldDoc == null) {
+				index.insert(this.buildKey(newDoc, info.getFields()), primaryKey);
+			} else {
+				index.update(this.buildKey(oldDoc, info.getFields()), this.buildKey(newDoc, info.getFields()), primaryKey);
+			}
+			
 			Key oldKey = oldDoc == null ? null : this.buildKey(oldDoc, info.getFields());
 			Key newKey = newDoc == null || newDoc.isZombie() ? null : this.buildKey(newDoc, info.getFields());
 
@@ -428,7 +437,7 @@ public class TableManager implements Closeable{
 				}
 				
 				if (newKey != null) {
-					index.put(newKey, primaryKey);
+					index.insert(newKey, primaryKey);
 				}
 			}
 		}

@@ -71,7 +71,7 @@ public class IndexInfo  {
 	
 	@Override
 	public String toString() {
-		return "IndexInfo [name=" + name + ", unique=" + unique + ", built=" + built + ", fields=" + fields + "]";
+		return "IndexInfo [name=" + name + ", unique=" + unique + ", fulltest =" + fulltext + ",built=" + built + ", fields=" + fields + "]";
 	}
 	public boolean isFulltext() {
 		return fulltext;

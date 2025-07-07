@@ -93,7 +93,7 @@ public class IndexBuilder {
 				Key secoondary = (Key)entry.get(SECONDARY);
 				Key primary = (Key)entry.get(PRIMARY);
 
-				index.put(secoondary, primary);					
+				index.insert(secoondary, primary);					
 			}
 		}
 
