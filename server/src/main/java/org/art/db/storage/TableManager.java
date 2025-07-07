@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -333,7 +332,12 @@ public class TableManager implements Closeable{
 			
 			this.timestamps.put(primaryKey, System.currentTimeMillis());
 			this.table.insert(primaryKey, doc, propagate, log);
-			this.updateIndices(null, doc, primaryKey);
+			
+			for (IndexInfo info : this.indexInfo) {
+				Index index = this.indices.get(info.getName());
+				
+				index.insert(this.buildKey(doc, info.getFields()), primaryKey);
+			}
 		} finally {
 			this.alternateKeyLockManager.unlockAll();
 		}
@@ -363,7 +367,12 @@ public class TableManager implements Closeable{
 		
 		this.timestamps.put(primaryKey, System.currentTimeMillis());
 		this.table.remove(primaryKey, propagate, log);
-		this.updateIndices(doc, null, primaryKey);
+		
+		for (IndexInfo info : this.indexInfo) {
+			Index index = this.indices.get(info.getName());
+			
+			index.remove(this.buildKey(doc, info.getFields()), primaryKey);
+		}
 	}
 	
 	public DocumentSet renewLease(Comparable<?> key, String owner, long timeout) {
@@ -408,42 +417,18 @@ public class TableManager implements Closeable{
 			
 			this.timestamps.put(primaryKey, System.currentTimeMillis());
 			this.table.update(primaryKey, newDoc, propagate, log);			
-			this.updateIndices(oldDoc, newDoc, primaryKey);
+			
+			
+			for (IndexInfo info : this.indexInfo) {
+				Index index = this.indices.get(info.getName());
+				
+				index.update(this.buildKey(oldDoc, info.getFields()), this.buildKey(newDoc, info.getFields()), primaryKey);
+			}
 		} finally {
 			this.alternateKeyLockManager.unlockAll();
 		}
 	}
-	
-	public void updateIndices(Document oldDoc, Document newDoc, Key primaryKey) throws Exception {
-
-		for (int idx = 0; idx < this.indexInfo.size(); idx++) {
-			IndexInfo info = this.indexInfo.get(idx);
-			Index index = this.indices.get(info.getName());
-			
-			if (newDoc == null || newDoc.isZombie()) {
-				index.remove(this.buildKey(oldDoc, info.getFields()), primaryKey);
-			} else if (oldDoc == null) {
-				index.insert(this.buildKey(newDoc, info.getFields()), primaryKey);
-			} else {
-				index.update(this.buildKey(oldDoc, info.getFields()), this.buildKey(newDoc, info.getFields()), primaryKey);
-			}
-			
-			Key oldKey = oldDoc == null ? null : this.buildKey(oldDoc, info.getFields());
-			Key newKey = newDoc == null || newDoc.isZombie() ? null : this.buildKey(newDoc, info.getFields());
-
-			if (!Objects.equals(oldKey, newKey)) {
-				if (oldKey != null) {
-					index.remove(oldKey, primaryKey);
-				}
-				
-				if (newKey != null) {
-					index.insert(newKey, primaryKey);
-				}
-			}
-		}
 		
-	}
-	
 	public boolean isCheckConstraints() {
 		return checkConstraints;
 	}

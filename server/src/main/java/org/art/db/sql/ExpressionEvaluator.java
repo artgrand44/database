@@ -632,7 +632,13 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 
 	@Override
 	public void visit(FullTextSearch fullTextSearch) {
-		throw new UnsupportedSyntaxException("The filltext operator is not supported");
+		ExpressionList<Column> matchColumns = fullTextSearch.getMatchColumns();
+		
+		if (matchColumns.size() == 1) {
+			throw new UnsupportedSyntaxException("Fulltext searches are only supported on columns with fulltext indidex");
+		} else {
+			throw new UnsupportedSyntaxException("Multicolumn full text searches are not supported");
+		}
 		
 	}
 

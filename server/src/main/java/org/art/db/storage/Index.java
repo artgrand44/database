@@ -156,8 +156,10 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 	}
 	
 	public void update(Key oldKey, Key newKey, Key primaryKey) throws Exception {
-		this.remove(oldKey, primaryKey);
-		this.insert(newKey, primaryKey);
+		if (!oldKey.equals(newKey)) {
+			this.remove(oldKey, primaryKey);
+			this.insert(newKey, primaryKey);
+		}
 	}
 	
 	static record IndexKey(Index index, Key key) {

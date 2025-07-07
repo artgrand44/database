@@ -32,13 +32,13 @@ public class FulltextTest extends BaseIntegrationTest {
 			client.execute(create);
 			client.execute(createNameIndex);
 			
-		/*	GUID guid1 = new GUID();
+			GUID guid1 = new GUID();
 			GUID guid2 = new GUID();
 			
 			client.execute("insert into fulltext (id, text ) values (?, 'when in the course of human events')", guid1);
-			client.execute("insert into fulltext (id, text, color ) values (?, 'humans go nuts)", guid2);
+			client.execute("insert into fulltext (id, text ) values (?, 'human go nuts')", guid2);
 			
-			DocumentSet docs = client.executeQuery("select * from fulltext where match(text) against('human)");
+			DocumentSet docs = client.executeQuery("select * from fulltext where match(text) against('human')");
 			
 			Assertions.assertThat(docs.size() == 2).isTrue();
 			Assertions.assertThat(docs.iterator().next().get("text", String.class).contains("human")).isTrue();
@@ -51,7 +51,6 @@ public class FulltextTest extends BaseIntegrationTest {
 			
 			
 			client.execute("update fulltext set text = 'humans wise up' where id = ?", guid2);
-			*/
 			
 		} catch (AssertionFailedError err) {
 			throw err;

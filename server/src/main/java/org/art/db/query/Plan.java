@@ -72,6 +72,8 @@ public abstract class Plan  {
 				}
 				
 				break;
+			case FULLTEXT:
+				return true;
 			default:
 				if (!comparison.matches(actual == null ? DBNull.NULL : actual, expected, expected.getClass())) {
 					return false;

@@ -2,6 +2,8 @@ package org.art.db.sql;
 
 import java.util.Map;
 
+import org.art.db.storage.IndexInfo;
+import org.art.db.storage.Metadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,6 +114,12 @@ public class ExpressionNormalizer implements ExpressionVisitor {
 				   "=", "=");
 	
 	private Expression replacement;
+	
+	private final Metadata metadata;
+	
+	ExpressionNormalizer(Metadata metadata) {
+		this.metadata = metadata;
+	}
 	
 	Expression normalize(Expression exp) {
 		
@@ -376,8 +384,19 @@ public class ExpressionNormalizer implements ExpressionVisitor {
 
 	@Override
 	public void visit(FullTextSearch fullTextSearch) {
-		// TODO Auto-generated method stub
+		ExpressionList<Column> matchColumns = fullTextSearch.getMatchColumns();
 		
+		if (matchColumns.size() == 1) {
+			String column = matchColumns.get(0).getColumnName();
+			
+			for (IndexInfo info : this.metadata.getIndices()) {
+				if (info.isFulltext() && info.getFields().get(0).equals(column)) {
+					Expression exp = fullTextSearch.getAgainstValue();
+					
+					this.replacement = new FilterExpression(column, "fulltext", exp);
+				}
+			}
+		}
 	}
 
 	@Override
