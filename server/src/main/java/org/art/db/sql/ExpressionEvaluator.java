@@ -8,6 +8,8 @@ import java.util.Set;
 
 import org.art.db.common.Comparison;
 import org.art.db.common.Converter;
+import org.art.db.common.DBNull;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
@@ -15,8 +17,6 @@ import org.art.db.common.Key;
 import org.art.db.query.QueryManager;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.IndexInfo;
-import org.art.db.common.DBNull;
-import org.art.db.common.DBRuntimeException;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
 import org.art.db.storage.TableManager;
@@ -486,7 +486,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 				Set<Key> leftKeys = new HashSet<>();
 				DocumentSet result = new DocumentSet();
 
-				for (Document doc : rset) {
+				for (Document doc : lset) {
 					leftKeys.add(SQLUtils.buildPrimaryKey(doc, this.metadata));
 				}
 
@@ -543,7 +543,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 			if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
 				Set<Key> leftKeys = new HashSet<>();
 
-				for (Document doc : rset) {
+				for (Document doc : lset) {
 					leftKeys.add(SQLUtils.buildPrimaryKey(doc, this.metadata));
 				}
 
@@ -670,6 +670,8 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 				}
 			}
 		}
+		
+		throw new DBRuntimeException(column + " does not have a fulltext index");
 		
 	}
 
