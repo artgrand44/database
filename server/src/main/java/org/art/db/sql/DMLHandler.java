@@ -202,7 +202,7 @@ public class DMLHandler {
 			// Find the documents and delete them
 
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
-			Expression normalized = new ExpressionNormalizer(metadata).normalize(where);
+			Expression normalized = new ExpressionNormalizer().normalize(where);
 			long limit = getLimit(delete.getLimit(), table);
 			
 			lock = !isPrimaySearch(metadata, normalized);
@@ -604,7 +604,7 @@ public class DMLHandler {
 			
 			// Normalize the parse tree then dp the actual search
 			
-			Expression normalized = new ExpressionNormalizer(metadata).normalize(where);
+			Expression normalized = new ExpressionNormalizer().normalize(where);
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			List<String> selectColumns = buildSelectList(plainSelect.getSelectItems());
 			DocumentSet set = evaluator.evaluateWhere(normalized, selectColumns, parameters, Long.MAX_VALUE, false);	
@@ -698,7 +698,7 @@ public class DMLHandler {
 			ExpressionEvaluator evaluator = new ExpressionEvaluator(table);
 			Expression where = update.getWhere();
 			long limit = getLimit(update.getLimit(), table);
-			Expression normalized = new ExpressionNormalizer(metadata).normalize(where);
+			Expression normalized = new ExpressionNormalizer().normalize(where);
 			
 			lock = !isPrimaySearch(metadata, normalized);
 			docs =  trim(evaluator.evaluateWhere(normalized, null, parameters, limit, lock), update.getLimit(), evaluator);

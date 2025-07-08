@@ -2,7 +2,6 @@
 package org.art.db.sql;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,28 +18,20 @@ public class FilterExpression extends ASTNodeAccessImpl implements Expression {
 	private static final long serialVersionUID = 1L;
 
 
-	private static final Map<String, Comparison> COMPARISONS = new HashMap<>();
 	
-	static {
-		COMPARISONS.putAll(
-				Map.of("<",         Comparison.LT,
-					   "<=",        Comparison.LE,
-						">",         Comparison.GT,
-						">=",        Comparison.GE,
-						"=",         Comparison.EQ,
-						"<>",        Comparison.NE,
-						"IN",        Comparison.IN,
-						"ISNULL",    Comparison.NULL,
-						"ISNOTNULL", Comparison.NOT_NULL,
-						"BETWEEN",   Comparison.BETWEEN)
-				);
-			
-		COMPARISONS.putAll(
-				Map.of("fulltext", Comparison.FULLTEXT)
-				);
+	private static final Map<String, Comparison> COMPARISONS  =
+			Map.of("<",         Comparison.LT,
+			       "<=",        Comparison.LE,
+				   ">",         Comparison.GT,
+				   ">=",        Comparison.GE,
+				   "=",         Comparison.EQ,
+				   "<>",        Comparison.NE,
+				   "IN",        Comparison.IN,
+				   "ISNULL",    Comparison.NULL,
+				   "ISNOTNULL", Comparison.NOT_NULL,
+				   "BETWEEN",   Comparison.BETWEEN);
+	
 		
-	}
- 		
 	private final List<Filter> filters = new ArrayList<>();
 	
 	FilterExpression() {

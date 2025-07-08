@@ -278,6 +278,16 @@ public class TableManager implements Closeable{
 		return doc;
 	}
 	
+	public DocumentSet getDocuments(String indexName, Comparison comp, Key key) throws Exception {
+		DocumentSet set = new DocumentSet();
+		
+		for (Key primaryKey :  this.getAll(indexName, comp, key)) {
+			set.add(this.getDocument(primaryKey, false));
+		}
+		
+		return set;
+	}
+	
 	public int getSelectivity(String indexName) {
 		return this.indices.get(indexName).getSelectivity();
 	}

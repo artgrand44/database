@@ -14,8 +14,7 @@ public enum Comparison {
 	EQ((x, y)       -> compare(x, y) == 0,                true, "="),
 	NULL((x, y)     -> x == null,                         false, "null"),
 	NOT_NULL((x, y) -> x != null,                         false, "not null"),
-	BETWEEN((x, y)  -> between(x, y),                     true, "between"),
-	FULLTEXT((x, y) -> true,                              true, "fulltext");
+	BETWEEN((x, y)  -> between(x, y),                     true, "between");
 
 	private final boolean indexable;
 	private final String sql;

@@ -14,9 +14,12 @@ import org.art.db.common.Filter;
 import org.art.db.common.Key;
 import org.art.db.query.QueryManager;
 import org.art.db.storage.ColumnInfo;
+import org.art.db.storage.IndexInfo;
 import org.art.db.common.DBNull;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.storage.Metadata;
+import org.art.db.storage.StorageManager;
+import org.art.db.storage.TableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -479,8 +482,22 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 			Object left = this.evaluate(andExpression.getLeftExpression());
 			Object right = this.evaluate(andExpression.getRightExpression());
 
-			if (left instanceof DocumentSet && right instanceof DocumentSet) {
-				throw new UnsupportedSyntaxException("Bad plan for " + andExpression);
+			if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
+				Set<Key> leftKeys = new HashSet<>();
+				DocumentSet result = new DocumentSet();
+
+				for (Document doc : rset) {
+					leftKeys.add(SQLUtils.buildPrimaryKey(doc, this.metadata));
+				}
+
+				for (Document doc : rset) {
+					if (leftKeys.contains(SQLUtils.buildPrimaryKey(doc, this.metadata))) {
+						result.add(doc);
+					}
+				}
+
+				this.result = result;
+				return;
 			} 
 
 			if (left instanceof DocumentSet) {
@@ -634,10 +651,24 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	public void visit(FullTextSearch fullTextSearch) {
 		ExpressionList<Column> matchColumns = fullTextSearch.getMatchColumns();
 		
-		if (matchColumns.size() == 1) {
+		if (matchColumns.size() != 1) {
 			throw new UnsupportedSyntaxException("Fulltext searches are only supported on columns with fulltext indidex");
-		} else {
-			throw new UnsupportedSyntaxException("Multicolumn full text searches are not supported");
+		} 
+		
+		String column = matchColumns.get(0).getColumnName();
+		String pattern = this.evaluate(fullTextSearch.getAgainstValue(), String.class);
+				
+		for (IndexInfo info : this.metadata.getIndices()) {
+			if (info.isFulltext() && info.getFields().get(0).equals(column)) {
+				try {
+					TableManager manager = StorageManager.getInstance().getTableManager(this.table);
+					this.result = manager.getDocuments(info.getName(), Comparison.EQ, new Key(pattern));
+	
+					return;
+				} catch (Exception exc) {
+					throw new DBRuntimeException(exc.getMessage());
+				}
+			}
 		}
 		
 	}
