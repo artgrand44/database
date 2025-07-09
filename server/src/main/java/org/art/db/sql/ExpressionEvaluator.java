@@ -1,8 +1,10 @@
 package org.art.db.sql;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -483,19 +485,24 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 			Object right = this.evaluate(andExpression.getRightExpression());
 
 			if (left instanceof DocumentSet lset && right instanceof DocumentSet rset) {
-				Set<Key> leftKeys = new HashSet<>();
+				Map<Key, Document> leftMap = new HashMap<>();
+				Map<Key, Document> rightMap = new HashMap<>();
 				DocumentSet result = new DocumentSet();
 
 				for (Document doc : lset) {
-					leftKeys.add(SQLUtils.buildPrimaryKey(doc, this.metadata));
+					leftMap.put(SQLUtils.buildPrimaryKey(doc, this.metadata), doc);
 				}
 
 				for (Document doc : rset) {
-					if (leftKeys.contains(SQLUtils.buildPrimaryKey(doc, this.metadata))) {
-						result.add(doc);
-					}
+					rightMap.put(SQLUtils.buildPrimaryKey(doc, this.metadata), doc);
 				}
 
+				for (Map.Entry<Key, Document> entry : leftMap.entrySet()) {
+					if (rightMap.containsKey(entry.getKey())) {
+						result.add(entry.getValue());
+					}
+				}
+				
 				this.result = result;
 				return;
 			} 

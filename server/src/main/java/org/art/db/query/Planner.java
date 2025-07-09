@@ -72,7 +72,7 @@ public class Planner {
 		for (IndexInfo index : indices) {		
 			Scan scan = getScan(index.getName(), index.getFields(), fieldNameToFilter);
 			
-			if (scan != null) {
+			if (scan != null && !indexNameToInfo.get(scan.getIndex()).isFulltext()) {
 				alternateKeyLookups.add(scan);
 			}
 		}
@@ -82,15 +82,15 @@ public class Planner {
 		
 		if (selectColumns != null && !selectColumns.isEmpty()) {
 			for (Scan scan : alternateKeyLookups) {
-				IndexInfo index = indexNameToInfo.get(scan.getIndex());
+				IndexInfo info = indexNameToInfo.get(scan.getIndex());
 				boolean covers = true;
 				
 				for (String name : selectColumns) {
-					covers &= index.getFields().contains(name);
+					covers &= info.getFields().contains(name);
 				}
 
 				if (covers) {
-					return new IndexScan(table, filters, selectColumns, scan, index.getFields(), scan.getKey());
+					return new IndexScan(table, filters, selectColumns, scan, info.getFields(), scan.getKey());
 				}
 			}
 		}
@@ -98,26 +98,26 @@ public class Planner {
 		// See there's an IN on one of the alternate keys then do a lookup on
 		// all of the values in the IN clause
 		
-		for (IndexInfo index : indices) {		
-			String firstKey = index.getFields().get(0);
+		for (IndexInfo info : indices) {		
+			String firstKey = info.getFields().get(0);
 			Filter filter = fieldNameToFilter.get(firstKey);
 			
-			if (filter != null && filter.getComparison() == Comparison.IN) {
-				return new IndexInLookup(table, filters, index.getName(), (List<Comparable<?>>) filter.getValue());
+			if (filter != null && filter.getComparison() == Comparison.IN && !info.isFulltext()) {
+				return new IndexInLookup(table, filters, info.getName(), (List<Comparable<?>>) filter.getValue());
 			}
 		}
 		
 		// See there's a BETWEEN clause on one of the alternate keys then do a lookup on
 		// all of the values in the BETWEEN clause
 
-		for (IndexInfo index : indices) {		
-			String firstKey = index.getFields().get(0);
+		for (IndexInfo info : indices) {		
+			String firstKey = info.getFields().get(0);
 			Filter filter = fieldNameToFilter.get(firstKey);
 
-			if (filter != null && filter.getComparison() == Comparison.BETWEEN) {
+			if (filter != null && filter.getComparison() == Comparison.BETWEEN && !info.isFulltext()) {
 				List<Key> keys = filter.getKeys();
 				
-				return new IndexBetweenLookup(table, filters, index.getName(), keys.get(0), keys.get(1));
+				return new IndexBetweenLookup(table, filters, info.getName(), keys.get(0), keys.get(1));
 			}
 		}
 		

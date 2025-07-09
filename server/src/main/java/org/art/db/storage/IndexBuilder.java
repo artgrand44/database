@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.art.db.common.Blob;
 import org.art.db.common.DBNull;
@@ -45,14 +46,29 @@ public class IndexBuilder {
 					Document doc = BlobConverter.toDocument(metadata, entry.getValue());
 					Key primaryKey = entry.getKey();
 					Key secondaryKey = buildKey(doc, info.getFields());
-					List<Object> sortEntry = new ArrayList<>();
-					
-					sortEntry.add(secondaryKey);
-					sortEntry.add(primaryKey);
-					sortEntry.add(idx);
-					
-					stream.writeObject(sortEntry);	
-					totalCount++;
+					if (info.isFulltext()) {
+						Set<String> tokens = FullTextIndex.getTokens(secondaryKey);
+						
+						for (String token : tokens) {
+							List<Object> sortEntry = new ArrayList<>();
+
+							sortEntry.add(new Key(token));
+							sortEntry.add(primaryKey);
+							sortEntry.add(idx);
+
+							stream.writeObject(sortEntry);	
+							totalCount++;
+						}
+					} else {
+						List<Object> sortEntry = new ArrayList<>();
+
+						sortEntry.add(secondaryKey);
+						sortEntry.add(primaryKey);
+						sortEntry.add(idx);
+
+						stream.writeObject(sortEntry);	
+						totalCount++;
+					}
 				}
 			}
 		}

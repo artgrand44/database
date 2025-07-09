@@ -29,7 +29,7 @@ public class FullTextIndex extends Index {
 		super(file, name, false);
 	}
 	
-	private static Set<String> getTokens(Key key) {
+	public static Set<String> getTokens(Key key) {
 		Set<String> result = new HashSet<>();
 		String string = (String)key.getKeys()[0];
 		StringBuffer builder = new StringBuffer();
