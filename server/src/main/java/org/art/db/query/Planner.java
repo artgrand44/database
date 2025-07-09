@@ -69,10 +69,10 @@ public class Planner {
 		
 		List<Scan> alternateKeyLookups = new ArrayList<>();
 		
-		for (IndexInfo index : indices) {		
-			Scan scan = getScan(index.getName(), index.getFields(), fieldNameToFilter);
+		for (IndexInfo info : indices) {		
+			Scan scan = getScan(info.getName(), info.getFields(), fieldNameToFilter);
 			
-			if (scan != null && !indexNameToInfo.get(scan.getIndex()).isFulltext()) {
+			if (scan != null && !info.isFulltext()) {
 				alternateKeyLookups.add(scan);
 			}
 		}

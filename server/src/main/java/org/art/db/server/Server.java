@@ -95,7 +95,6 @@ public class Server implements HttpHandler, FullBytesCallback {
 			RestoreManager.getInstance().recover(handler);
 			MetricsLogger.getInstance().logStatus("Running");
 		} catch (Throwable exc) {
-			exc.printStackTrace();
 			logger.error(exc.getClass().getName() + exc.getMessage());
 		}		
 	}
