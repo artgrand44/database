@@ -47,24 +47,17 @@ public class SQLHandler {
 			
 			Statement statement = this.parse(sql);
 			
-			if (statement instanceof Alter alter) {
-				DDLHandler.alter(alter, shard, database, user, password);
-			} else if (statement instanceof CreateTable create) {
-				DDLHandler.createTable(create, shard, database, user, password);
-			} else if (statement instanceof CreateIndex create) {
-				DDLHandler.createIndex(create, shard, database, user, password);
-			} else if (statement instanceof Delete delete) {
-				DMLHandler.delete(delete, sql, shard, database, user, password, parameters);
-			} else if (statement instanceof Drop drop) {
-				DDLHandler.drop(drop, shard, database, user, password);
-			} else if (statement instanceof Grant grant) {
-				DDLHandler.grant(grant, shard, database, user, password);
-			} else if (statement instanceof Insert insert) {
-				DMLHandler.insert(insert, sql, shard, database, user, password, parameters);
-			} else if (statement instanceof Update update) {
-				DMLHandler.update(update, sql, shard, database, user, password, parameters);
-			} else if (statement instanceof Select) {
-				throw new DBRuntimeException("Select statements must be called via Client.executeQuery.");
+			switch (statement) {
+			case Alter alter        -> DDLHandler.alter(alter, shard, database, user, password);
+			case CreateTable create -> DDLHandler.createTable(create, shard, database, user, password);
+			case CreateIndex create -> DDLHandler.createIndex(create, shard, database, user, password);
+			case Delete delete      -> DMLHandler.delete(delete, sql, shard, database, user, password, parameters);
+			case Drop drop          -> DDLHandler.drop(drop, shard, database, user, password);
+			case Grant grant        -> DDLHandler.grant(grant, shard, database, user, password);
+			case Insert insert      -> DMLHandler.insert(insert, sql, shard, database, user, password, parameters);
+			case Update update      -> DMLHandler.update(update, sql, shard, database, user, password, parameters);
+			case Select select      -> throw new DBRuntimeException("Select statements must be called via Client.executeQuery.");
+			default                 -> throw new DBRuntimeException("Invalid statement " + sql);
 			}
 		} catch (JSQLParserException exc) {
 			String[] lines = exc.getMessage().split("\\n");
