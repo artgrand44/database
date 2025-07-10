@@ -5,11 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.art.db.common.Key;
 import org.art.db.common.Comparison;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
+import org.art.db.common.Key;
 import org.art.db.storage.IndexInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
@@ -28,29 +28,23 @@ public class Planner {
 		// Build some useful maps
 		
 		Metadata metadata = Metadata.getMetadata(table);
-		List<IndexInfo> indices = metadata.getIndices().stream().filter(x -> x.isBuilt()).toList();
+		List<IndexInfo> indices = metadata.getIndices().stream().filter(x -> x.isBuilt() && !x.isFulltext()).toList();
 		List<String> primaryKeys = metadata.getPrimaryKeyFields();
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
 		Map<String, Filter> fieldNameToFilter = new HashMap<>();
 		
 		boolean equals = true;
-		
+
 		for (Filter filter : filters) {
 			fieldNameToFilter.put(filter.getField(), filter);
 			equals &= filter.getComparison() == Comparison.EQ;
 		}
 		
-		Map<String, IndexInfo> indexNameToInfo = new HashMap<>();
-		
-		for (IndexInfo index : indices) {
-			indexNameToInfo.put(index.getName(), index);
-		}
-		
 		// If we are doing an EQ against the leading fields of the primary key
 		// then do a table lookup.
 		
-		Scan primaryKeyScan = getScan("", primaryKeys, fieldNameToFilter);		
+		Scan primaryKeyScan = getScan("", primaryKeys, filters);		
 				
 		if (primaryKeyScan != null && equals) {
 			return new  TableLookup(table, filters, primaryKeyScan.getKey());
@@ -70,9 +64,9 @@ public class Planner {
 		List<Scan> alternateKeyLookups = new ArrayList<>();
 		
 		for (IndexInfo info : indices) {		
-			Scan scan = getScan(info.getName(), info.getFields(), fieldNameToFilter);
+			Scan scan = getScan(info.getName(), info.getFields(), filters);
 			
-			if (scan != null && !info.isFulltext()) {
+			if (scan != null) {
 				alternateKeyLookups.add(scan);
 			}
 		}
@@ -82,7 +76,7 @@ public class Planner {
 		
 		if (selectColumns != null && !selectColumns.isEmpty()) {
 			for (Scan scan : alternateKeyLookups) {
-				IndexInfo info = indexNameToInfo.get(scan.getIndex());
+				IndexInfo info = metadata.getIndex(scan.getIndex());
 				boolean covers = true;
 				
 				for (String name : selectColumns) {
@@ -102,7 +96,7 @@ public class Planner {
 			String firstKey = info.getFields().get(0);
 			Filter filter = fieldNameToFilter.get(firstKey);
 			
-			if (filter != null && filter.getComparison() == Comparison.IN && !info.isFulltext()) {
+			if (filter != null && filter.getComparison() == Comparison.IN) {
 				return new IndexInLookup(table, filters, info.getName(), (List<Comparable<?>>) filter.getValue());
 			}
 		}
@@ -114,7 +108,7 @@ public class Planner {
 			String firstKey = info.getFields().get(0);
 			Filter filter = fieldNameToFilter.get(firstKey);
 
-			if (filter != null && filter.getComparison() == Comparison.BETWEEN && !info.isFulltext()) {
+			if (filter != null && filter.getComparison() == Comparison.BETWEEN) {
 				List<Key> keys = filter.getKeys();
 				
 				return new IndexBetweenLookup(table, filters, info.getName(), keys.get(0), keys.get(1));
@@ -143,17 +137,9 @@ public class Planner {
 		
 	}
 	
-
-	private static Scan getScan(String index, List<String> keyFields, Map<String, Filter> nameToFilter) {
-		List<Filter> filters = new ArrayList<>();
-		
-		for (String field : keyFields) {
-			Filter filter = nameToFilter.get(field);
-			
-			if (filter != null) {
-				filters.add(filter);
-			}
-		}
+	
+	private static Scan getScan(String index, List<String> keyFields, List<Filter> allFilters) {
+		List<Filter> filters = allFilters.stream().filter(x -> keyFields.contains(x.getField())).toList();
 		
 		if (filters.isEmpty()) {
 			return null;
@@ -180,6 +166,7 @@ public class Planner {
 		
 		return new Scan(index, comp, new Key(keys));
 	}
+	
 	
 	static class DummyPlan extends Plan {
 		DummyPlan() throws Exception {
