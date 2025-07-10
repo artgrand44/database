@@ -1,9 +1,8 @@
 package org.art.db.query;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.function.Predicate;
 
 import org.art.db.common.Comparison;
 import org.art.db.common.DBRuntimeException;
@@ -32,15 +31,8 @@ public class Planner {
 		List<String> primaryKeys = metadata.getPrimaryKeyFields();
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 		
-		Map<String, Filter> fieldNameToFilter = new HashMap<>();
-		
-		boolean equals = true;
+		boolean equals = filters.stream().allMatch(x -> x.getComparison() == Comparison.EQ);
 
-		for (Filter filter : filters) {
-			fieldNameToFilter.put(filter.getField(), filter);
-			equals &= filter.getComparison() == Comparison.EQ;
-		}
-		
 		// If we are doing an EQ against the leading fields of the primary key
 		// then do a table lookup.
 		
@@ -94,9 +86,9 @@ public class Planner {
 		
 		for (IndexInfo info : indices) {		
 			String firstKey = info.getFields().get(0);
-			Filter filter = fieldNameToFilter.get(firstKey);
+			Filter filter = findFilter(filters, x -> x.getField().equals(firstKey) && x.getComparison() ==  Comparison.IN);
 			
-			if (filter != null && filter.getComparison() == Comparison.IN) {
+			if (filter != null) {
 				return new IndexInLookup(table, filters, info.getName(), (List<Comparable<?>>) filter.getValue());
 			}
 		}
@@ -106,9 +98,9 @@ public class Planner {
 
 		for (IndexInfo info : indices) {		
 			String firstKey = info.getFields().get(0);
-			Filter filter = fieldNameToFilter.get(firstKey);
+			Filter filter = findFilter(filters, x -> x.getField().equals(firstKey) && x.getComparison() ==  Comparison.BETWEEN);
 
-			if (filter != null && filter.getComparison() == Comparison.BETWEEN) {
+			if (filter != null) {
 				List<Key> keys = filter.getKeys();
 				
 				return new IndexBetweenLookup(table, filters, info.getName(), keys.get(0), keys.get(1));
@@ -133,10 +125,13 @@ public class Planner {
 			return new IndexLookup(table, filters, alternateKeyLookups);
 		}
 		
-		throw new DBRuntimeException("The query does must include one of more indexed fields");
+		throw new DBRuntimeException("Please provide a normal (not fulltext) index for this query.");
 		
 	}
 	
+	private static Filter findFilter(List<Filter> list, Predicate<Filter> test) {
+		return list.stream().filter(x -> test.test(x)).findFirst().orElse(null);
+	}
 	
 	private static Scan getScan(String index, List<String> keyFields, List<Filter> allFilters) {
 		List<Filter> filters = allFilters.stream().filter(x -> keyFields.contains(x.getField())).toList();
