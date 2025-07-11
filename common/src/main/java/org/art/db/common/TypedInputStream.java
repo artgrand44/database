@@ -30,64 +30,50 @@ public class TypedInputStream extends DataInputStream {
 		return this.in;
 	}
 	
+	private List<?> readList() throws IOException {
+		List<Object> list = new ArrayList<>();
+		int size = this.readInt();
+		
+		for (int idx = 0; idx < size; idx++) {
+			list.add(this.readObject());
+		}
+		
+		return list;
+	}
+	
 	@SuppressWarnings("resource")
 	public Object readObject() throws IOException {
 		StreamType type = StreamType.values()[this.readByte()];
 		
-		switch (type) {
-		case Boolean:
-			return this.readBoolean();
-		case Byte:
-			return this.readByte();
-		case Character:
-			return this.readChar();
-		case Double:
-			return this.readDouble();
-		case Float:
-			return this.readFloat();
-		case Integer:
-			return this.readInt();
-		case Long:
-			return this.readLong();
-		case Short:
-			return this.readShort();
-		case String:
-			int length = this.readInt();
-			byte[] bytes = new byte[length];
-			
-			this.read(bytes);
-			
-			return new String(bytes);
-		case Document:
-			return new Document().deserialize(this);
-		case Key:
-			return new Key().deserialize(this);
-		case List:
-		case ArrayList:
-		case LinkedList:
-			List<Object> list = new ArrayList<>();
-			int size = this.readInt();
-			
-			for (int idx = 0; idx < size; idx++) {
-				list.add(this.readObject());
-			}
-			
-			return list;
-		case DocumentSet:
-			return new DocumentSet().deserialize(this); 
-		case DBNull:
-			return DBNull.NULL;
-		case Blob:
-			return new Blob().deserialize(this);
-		case GUID:
-			return new GUID().deserialize(this);
-		case Date:
-			return new Date(this.readLong());
-		case LogEntry:
-			return new LogEntry().deserialize(this);
-		default:
-			throw new DBRuntimeException("Error deserializng " + type);
-		}
+		return switch (type) {
+		case Boolean ->     this.readBoolean();
+		case Byte ->        this.readByte();
+		case Character ->   this.readChar();
+		case Double ->      this.readDouble();
+		case Float ->       this.readFloat();
+		case Integer ->     this.readInt();
+		case Long ->        this.readLong();
+		case Short ->       this.readShort();
+		case String ->      this.readString();
+		case Document ->    new Document().deserialize(this);
+		case Key ->         new Key().deserialize(this);
+		case List ->        this.readList();
+		case DocumentSet -> new DocumentSet().deserialize(this); 
+		case DBNull ->      DBNull.NULL;
+		case Blob ->        new Blob().deserialize(this);
+		case GUID ->        new GUID().deserialize(this);
+		case Date ->        new Date(this.readLong());
+		case LogEntry ->    new LogEntry().deserialize(this);
+		default ->          null;
+		};
 	}
 	
+	private String readString() throws IOException {
+		int length = this.readInt();
+		byte[] bytes = new byte[length];
+		
+		this.read(bytes);
+		
+		return new String(bytes);
+	}
 }

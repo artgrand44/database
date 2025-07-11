@@ -58,24 +58,12 @@ public class TypedOutputStream extends DataOutputStream {
 		super(new ByteArrayOutputStream());
 	}
 	
-	public TypedOutputStream(OutputStream out) {
-		super(out);
-	}
-	
 	public TypedOutputStream(File file) throws FileNotFoundException {
 		super(new BufferedOutputStream(new FileOutputStream(file)));
 	}
 	
-	public static boolean isSerializable(Object obj) {
-		Class<?> clazz = obj.getClass();
-				
-		for (int idx = 0; idx < SUPPORTED_TYPES.length; idx++) {			
-			if (clazz == SUPPORTED_TYPES[idx]) {
-				return true;
-			}
-		}
-		
-		return false;
+	public TypedOutputStream(OutputStream out) {
+		super(out);
 	}
 	
 	public byte[] toByteArray() throws IOException {
@@ -88,91 +76,46 @@ public class TypedOutputStream extends DataOutputStream {
 		}
 	}
 	
-	@SuppressWarnings("rawtypes")
+	private void writeList(List<?> list) throws IOException {
+		this.writeInt(list.size()); 
+		
+		for (Object item : list) {
+			this.writeObject(item);
+		}
+	}
+	
 	public void writeObject(Object obj) throws IOException {
+		
 		switch (obj) {
-		case Boolean bool:
-			this.writeByte(StreamType.Boolean.ordinal());
-			this.writeBoolean(bool);
-			break;
-		case Byte b:
-			this.writeByte(StreamType.Byte.ordinal());
-			this.writeByte(b);
-			break;
-		case Character chr:
-			this.writeByte(StreamType.Character.ordinal());
-			this.writeChar(chr);
-			break;
-		case Double dbl:
-			this.writeByte(StreamType.Double.ordinal());
-			this.writeDouble(dbl);
-			break;
-		case Float fl:
-			this.writeByte(StreamType.Float.ordinal());
-			this.writeFloat(fl);
-			break;
-		case Integer in:
-			this.writeByte(StreamType.Integer.ordinal());
-			this.writeInt(in);
-			break;
-		case Long lng:
-			this.writeByte(StreamType.Long.ordinal());
-			this.writeLong(lng);
-			break;
-		case Short shrt:
-			this.writeByte(StreamType.Long.ordinal());
-			this.writeShort(shrt);
-			break;
-		case Date date:
-			this.writeByte(StreamType.Date.ordinal());
-			this.writeLong(date.getTime());
-			break;
-		case String str:
-			byte[] bytes = str.getBytes();
-			
-			this.writeByte(StreamType.String.ordinal());
-			this.writeInt(bytes.length);
-			this.write(bytes);
-			break;
-		case LogEntry entry:
-			this.writeByte(StreamType.LogEntry.ordinal());
-			entry.serialize(this);
-			break;
-		case List list:
-			this.writeByte(StreamType.List.ordinal());
-			this.writeInt(list.size()); 
-			
-			for (Object item : list) {
-				this.writeObject(item);
-			}
-			break;
-		case Document doc:
-			this.writeByte(StreamType.Document.ordinal());
-			doc.serialize(this);
-			break;
-		case DocumentSet set:
-			this.writeByte(StreamType.DocumentSet.ordinal());
-			set.serialize(this);
-			break;
-		case Key key:
-			this.writeByte(StreamType.Key.ordinal());
-			key.serialize(this);
-			break;
-		case DBNull nl:
-			this.writeByte(StreamType.DBNull.ordinal());
-			break;
-		case Blob blob:
-			this.writeByte(StreamType.Blob.ordinal());
-			blob.serialize(this);
-			break;
-		case GUID guid:
-			this.writeByte(StreamType.GUID.ordinal());
-			guid.serialize(this);
-			break;
-		default:
-			throw new IOException("Illegal field type");			
+		case Boolean bool ->    { this.writeByte(StreamType.Boolean.ordinal());     this.writeBoolean(bool); }
+		case Byte b ->          { this.writeByte(StreamType.Byte.ordinal());        this.writeByte(b); }
+		case Character chr ->   { this.writeByte(StreamType.Character.ordinal());   this.writeChar(chr); }
+		case Double dbl ->      { this.writeByte(StreamType.Double.ordinal());      this.writeDouble(dbl); }
+		case Float fl ->        { this.writeByte(StreamType.Float.ordinal());       this.writeFloat(fl); }
+		case Integer in ->      { this.writeByte(StreamType.Integer.ordinal());     this.writeInt(in); }
+		case Long lng ->        { this.writeByte(StreamType.Long.ordinal());        this.writeLong(lng); }
+		case Short shrt ->      { this.writeByte(StreamType.Long.ordinal());        this.writeShort(shrt); }
+		case Date date ->       { this.writeByte(StreamType.Date.ordinal());        this.writeLong(date.getTime()); }
+		case LogEntry entry ->  { this.writeByte(StreamType.LogEntry.ordinal());    entry.serialize(this); }
+		case Document doc ->    { this.writeByte(StreamType.Document.ordinal());    doc.serialize(this); }
+		case DocumentSet set -> { this.writeByte(StreamType.DocumentSet.ordinal()); set.serialize(this); }
+		case Key key ->         { this.writeByte(StreamType.Key.ordinal());         key.serialize(this); }
+		case Blob blob ->       { this.writeByte(StreamType.Blob.ordinal());        blob.serialize(this); }
+		case GUID guid ->       { this.writeByte(StreamType.GUID.ordinal());        guid.serialize(this); }
+		case String str ->      { this.writeByte(StreamType.String.ordinal());      this.writeString(str); }
+		case List<?> list ->    { this.writeByte(StreamType.List.ordinal());        this.writeList(list); }
+		case DBNull nl ->       { this.writeByte(StreamType.DBNull.ordinal()); }
+		
+		default ->              throw new IOException("Illegal field type");			
 		}
 	
+	}
+	
+	private void writeString(String string) throws IOException {
+		byte[] bytes = string.getBytes();
+		
+		this.writeInt(bytes.length);
+		this.write(bytes);
 	}
 		
 	public static int getSize(Object obj) {
@@ -205,5 +148,17 @@ public class TypedOutputStream extends DataOutputStream {
 		} 
 		
 		throw new DBRuntimeException("Illegal field type");				
+	}
+	
+	public static boolean isSerializable(Object obj) {
+		Class<?> clazz = obj.getClass();
+				
+		for (int idx = 0; idx < SUPPORTED_TYPES.length; idx++) {			
+			if (clazz == SUPPORTED_TYPES[idx]) {
+				return true;
+			}
+		}
+		
+		return false;
 	}
 }
