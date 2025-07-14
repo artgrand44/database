@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service1
+  labels: {
+    "database" : "cluster",
+    "shard" : "shard1"
+  }
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/path: '/data/metrics'
+    prometheus.io/port:   '8080'
+spec:
+  selector:
+    matchLabels:
+      app: cluster
+      database: cluster
+  replicas: 1
+  template: # create pods using pod definition in this template
+    metadata:
+      labels:
+        app: cluster
+        database: cluster
+    spec:
+      containers:
+      - name: cluster
+        image: db:v1 
+        env:
+           - name: database
+             value: "cluster"
+           - name: cloud
+             value: kubernetes
+           - name: org.art.db.backupinterval
+             value: "1w"
+           - name:  org.art.db.shard
+             value : "shard1"
+           - name: org.art.db.backuproot
+             value: /backup
+           - name: org.art.db.backupmax
+             value: "2"
+           - name: org.art.db.dbroot
+             value: /data/files
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+            - name: cluster-shard1
+              mountPath: /data/files
+            - name: cluster
+              mountPath: /discovery
+            - name: config
+              mountPath: "/config"
+              readOnly: true
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /db/ping
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5        
+      volumes:
+        - name: cluster-shard1
+        - name: cluster
+        - name: config
+          configMap:
+            name: cluster
+            items:
+              - key: "db.properties"
+                path: "db.properties"

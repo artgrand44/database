@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cluster-shard1
+spec:
+  accessModes:
+    - ReadWriteOncePod
+  capacity:
+    storage: 4Gi
+  storageClassName: local-storage
+  local:
+    path: /art/cluster-shard1/
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - thevalue
+ 
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cluster-shard1-back
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 4Gi
+  hostPath:
+    path: /backup/cluster-shard1-back
