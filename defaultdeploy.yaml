@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: servicename
+  name: defaultdbservice
   labels: {
     "database" : "defaultdb",
     "shard" : "defaultdbshard1"
@@ -25,22 +25,10 @@ spec:
       containers:
       - name: defaultdb
         image: db:v1 
-        env:
-           - name: database
-             value: "defaultdb"
-           - name: cloud
-             value: kubernetes
-           - name: org.art.db.backupinterval
-             value: "1w"
-           - name:  org.art.db.shard
-             value : "defaultdbshard1"
-           - name: org.art.db.backuproot
-             value: /backup
-           - name: org.art.db.backupmax
-             value: "2"
-           - name: org.art.db.dbroot
-             value: /data/files
         imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: defaultdb
         volumeMounts:
             - name: defaultdbdata
               mountPath: /data/files
@@ -65,6 +53,3 @@ spec:
         - name: config
           configMap:
             name: defaultdb
-            items:
-              - key: "db.properties"
-                path: "db.properties"

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: defaultdbservice
+  labels: {
+    "database" : "defaultdb",
+    "shard" : "defaultdbshard1"
+  }
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/path: '/data/metrics'
+    prometheus.io/port:   '8080'
+spec:
+  selector:
+    matchLabels:
+      app: defaultdb
+      database: defaultdb
+  replicas: 1
+  template: # create pods using pod definition in this template
+    metadata:
+      labels:
+        app: defaultdb
+        database: defaultdb
+    spec:
+      containers:
+      - name: defaultdb
+        image: db:v1 
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: defaultdb
+        volumeMounts:
+            - name: defaultdbdata
+              mountPath: /data/files
+            - name: defaultdb
+              mountPath: /discovery
+            - name: config
+              mountPath: "/config"
+              readOnly: true
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /db/ping
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5        
+      volumes:
+        - name: defaultdbdata
+        - name: defaultdb
+        - name: config
+          configMap:
+            name: defaultdb

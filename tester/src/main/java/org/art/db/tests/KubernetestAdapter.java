@@ -21,8 +21,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
-import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
+import io.fabric8.kubernetes.api.model.ConfigMapEnvSource;
+import io.fabric8.kubernetes.api.model.EnvFromSource;
+import io.fabric8.kubernetes.api.model.EnvFromSourceBuilder;
 import io.fabric8.kubernetes.api.model.IntOrString;
+import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Service;
@@ -52,6 +56,7 @@ public class KubernetestAdapter extends TestAdapter {
 	public Client getClusterClient(String user, String password, int cacheSize, Duration cacheDuration) throws Exception {
 		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password, cacheSize, cacheDuration);
 	}
+	
 	private String getLog(Server server) {
 		try {
 			PodList podList  = client.pods().inNamespace("default").withLabel("appname=" + server.name).list();
@@ -124,30 +129,12 @@ public class KubernetestAdapter extends TestAdapter {
 			logger.info("kill exception " + exc.getMessage());
 		}
 	}
-	private void setEnvironment(List<EnvVar> list, String name, String value) {
-		for (EnvVar var : list) {
-			if (var.getName().equals(name)) {
-				var.setValue(value);
-				return;
-			}
-		}
-		
-		list.add(new EnvVar(name, value, null));
-	}
 	
 	private Server start(String profile) {
 		try {
-			
-			// Make sure that the config map exists
-			
-			String configYaml = this.getResourceAsString("customconfig.yaml");
-			ConfigMap config =  Serialization.unmarshal(configYaml, ConfigMap.class);
-			
-			client.configMaps().inNamespace("default").resource(config).unlock().createOr(NonDeletingOperation::update);
-			
 			// Read the yaml template then set the application name to the name of the profile
 			
-			String deployYaml = this.getResourceAsString("custom.yaml");
+			String deployYaml = this.getResourceAsString("defaultdeploy.yaml");
 			Deployment deployment = Serialization.unmarshal(deployYaml, Deployment.class);
 			
 			String name = new File(profile).getName();
@@ -158,19 +145,32 @@ public class KubernetestAdapter extends TestAdapter {
 			deployment.getSpec().getSelector().getMatchLabels().put("appname", shortName);
 			deployment.getSpec().getTemplate().getMetadata().getLabels().put("appname", shortName);
 						
+			
 			// Load the property file for the profile
 			
 			Properties props = new Properties();
+			List<String> pairs = new ArrayList<>();
 						
 			try (StringReader reader = new StringReader(this.getResourceAsString(new File(profile).getName()))) {
 				props.load(reader);
 			}
 			
-			List<EnvVar> list = deployment.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv();
+			String database = props.containsKey("org.art.db.database") ? (String)props.get("org.art.db.database") : "cluster";
 			
-			for (Map.Entry<Object, Object> entry : props.entrySet()) {
-				this.setEnvironment(list, (String)entry.getKey(), (String)entry.getValue());
-			}			
+			props.forEach((x, y) -> pairs.add(x + "=" + y));
+			
+			ConfigMap configMap = new ConfigMapBuilder()
+					             .withData(Map.of("db.properties", String.join("\n", pairs)))
+					             .withMetadata(new ObjectMetaBuilder().withName("defaultdb").build())
+					             .build();
+			
+			client.configMaps().inNamespace("default").resource(configMap).unlock().createOr(NonDeletingOperation::update);
+			
+			EnvFromSource source = new EnvFromSourceBuilder()
+					                   .withConfigMapRef(new ConfigMapEnvSource(shortName, true))
+					                   .build();
+			
+			deployment.getSpec().getTemplate().getSpec().getContainers().get(0).setEnvFrom(Collections.singletonList(source));
 			
 			Service service = new ServiceBuilder()
 		            .withNewMetadata().withName("test-" + shortName).addToLabels("app", shortName).endMetadata()
@@ -212,8 +212,6 @@ public class KubernetestAdapter extends TestAdapter {
 		    	if (uris.isEmpty()) {
 		    		Utils.sleepSafely(1000);
 		    	} else {
-		    		String database = deployment.getMetadata().getLabels().get("database");
-					
 		    		return new Server(profile, shortName, database, deployment, service, uris, uris.get(0));
 		    	}
 		    }

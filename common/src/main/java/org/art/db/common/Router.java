@@ -115,6 +115,11 @@ public class Router {
 		} 
 	}
 	
+	public static void clear() {
+		synchronized (routers) {
+			routers.clear();
+		}
+	}
 	private byte[] doCall(String method, String shardKey, String template, Object body, Object ... args) throws Exception {
 		
 		if (this.uri == null) {
@@ -169,12 +174,12 @@ public class Router {
 	 */
 	public static Router getRouter(ConnectionInfo info, URI uri, String user, String password) {
 		synchronized (routers) {
-		RouterKey key = new RouterKey(info, uri, user, password);
-		
-		Router router =  routers.computeIfAbsent(key, x-> new Router(key));
-		
-		router.referenceCount++;
-		return router;
+			RouterKey key = new RouterKey(info, uri, user, password);
+
+			Router router =  routers.computeIfAbsent(key, x-> new Router(key));
+
+			router.referenceCount++;
+			return router;
 		}
 	}
 	

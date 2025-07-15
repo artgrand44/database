@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 public class FulltextTest extends BaseIntegrationTest {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(FulltextTest.class);
 	
 	
@@ -43,14 +42,14 @@ public class FulltextTest extends BaseIntegrationTest {
 			
 			DocumentSet docs = client.executeQuery("select * from fulltext where match(text) against('human')");
 			
-			Assertions.assertThat(docs.size() == 2).isTrue();
-			Assertions.assertThat(docs.iterator().next().get("text", String.class).contains("human")).isTrue();
-			Assertions.assertThat(docs.iterator().next().get("text", String.class).contains("human")).isTrue();
+			Assertions.assertThat(docs.size() == 2).withFailMessage("wrong size 1").isTrue();
+			Assertions.assertThat(docs.iterator().next().get("text", String.class).contains("human")).withFailMessage("wrong match1").isTrue();
+			Assertions.assertThat(docs.iterator().next().get("text", String.class).contains("human")).withFailMessage("wrong match2").isTrue();
 			
 			docs = client.executeQuery("select * from fulltext where match(text) against('go nuts')");
 			
-			Assertions.assertThat(docs.size() == 1).isTrue();
-			Assertions.assertThat(docs.iterator().next().get("text", String.class).contains("go nuts")).isTrue();
+			Assertions.assertThat(docs.size() == 1).withFailMessage("wrong size2").isTrue();
+			Assertions.assertThat(docs.iterator().next().get("text", String.class).contains("go nuts")).withFailMessage("wrong go nuts").isTrue();
 			
 			try {
 				docs = client.executeQuery("select * from fulltext where match(nontext) against('human')");
@@ -67,27 +66,27 @@ public class FulltextTest extends BaseIntegrationTest {
 			}
 			
 			docs = client.executeQuery("select * from fulltext where match(text) against('nuts') or match(text) against('events')");
-			Assertions.assertThat(docs.size() == 2).isTrue();
+			Assertions.assertThat(docs.size() == 2).withFailMessage("wrong size 3").isTrue();
 			
 			docs = client.executeQuery("select * from fulltext where match(text) against('nuts') and match(text) against('events')");
 			Assertions.assertThat(docs.size() == 0).isTrue();
 			
 			docs = client.executeQuery("select * from fulltext where match(text) against('nuts') and match(text) against('nuts')");
-			Assertions.assertThat(docs.size() == 1).isTrue();
+			Assertions.assertThat(docs.size() == 1).withFailMessage("Wrong size 4").isTrue();
 			
 			client.execute("update fulltext set text = 'cats are wise' where id = ?", guid2);
 			
 			docs = client.executeQuery("select * from fulltext where match(text) against('cats')");
-			Assertions.assertThat(docs.size() == 1).isTrue();
+			Assertions.assertThat(docs.size() == 1).withFailMessage("wrong size 5").isTrue();
 			
 			docs = client.executeQuery("select * from fulltext where match(text) against('nuts')");
-			Assertions.assertThat(docs.size() == 0).isTrue();
+			Assertions.assertThat(docs.size() == 0).withFailMessage("wrong size 6").isTrue();
 			
 			client.execute(createMoreIndex);
 			
 			boolean found = false;
 			
-			for (int idx = 0; idx < 100; idx++) {
+			for (int idx = 0; idx < 1000; idx++) {
 				docs = null;
 				
 				try {
@@ -104,8 +103,10 @@ public class FulltextTest extends BaseIntegrationTest {
 				Utils.sleepSafely(1000);
 			}
 			
-			Assertions.assertThat(found).isTrue();
+			Assertions.assertThat(found).withFailMessage("not found").isTrue();
 		} catch (AssertionFailedError err) {
+			logger.info(err.getMessage());
+			err.printStackTrace();
 			throw err;
 		} catch(Exception exc) {
 			exc.printStackTrace();

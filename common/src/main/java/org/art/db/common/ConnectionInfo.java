@@ -28,8 +28,14 @@ public class ConnectionInfo {
 	}
 
 	public static ConnectionInfo fromKubernetes() throws Exception {
-		String database = getenv("org.art.db.database", "cluster");
-		String shard = getenv("org.art.db.shard",  "shard");
+		Properties properties = new Properties();
+		
+		try (FileInputStream stream = new FileInputStream("/config/db.properties")) {
+			properties.load(stream);
+		}
+		
+		String database = properties.getProperty("org.art.db.database", "cluster");
+		String shard = properties.getProperty("org.art.db.shard",  "shard");
 		
 		return new ConnectionInfo(InetAddress.getLocalHost().getHostAddress(), "8080", shard, database);
 	}
@@ -57,11 +63,6 @@ public class ConnectionInfo {
 				
 	}
 	
-	private static String getenv(String name, String dflt) {
-		String value = System.getenv(name);
-		
-		return value == null ? dflt : value;
-	}
 	public String getHost() {
 		return host;
 	}

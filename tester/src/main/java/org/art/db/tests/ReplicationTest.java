@@ -78,6 +78,8 @@ public class ReplicationTest extends BaseIntegrationTest {
 					Assertions.assertThat(doc.get("id").equals(Long.valueOf(idx))).isTrue();
 				}
 		} catch (AssertionFailedError err) {
+			logger.info(err.getMessage());
+			err.printStackTrace();
 			throw err;
 		} catch(Throwable exc) {
 			Assertions.fail(exc.getMessage());

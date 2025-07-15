@@ -11,5 +11,5 @@ data:
     org.art.db.nodeCache=10M
     org.art.db.indexCache=10M
     org.art.db.backupinterval=1w
-    org.art.db.queueRecovery=3  
+    org.art.db.queueRecovery=3
   

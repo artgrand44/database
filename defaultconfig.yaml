@@ -4,11 +4,14 @@ metadata:
   name: defaultdb
 data:
   db.properties: |
+    org.art.db.database=defaultdb
+    org.art.db.shard=defaultdbshard1
     org.art.db.backupmax=maxbackup
-    org.art.db.logDelay=1s
+    org.art.db.dbroot=/data/files
+    org.art.db.logDelay=2
     org.art.db.documentCache=1M
     org.art.db.maxSegmentSize=100000
     org.art.db.nodeCache=10M
     org.art.db.indexCache=10M
     org.art.db.backupinterval=1w
-    org.art.db.queueRecovery=3  
+    org.art.db.queueRecovery=3

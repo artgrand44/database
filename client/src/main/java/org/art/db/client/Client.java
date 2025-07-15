@@ -120,6 +120,10 @@ public class Client implements Closeable {
 		}
 	}
 	
+	public static void clear() {
+		ClientCache.clearAll();
+	}
+	
 	@Override
 	public void close() throws IOException {
 		if (this.closed.compareAndSet(false,  true)) {
@@ -259,6 +263,11 @@ public class Client implements Closeable {
 			return cache;
 		}
 		
+		static void clearAll() {
+			synchronized (caches) {
+				caches.clear();
+			}
+		}
 		void free() {
 			synchronized (caches) {
 				if (--this.referenceCount == 0) {

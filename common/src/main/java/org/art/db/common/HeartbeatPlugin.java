@@ -22,7 +22,9 @@ public class HeartbeatPlugin implements DiscoveryPlugin {
 	
 	@Override
 	public void clear() {
-		this.listener.clear();
+		if (this.listener != null) {
+			this.listener.clear();
+		} 
 	}
 	
 	@Override
@@ -45,7 +47,9 @@ public class HeartbeatPlugin implements DiscoveryPlugin {
 	
 	@Override
 	public void removeInstance(URI instance) {
-		this.listener.removeInstance(instance);
+		if (this.listener != null) {
+			this.listener.removeInstance(instance);
+		} 
 	}
 	
 	@Override
