@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.net.URI;
+import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -132,6 +133,7 @@ public class KubernetestAdapter extends TestAdapter {
 	
 	private Server start(String profile) {
 		try {
+			logger.info("start profile " + profile);
 			// Read the yaml template then set the application name to the name of the profile
 			
 			String deployYaml = this.getResourceAsString("defaultdeploy.yaml");
@@ -145,26 +147,45 @@ public class KubernetestAdapter extends TestAdapter {
 			deployment.getSpec().getSelector().getMatchLabels().put("appname", shortName);
 			deployment.getSpec().getTemplate().getMetadata().getLabels().put("appname", shortName);
 						
+			// Load or build the config map
 			
-			// Load the property file for the profile
+			ConfigMap configMap;
 			
-			Properties props = new Properties();
-			List<String> pairs = new ArrayList<>();
-						
-			try (StringReader reader = new StringReader(this.getResourceAsString(new File(profile).getName()))) {
-				props.load(reader);
+			if (profile.endsWith(".yaml")) {
+				String yaml = this.getResourceAsString(new File(profile).getName());
+				configMap = Serialization.unmarshal(yaml, ConfigMap.class);
+			} else {
+				Properties props = new Properties();
+				List<String> pairs = new ArrayList<>();
+
+				try (StringReader reader = new StringReader(this.getResourceAsString(new File(profile).getName()))) {
+					props.load(reader);
+				}
+
+				props.forEach((x, y) -> pairs.add(x + "=" + y));
+
+				configMap = new ConfigMapBuilder()
+								.withData(Map.of("db.properties", String.join("\n", pairs)))
+								.withMetadata(new ObjectMetaBuilder().withName("defaultdb").build())
+								.build();
 			}
 			
-			String database = props.containsKey("org.art.db.database") ? (String)props.get("org.art.db.database") : "cluster";
-			
-			props.forEach((x, y) -> pairs.add(x + "=" + y));
-			
-			ConfigMap configMap = new ConfigMapBuilder()
-					             .withData(Map.of("db.properties", String.join("\n", pairs)))
-					             .withMetadata(new ObjectMetaBuilder().withName("defaultdb").build())
-					             .build();
-			
 			client.configMaps().inNamespace("default").resource(configMap).unlock().createOr(NonDeletingOperation::update);
+			
+			// Find the database from the config 
+			
+			String[] pairs = configMap.getData().get("db.properties").split("\n");
+			String database = "cluster";
+			
+			for (String pair : pairs) {
+				String[] tokens = pair.split("=");
+				
+				if (tokens[0].equals("org.art.db.database")) {
+					database = tokens[1];
+					logger.info("found db from config " + database);
+					break;
+				}
+			}
 			
 			EnvFromSource source = new EnvFromSourceBuilder()
 					                   .withConfigMapRef(new ConfigMapEnvSource(shortName, true))

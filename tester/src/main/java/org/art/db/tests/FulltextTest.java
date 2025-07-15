@@ -86,13 +86,14 @@ public class FulltextTest extends BaseIntegrationTest {
 			
 			boolean found = false;
 			
-			for (int idx = 0; idx < 1000; idx++) {
+			for (int idx = 0; idx < 100; idx++) {
 				docs = null;
 				
 				try {
-					docs = client.executeQuery("select * from fulltext where match(nonindex) against('stuff')");
+					docs = client.executeQuery("select * from fulltext where match(nonindex) against('more')");
+					logger.info("Got docs " + docs.size());
 				} catch (Exception exc) {
-					
+					logger.info("Got exception " + exc.getMessage());
 				}
 				
 				if (docs != null && docs.size() != 0) {
