@@ -206,6 +206,10 @@
         	<includes>
             	<include>**/*.class</include>
             	<include>**/*.properties</include>
+            	<include>**/*.png</include>
+            	<include>**/*.js</include>
+            	<include>**/*.css</include>
+            	<include>**/*.json</include>
             	<include>**/*.yaml</include>
         	</includes>
           <archive>

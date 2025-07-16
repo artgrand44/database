@@ -47,31 +47,14 @@ public class IndexBuilder {
 					Key primaryKey = entry.getKey();
 					Key secondaryKey = buildKey(doc, info.getFields());
 					
-					if (info.isFulltext()) {
-						Set<String> tokens = FullTextIndex.getTokens(secondaryKey);
-						
-						logger.info("Got tokens for " + primaryKey + " " + " secondary " + secondaryKey + " tokens " + tokens);
-						
-						for (String token : tokens) {
-							List<Object> sortEntry = new ArrayList<>();
+					List<Object> sortEntry = new ArrayList<>();
 
-							sortEntry.add(new Key(token));
-							sortEntry.add(primaryKey);
-							sortEntry.add(idx);
+					sortEntry.add(secondaryKey);
+					sortEntry.add(primaryKey);
+					sortEntry.add(idx);
 
-							stream.writeObject(sortEntry);	
-							totalCount++;
-						}
-					} else {
-						List<Object> sortEntry = new ArrayList<>();
-
-						sortEntry.add(secondaryKey);
-						sortEntry.add(primaryKey);
-						sortEntry.add(idx);
-
-						stream.writeObject(sortEntry);	
-						totalCount++;
-					}
+					stream.writeObject(sortEntry);	
+					totalCount++;					
 				}
 			}
 		}
@@ -90,18 +73,20 @@ public class IndexBuilder {
 		try (TypedInputStream sortStream = new TypedInputStream(sortFile); TypedOutputStream filteredStream = new TypedOutputStream(filteredFile)) {
 			while (readCount++ < totalCount) {
 				List<Object> entry = (List<Object>)sortStream.readObject();
+				
 				Key key = (Key)entry.get(PRIMARY);
 
 				if (!key.equals(prevKey)) {
 					filteredStream.writeObject(entry);
 					prevKey = key;
 					filteredCount++;
-				}
+				} 
 			}
 		} 
 
 		// Sort the remaining entries by secondary and primary key then create
-		// the index entries
+		// the index entries.  For fulltext indices, the insert will split the
+		// secondary key and insert one entry per word
 
 		sortFile = sorter.sort(filteredFile, IndexBuilder::compareBySecondaryAndPrimary);
 		readCount = 0;
@@ -109,11 +94,11 @@ public class IndexBuilder {
 		try (TypedInputStream sortStream = new TypedInputStream(sortFile)) {
 			while (readCount++ < filteredCount) {
 				List<Object> entry = (List<Object>)sortStream.readObject();
-				Key secoondary = (Key)entry.get(SECONDARY);
+				Key secondary = (Key)entry.get(SECONDARY);
 				Key primary = (Key)entry.get(PRIMARY);
 
-				logger.info("insert primary = " + prevKey + " seco " + secoondary);
-				index.insert(secoondary, primary);					
+				logger.info("insert " + secondary);
+				index.insert(secondary, primary);					
 			}
 		}
 

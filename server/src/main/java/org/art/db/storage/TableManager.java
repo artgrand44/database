@@ -194,7 +194,8 @@ public class TableManager implements Closeable{
 			
 			if (!this.indices.containsKey(name)) {
 				IndexInfo info = this.metadata.getIndex(name);
-				Index index = new Index(DBFiles.getIndex(this.tableName, name), name, info.isUnique());
+				File file = DBFiles.getIndex(this.tableName, name);
+				Index index = info.isFulltext() ? new FullTextIndex(file, name): new Index(file, name, info.isUnique());
 
 				this.indices.put(name, index);
 				this.indexInfo.add(info);

@@ -134,6 +134,7 @@ public class KubernetestAdapter extends TestAdapter {
 	private Server start(String profile) {
 		try {
 			logger.info("start profile " + profile);
+			
 			// Read the yaml template then set the application name to the name of the profile
 			
 			String deployYaml = this.getResourceAsString("defaultdeploy.yaml");

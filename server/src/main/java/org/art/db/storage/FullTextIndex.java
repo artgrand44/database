@@ -93,7 +93,6 @@ public class FullTextIndex extends Index {
 			return map.get(language);
 		} catch (Exception exc) {
 			logger.info("There was an error loading the stopwords");
-			exc.printStackTrace();
 			return Collections.emptySet();
 		}
 	}
