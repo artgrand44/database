@@ -100,7 +100,6 @@ public class Table implements Closeable {
 				}
 
 				if (!this.currentSegment.isClosed() && this.currentSegment.size() != 0) {
-					logger.info("close calling lock");
 					this.save(this.currentSegment);
 				}
 			}

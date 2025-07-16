@@ -87,7 +87,7 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	}
 	
 	public Client getClient() throws Exception {
-		return this.getClient("cluster", "admin", "admin");
+		return this.getClient("defaultdb", "admin", "admin");
 	}
 	
 	public Client getClient(String cluster, String user, String password) throws Exception {
@@ -101,10 +101,10 @@ public class BaseIntegrationTest extends BaseSQLTest {
 	}
 	
 	public Client getPrimaryClient(String user, String password) throws Exception {
-		return new Client(new URI(getLocalURI("8080").toString() + "/cluster"), user, password);
+		return new Client(new URI(getLocalURI("8080").toString() + "/defaultdb"), user, password);
 	}
 	
 	public Client getSecondaryClient(String user, String password) throws Exception {
-		return new Client(new URI(getLocalURI("8081").toString() + "/cluster"), user, password);
+		return new Client(new URI(getLocalURI("8081").toString() + "/defaultdb"), user, password);
 	}
 }

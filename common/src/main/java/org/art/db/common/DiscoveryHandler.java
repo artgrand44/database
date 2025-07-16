@@ -84,6 +84,11 @@ public class DiscoveryHandler {
 		this.localInstance = config.toURI();
 		this.config = config;
 			
+		logger.info("database = " + this.localDatabase);
+		
+		if (!this.localDatabase.equals("defaultdb")) {
+			new Exception().printStackTrace();
+		}
 		if (isServer) {
 			serverInstance = this;
 		}

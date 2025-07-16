@@ -93,7 +93,7 @@ public class PrometheusLogger extends MetricsLogger {
 		
 		this.shard = handler.getLocalShard();
 		this.localInstance = ApplicationContext.getInstance().getInstanceName();
-		this.database = Environment.getInstance().getProperty("org.art.db.database", "cluster");
+		this.database = Environment.getInstance().getProperty("org.art.db.database", "defaultdb");
 		this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.timer(), 0, 30, TimeUnit.SECONDS);
 		
 		Counter dbCounter = this.registry.counter("dbname", "db_name", this.database, "db", this.database);

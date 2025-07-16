@@ -181,7 +181,6 @@ public class Server implements HttpHandler, FullBytesCallback {
 			exchange.getResponseHeaders().add(new HttpString("warning"), "The instance is recovering");	
 		} catch (Exception exc) {
 			logger.info("Exception " + exc.getMessage());
-			exc.printStackTrace();
 			exchange.setStatusCode(RestException.TEA_POT);
 			String warning = String.format("Warning: 199 - %s", exc.getMessage());
 

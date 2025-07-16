@@ -46,8 +46,11 @@ public class IndexBuilder {
 					Document doc = BlobConverter.toDocument(metadata, entry.getValue());
 					Key primaryKey = entry.getKey();
 					Key secondaryKey = buildKey(doc, info.getFields());
+					
 					if (info.isFulltext()) {
 						Set<String> tokens = FullTextIndex.getTokens(secondaryKey);
+						
+						logger.info("Got tokens for " + primaryKey + " " + " secondary " + secondaryKey + " tokens " + tokens);
 						
 						for (String token : tokens) {
 							List<Object> sortEntry = new ArrayList<>();
@@ -109,6 +112,7 @@ public class IndexBuilder {
 				Key secoondary = (Key)entry.get(SECONDARY);
 				Key primary = (Key)entry.get(PRIMARY);
 
+				logger.info("insert primary = " + prevKey + " seco " + secoondary);
 				index.insert(secoondary, primary);					
 			}
 		}

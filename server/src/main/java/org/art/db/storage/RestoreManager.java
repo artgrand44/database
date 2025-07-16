@@ -229,7 +229,7 @@ public class RestoreManager {
 				logger.info("Restoring database from backup");
 				Files.copy(root.toPath(), backupDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING);
 			} catch (Exception exc) {
-				logger.error("There was an exception restoring the backup " + exc.getMessage());
+				logger.error("There was an exception restoring the backup " + exc.getMessage() + "root " + root.toPath() + "backup " + backupDirectory.toPath());
 			}
 		}
 

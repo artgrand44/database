@@ -34,8 +34,8 @@ public class ConnectionInfo {
 			properties.load(stream);
 		}
 		
-		String database = properties.getProperty("org.art.db.database", "cluster");
-		String shard = properties.getProperty("org.art.db.shard",  "shard");
+		String database = properties.getProperty("org.art.db.database", "defaultdb");
+		String shard = properties.getProperty("org.art.db.shard",  "shard1");
 		
 		return new ConnectionInfo(InetAddress.getLocalHost().getHostAddress(), "8080", shard, database);
 	}
@@ -51,8 +51,8 @@ public class ConnectionInfo {
 			String host = properties.getProperty("org.art.db.host", "localhost");
 			
 			String port = properties.getProperty("org.art.db.port", "8080");
-			String database = properties.getProperty("org.art.db.database", "cluster");
-			String shard = properties.getProperty("org.art.db.shard",  "shard");
+			String database = properties.getProperty("org.art.db.database", "defaultdb");
+			String shard = properties.getProperty("org.art.db.shard",  "shard1");
 			
 			if (host.contains("localhost")) {
 				host = InetAddress.getLocalHost().getHostAddress(); 

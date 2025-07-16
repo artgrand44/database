@@ -152,10 +152,12 @@ public class BackupHandler {
 	
 	private File getBackupDirectory(File rootFile) {
 		long start = System.currentTimeMillis();
-		String instance = DiscoveryHandler.getServerInstance().getLocalInstance().toString();
+		String instance = DiscoveryHandler.getServerInstance().getLocalPort();
 		
 		File backupDir = new File(rootFile, String.valueOf(start) + "_" + instance);
 
+		logger.info("Create backup dir " + backupDir.getAbsolutePath());
+		
 		backupDir.mkdir();
 		
 		return backupDir;

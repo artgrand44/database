@@ -90,8 +90,7 @@ public class FulltextTest extends BaseIntegrationTest {
 				docs = null;
 				
 				try {
-					docs = client.executeQuery("select * from fulltext where match(nonindex) against('more')");
-					logger.info("Got docs " + docs.size());
+					docs = client.executeQuery("select * from fulltext where match(nonindex) against('stuff')");
 				} catch (Exception exc) {
 					logger.info("Got exception " + exc.getMessage());
 				}

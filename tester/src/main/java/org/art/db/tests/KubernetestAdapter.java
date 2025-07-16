@@ -175,7 +175,7 @@ public class KubernetestAdapter extends TestAdapter {
 			// Find the database from the config 
 			
 			String[] pairs = configMap.getData().get("db.properties").split("\n");
-			String database = "cluster";
+			String database = "defaultdb";
 			
 			for (String pair : pairs) {
 				String[] tokens = pair.split("=");
@@ -186,6 +186,8 @@ public class KubernetestAdapter extends TestAdapter {
 					break;
 				}
 			}
+			
+			logger.info("database = " + database);
 			
 			EnvFromSource source = new EnvFromSourceBuilder()
 					                   .withConfigMapRef(new ConfigMapEnvSource(shortName, true))

@@ -1,12 +1,13 @@
 package org.art.db.tests;
 
 import java.io.File;
+import java.net.URI;
 
 import org.apache.commons.io.FileUtils;
 import org.art.db.client.Client;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
-
+import org.art.db.common.RestClient;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
@@ -61,15 +62,22 @@ public class ReplicationTest extends BaseIntegrationTest {
 					primaryClient.execute(theInsert);
 				}
 				
+				URI internal = TestAdapter.getInstance().getPrimaryURI();
+				RestClient restClient = new RestClient();
+				
+				restClient.get(restClient.buildURI(internal, "/db/close"));
+				
 				TestAdapter.getInstance().stopPrimary();
 				
-				Thread.sleep(20 * 1000);
+				Thread.sleep(30 * 1000);
 				
 				logger.info("after sleep");
 				for (int idx = 2; idx < 20; idx++) {
-					String query= String.format(queryTemplate, idx);
+					String query = String.format(queryTemplate, idx);
 					
 					DocumentSet set = secondaryClient.executeQuery(query);
+					
+					logger.info("count = " + set.size() + " " + query);
 					
 					Assertions.assertThat(!set.isEmpty()).isTrue();
 					
