@@ -58,9 +58,7 @@ public class KubernetesTester {
 				theAdapter.killAll();
 				
 				for (String className : classNames) {
-					if (className.contains("Fulltext")) {
-						runTests(className);
-					}
+					runTests(className);
 				}
 
 				builder.append("\nTotal tests: " + totalTests + " Total Errors: " + totalErrors);
