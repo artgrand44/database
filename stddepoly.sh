@@ -1,1 +1,0 @@
-./kdeploy.sh service1 cluster shard1 1 4Gi kubernetes.io\\/hostname minikube 1w 2
