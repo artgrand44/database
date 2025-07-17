@@ -99,7 +99,7 @@ public class Controller {
         context.setVariable("admin",        this.kubernetes ? "false" : "true");
         context.setVariable("currentPage",  nextPage);
         context.setVariable("serversData",  services);
-        context.setVariable("clustersData", shards);
+        context.setVariable("shardsData",   shards);
         context.setVariable("alertData",    alerts);
         context.setVariable("queriesData",  queries);
         context.setVariable("settingsData", settings);

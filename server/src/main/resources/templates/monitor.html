@@ -304,7 +304,7 @@
   				
 			];
 			
-            let clusterColumns = [
+            let shardColumns = [
           		{ data: 'shard',  render : renderText },
           		{ data: 'cpu',      render:  renderPercent },
           		{ data: 'memory',   render:  renderMemory },
@@ -353,7 +353,7 @@
   				{ data: 'error',    visible: false},
 			];
 
-            createGrid('#ClustersTable', clusterColumns,  JSON.parse($('#clustersData').val()));
+            createGrid('#ShardsTable', shardColumns,  JSON.parse($('#shardsData').val()));
            	createGrid('#ServersTable',  serverColumns,   JSON.parse($('#serversData').val()));
             createGrid('#QueriesTable',  queryColumns,    JSON.parse($('#queriesData').val()));
             createGrid('#SettingsTable', settingsColumns, JSON.parse($('#settingsData').val()));
@@ -464,7 +464,7 @@ th, td {
 	
 	<div style="width:100%">
 	<ul class="nav nav-tabs" role="tablist" id="myTab">
-		<li class="nav-item" role="presentation"><button id="ClustersButton" class="nav-link active" href="#Clusters" data-bs-toggle="tab" data-bs-target="#Clusters" onclick="return false;">Shards</button></li>
+		<li class="nav-item" role="presentation"><button id="ShardsButton" class="nav-link active" href="#Shards" data-bs-toggle="tab" data-bs-target="#Shards" onclick="return false;">Shards</button></li>
 		<li class="nav-item" role="presentation"><button id="ServersButton" class="nav-link" href="#Servers" data-bs-toggle="tab" data-bs-target="#Servers" onclick="return false;">Servers</button></li>
 		<li class="nav-item" role="presentation"><button id="ClientsButton" class="nav-link" href="#Clients" data-bs-toggle="tab" data-bs-target="#Clients" onclick="return false;">Clients</button></li>
 		<li class="nav-item" role="presentation"><button id="QueriesButton" class="nav-link" href="#Queries" data-bs-toggle="tab" data-bs-target="#Queries" onclick="return false;">Queries</button></li>
@@ -474,8 +474,8 @@ th, td {
 	
  	</div>
 	 <div class="tab-content pt-2" style="padding-left: 10px; padding-right: 10px; width:100%; height: 100%;">
-	<div id="Clusters" class="tab-pane active">
-		<table id="ClustersTable"  class="table-striped">
+	<div id="Shards" class="tab-pane active">
+		<table id="ShardsTable"  class="table-striped">
 			<thead>
 				<tr>
 					<th class="text-column-left">Shard</th>
@@ -622,7 +622,7 @@ th, td {
 	<div style="text-align: center;"><span id="error" class="error-text" style="display:none"> my err</span></div>
 	<div>
 	<input type="hidden" id="serversData" name="serversData" th:value="${serversData}">
-	<input type="hidden" id="clustersData" name="clustersData" th:value="${clustersData}">
+	<input type="hidden" id="shardsData" name="shardsData" th:value="${shardsData}">
 	<input type="hidden" id="queriesData" name="queriesData" th:value="${queriesData}">
 	<input type="hidden" id="settingsData" name="settingsData" th:value="${settingsData}">
 	<input type="hidden" id="clientsData" name="clienstData" th:value="${clientsData}">
