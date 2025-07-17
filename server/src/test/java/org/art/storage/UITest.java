@@ -1,6 +1,7 @@
 package org.art.storage;
 
 import java.net.InetAddress;
+import java.net.URI;
 
 import org.art.db.client.Client;
 import org.art.db.common.ConnectionInfo;
@@ -74,6 +75,9 @@ public class UITest extends BaseIntegrationTest {
 				client.setUser("admin");
 				client.setPassword("admin");
 				
+				URI uri = client.buildURI(primary.toURI(), "/db/ui");
+				
+				logger.info("uri = " + uri);
 				String html = new String(client.get(client.buildURI(primary.toURI(), "/db/ui")));
 				
 				Assertions.assertThat(html != null);
@@ -81,7 +85,7 @@ public class UITest extends BaseIntegrationTest {
 				//logger.info(html);
 				
 				logger.info("sleep");
-				//Thread.sleep(1000 * 60 * 3);
+				Thread.sleep(1000 * 60 * 3);
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Throwable exc) {

@@ -18,7 +18,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 		})
 
 public abstract class Stats implements Comparable<Stats> {
-	private String cacheName;
+	private String cluster;
 	private String shard; 
 	private String server; 
 	
@@ -26,20 +26,20 @@ public abstract class Stats implements Comparable<Stats> {
 
 	}
 	
-	public Stats(String cacheName, String chard, String server) {
-		this.cacheName = cacheName;
+	public Stats(String cluster, String chard, String server) {
+		this.cluster = cluster;
 		this.shard = chard;
 		this.server = server;
 	}
 
 	public abstract void computeAverages() ;
 	
-	public String getCacheName() {
-		return cacheName;
+	public String getCluster() {
+		return cluster;
 	}
 
-	public void setCacheName(String cacheName) {
-		this.cacheName = cacheName;
+	public void setCluster(String cluster) {
+		this.cluster = cluster;
 	}
 	
 	public String getShard() {

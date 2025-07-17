@@ -65,7 +65,7 @@ public class ClientStats extends Stats {
 			matches += clientStats.getMatches();
 		}
 		
-		return new ClientStats(this.getCacheName(),
+		return new ClientStats(this.getCluster(),
 				               this.getShard(),
 				               this.getServer(),
 				               this.client,

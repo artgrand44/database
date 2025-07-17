@@ -219,7 +219,7 @@ public class ServerStats extends Stats {
 	public String toString() {
 		return "ServerStats [shard=" + getShard() + ", server=" + getServer() + " cpu=" + cpu
 				+ ", memory=" + memory + ", gets=" + gets + ", selects=" + selects + ", hits=" + hits + ",updates=" + updates
-				+ ", getCacheName()=" + getCacheName() + "]";
+				+ ", cluster=" + getCluster() + "]";
 	}
 
 	public long getMaxMemory() {

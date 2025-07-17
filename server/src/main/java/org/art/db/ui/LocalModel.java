@@ -26,7 +26,7 @@ public class LocalModel {
 	private Cache<String, Stats> statsCache = Caffeine.newBuilder().maximumSize(1000).build();
 	private final ServerStats serverStats;
 	
-	private final String database;
+	private final String cluster;
 	private final String shard;
 	
 	private final String server;
@@ -35,7 +35,7 @@ public class LocalModel {
 	public LocalModel(ConnectionInfo info) {
 		try {
 			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
-			this.database = handler.getCluster();
+			this.cluster = handler.getCluster();
 			this.shard =  handler.getLocalShard();
 			this.server = ApplicationContext.getInstance().getInstanceName();
 			this.serverStats = new ServerStats(info.getCluster(), info.getShard(), this.server);
@@ -71,7 +71,7 @@ public class LocalModel {
 	public void logAlert(String message) {
 		
 		String key = escapeHtml4(message);
-		AlertStats stats = this.getStats(key, AlertStats.class, x -> new AlertStats(this.database, this.shard, this.server, x));
+		AlertStats stats = this.getStats(key, AlertStats.class, x -> new AlertStats(this.cluster, this.shard, this.server, x));
 		
 		stats.log(1);		
 	}
@@ -80,7 +80,7 @@ public class LocalModel {
 	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		
 		String key = clientName + "|" + escapeHtml4(sql);
-		ClientStats stats = this.getStats(key, ClientStats.class, x -> new ClientStats(this.database, this.shard,this.server, clientName, sql));
+		ClientStats stats = this.getStats(key, ClientStats.class, x -> new ClientStats(this.cluster, this.shard,this.server, clientName, sql));
 	
 		stats.log(time, calls, matches);
 	
@@ -104,7 +104,7 @@ public class LocalModel {
 		this.serverStats.logGet();
 		
 		String key = escapeHtml4(queryString);
-		QueryStats stats = this.getStats(key, QueryStats.class, x -> new QueryStats(this.database, this.shard, this.server, x));
+		QueryStats stats = this.getStats(key, QueryStats.class, x -> new QueryStats(this.cluster, this.shard, this.server, x));
 		
 		stats.log(1, time, matches);		
 	}

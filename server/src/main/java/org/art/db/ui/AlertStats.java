@@ -14,22 +14,23 @@ public class AlertStats extends Stats {
 
 	}
 
-	public AlertStats(String cacheName, 
+	public AlertStats(
+			String cluster, 
             String shard, 
             String server, 
             String alert) {
 	
-		super(cacheName, shard, server);
+		super(cluster, shard, server);
 		this.alert = alert;
 		
 	}
-	public AlertStats(String cacheName, 
+	public AlertStats(String cluster, 
 		              String shard, 
 		              String server, 
 		              String alert,
 		              long calls) {
 		
-		super(cacheName, shard, server);
+		super(cluster, shard, server);
 		
 		this.alert = alert;
 		this.calls = calls;

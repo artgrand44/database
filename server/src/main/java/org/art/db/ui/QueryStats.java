@@ -110,7 +110,7 @@ public class QueryStats extends Stats{
 	@Override
 	public String toString() {
 		return "QueryStats [query=" + query + ", calls=" + calls + ", comparisons=" + time + ", results="
-				+ matches + ", cache=" + getCacheName() + "]";
+				+ matches + ", cluster=" + getCluster() + "]";
 	}
 
 	@Override
