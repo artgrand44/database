@@ -33,13 +33,13 @@ public class HeartbeatPlugin implements DiscoveryPlugin {
 	}
 	
 	public void initialize(ConnectionInfo info, boolean isServer) { 
-		this.listener = new HeartbeatListener(this.publisher, info.getDatabase(), info.toURI());
+		this.listener = new HeartbeatListener(this.publisher, info.getCluster(), info.toURI());
 		
 		this.listener.intialize();
 		this.listener.start();
 		
 		if (isServer) {
-			this.publisher = new HeartbeatPublisher(info.getDatabase(), info.getShard(), info.toURI().getPort());
+			this.publisher = new HeartbeatPublisher(info.getCluster(), info.getShard(), info.toURI().getPort());
 			this.publisher.initialize();
 			this.listener.setPublisher(this.publisher);
 		}	

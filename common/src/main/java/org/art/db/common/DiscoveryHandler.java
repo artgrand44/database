@@ -42,7 +42,7 @@ public class DiscoveryHandler {
 	
 	private final URI localInstance;
 	
-	private final String localDatabase;
+	private final String cluster;
 	
 	private final String localShard;
 	
@@ -53,8 +53,8 @@ public class DiscoveryHandler {
 	private int referenceCount;
 	
 	
-	public String getLocalDatabase() {
-		return localDatabase;
+	public String getCluster() {
+		return cluster;
 	}
 
 	private ScheduledFuture<?> poller;
@@ -79,14 +79,14 @@ public class DiscoveryHandler {
 		Utils.sleepSafely(300);
 		
 		this.port = config.getPort();
-		this.localDatabase = config.getDatabase();
+		this.cluster = config.getCluster();
 		this.localShard = config.getShard();
 		this.localInstance = config.toURI();
 		this.config = config;
 			
-		logger.info("database = " + this.localDatabase);
+		logger.info("cluster = " + this.cluster);
 		
-		if (!this.localDatabase.equals("defaultdb")) {
+		if (!this.cluster.equals("defaultcluster")) {
 			new Exception().printStackTrace();
 		}
 		if (isServer) {

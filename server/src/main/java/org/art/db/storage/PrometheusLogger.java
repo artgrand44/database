@@ -42,7 +42,7 @@ public class PrometheusLogger extends MetricsLogger {
 			
 			list.add(Tag.of("Shard",    shard));
 			list.add(Tag.of("Instance", localInstance));
-			list.add(Tag.of("db",       database));
+			list.add(Tag.of("db",       cluster));
 			
 			for (int idx = 0; idx < extra.length - 1; idx += 2) {
 				list.add(Tag.of(extra[idx], extra[idx + 1]));
@@ -69,7 +69,7 @@ public class PrometheusLogger extends MetricsLogger {
 	
 	private final String shard;
 	private final String localInstance;
-	private final String database;
+	private final String cluster;
 	private final ScheduledFuture<?> timer;
 	private final MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
 	private final OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
@@ -93,10 +93,10 @@ public class PrometheusLogger extends MetricsLogger {
 		
 		this.shard = handler.getLocalShard();
 		this.localInstance = ApplicationContext.getInstance().getInstanceName();
-		this.database = Environment.getInstance().getProperty("org.art.db.database", "defaultdb");
+		this.cluster = Environment.getInstance().getProperty("org.art.db.cluster", "defaultcluster");
 		this.timer = Scheduler.DEFAULT.scheduleAtFixedRate(() -> this.timer(), 0, 30, TimeUnit.SECONDS);
 		
-		Counter dbCounter = this.registry.counter("dbname", "db_name", this.database, "db", this.database);
+		Counter dbCounter = this.registry.counter("dbname", "db_name", this.cluster, "db", this.cluster);
 		
 		dbCounter.increment();
 		this.logAlert("Starting...");
@@ -108,7 +108,7 @@ public class PrometheusLogger extends MetricsLogger {
 		
 		list.add(Tag.of("Shard",    this.shard));
 		list.add(Tag.of("Instance", this.localInstance));
-		list.add(Tag.of("db",       this.database));
+		list.add(Tag.of("db",       this.cluster));
 		
 		for (int idx = 0; idx < extra.length - 1; idx += 2) {
 			list.add(Tag.of(extra[idx], extra[idx + 1]));

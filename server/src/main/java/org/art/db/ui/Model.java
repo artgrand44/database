@@ -32,7 +32,7 @@ public class Model {
 	
 	
 	public Model(ConnectionInfo config, LocalModel localModel) {
-		this.cluster = config.getDatabase();
+		this.cluster = config.getCluster();
 		this.localModel = localModel;
 	}
 	

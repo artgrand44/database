@@ -35,10 +35,10 @@ public class LocalModel {
 	public LocalModel(ConnectionInfo info) {
 		try {
 			DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
-			this.database = handler.getLocalDatabase();
+			this.database = handler.getCluster();
 			this.shard =  handler.getLocalShard();
 			this.server = ApplicationContext.getInstance().getInstanceName();
-			this.serverStats = new ServerStats(info.getDatabase(), info.getShard(), this.server);
+			this.serverStats = new ServerStats(info.getCluster(), info.getShard(), this.server);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}

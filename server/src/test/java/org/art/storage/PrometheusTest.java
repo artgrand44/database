@@ -32,7 +32,7 @@ public class PrometheusTest extends BaseIntegrationTest {
 		
 			try  {
 				String host = InetAddress.getLocalHost().getHostAddress();
-				ConnectionInfo primary = new ConnectionInfo(host, "8080", "defaultdb", "shard1");
+				ConnectionInfo primary = new ConnectionInfo(host, "8080", "defaultcluster", "shard1");
 				
 				startInternal("./prometheus.properties");
 				

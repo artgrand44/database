@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: defaultdbdata
+  name: defaultclusterdata
 spec:
   accessModes:
     - ReadWriteOncePod
@@ -9,7 +9,7 @@ spec:
     storage: 4Gi
   storageClassName: local-storage
   local:
-    path: /art/defaultdbdata/
+    path: /art/defaultclusterdata/
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -23,23 +23,23 @@ spec:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: defaultdbbackup
+  name: defaultclusterbackup
 spec:
   accessModes:
     - ReadWriteOnce
   capacity:
     storage: 4Gi
   hostPath:
-    path: /backup/defaultdbbackup
+    path: /backup/defaultclusterbackup
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: defaultdb
+  name: defaultcluster
 data:
   db.properties: |
-    org.art.db.database=defaultdb
-    org.art.db.shard=defaultdbshard1
+    org.art.db.cluster=defaultcluster
+    org.art.db.shard=defaultclustershard1
     org.art.db.backupmax=maxbackup
     org.art.db.dbroot=/data/files
     org.art.db.logDelay=2
@@ -54,10 +54,10 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: defaultdbservice
+  name: defaultcluster
   labels: {
-    "database" : "defaultdb",
-    "shard" : "defaultdbshard1"
+    "database" : "defaultcluster",
+    "shard" : "defaultclustershard1"
   }
   annotations:
     prometheus.io/scrape: 'true'
@@ -66,26 +66,26 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: defaultdb
-      database: defaultdb
+      app: defaultcluster
+      database: defaultcluster
   replicas: 1
   template: # create pods using pod definition in this template
     metadata:
       labels:
-        app: defaultdb
-        database: defaultdb
+        app: defaultcluster
+        database: defaultcluster
     spec:
       containers:
-      - name: defaultdb
+      - name: defaultcluster
         image: db:v1 
         imagePullPolicy: IfNotPresent
         envFrom:
         - configMapRef:
-            name: defaultdb
+            name: defaultcluster
         volumeMounts:
-            - name: defaultdbdata
+            - name: defaultclusterdata
               mountPath: /data/files
-            - name: defaultdb
+            - name: defaultcluster
               mountPath: /discovery
             - name: config
               mountPath: "/config"
@@ -101,8 +101,8 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5        
       volumes:
-        - name: defaultdbdata
-        - name: defaultdb
+        - name: defaultclusterdata
+        - name: defaultcluster
         - name: config
           configMap:
-            name: defaultdb
+            name: defaultcluster

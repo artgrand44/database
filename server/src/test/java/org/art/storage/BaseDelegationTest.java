@@ -188,22 +188,22 @@ public abstract class BaseDelegationTest extends TestAdapter {
 
 	@Override
 	public Client getClusterClient(String user, String password) throws Exception {
-		return new Client(new URI("database:/defaultdb"), user, password);
+		return new Client(new URI("database:/defaultcluster"), user, password);
 	}
 	
 	@Override
 	public Client getClusterClient(String user, String password, int cacheSize, Duration cacheDuration) throws Exception {
-		return new Client(new URI("database:/defaultdb"), user, password, cacheSize, cacheDuration);
+		return new Client(new URI("database:/defaultcluster"), user, password, cacheSize, cacheDuration);
 	}
 	
 	@Override
 	public Client getPrimaryClient(String user, String password) throws Exception {
-		return new Client(new URI(getURI("8080").toString() + "/defaultdb"), user, password);
+		return new Client(new URI(getURI("8080").toString() + "/defaultcluster"), user, password);
 	}
 	
 	@Override
 	public Client getSecondaryClient(String user, String password) throws Exception {
-		return new Client(new URI(getURI("8081").toString() + "/defaultdb"), user, password);
+		return new Client(new URI(getURI("8081").toString() + "/defaultcluster"), user, password);
 	}
 	
 	@Override

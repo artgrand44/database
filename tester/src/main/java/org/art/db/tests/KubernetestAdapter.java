@@ -166,7 +166,7 @@ public class KubernetestAdapter extends TestAdapter {
 
 				configMap = new ConfigMapBuilder()
 								.withData(Map.of("db.properties", String.join("\n", pairs)))
-								.withMetadata(new ObjectMetaBuilder().withName("defaultdb").build())
+								.withMetadata(new ObjectMetaBuilder().withName("defaultcluster").build())
 								.build();
 			}
 			
@@ -175,12 +175,12 @@ public class KubernetestAdapter extends TestAdapter {
 			// Find the database from the config 
 			
 			String[] pairs = configMap.getData().get("db.properties").split("\n");
-			String database = "defaultdb";
+			String database = "defaultcluster";
 			
 			for (String pair : pairs) {
 				String[] tokens = pair.split("=");
 				
-				if (tokens[0].equals("org.art.db.database")) {
+				if (tokens[0].equals("org.art.db.cluster")) {
 					database = tokens[1];
 					logger.info("found db from config " + database);
 					break;
