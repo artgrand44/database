@@ -96,8 +96,7 @@ public class IndexBuilder {
 				Key secondary = (Key)entry.get(SECONDARY);
 				Key primary = (Key)entry.get(PRIMARY);
 
-				logger.info("insert " + secondary);
-				index.insert(secondary, primary);					
+				index.insert(secondary, primary);
 			}
 		}
 

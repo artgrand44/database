@@ -83,12 +83,7 @@ public class DiscoveryHandler {
 		this.localShard = config.getShard();
 		this.localInstance = config.toURI();
 		this.config = config;
-			
-		logger.info("cluster = " + this.cluster);
-		
-		if (!this.cluster.equals("defaultcluster")) {
-			new Exception().printStackTrace();
-		}
+
 		if (isServer) {
 			serverInstance = this;
 		}

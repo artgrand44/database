@@ -58,7 +58,6 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 			return;
 		}
 			
-		logger.info("**** submitting " + this.name);
 		Scheduler.DEFAULT.submit(() -> this.buildIndexInBackground(table, metadata));
 		
 	}
@@ -68,7 +67,6 @@ public class Index implements Closeable, Iterable<Map.Entry<Key, Key>> {
 		try {
 			IndexBuilder.build(table, this, metadata);
 		} catch (Exception exc) {
-			exc.printStackTrace();
 			logger.error("There was an exception building the index for " + this.name + exc.getMessage());
 			MetricsLogger.getInstance().logAlert("There was an exception building the index for " + this.name);
 		} 	

@@ -56,33 +56,33 @@ public class Client implements Closeable {
 	}
 	
 	public Client(URI uri, String user, String password, int cacheSize, Duration cacheDuration) throws Exception {
-		String database;
+		String cluster;
 		String shard;
 		String host;
 		URI serverURI;
 		String port;
 		
 		if (uri.getScheme().equalsIgnoreCase("database")) {
-			database = uri.getPath().substring(1);
+			cluster = uri.getPath().substring(1);
 			shard = uri.getPath().isEmpty() ? "*" : uri.getPath().substring(1);
 			serverURI = null;
 			host = null;
 			port = "0";
 		} else {
-			database = uri.getPath().substring(1);
+			cluster = uri.getPath().substring(1);
 			shard = "*";
 			serverURI = new URI(String.format("%s://%s:%s", uri.getScheme(), uri.getHost(), uri.getPort()));
 			host = uri.getHost();
 			port = String.valueOf(uri.getPort());
 		}
 		
-		ConnectionInfo info = new ConnectionInfo(host, port, shard, database);
+		ConnectionInfo info = new ConnectionInfo(host, port, shard, cluster);
 		
 		this.router = Router.getRouter(info, serverURI, user, password);
 		this.client = new RestClient(user, password);
 		this.uri = serverURI;
 		this.shard = "*";	
-		this.cache = ClientCache.getCache(database, cacheSize, cacheDuration);
+		this.cache = ClientCache.getCache(cluster, cacheSize, cacheDuration);
 	}
 		
 	/**
@@ -251,12 +251,12 @@ public class Client implements Closeable {
 			super(size, timeout);
 		}
 		
-		static synchronized ClientCache getCache(String database, int cacheSize, Duration cacheDuration) {
+		static synchronized ClientCache getCache(String cluster, int cacheSize, Duration cacheDuration) {
 			if (cacheSize == 0) {
 				return null;
 			}
 
-			ClientCache cache = caches.computeIfAbsent(database, x -> new ClientCache(cacheSize, cacheDuration));
+			ClientCache cache = caches.computeIfAbsent(cluster, x -> new ClientCache(cacheSize, cacheDuration));
 
 			cache.referenceCount++;
 

@@ -65,8 +65,6 @@ public class Server implements HttpHandler, FullBytesCallback {
 		this.handler =  new DiscoveryHandler(info, true);
 		this.port = Integer.valueOf(this.handler.getLocalPort());
 				
-		logger.info("start server on " + port + " process " + ProcessHandle.current().pid() + " app = " + ApplicationContext.getInstance());
-		
 		try {
 			SecurityHandler.getInstance().setEnabled(true);
 			
@@ -201,11 +199,6 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 	public static void start(String properties) {
 		try {
-			logger.info("start with " + System.getProperty("java.home"));
-			
-			File file = new File(properties);
-			
-			logger.info("starting server with " + file.getAbsolutePath());
 			Environment.getInstance().load(properties);
 			instance = new Server(properties);
 		} catch (Exception exc) {
