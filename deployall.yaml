@@ -14,11 +14,22 @@ spec:
     required:
       nodeSelectorTerms:
       - matchExpressions:
-        - key: kubernetes.io/hostname
+        - key: db.cluster
           operator: In
           values:
-          - thevalue
- 
+          - defaultcluster
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: defaultclusterbackup
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 4Gi
+  hostPath:
+    path: /backup/defaultclusterbackup
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -75,9 +86,26 @@ spec:
         app: defaultcluster
         database: defaultcluster
     spec:
+      affinity:
+         nodeAffinity:
+           requiredDuringSchedulingIgnoredDuringExecution:
+             nodeSelectorTerms:
+             - matchExpressions:
+               - key:  db.cluster
+                 operator: In
+                 values:
+                 - defaultcluster          
       containers:
       - name: defaultcluster
         image: db:v1 
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         imagePullPolicy: IfNotPresent
         envFrom:
         - configMapRef:
@@ -91,15 +119,7 @@ spec:
               mountPath: "/config"
               readOnly: true
         ports:
-        - containerPort: 8080
-        livenessProbe:
-          httpGet:
-            path: /db/ping
-            port: 8080
-            scheme: HTTP
-          initialDelaySeconds: 20
-          periodSeconds: 10
-          timeoutSeconds: 5        
+        - containerPort: 8080              
       volumes:
         - name: defaultclusterdata
         - name: defaultcluster

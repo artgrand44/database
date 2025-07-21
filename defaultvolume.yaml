@@ -14,11 +14,10 @@ spec:
     required:
       nodeSelectorTerms:
       - matchExpressions:
-        - key: kubernetes.io/hostname
+        - key: db.cluster
           operator: In
           values:
-          - thevalue
- 
+          - defaultcluster
 ---
 apiVersion: v1
 kind: PersistentVolume

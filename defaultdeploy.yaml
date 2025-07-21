@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: defaultclusterservice
+  name: defaultcluster
   labels: {
     "database" : "defaultcluster",
     "shard" : "defaultclustershard1"
@@ -22,9 +22,26 @@ spec:
         app: defaultcluster
         database: defaultcluster
     spec:
+      affinity:
+         nodeAffinity:
+           requiredDuringSchedulingIgnoredDuringExecution:
+             nodeSelectorTerms:
+             - matchExpressions:
+               - key:  db.cluster
+                 operator: In
+                 values:
+                 - defaultcluster          
       containers:
       - name: defaultcluster
         image: db:v1 
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         imagePullPolicy: IfNotPresent
         envFrom:
         - configMapRef:
@@ -38,15 +55,7 @@ spec:
               mountPath: "/config"
               readOnly: true
         ports:
-        - containerPort: 8080
-        livenessProbe:
-          httpGet:
-            path: /db/ping
-            port: 8080
-            scheme: HTTP
-          initialDelaySeconds: 20
-          periodSeconds: 10
-          timeoutSeconds: 5        
+        - containerPort: 8080              
       volumes:
         - name: defaultclusterdata
         - name: defaultcluster
