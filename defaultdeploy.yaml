@@ -15,7 +15,7 @@ spec:
     matchLabels:
       app: defaultcluster
       database: defaultcluster
-  replicas: 1
+  replicas: 2
   template: # create pods using pod definition in this template
     metadata:
       labels:
@@ -23,6 +23,15 @@ spec:
         database: defaultcluster
     spec:
       affinity:
+         podAntiAffinity:
+           requiredDuringSchedulingIgnoredDuringExecution:
+           - labelSelector:
+               matchExpressions:
+               - key: app
+                 operator: In
+                 values:
+                 - defaultcluster
+             topologyKey: "kubernetes.io/hostname"
          nodeAffinity:
            requiredDuringSchedulingIgnoredDuringExecution:
              nodeSelectorTerms:
