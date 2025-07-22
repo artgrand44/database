@@ -30,7 +30,12 @@ spec:
                - key:  db.cluster
                  operator: In
                  values:
-                 - defaultcluster          
+                 - defaultcluster      
+#              - key:  db.shard
+#                operator: In
+#                values:
+#                - defaultclustershard1      
+                     
       containers:
       - name: defaultcluster
         image: db:v1 
