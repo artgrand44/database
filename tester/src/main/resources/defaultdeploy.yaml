@@ -23,6 +23,15 @@ spec:
         database: defaultcluster
     spec:
       affinity:
+         podAntiAffinity:
+           requiredDuringSchedulingIgnoredDuringExecution:
+           - labelSelector:
+               matchExpressions:
+               - key: app
+                 operator: In
+                 values:
+                 - defaultcluster
+             topologyKey: "kubernetes.io/hostname"
          nodeAffinity:
            requiredDuringSchedulingIgnoredDuringExecution:
              nodeSelectorTerms:

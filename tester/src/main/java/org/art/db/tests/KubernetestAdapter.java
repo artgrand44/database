@@ -20,6 +20,7 @@ import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.fabric8.kubernetes.api.model.Affinity;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.ConfigMapEnvSource;
@@ -28,6 +29,7 @@ import io.fabric8.kubernetes.api.model.EnvFromSourceBuilder;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodAntiAffinity;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
@@ -146,7 +148,11 @@ public class KubernetestAdapter extends TestAdapter {
 			deployment.getMetadata().setName("test-" + shortName);
 			deployment.getSpec().getSelector().getMatchLabels().put("appname", shortName);
 			deployment.getSpec().getTemplate().getMetadata().getLabels().put("appname", shortName);
-						
+			
+			PodAntiAffinity anti = deployment.getSpec().getTemplate().getSpec().getAffinity().getPodAntiAffinity();
+			
+			anti.getRequiredDuringSchedulingIgnoredDuringExecution().get(0).getLabelSelector().getMatchExpressions().getFirst().setValues(Collections.singletonList(shortName));
+			
 			// Load or build the config map
 			
 			ConfigMap configMap;

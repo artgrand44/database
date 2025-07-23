@@ -15,7 +15,7 @@ spec:
     matchLabels:
       app: defaultcluster
       database: defaultcluster
-  replicas: 2
+  replicas: 1
   template: # create pods using pod definition in this template
     metadata:
       labels:
