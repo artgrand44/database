@@ -11,7 +11,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.commons.io.IOUtils;
-import org.art.db.common.ApplicationContext;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.InstanceRecoveringException;
@@ -21,8 +20,8 @@ import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
 import org.art.db.storage.BackupHandler;
 import org.art.db.storage.Broadcaster;
-import org.art.db.storage.Environment;
 import org.art.db.storage.DBFiles;
+import org.art.db.storage.Environment;
 import org.art.db.storage.MetricsLogger;
 import org.art.db.storage.PrometheusLogger;
 import org.art.db.storage.RestoreManager;
