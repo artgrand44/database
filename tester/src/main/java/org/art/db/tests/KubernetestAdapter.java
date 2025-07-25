@@ -33,6 +33,7 @@ import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
@@ -137,18 +138,18 @@ public class KubernetestAdapter extends TestAdapter {
 			
 			// Read the yaml template then set the application name to the name of the profile
 			
-			String deployYaml = this.getResourceAsString("defaultdeploy.yaml");
-			Deployment deployment = Serialization.unmarshal(deployYaml, Deployment.class);
+			String deployYaml = this.getResourceAsString("defaultset.yaml");
+			StatefulSet set = Serialization.unmarshal(deployYaml, StatefulSet.class);
 			
 			String name = new File(profile).getName();
 			int dot = name.lastIndexOf('.');
 			String shortName = name.substring(0,  dot);
 						
-			deployment.getMetadata().setName("test-" + shortName);
-			deployment.getSpec().getSelector().getMatchLabels().put("appname", shortName);
-			deployment.getSpec().getTemplate().getMetadata().getLabels().put("appname", shortName);
+			set.getMetadata().setName("test-" + shortName);
+			set.getSpec().getSelector().getMatchLabels().put("appname", shortName);
+			set.getSpec().getTemplate().getMetadata().getLabels().put("appname", shortName);
 			
-			PodAntiAffinity anti = deployment.getSpec().getTemplate().getSpec().getAffinity().getPodAntiAffinity();
+			PodAntiAffinity anti = set.getSpec().getTemplate().getSpec().getAffinity().getPodAntiAffinity();
 			
 			anti.getRequiredDuringSchedulingIgnoredDuringExecution().get(0).getLabelSelector().getMatchExpressions().getFirst().setValues(Collections.singletonList(shortName));
 			
@@ -198,7 +199,7 @@ public class KubernetestAdapter extends TestAdapter {
 					                   .withConfigMapRef(new ConfigMapEnvSource(shortName, true))
 					                   .build();
 			
-			deployment.getSpec().getTemplate().getSpec().getContainers().get(0).setEnvFrom(Collections.singletonList(source));
+			set.getSpec().getTemplate().getSpec().getContainers().get(0).setEnvFrom(Collections.singletonList(source));
 			
 			Service service = new ServiceBuilder()
 		            .withNewMetadata().withName("test-" + shortName).addToLabels("app", shortName).endMetadata()
@@ -213,14 +214,14 @@ public class KubernetestAdapter extends TestAdapter {
 		            .endSpec()
 		            .build();
 			
-			client.apps().deployments().inNamespace("default").resource(deployment).delete();
+			client.apps().statefulSets().inNamespace("default").resource(set).delete();
 			client.services().inNamespace("default").resource(service).delete();
 			
 			while (!client.pods().inNamespace("default").withLabel("appname=" + shortName).list().getItems().isEmpty()) {
 				Utils.sleepSafely(1000);
 			}
 			
-			this.client.apps().deployments().inNamespace("default").resource(deployment).create();
+			this.client.apps().statefulSets().inNamespace("default").resource(set).create();
 			this.client.services().inNamespace("default").resource(service).create();
 		    
 		    List<URI> uris = new ArrayList<>();
@@ -240,7 +241,7 @@ public class KubernetestAdapter extends TestAdapter {
 		    	if (uris.isEmpty()) {
 		    		Utils.sleepSafely(1000);
 		    	} else {
-		    		return new Server(profile, shortName, database, deployment, service, uris, uris.get(0));
+		    		return new Server(profile, shortName, database, set, service, uris, uris.get(0));
 		    	}
 		    }
 		    
@@ -276,7 +277,7 @@ public class KubernetestAdapter extends TestAdapter {
 
 	private void stop(Server server) {
 		client.services().inNamespace("default").resource(server.service).delete();
-		client.apps().deployments().inNamespace("default").resource(server.deployment).delete();
+		client.apps().statefulSets().inNamespace("default").resource(server.deployment).delete();
 	}
 
 
@@ -305,7 +306,7 @@ public class KubernetestAdapter extends TestAdapter {
 		}		
 	}
 
-	record Server(String profile, String name, String database, Deployment deployment, Service service,  List<URI> uris, URI uri) {
+	record Server(String profile, String name, String database, StatefulSet deployment, Service service,  List<URI> uris, URI uri) {
 		
 		Server(Server from, URI uri) {
 			this(from.profile, from.name, from.database, from.deployment, from.service, from.uris, uri);
