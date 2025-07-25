@@ -1,3 +1,10 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: my-local-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -7,17 +14,18 @@ spec:
     - ReadWriteOncePod
   capacity:
     storage: 4Gi
-  storageClassName: local-storage
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: my-local-storage
   local:
     path: /art/defaultclusterdata/
   nodeAffinity:
     required:
       nodeSelectorTerms:
       - matchExpressions:
-        - key: db.cluster
+        - key: kubernetes.io/hostname
           operator: In
           values:
-          - defaultcluster
+          - docker-desktop
 ---
 apiVersion: v1
 kind: PersistentVolume
