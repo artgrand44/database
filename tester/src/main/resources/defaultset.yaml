@@ -71,8 +71,6 @@ spec:
         volumeMounts:
             - name: defaultclusterdata
               mountPath: /data/files
-            - name: defaultcluster
-              mountPath: /discovery
             - name: config
               mountPath: "/config"
               readOnly: true
