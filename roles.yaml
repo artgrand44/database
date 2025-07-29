@@ -37,6 +37,29 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  labels:
+    kubernetes.io/bootstrapping: rbac-defaults
+  name: volumes-access
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  - persistentvolumeclaims
+  - persistentvolumeclaims/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: dbrole
@@ -51,3 +74,20 @@ roleRef:
   kind: Role #this must be Role or ClusterRole
   name: dbrole # this must match the name of the Role or ClusterRole you wish to bind to
   apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: volumes-access
+  namespace: default
+subjects:
+# You can specify more than one "subject"
+- kind: User
+  name: system:serviceaccount:default:default # "name" is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: ClusterRole #this must be Role or ClusterRole
+  name: volumes-access # this must match the name of the Role or ClusterRole you wish to bind to
+  apiGroup: rbac.authorization.k8s.io
+  

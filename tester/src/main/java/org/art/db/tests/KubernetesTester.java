@@ -55,9 +55,8 @@ public class KubernetesTester {
 			StringBuilder builder = new StringBuilder();
 			
 			for (int idx = 0; idx < NLOOPS; idx++) {
-				theAdapter.killAll();
-				
 				for (String className : classNames) {
+					theAdapter.killAll();
 					runTests(className);
 				}
 

@@ -113,6 +113,7 @@ public class RestoreManager {
 			
 			if (!file.renameTo(new File(DBFiles.getTableDirectory(table) + "/" + name))) {
 				logger.info("The rename files");
+				file.delete();
 				throw new DBRuntimeException("There was an error restoring the data");
 			}
 			

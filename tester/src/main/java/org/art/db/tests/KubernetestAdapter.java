@@ -27,11 +27,14 @@ import io.fabric8.kubernetes.api.model.EnvFromSource;
 import io.fabric8.kubernetes.api.model.EnvFromSourceBuilder;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
+import io.fabric8.kubernetes.api.model.PersistentVolume;
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodAntiAffinity;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
+import io.fabric8.kubernetes.api.model.StatusDetails;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -124,10 +127,12 @@ public class KubernetestAdapter extends TestAdapter {
 				} 
 			}
 
-			for (Service service : client.services().inNamespace("default").list().getItems()) {
-				if (service.getMetadata().getName().startsWith("test-")) {
-					client.services().inNamespace("default").resource(service).delete();
-				}
+			for (PersistentVolumeClaim claim : client.persistentVolumeClaims().list().getItems()) {
+				client.persistentVolumeClaims().inNamespace("default").resource(claim).delete();
+			}
+			
+			for (PersistentVolume volume : client.persistentVolumes().list().getItems()) {
+				client.persistentVolumes().resource(volume).delete();				
 			}
 		} catch (Exception exc) {
 			logger.info("kill exception " + exc.getMessage());
