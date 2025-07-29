@@ -58,7 +58,7 @@ spec:
         image: db:v1 
         livenessProbe:
           httpGet:
-            path: /ping
+            path: /db/ping
             port: 8080
           initialDelaySeconds: 60
           periodSeconds: 10

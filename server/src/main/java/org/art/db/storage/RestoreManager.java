@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.art.db.common.Blob;
+import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
@@ -103,14 +104,18 @@ public class RestoreManager {
 	
 	private String getNextFile(URI peer, String table, String type, long timestamp) throws Exception {
 		URI uri = this.restClient.buildURI(peer, "/db/getnextfile?table=%s&type=%s&timestamp=%s", table, type, timestamp);
-		File file = Utils.createTempFile("temp", ".seg");
+		File file = File.createTempFile("temp", ".seg", DBFiles.getTableDirectory(table));
 		String name = this.restClient.getFile(uri, file);
 		
 		if (name != null && !name.isEmpty()) {
 			int dash = name.indexOf('_');
-			
 			timestamp = Long.valueOf(name.substring(0, dash)) + 1;
-			file.renameTo(new File(DBFiles.getTableDirectory(table) + "/" + name));
+			
+			if (!file.renameTo(new File(DBFiles.getTableDirectory(table) + "/" + name))) {
+				logger.info("The rename files");
+				throw new DBRuntimeException("There was an error restoring the data");
+			}
+			
 			return name;
 		} 
 

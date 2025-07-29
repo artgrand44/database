@@ -23,7 +23,7 @@ spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 4Gi
+          storage: 10Mi
   template: # create pods using pod definition in this template
     metadata:
       labels:
@@ -58,7 +58,7 @@ spec:
         image: db:v1 
         livenessProbe:
           httpGet:
-            path: /ping
+            path: /db/ping
             port: 8080
           initialDelaySeconds: 60
           periodSeconds: 10

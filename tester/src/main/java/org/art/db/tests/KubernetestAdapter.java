@@ -51,6 +51,8 @@ public class KubernetestAdapter extends TestAdapter {
 	
 	private Server secondary;
 	
+	private String testName;
+	
 	public Client getClusterClient(String user, String password) throws Exception {
 		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password);
 	}
@@ -132,14 +134,16 @@ public class KubernetestAdapter extends TestAdapter {
 		}
 	}
 	
-	private Server start(String profile) {
+	private Server start(String profile, String suffix) {
 		try {
 			logger.info("start profile " + profile);
 			
 			// Read the yaml template then set the application name to the name of the profile
 			
-			String deployYaml = this.getResourceAsString("defaultset.yaml");
-			StatefulSet set = Serialization.unmarshal(deployYaml, StatefulSet.class);
+			String setYaml = this.getResourceAsString("defaultset.yaml").replaceAll("defaultclusterdata", this.testName + suffix);
+			StatefulSet set = Serialization.unmarshal(setYaml, StatefulSet.class);
+			
+			logger.info("Setting claim to " + this.testName + suffix);
 			
 			String name = new File(profile).getName();
 			int dot = name.lastIndexOf('.');
@@ -255,7 +259,7 @@ public class KubernetestAdapter extends TestAdapter {
 	
 	@Override
 	public URI startPrimary(String profile) {
-		this.primary = this.start(profile);
+		this.primary = this.start(profile, "primary");
 		
 		logger.info("started primary " + this.primary.uri);
 		return this.primary.uri;
@@ -267,13 +271,16 @@ public class KubernetestAdapter extends TestAdapter {
 			logger.info("primary and secondary have same profiles");
 			this.secondary = new Server(this.primary, this.primary.uris.get(1));
 		} else {
-			this.secondary = start(profile);
+			this.secondary = start(profile, "secondary");
 			logger.info("started secondary " + this.secondary.uri);
 		}
 		
 		return this.secondary.uri;
 	}
 
+	public void startTest(String name) {
+		this.testName = name;
+	}
 
 	private void stop(Server server) {
 		client.services().inNamespace("default").resource(server.service).delete();

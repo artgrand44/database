@@ -5,6 +5,7 @@ import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +44,17 @@ public class DBFiles {
 	public static File getRoot() {
 		Environment config = Environment.getInstance();
 		
-		if (config == null) {
+		if (Utils.isKubernetes()) {
+			try {
+				File root = new File("/data/files/");
+				
+				root.mkdirs();
+				return root;
+			} catch (Exception exc) {
+				throw new IllegalStateException(exc);
+			}
+			
+		} else if (config == null) {
 			return new File(".dbroot");
 		} else {
 			return new File(Environment.getInstance().getProperty("org.art.db.dbroot", "./dbroot"));

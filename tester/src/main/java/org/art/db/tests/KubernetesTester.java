@@ -23,13 +23,13 @@ public class KubernetesTester {
 	private static int totalTests = 0;
 	private static int totalErrors = 0;
 	private static List<String> messages = new ArrayList<>();
-	
+	private static final KubernetestAdapter adapter = new KubernetestAdapter(); 
 	private static final int NLOOPS = 1;
 	
 	
 	public static void main(String[] args) {
 		logger.info("*** in main");
-		logger.info(run(new KubernetestAdapter()));
+		logger.info(run(adapter));
 		logger.info("Sleeping");
 		
 		try {
@@ -94,6 +94,8 @@ public class KubernetesTester {
 			if (!Modifier.isPublic(mods) || Modifier.isAbstract(mods)) {
 				return;
 			}
+			
+			adapter.startTest(clazz.getSimpleName().toLowerCase());
 			
 			for (Method method : clazz.getMethods()) {
 				if (method.getAnnotation(BeforeEach.class) != null) {
