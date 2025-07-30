@@ -56,11 +56,11 @@ public class KubernetestAdapter extends TestAdapter {
 	private String testName;
 	
 	public Client getClusterClient(String user, String password) throws Exception {
-		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password);
+		return new Client(new URI("database:/defaultcluster"), user, password);
 	}
 	
 	public Client getClusterClient(String user, String password, int cacheSize, Duration cacheDuration) throws Exception {
-		return new Client(new URI(String.format("database:/%s", this.primary.database)), user, password, cacheSize, cacheDuration);
+		return new Client(new URI("database:/defaultcluster"), user, password, cacheSize, cacheDuration);
 	}
 	
 	private String getLog(Server server) {
@@ -94,7 +94,7 @@ public class KubernetestAdapter extends TestAdapter {
 	}
 	
 	public Client getPrimaryClient(String user, String password) throws Exception {
-		return new Client(new URI(this.primary.uri.toString() + "/" + this.primary.database), user, password);
+		return new Client(new URI(this.primary.uri.toString() + "/defaultcluster"), user, password);
 	}
 	
 	public URI getPrimaryURI() {
@@ -111,7 +111,7 @@ public class KubernetestAdapter extends TestAdapter {
 	}
 	
 	public Client getSecondaryClient(String user, String password) throws Exception {
-		return new Client(new URI(this.secondary.uri.toString() + "/" + this.secondary.database), user, password);
+		return new Client(new URI(this.secondary.uri.toString() + "/defaultcluster"), user, password);
 	}
 	
 	public synchronized String getSecondaryLog() { 
@@ -228,9 +228,7 @@ public class KubernetestAdapter extends TestAdapter {
 		    	if (uris.isEmpty()) {
 		    		Utils.sleepSafely(1000);
 		    	} else {
-		    		String database = props.containsKey("org.art.db.cluster") ? props.getProperty("org.art.db.cluster") : "defaultcluster";
-					
-		    		return new Server(profile, shortName, database, set, service, uris, uris.get(0));
+		    		return new Server(profile, shortName, set, service, uris, uris.get(0));
 		    	}
 		    }
 		    
@@ -298,10 +296,10 @@ public class KubernetestAdapter extends TestAdapter {
 		}		
 	}
 
-	record Server(String profile, String name, String database, StatefulSet deployment, Service service,  List<URI> uris, URI uri) {
+	record Server(String profile, String name, StatefulSet deployment, Service service,  List<URI> uris, URI uri) {
 		
 		Server(Server from, URI uri) {
-			this(from.profile, from.name, from.database, from.deployment, from.service, from.uris, uri);
+			this(from.profile, from.name, from.deployment, from.service, from.uris, uri);
 		}
 		
 	}
