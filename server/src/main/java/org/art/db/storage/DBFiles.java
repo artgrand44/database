@@ -41,6 +41,27 @@ public class DBFiles {
 		return new File(path.substring(0,  dot) + extension);
 	}
 	
+	public static File getBackupRoot() {
+		Environment config = Environment.getInstance();
+		
+		if (Utils.isKubernetes()) {
+			try {
+				File root = new File("/data/backup/");
+				
+				root.mkdirs();
+				return root;
+			} catch (Exception exc) {
+				throw new IllegalStateException(exc);
+			}
+			
+		} else if (config == null) {
+			return new File(".dbroot");
+		} else {
+			return new File(Environment.getInstance().getProperty("org.art.db.backuproot", "./backup"));
+		}
+		
+	}
+	
 	public static File getRoot() {
 		Environment config = Environment.getInstance();
 		

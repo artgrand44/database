@@ -128,9 +128,7 @@ public class Table implements Closeable {
 	public void flush() {
 		MemorySegment segment = this.currentSegment;
 		boolean saving = false;
-		
-		logger.error(DiscoveryHandler.getServerName() + "table.flush");
-		
+				
 		this.writeLock.lock();
 		
 		try {

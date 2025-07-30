@@ -34,7 +34,6 @@ import io.fabric8.kubernetes.api.model.PodAntiAffinity;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
-import io.fabric8.kubernetes.api.model.StatusDetails;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -146,7 +145,8 @@ public class KubernetestAdapter extends TestAdapter {
 			// Read the yaml template then set the application name to the name of the profile
 			
 			String setYaml = this.getResourceAsString("defaultset.yaml").replaceAll("defaultclusterdata", this.testName + suffix);
-			StatefulSet set = Serialization.unmarshal(setYaml, StatefulSet.class);
+			List<?> list = (List<?>) Serialization.unmarshal(setYaml, StatefulSet.class);
+			StatefulSet set = (StatefulSet)list.get(1);
 			
 			logger.info("Setting claim to " + this.testName + suffix);
 			

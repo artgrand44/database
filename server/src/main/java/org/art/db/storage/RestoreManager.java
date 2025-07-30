@@ -42,26 +42,6 @@ public class RestoreManager {
 	
 	private final RestClient restClient = new RestClient(SecurityHandler.getInstance().getAdminUser(), SecurityHandler.getInstance().getAdminPassword());
 	
-	private File getBackupDirectory() {
-		String path = Environment.getInstance().getPropertyWithDefault("org.art.db.backuproot");
-		
-		if (path == null || path.isEmpty()) {
-			return null;
-		}
-		
-		File rootDir = new File(path);
-		File[] subdirs = rootDir.listFiles();
-		
-		if (subdirs == null || subdirs.length == 0) {
-			return null;
-		}
-		
-		List<File> list = new ArrayList<>(Arrays.asList(subdirs));
-		
-		Collections.sort(list, (x, y) -> - x.getName().compareTo(y.getName()));
-		
-		return list.get(0);
-	}
 	
 	
 	private List<String> getFilesNames(URI peer, String table, String type) throws Exception {
@@ -154,7 +134,7 @@ public class RestoreManager {
 		
 		File root = DBFiles.getRoot();
 		File[] tableDirs = root.listFiles();
-		File backupDirectory = this.getBackupDirectory();
+		File backupDirectory = BackupHandler.getLatestBackup();
 		boolean useBackup = (tableDirs == null || tableDirs.length == 0) && backupDirectory != null;
 		
 		// Select a peer to work with

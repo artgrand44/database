@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: defaultclusterbackup
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 4Gi
+  hostPath:
+    path: /backup/defaultclusterbackup
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -23,7 +35,7 @@ spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 10Mi
+          storage: 4Gi
   template: # create pods using pod definition in this template
     metadata:
       labels:
@@ -71,6 +83,8 @@ spec:
         volumeMounts:
             - name: defaultclusterdata
               mountPath: /data/files
+            - name: defaultclusterbackup
+              mountPath: /data/backup/
             - name: config
               mountPath: "/config"
               readOnly: true
@@ -78,6 +92,7 @@ spec:
         - containerPort: 8080              
       volumes:
         - name: defaultcluster
+        - name: defaultclusterbackup
         - name: config
           configMap:
             name: defaultcluster
