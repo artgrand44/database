@@ -144,9 +144,9 @@ public class KubernetestAdapter extends TestAdapter {
 			
 			// Read the yaml template then set the application name to the name of the profile
 			
-			String setYaml = this.getResourceAsString("defaultset.yaml").replaceAll("defaultclusterdata", this.testName + suffix);
+			String setYaml = this.getResourceAsString("db.yaml").replaceAll("defaultclusterdata", this.testName + suffix);
 			List<?> list = (List<?>) Serialization.unmarshal(setYaml, StatefulSet.class);
-			StatefulSet set = (StatefulSet)list.get(1);
+			StatefulSet set = (StatefulSet)list.get(2);
 			
 			logger.info("Setting claim to " + this.testName + suffix);
 			
@@ -162,47 +162,25 @@ public class KubernetestAdapter extends TestAdapter {
 			
 			anti.getRequiredDuringSchedulingIgnoredDuringExecution().get(0).getLabelSelector().getMatchExpressions().getFirst().setValues(Collections.singletonList(shortName));
 			
-			// Load or build the config map
+			// Build the config map
 			
-			ConfigMap configMap;
-			
-			if (profile.endsWith(".yaml")) {
-				String yaml = this.getResourceAsString(new File(profile).getName());
-				configMap = Serialization.unmarshal(yaml, ConfigMap.class);
-			} else {
-				Properties props = new Properties();
-				List<String> pairs = new ArrayList<>();
+			Properties props = new Properties();
+			List<String> pairs = new ArrayList<>();
 
-				try (StringReader reader = new StringReader(this.getResourceAsString(new File(profile).getName()))) {
-					props.load(reader);
-				}
-
-				props.forEach((x, y) -> pairs.add(x + "=" + y));
-
-				configMap = new ConfigMapBuilder()
-								.withData(Map.of("db.properties", String.join("\n", pairs)))
-								.withMetadata(new ObjectMetaBuilder().withName("defaultcluster").build())
-								.build();
+			try (StringReader reader = new StringReader(this.getResourceAsString(new File(profile).getName()))) {
+				props.load(reader);
 			}
-			
+
+			props.forEach((x, y) -> pairs.add(x + "=" + y));
+
+			ConfigMap configMap = new ConfigMapBuilder()
+									  .withData(Map.of("db.properties", String.join("\n", pairs)))
+									  .withMetadata(new ObjectMetaBuilder().withName("defaultcluster").build())
+									  .build();
+
+
 			client.configMaps().inNamespace("default").resource(configMap).unlock().createOr(NonDeletingOperation::update);
 			
-			// Find the database from the config 
-			
-			String[] pairs = configMap.getData().get("db.properties").split("\n");
-			String database = "defaultcluster";
-			
-			for (String pair : pairs) {
-				String[] tokens = pair.split("=");
-				
-				if (tokens[0].equals("org.art.db.cluster")) {
-					database = tokens[1];
-					logger.info("found db from config " + database);
-					break;
-				}
-			}
-			
-			logger.info("database = " + database);
 			
 			EnvFromSource source = new EnvFromSourceBuilder()
 					                   .withConfigMapRef(new ConfigMapEnvSource(shortName, true))
@@ -250,6 +228,8 @@ public class KubernetestAdapter extends TestAdapter {
 		    	if (uris.isEmpty()) {
 		    		Utils.sleepSafely(1000);
 		    	} else {
+		    		String database = props.containsKey("org.art.db.cluster") ? props.getProperty("org.art.db.cluster") : "defaultcluster";
+					
 		    		return new Server(profile, shortName, database, set, service, uris, uris.get(0));
 		    	}
 		    }
