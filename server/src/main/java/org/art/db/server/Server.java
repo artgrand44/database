@@ -18,7 +18,7 @@ import org.art.db.common.RestException;
 import org.art.db.common.Utils;
 import org.art.db.common.ZipUtils;
 import org.art.db.security.SecurityHandler;
-import org.art.db.storage.BackupHandler;
+import org.art.db.storage.BackupManager;
 import org.art.db.storage.Broadcaster;
 import org.art.db.storage.DBFiles;
 import org.art.db.storage.Environment;
@@ -74,7 +74,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			MetricsLogger.getInstance().start(info);
 			MetricsLogger.getInstance().logAlert("Starting");
 						
-			BackupHandler.getInstance().start();
+			BackupManager.getInstance().start();
 			this.handler.start();
 			
 			
@@ -213,7 +213,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			instance.handler.stop();
 			DiscoveryHandler.clear();
 			UIConsole.getInstance().stop();	
-			BackupHandler.getInstance().stop();
+			BackupManager.getInstance().stop();
 			Broadcaster.getInstance().stop();
 			PrometheusLogger.getInstance().stop();
 			RollingAverage.stop();

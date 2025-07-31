@@ -25,7 +25,7 @@ import org.art.db.common.TypedOutputStream;
 import org.art.db.common.Utils;
 import org.art.db.security.SecurityHandler;
 import org.art.db.sql.SQLHandler;
-import org.art.db.storage.BackupHandler;
+import org.art.db.storage.BackupManager;
 import org.art.db.storage.Environment;
 import org.art.db.storage.DBFiles;
 import org.art.db.storage.LogOutputStream;
@@ -74,7 +74,7 @@ public class Dispatcher {
 		   HANDLERS.put("/db/getnextfile",     	new GetNextFileHandler());
 		   HANDLERS.put("/db/getproperties",    new GetPropertiesHandler());
 		   HANDLERS.put("/db/ping" ,            new PingHandler());
-		   HANDLERS.put("/db/backup" ,          new BackHandler());
+		   HANDLERS.put("/db/backup" ,          new BackupHandler());
 		   HANDLERS.put("/db/beginstartup",     new BeginStartupHandler());
 		   HANDLERS.put("/metrics",             new MetricsHandler());
 		   HANDLERS.put("/db/getstats",         new GetStatsHandler());
@@ -211,11 +211,11 @@ public class Dispatcher {
 		return tokens == null ? "" : tokens[0];		
 	}
 	
-	static class BackHandler implements Handler {
+	static class BackupHandler implements Handler {
 
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			BackupHandler.getInstance().backup();
+			BackupManager.getInstance().backup();
 			return new byte[0];		
 		}		
 	}

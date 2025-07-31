@@ -18,16 +18,16 @@ import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BackupHandler {
+public class BackupManager {
 	
-	private static final Logger logger = LoggerFactory.getLogger(BackupHandler.class);
+	private static final Logger logger = LoggerFactory.getLogger(BackupManager.class);
 	
 	private ScheduledFuture<?> handler;
 	private final String localHost;
 	private final long interval;
 	private final long startTime;
 	
-	private final static BackupHandler instance = new BackupHandler();
+	private final static BackupManager instance = new BackupManager();
 	
 	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 	
@@ -35,7 +35,7 @@ public class BackupHandler {
 	private static final long ONE_DAY = 1000 * 60 * 60 * 24;
 	private static final String COMPLETION_FILE = "/completion.dat";
 	
-	private BackupHandler() {
+	private BackupManager() {
 		try {
 			this.localHost = InetAddress.getLocalHost().getHostAddress();
 			this.interval = Math.max(ONE_DAY, new Interval(Environment.getInstance().getPropertyWithDefault("org.art.db.backupinterval")).toMillis());
@@ -149,7 +149,7 @@ public class BackupHandler {
 		this.lock.readLock().unlock();		
 	}
 	
-	public static BackupHandler getInstance() {
+	public static BackupManager getInstance() {
 		return instance;
 	}
 	

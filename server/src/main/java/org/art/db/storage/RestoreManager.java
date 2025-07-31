@@ -134,7 +134,7 @@ public class RestoreManager {
 		
 		File root = DBFiles.getRoot();
 		File[] tableDirs = root.listFiles();
-		File backupDirectory = BackupHandler.getLatestBackup();
+		File backupDirectory = BackupManager.getLatestBackup();
 		boolean useBackup = (tableDirs == null || tableDirs.length == 0) && backupDirectory != null;
 		
 		// Select a peer to work with
