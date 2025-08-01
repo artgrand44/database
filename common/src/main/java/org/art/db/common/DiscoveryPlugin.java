@@ -13,6 +13,10 @@ public interface DiscoveryPlugin {
 	
 	public default void poll() { }
 	
+	public default void pausePublishing() { }
+	
+	public default void resumePublishing() { }
+	
 	void initialize(ConnectionInfo config, boolean isServer);
 	
 	default void clear() { }

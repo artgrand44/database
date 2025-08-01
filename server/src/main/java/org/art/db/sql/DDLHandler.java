@@ -18,7 +18,6 @@ import org.art.db.common.Document;
 import org.art.db.common.GUID;
 import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
-import org.art.db.storage.BackupManager;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.DBFiles;
 import org.art.db.storage.IndexInfo;
@@ -125,8 +124,6 @@ public class DDLHandler {
 				}			
 			}
 
-			BackupManager.getInstance().startUpdate();
-		
 			StorageManager.getInstance().getTableManager(tableName).setMetadata(metadata);
 
 			metadata.store();
@@ -138,7 +135,6 @@ public class DDLHandler {
 			throw new DBRuntimeException("The alter failed", exc);
 		} finally {
 			metadata.unlock();
-			BackupManager.getInstance().endUpdate();
 		}
 		
 	}
@@ -195,9 +191,6 @@ public class DDLHandler {
 			}
 			
 			IndexInfo indexInfo = new IndexInfo(indexName, unique, fulltext, fields);
-
-			BackupManager.getInstance().startUpdate();
-
 			List<IndexInfo> indices = metadata.getIndices();
 			
 			if (metadata.getIndices().contains(indexInfo)) {
@@ -221,7 +214,6 @@ public class DDLHandler {
 			throw new DBRuntimeException("Create Index failed " + exc.getMessage(), exc);
 		} finally {
 			metadata.unlock();
-			BackupManager.getInstance().endUpdate();
 		}
 
 	}
@@ -276,8 +268,6 @@ public class DDLHandler {
 		
 		Metadata metadata = new Metadata(SQLUtils.getFQN(table, database), primaryKeyFields, columns, indices, isQueue);
 		
-		BackupManager.getInstance().startUpdate();
-		
 		try {
 			metadata.store();
 			
@@ -289,27 +279,19 @@ public class DDLHandler {
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			throw new DBRuntimeException("Create Table failed " + exc.getMessage(), exc);
-		} finally {
-			BackupManager.getInstance().endUpdate();
-		}
+		} 
 		
 	}
 	
 	static void createUser(String sql, String targetShard, String database, String user, String password, String newUser, String newPassword) throws Exception {
 		if (!SecurityHandler.getInstance().isAdmin(user, password)) {
 			throw new SQLException("User " + user + " is not an admin.");
-		}
+		}	
 		
-		BackupManager.getInstance().startUpdate();
-		
-		try {
-			SecurityHandler.getInstance().createUser(newUser, newUser, newPassword, false);
+		SecurityHandler.getInstance().createUser(newUser, newUser, newPassword, false);
 
-			if (targetShard.equals(Client.WILDCARD)) {
-				SQLUtils.broadcastAll(database, sql);
-			}
-		} finally {
-			BackupManager.getInstance().endUpdate();
+		if (targetShard.equals(Client.WILDCARD)) {
+			SQLUtils.broadcastAll(database, sql);
 		}
 		
 	}
@@ -332,7 +314,6 @@ public class DDLHandler {
 			}
 		}
 		
-		BackupManager.getInstance().startUpdate();
 		metadata.writeLock();
 		
 		try {
@@ -366,7 +347,6 @@ public class DDLHandler {
 				throw new UnsupportedSyntaxException("Drop " + type + " is not supported.");
 			} 
 		} finally {
-			BackupManager.getInstance().endUpdate();
 			metadata.unlock();
 		}
 
@@ -392,19 +372,13 @@ public class DDLHandler {
 			grants = User.add(grants, value);
 		}
 		
-		BackupManager.getInstance().startUpdate();
-		
-		try {
-			for (String grantee : grant.getUsers()) {
-				logger.info("grant on " + table);
-				SecurityHandler.getInstance().grant(grantee, table, grants);
-			}
+		for (String grantee : grant.getUsers()) {
+			logger.info("grant on " + table);
+			SecurityHandler.getInstance().grant(grantee, table, grants);
+		}
 
-			if (targetShard.equals(Client.WILDCARD)) {
-				SQLUtils.broadcastAll(database, grant.toString());
-			}
-		} finally {
-			BackupManager.getInstance().endUpdate();
+		if (targetShard.equals(Client.WILDCARD)) {
+			SQLUtils.broadcastAll(database, grant.toString());
 		}
 	}
 	

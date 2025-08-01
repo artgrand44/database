@@ -342,6 +342,10 @@ public class DiscoveryHandler {
 	
 	}
 	
+	public void pausePublishing() {
+		this.plugin.resumePublishing();
+	}
+	
 	public void refresh() {
 		this.plugin.poll();
 		this.loadEnvironment();
@@ -371,6 +375,10 @@ public class DiscoveryHandler {
 	
 	public void start() {
 		this.plugin.start();
+	}
+	
+	public void resumePublishing() {
+		this.plugin.resumePublishing();
 	}
 	
 	public void stop() {

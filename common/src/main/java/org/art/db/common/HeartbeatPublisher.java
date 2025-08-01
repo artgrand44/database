@@ -30,6 +30,7 @@ public class HeartbeatPublisher {
 	private InetAddress group;
 	private ScheduledFuture<?> publisher;
 	private volatile boolean started;
+	private volatile boolean paused;
 	private final String cluster;
 	private final String localShard;
 	private final int port;
@@ -63,14 +64,16 @@ public class HeartbeatPublisher {
 	}
 	
 	public synchronized void publish() {
-		try {
-			Message message = new Message(this.cluster, this.localShard, this.port, this.started);
-			
-			byte[] buf = MAPPER.writeValueAsBytes(message);
-			DatagramPacket packet = new DatagramPacket(buf, buf.length, group, 4445);
-			
-			this.sendSocket.send(packet);
-		} catch (Exception exc) {
+		if (!this.paused) {
+			try {
+				Message message = new Message(this.cluster, this.localShard, this.port, this.started);
+
+				byte[] buf = MAPPER.writeValueAsBytes(message);
+				DatagramPacket packet = new DatagramPacket(buf, buf.length, group, 4445);
+
+				this.sendSocket.send(packet);
+			} catch (Exception exc) {
+			}
 		}
 		
 	}
@@ -91,6 +94,14 @@ public class HeartbeatPublisher {
 		}
 		
 		this.sendSocket.close();
+	}
+
+	public boolean isPaused() {
+		return paused;
+	}
+
+	public void setPaused(boolean paused) {
+		this.paused = paused;
 	}
 
 }

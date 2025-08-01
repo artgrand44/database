@@ -3,7 +3,9 @@ package org.art.db.sql;
 import java.util.List;
 
 import org.art.db.common.DBRuntimeException;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
+import org.art.db.storage.BackupManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,15 +27,20 @@ import net.sf.jsqlparser.statement.update.Update;
 
 public class SQLHandler {
 	
-	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(SQLHandler.class);
 	
-	private static SQLHandler instance = new SQLHandler();
+	private static final SQLHandler instance = new SQLHandler();
 	
 	private final Cache<String, Statement> cache = Caffeine.newBuilder().maximumSize(1000).build();
 	
 	public void execute(String shard, String database, String user, String password, String sql, List<Comparable<?>> parameters) throws Exception {
 			
+		if (!BackupManager.getInstance().startUpdate()) {
+			logger.info("****forward");
+			SQLUtils.forwardExecute(database, DiscoveryHandler.getServerInstance().getLocalShard(), sql, user, password, parameters);
+			return;
+		}
+		
 		try {
 			String[] tokens = sql.split(" ");
 			
@@ -64,10 +71,13 @@ public class SQLHandler {
 			String message = "The statement was invalid\n" + sql + "\n" + lines[0] + "\n" + lines[1];
 			
 			throw new DBRuntimeException(message);			
-		} 
+		} finally {
+			BackupManager.getInstance().endUpdate();
+		}
 	}
 	
 	public DocumentSet executeQuery(String shard, String database,  String user, String password, String sql, List<Comparable<?>> parameters) throws Exception {
+		
 		try {
 			Statement statement = this.parse(sql);
 		
@@ -102,6 +112,7 @@ public class SQLHandler {
 		
 		return statement;
 	}
+	
 	
 	public static SQLHandler getInstance() {
 		return instance;

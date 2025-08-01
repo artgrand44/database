@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.io.FileUtils;
+import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,7 @@ public class BackupManager {
 	
 	public void backup() {
 		try {
+			DiscoveryHandler.getServerInstance().pausePublishing();
 			this.lock.writeLock().lock();
 			
 			// Generate a directory name for this backup using the form xxx-yyy where xxx is the
@@ -72,6 +74,7 @@ public class BackupManager {
 			logger.error("Backup exception " + exc.getMessage());
 		} finally {
 			this.lock.writeLock().unlock();
+			DiscoveryHandler.getServerInstance().resumePublishing();
 		}
 		
 	}
@@ -190,8 +193,8 @@ public class BackupManager {
 		this.handler = Scheduler.DEFAULT.scheduleAtFixedRate(this::backupIfNeeded, interval, interval, TimeUnit.MILLISECONDS);
 	}
 	
-	public void startUpdate() {
-		this.lock.readLock().lock();
+	public boolean startUpdate() {
+		return this.lock.readLock().tryLock();
 	}
 	
 	public void stop() {

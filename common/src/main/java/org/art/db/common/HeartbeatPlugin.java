@@ -45,11 +45,24 @@ public class HeartbeatPlugin implements DiscoveryPlugin {
 		}	
 	}
 	
+	public void pausePublishing() { 
+		if (this.publisher != null) {
+			this.publisher.setPaused(false);
+		}
+	}
+	
+	
 	@Override
 	public void removeInstance(URI instance) {
 		if (this.listener != null) {
 			this.listener.removeInstance(instance);
 		} 
+	}
+	
+	public void resumePublishing() { 
+		if (this.publisher != null) {
+			this.publisher.setPaused(false);
+		}
 	}
 	
 	@Override

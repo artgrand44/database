@@ -19,7 +19,6 @@ import org.art.db.common.OrderBy;
 import org.art.db.query.QueryManager;
 import org.art.db.security.SecurityHandler;
 import org.art.db.security.User;
-import org.art.db.storage.BackupManager;
 import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.DBFiles;
 import org.art.db.storage.Metadata;
@@ -185,8 +184,6 @@ public class DMLHandler {
 		
 		metadata.readLock();
 		
-		BackupManager.getInstance().startUpdate();
-		
 		try {
 			Expression where = delete.getWhere();
 			ReturningClause returnClause = delete.getReturningClause();
@@ -226,7 +223,6 @@ public class DMLHandler {
 			}
 			
 			metadata.unlock();
-			BackupManager.getInstance().endUpdate();
 			MetricsLogger.getInstance().logDelete();
 			MetricsLogger.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		}
@@ -282,8 +278,6 @@ public class DMLHandler {
 		metadata.readLock();
 		
 		try {
-			BackupManager.getInstance().startUpdate();
-			
 			long start = System.currentTimeMillis();
 			
 			if (!SecurityHandler.getInstance().isInRole(user, password, table, User.INSERT)) {
@@ -353,7 +347,6 @@ public class DMLHandler {
 			throw new DBRuntimeException("The insert failed " + exc.getMessage(), exc);
 		} finally {
 			metadata.unlock();
-			BackupManager.getInstance().endUpdate();
 		}
 		
 	}
@@ -671,7 +664,6 @@ public class DMLHandler {
 		}
 		
 		metadata.readLock();
-		BackupManager.getInstance().startUpdate();
 		
 		try {			
 			ReturningClause returnClause = update.getReturningClause();
@@ -753,7 +745,6 @@ public class DMLHandler {
 			}
 			
 			metadata.unlock();
-			BackupManager.getInstance().endUpdate();
 			MetricsLogger.getInstance().logUpdate();
 			MetricsLogger.getInstance().logSelect(sqlString, System.currentTimeMillis() - start, 1);
 		}
