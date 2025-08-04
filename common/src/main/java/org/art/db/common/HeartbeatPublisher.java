@@ -63,6 +63,10 @@ public class HeartbeatPublisher {
 		
 	}
 	
+	public void pause() {
+		this.paused = true;
+	}
+	
 	public synchronized void publish() {
 		if (!this.paused) {
 			try {
@@ -78,6 +82,9 @@ public class HeartbeatPublisher {
 		
 	}
 
+	public void resume() {
+		this.paused = false;
+	}
 	
 	public void start() {
 		this.started = true;
@@ -96,12 +103,5 @@ public class HeartbeatPublisher {
 		this.sendSocket.close();
 	}
 
-	public boolean isPaused() {
-		return paused;
-	}
-
-	public void setPaused(boolean paused) {
-		this.paused = paused;
-	}
-
+	
 }

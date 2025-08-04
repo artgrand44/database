@@ -17,6 +17,7 @@ public class BaseTest {
 		new File("./atest"),
 		new File("./secondroot"),
 		new File("./duptest"),
+		new File("./backup")
 	};
 	
 	@BeforeEach

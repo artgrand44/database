@@ -30,7 +30,9 @@ public class DiscoveryHandler {
 	
 	private static final ScheduledExecutorService SCHEDULER = Scheduler.createScheduler("Discovery", 1);
 	
-	private final DiscoveryPlugin plugin;
+	private HeartbeatListener listener;
+	
+	private HeartbeatPublisher publisher;
 	
 	
 	private AtomicReference<MultiValueMap<String, URI>> instances = new AtomicReference<MultiValueMap<String, URI>>(new MultiValueMap<String, URI>());
@@ -72,9 +74,17 @@ public class DiscoveryHandler {
 	
 	
 	public DiscoveryHandler(ConnectionInfo config, boolean isServer)  {
-		this.plugin = Utils.isKubernetes() || isServer || config.toURI() == null ? new HeartbeatPlugin() : new SingletonDiscoveryPlugin(config.toURI());
-			
-		this.plugin.initialize(config, isServer);
+		this.publisher = isServer ? new HeartbeatPublisher(config.getCluster(), config.getShard(), Integer.parseInt(config.getPort())) : null;
+		this.listener = new HeartbeatListener(this.publisher, config.getCluster(), config.toURI());
+		
+		this.listener.intialize();
+		this.listener.start();
+		
+		if (isServer) {
+			this.publisher.initialize();
+			this.listener.setPublisher(this.publisher);
+			serverInstance = this;
+		}	
 		
 		Utils.sleepSafely(300);
 		
@@ -83,10 +93,6 @@ public class DiscoveryHandler {
 		this.localShard = config.getShard();
 		this.localInstance = config.toURI();
 		this.config = config;
-
-		if (isServer) {
-			serverInstance = this;
-		}
 				
 		this.loadEnvironment();
 		
@@ -239,7 +245,11 @@ public class DiscoveryHandler {
 
 			if (list == null || list.isEmpty()) {
 				Utils.sleepSafely(1000);
-				this.plugin.clear();
+				
+				if (this.listener != null) {
+					this.listener.clear();
+				} 
+				
 				this.loadEnvironment();
 				continue;
 			} 
@@ -302,7 +312,7 @@ public class DiscoveryHandler {
 	public synchronized void loadEnvironment()  {
 		try {
 			MultiValueMap<String, URI> instances = new MultiValueMap<>();			
-			Map<URI, String> map = this.plugin.getServerInstances();
+			Map<URI, String> map = this.listener == null ? Collections.emptyMap() : this.listener.getInstances();
 			Set<InetAddress> hosts = new HashSet<>();
 			ShardFinder oldFinder = this.shardFinder.get();
 			
@@ -343,11 +353,10 @@ public class DiscoveryHandler {
 	}
 	
 	public void pausePublishing() {
-		this.plugin.resumePublishing();
+		this.publisher.pause();
 	}
 	
 	public void refresh() {
-		this.plugin.poll();
 		this.loadEnvironment();
 	}
 	
@@ -369,21 +378,35 @@ public class DiscoveryHandler {
 			newInstances.put(shard, list);
 		}
 		
-		this.plugin.removeInstance(instance);
+		if (this.listener != null) {
+			this.listener.removeInstance(instance);
+		} 
+		
 		this.instances.set(newInstances);
 	}
 	
 	public void start() {
-		this.plugin.start();
+		if (this.publisher != null) {
+			this.publisher.start();
+		}
 	}
 	
 	public void resumePublishing() {
-		this.plugin.resumePublishing();
+		this.publisher.resume();
 	}
 	
 	public void stop() {
 		this.poller.cancel(true);
-		this.plugin.stop();
+		
+		if (this.listener != null) {
+			this.listener.stop();
+			this.listener = null;
+		}
+		
+		if (this.publisher != null) {
+			this.publisher.stop();
+			this.publisher = null;
+		}
 	}
 	
 	@Override
@@ -403,42 +426,9 @@ public class DiscoveryHandler {
 			}
 			
 			Utils.sleepSafely(Math.min(timeout, 1000));
-			this.plugin.poll();
-			this.loadEnvironment();
+	this.loadEnvironment();
 		}
 	
 	}
 	
-	static class SingletonDiscoveryPlugin implements DiscoveryPlugin {
-		private final Map<URI, String> instances;
-		private final URI localURI;
-		
-		SingletonDiscoveryPlugin(URI uri) {
-			this.instances = Map.of(uri, "shard1");
-			this.localURI = uri;
-		}
-		
-		@Override
-		public Map<URI, String> getServerInstances() {
-			return this.instances;
-		}
-
-		@Override
-		public void start() {		
-		}
-
-		@Override
-		public void stop() {
-		}
-
-
-		public String getLocalInstanceName() {
-			return this.localURI.getHost();
-		}
-		
-		@Override
-		public void initialize(ConnectionInfo config, boolean isServer) {
-		}
-	}
-		
 }
