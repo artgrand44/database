@@ -55,11 +55,9 @@ public class KubernetesTester {
 			StringBuilder builder = new StringBuilder();
 			
 			for (int idx = 0; idx < NLOOPS; idx++) {
-				for (String className : classNames) {
-					if (className.endsWith(".BackupTest")) {
+				for (String className : classNames) {					
 					theAdapter.killAll();
 					runTests(className);
-					}
 				}
 
 				builder.append("\nTotal tests: " + totalTests + " Total Errors: " + totalErrors);
