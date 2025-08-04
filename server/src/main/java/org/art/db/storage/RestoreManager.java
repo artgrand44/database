@@ -138,17 +138,6 @@ public class RestoreManager {
 		File backupDirectory = BackupManager.getLatestBackup();
 		boolean useBackup = (tableDirs == null || tableDirs.length == 0) && backupDirectory != null;
 		
-		if (tableDirs == null || tableDirs.length == 0) {
-			logger.info("no table dirs");
-		} else {
-			logger.info("tablDirs " + tableDirs.length); 
-			
-			for (File dir : tableDirs) {
-				logger.info("file   " + dir.getAbsolutePath());
-			}
-		}
-		logger.info("recovering " + backupDirectory + " " + useBackup);
-		
 		// Select a peer to work with
 		
 		URI peer = getPartner(handler);
@@ -167,7 +156,6 @@ public class RestoreManager {
 				
 				// Tell the other instances to start sending us logs
 				
-				logger.info("sending begin from " +  DiscoveryHandler.getServerInstance().getLocalInstance());
 				Broadcaster.getInstance().broadcast("/db/beginstartup?instance=" + DiscoveryHandler.getServerInstance().getLocalInstance(), new byte[0]);
 				
 				logger.info(DiscoveryHandler.getServerName() + " after sending begin");

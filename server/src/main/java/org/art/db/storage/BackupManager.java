@@ -30,6 +30,7 @@ public class BackupManager {
 	private final long interval;
 	private final long startTime;
 	
+	private final static boolean trace = false;
 	private final static BackupManager instance = new BackupManager();
 	
 	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -64,16 +65,14 @@ public class BackupManager {
 			File backupDir = this.getBackupDirectory(rootDir);
 			
 			rootDir.mkdirs();
-			
-			if (!rootDir.exists()) logger.info("Create failed");
-			
 			this.deleteOldBackups(rootDir);
 
 			if (DBFiles.getSecurity().exists()) {
 				this.backupFile(DBFiles.getSecurity(), backupDir);
 			}
 
-			logger.info("Tables = " + DBFiles.listTables());
+			if (trace) logger.info("Tables = " + DBFiles.listTables());
+			
 			for (String table : DBFiles.listTables()) {
 				this.backupTable(table, backupDir);
 			}
@@ -118,7 +117,6 @@ public class BackupManager {
 		
 		backupDir.mkdirs();
 		
-		logger.info("Back up table " + table + " exists = " + backupDir.exists());
 		StorageManager.getInstance().getTableManager(table).flush();
 		
 		File[] segments = DBFiles.listDiskSegments(table);
@@ -130,7 +128,7 @@ public class BackupManager {
 				File backup = new File(backupDir, segment.getName());
 				
 				Files.copy(segment.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);	
-				logger.info("back up segment " + segment.getAbsolutePath() + " to " + backup.getAbsolutePath() + " exists " + backup.exists());				
+				if (trace) logger.info("back up segment " + segment.getAbsolutePath() + " to " + backup.getAbsolutePath() + " exists " + backup.exists());				
 			}
 		}
 		
@@ -150,7 +148,7 @@ public class BackupManager {
 		File backup = new File(backupDir, source.getName());
 
 		Files.copy(source.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
-		logger.info("back up file " + source.getAbsolutePath() + " to " + backup.getAbsolutePath() + " exists " + backup.exists());
+		if (trace) logger.info("back up file " + source.getAbsolutePath() + " to " + backup.getAbsolutePath() + " exists " + backup.exists());
 	}
 	
 	private void deleteOldBackups(File rootFile) {
@@ -199,8 +197,7 @@ public class BackupManager {
 	}
 	
 	static File getLatestBackup() {
-		logger.info("Get latest");
-		list(DBFiles.getBackupRoot(), "");
+		if (trace) list(DBFiles.getBackupRoot(), "");
 		
 		File[] match = DBFiles.getBackupRoot().listFiles((x, y) -> new File(x, y + COMPLETION_FILE).exists());
 		
@@ -209,11 +206,8 @@ public class BackupManager {
 		}
 		
 		List<File> sorted = Arrays.asList(match);
-		logger.info("sorted list " + sorted);
-		
 		Collections.sort(sorted);
 		
-		logger.info("return " + sorted.getLast());
 		return sorted.getLast();
 		
 	}
