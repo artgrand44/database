@@ -146,7 +146,7 @@ public class KubernetestAdapter extends TestAdapter {
 			
 			String setYaml = this.getResourceAsString("db.yaml").replaceAll("defaultclusterdata", this.testName + suffix);
 			List<?> list = (List<?>) Serialization.unmarshal(setYaml, StatefulSet.class);
-			StatefulSet set = (StatefulSet)list.get(2);
+			StatefulSet set = (StatefulSet)list.get(1);
 			
 			logger.info("Setting claim to " + this.testName + suffix);
 			

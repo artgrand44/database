@@ -27,6 +27,7 @@ import org.art.db.common.LogEntry.Operation;
 import org.art.db.security.SecurityHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -133,9 +134,20 @@ public class RestoreManager {
 		// We do a restore if the root is empty and a backup is available.
 		
 		File root = DBFiles.getRoot();
-		File[] tableDirs = root.listFiles();
+		File[] tableDirs = root.listFiles((x, y) -> new File(x, y).isDirectory());
 		File backupDirectory = BackupManager.getLatestBackup();
 		boolean useBackup = (tableDirs == null || tableDirs.length == 0) && backupDirectory != null;
+		
+		if (tableDirs == null || tableDirs.length == 0) {
+			logger.info("no table dirs");
+		} else {
+			logger.info("tablDirs " + tableDirs.length); 
+			
+			for (File dir : tableDirs) {
+				logger.info("file   " + dir.getAbsolutePath());
+			}
+		}
+		logger.info("recovering " + backupDirectory + " " + useBackup);
 		
 		// Select a peer to work with
 		
@@ -213,7 +225,8 @@ public class RestoreManager {
 		} else if (useBackup) {
 			try {
 				logger.info("Restoring database from backup");
-				Files.copy(root.toPath(), backupDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING);
+				FileUtils.copyDirectory(backupDirectory, root);
+				
 			} catch (Exception exc) {
 				logger.error("There was an exception restoring the backup " + exc.getMessage() + "root " + root.toPath() + "backup " + backupDirectory.toPath());
 			}

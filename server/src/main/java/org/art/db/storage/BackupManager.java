@@ -24,6 +24,8 @@ public class BackupManager {
 	private static final Logger logger = LoggerFactory.getLogger(BackupManager.class);
 	
 	private ScheduledFuture<?> handler;
+	private ScheduledFuture<?> progressHandler;
+	private final File progressFile;
 	private final String localHost;
 	private final long interval;
 	private final long startTime;
@@ -35,12 +37,14 @@ public class BackupManager {
 	
 	private static final long ONE_DAY = 1000 * 60 * 60 * 24;
 	private static final String COMPLETION_FILE = "/completion.dat";
+	private static final String PROGRESS_FILE = "/progress.dat";
 	
 	private BackupManager() {
 		try {
 			this.localHost = InetAddress.getLocalHost().getHostAddress();
 			this.interval = Math.max(ONE_DAY, new Interval(Environment.getInstance().getPropertyWithDefault("org.art.db.backupinterval")).toMillis());
 			this.startTime = System.currentTimeMillis();
+			this.progressFile = new File(DBFiles.getBackupRoot(), PROGRESS_FILE);
 		} catch (Exception exc) {
 			throw new IllegalStateException(exc);
 		}
@@ -51,6 +55,8 @@ public class BackupManager {
 			DiscoveryHandler.getServerInstance().pausePublishing();
 			this.lock.writeLock().lock();
 			
+			this.progressHandler = Scheduler.DEFAULT.scheduleAtFixedRate(this::markProgress, 0, 30, TimeUnit.SECONDS);
+			
 			// Generate a directory name for this backup using the form xxx-yyy where xxx is the
 			// system time in millis and and yyy is the host name.
 
@@ -58,21 +64,28 @@ public class BackupManager {
 			File backupDir = this.getBackupDirectory(rootDir);
 			
 			rootDir.mkdirs();
+			
+			if (!rootDir.exists()) logger.info("Create failed");
+			
 			this.deleteOldBackups(rootDir);
 
 			if (DBFiles.getSecurity().exists()) {
 				this.backupFile(DBFiles.getSecurity(), backupDir);
 			}
 
+			logger.info("Tables = " + DBFiles.listTables());
 			for (String table : DBFiles.listTables()) {
 				this.backupTable(table, backupDir);
 			}
 			
-			FileUtils.write(new File(rootDir, COMPLETION_FILE), String.valueOf(System.currentTimeMillis()), Charset.defaultCharset());
+			FileUtils.write(new File(backupDir, COMPLETION_FILE), String.valueOf(System.currentTimeMillis()), Charset.defaultCharset());
+			logger.info("backup complete");
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			logger.error("Backup exception " + exc.getMessage());
 		} finally {
+			this.progressHandler.cancel(true);
+			this.progressFile.delete();
 			this.lock.writeLock().unlock();
 			DiscoveryHandler.getServerInstance().resumePublishing();
 		}
@@ -81,18 +94,31 @@ public class BackupManager {
 	
 	private void backupIfNeeded() {
 		File lastBackup = getLatestBackup();
-		long lastTime = lastBackup == null ? this.startTime : this.getTimeFromFileName(lastBackup);
+		long lastBackupTime = lastBackup == null ? this.startTime : this.getTimeFromFileName(lastBackup);
+		long lastProgessTime = 0;
+		long now = System.currentTimeMillis();
 		
-		if (System.currentTimeMillis() - lastTime > this.interval) {
+		try {
+			lastProgessTime = Long.parseLong(FileUtils.readFileToString(this.progressFile, Charset.defaultCharset()));	
+		} catch (Exception exc) {
+			
+		}
+		
+		// If the backup interval has elapsed and no one else is doing a backup then
+		// start one.
+		
+		if (now - lastBackupTime > this.interval && now - lastProgessTime > 60000) {
 			this.backup();
 		}
 	}
 	
 	private void backupTable(String table, File root) throws Exception  {
+		
 		File backupDir = new File(root, table);
 		
 		backupDir.mkdirs();
 		
+		logger.info("Back up table " + table + " exists = " + backupDir.exists());
 		StorageManager.getInstance().getTableManager(table).flush();
 		
 		File[] segments = DBFiles.listDiskSegments(table);
@@ -103,9 +129,8 @@ public class BackupManager {
 			for (File segment : segments) {
 				File backup = new File(backupDir, segment.getName());
 				
-				if (!backup.exists()) {
-					Files.copy(segment.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
-				}
+				Files.copy(segment.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);	
+				logger.info("back up segment " + segment.getAbsolutePath() + " to " + backup.getAbsolutePath() + " exists " + backup.exists());				
 			}
 		}
 		
@@ -125,6 +150,7 @@ public class BackupManager {
 		File backup = new File(backupDir, source.getName());
 
 		Files.copy(source.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		logger.info("back up file " + source.getAbsolutePath() + " to " + backup.getAbsolutePath() + " exists " + backup.exists());
 	}
 	
 	private void deleteOldBackups(File rootFile) {
@@ -173,20 +199,49 @@ public class BackupManager {
 	}
 	
 	static File getLatestBackup() {
-		File[] files = DBFiles.getBackupRoot().listFiles((x, y) -> new File(x, y + COMPLETION_FILE).exists());
+		logger.info("Get latest");
+		list(DBFiles.getBackupRoot(), "");
 		
-		if (files == null || files.length == 0) {
+		File[] match = DBFiles.getBackupRoot().listFiles((x, y) -> new File(x, y + COMPLETION_FILE).exists());
+		
+		if (match == null || match.length == 0) {
 			return null;
 		}
 		
-		List<File> list = Arrays.asList(files);
+		List<File> sorted = Arrays.asList(match);
+		logger.info("sorted list " + sorted);
 		
-		Collections.sort(list);
+		Collections.sort(sorted);
 		
-		return list.getLast();
+		logger.info("return " + sorted.getLast());
+		return sorted.getLast();
+		
 	}
 	
+	private void markProgress() {
+		try {
+			FileUtils.write(this.progressFile, String.valueOf(System.currentTimeMillis()), Charset.defaultCharset());
+		} catch (Exception exc) {
+			logger.info("Exception updating progress file " + exc.getMessage());
+		}
+	}
+	
+	private static void list(File file, String indent)  {
+		try {
+			logger.info(indent + file.getCanonicalPath()); 
+		} catch (Exception exc) {
+			logger.info(indent + file.getAbsolutePath()); 
+		}
 		
+		File[] contents;
+		
+		if (file.isDirectory() && (contents = file.listFiles()) != null) {
+			for (File f : contents) {
+				list(f, indent + "   ");
+			}
+		}
+		
+	}
 	public void start() {
 		long interval = Math.max(ONE_DAY, new Interval(Environment.getInstance().getPropertyWithDefault("org.art.db.backupinterval")).toMillis());
 		

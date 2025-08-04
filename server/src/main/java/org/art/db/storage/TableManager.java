@@ -455,12 +455,13 @@ public class TableManager implements Closeable{
 	
 	@Override
 	public void close() throws IOException {
-		this.table.close();
-		
-		for (Map.Entry<String, Index> entry : this.indices.entrySet()) {
-			entry.getValue().close();
+		if (DBFiles.getTableDirectory(this.tableName).exists()) {
+			this.table.close();
+
+			for (Map.Entry<String, Index> entry : this.indices.entrySet()) {
+				entry.getValue().close();
+			}
 		}
-		
 	}
 	
 	public void crash() throws Exception {

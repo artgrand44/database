@@ -36,6 +36,7 @@ import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -78,6 +79,7 @@ public class Dispatcher {
 		   HANDLERS.put("/db/beginstartup",     new BeginStartupHandler());
 		   HANDLERS.put("/metrics",             new MetricsHandler());
 		   HANDLERS.put("/db/getstats",         new GetStatsHandler());
+		   HANDLERS.put("/db/reset",            new ResetHandler());
 	}
 	
 	public static Object handle(HttpServerExchange exchange, String url, Map<String, String> parameters, byte[] body) throws Exception {
@@ -564,6 +566,21 @@ public class Dispatcher {
 			Environment.getInstance().save();
 			
 			return new byte[0];
+		}
+		
+	}
+	
+	static class ResetHandler implements Handler {
+
+		@Override
+		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
+			if (parameters.get("backup").equalsIgnoreCase("true")) {logger.info("Cleaning backups");
+				FileUtils.cleanDirectory(DBFiles.getBackupRoot());
+			}
+			
+			FileUtils.cleanDirectory(DBFiles.getRoot());
+			return new byte[0];
+			
 		}
 		
 	}
