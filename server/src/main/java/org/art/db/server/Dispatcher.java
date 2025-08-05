@@ -31,7 +31,7 @@ import org.art.db.storage.DBFiles;
 import org.art.db.storage.LogOutputStream;
 import org.art.db.storage.MetricsLogger;
 import org.art.db.storage.PrometheusLogger;
-import org.art.db.storage.RestoreManager;
+import org.art.db.storage.RecoveryManager;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
 import org.slf4j.Logger;
@@ -255,7 +255,7 @@ public class Dispatcher {
 		@SuppressWarnings("unchecked")
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			if (!RestoreManager.getInstance().isRecovered()) {
+			if (!RecoveryManager.getInstance().isRecovered()) {
 				throw new InstanceRecoveringException();
 			}
 			
@@ -282,7 +282,7 @@ public class Dispatcher {
 		@SuppressWarnings("unchecked")
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			if (!RestoreManager.getInstance().isRecovered()) {
+			if (!RecoveryManager.getInstance().isRecovered()) {
 				throw new InstanceRecoveringException();
 			}
 			
@@ -313,7 +313,7 @@ public class Dispatcher {
 		@SuppressWarnings("unchecked")
 		@Override
 		public Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			if (!RestoreManager.getInstance().isRecovered()) {
+			if (!RecoveryManager.getInstance().isRecovered()) {
 				throw new InstanceRecoveringException();
 			}
 			
@@ -579,6 +579,13 @@ public class Dispatcher {
 			}
 			
 			FileUtils.cleanDirectory(DBFiles.getRoot());
+			
+			File[] files = DBFiles.getRoot().listFiles();
+			
+			if (files != null && files.length != 0) {
+				logger.info("Unable to clear files");
+				throw new Exception("Clear files failed");
+			}
 			return new byte[0];
 			
 		}
@@ -615,7 +622,7 @@ public class Dispatcher {
 				handler.waitInstanceCount(count, 60 * 1000);
 			}
 			
-			while (!RestoreManager.getInstance().isRecovered()) {
+			while (!RecoveryManager.getInstance().isRecovered()) {
 				Utils.sleepSafely(1000);
 			}
 			

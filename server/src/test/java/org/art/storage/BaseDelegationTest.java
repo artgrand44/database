@@ -16,7 +16,7 @@ import org.art.db.client.Client;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Utils;
 import org.art.db.server.Server;
-import org.art.db.storage.RestoreManager;
+import org.art.db.storage.RecoveryManager;
 import org.art.db.tests.TestAdapter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -146,7 +146,7 @@ public abstract class BaseDelegationTest extends TestAdapter {
 		
 		Server.start(this.getProfilePath(profile));	
 		
-		while (!RestoreManager.getInstance().isRecovered()) {
+		while (!RecoveryManager.getInstance().isRecovered()) {
 			Utils.sleepSafely(1000);
 		}
 		

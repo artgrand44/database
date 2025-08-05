@@ -3,8 +3,6 @@ package org.art.db.storage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,22 +18,21 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.LogEntry;
+import org.art.db.common.LogEntry.Operation;
 import org.art.db.common.RestClient;
 import org.art.db.common.Scheduler;
 import org.art.db.common.Utils;
-import org.art.db.common.LogEntry.Operation;
 import org.art.db.security.SecurityHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class RestoreManager {
+public class RecoveryManager {
 	
-	private static final Logger logger = LoggerFactory.getLogger(RestoreManager.class);
+	private static final Logger logger = LoggerFactory.getLogger(RecoveryManager.class);
 	
-	private final static RestoreManager instance = new RestoreManager();
+	private final static RecoveryManager instance = new RecoveryManager();
 	
 	private boolean hasMetadata;
 	
@@ -130,14 +127,18 @@ public class RestoreManager {
 	
 	public void recover(DiscoveryHandler handler) {	
 		
-		// Determine whether we need to restore the entire database from the backup.
-		// We do a restore if the root is empty and a backup is available.
+		// If the root directory is empty or just has a security file then do a restore.
 		
 		File root = DBFiles.getRoot();
-		File[] tableDirs = root.listFiles((x, y) -> new File(x, y).isDirectory());
-		File backupDirectory = BackupManager.getLatestBackup();
-		boolean useBackup = (tableDirs == null || tableDirs.length == 0) && backupDirectory != null;
+		File[] files = root.listFiles((x, y) -> !y.equals(DBFiles.getSecurity().getName()));
 		
+		if (files == null || files.length == 0) {
+			logger.info("call restore");
+			BackupManager.getInstance().restore();
+		} else {
+			logger.info("dbroot has " + Arrays.asList(files));
+		}
+	
 		// Select a peer to work with
 		
 		URI peer = getPartner(handler);
@@ -150,7 +151,9 @@ public class RestoreManager {
 		} else {
 			logger.info("using peer " + peer);
 		}
-						
+			
+		// If there's a partner then get the latest updates from the partner.
+		
 		if (peer != null) {			
 			try {			
 				
@@ -174,12 +177,8 @@ public class RestoreManager {
 
 				for (String table : DBFiles.listTables()) {
 					logger.info("recovering " + table);
+					
 					try {
-						if (useBackup) {
-							logger.info("Restoring " + table + " from backup");
-							Files.copy(new File(backupDirectory, table).toPath(), new File(root, table).toPath(), StandardCopyOption.REPLACE_EXISTING);
-						}
-
 						// Tell the peer to flush its current segment 
 
 						this.restClient.get(restClient.buildURI(peer, "/db/flush?table=%s", table));
@@ -210,15 +209,7 @@ public class RestoreManager {
 				MetricsLogger.getInstance().logAlert("There was an exception restoring the backup.");
 				logger.error("There was an error synchronizing the configuration " + exc.getMessage());
 			}
-		} else if (useBackup) {
-			try {
-				logger.info("Restoring database from backup");
-				FileUtils.copyDirectory(backupDirectory, root);
-				
-			} catch (Exception exc) {
-				logger.error("There was an exception restoring the backup " + exc.getMessage() + "root " + root.toPath() + "backup " + backupDirectory.toPath());
-			}
-		}
+		} 
 
 		logger.info("set recovered");
 		this.recovered = true;
@@ -361,7 +352,7 @@ public class RestoreManager {
 	}
 	
 	
-	public static RestoreManager getInstance() {
+	public static RecoveryManager getInstance() {
 		return instance;
 	}
 

@@ -24,7 +24,7 @@ import org.art.db.storage.DBFiles;
 import org.art.db.storage.Environment;
 import org.art.db.storage.MetricsLogger;
 import org.art.db.storage.PrometheusLogger;
-import org.art.db.storage.RestoreManager;
+import org.art.db.storage.RecoveryManager;
 import org.art.db.storage.RollingAverage;
 import org.art.db.storage.StorageManager;
 import org.art.db.ui.UIConsole;
@@ -89,7 +89,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 			this.server.start();
 			
-			RestoreManager.getInstance().recover(handler);
+			RecoveryManager.getInstance().recover(handler);
 			MetricsLogger.getInstance().logStatus("Running");
 		} catch (Throwable exc) {
 			logger.error(exc.getClass().getName() + exc.getMessage());

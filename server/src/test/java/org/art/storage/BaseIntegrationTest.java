@@ -8,7 +8,7 @@ import org.art.db.client.Client;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Utils;
 import org.art.db.server.Server;
-import org.art.db.storage.RestoreManager;
+import org.art.db.storage.RecoveryManager;
 import org.junit.jupiter.api.AfterEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +68,7 @@ public class BaseIntegrationTest extends BaseSQLTest {
 			DiscoveryHandler.clear();
 			Server.start(path);	
 			
-			while (!RestoreManager.getInstance().isRecovered()) {
+			while (!RecoveryManager.getInstance().isRecovered()) {
 				Utils.sleepSafely(1000);
 			}
 		}

@@ -42,6 +42,12 @@ public class StorageManager  {
 		}
 	}
 	
+	public void flushAll()  {		
+		for (TableManager manager : this.tableManagers.values()) {
+			manager.flush();			
+		}	
+	}
+	
 	public static StorageManager getInstance() {
 		return instance; 
 	}
