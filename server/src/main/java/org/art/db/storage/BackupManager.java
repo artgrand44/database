@@ -60,7 +60,6 @@ public class BackupManager {
 			File rootDir = DBFiles.getBackupRoot();
 			File tempFile  = new File(rootDir, baseName + ".tmp");
 			File zipFile = new File(rootDir, baseName + ".zip");
-
 			
 			StorageManager.getInstance().flushAll();		
 			
@@ -88,23 +87,23 @@ public class BackupManager {
 	}
 	
 	private void backupIfNeeded() {
-		File lastBackup = getLatestBackup();
-		long lastBackupTime = lastBackup == null ? this.startTime : this.getTimeFromFileName(lastBackup);
-		long lastProgessTime = 0;
 		long now = System.currentTimeMillis();
 		
-		try {
-			lastProgessTime = Long.parseLong(FileUtils.readFileToString(this.progressFile, Charset.defaultCharset()));	
-		} catch (Exception exc) {
-			
+		if (this.progressFile.exists() && now - this.progressFile.lastModified() < 60000) {
+			return;
 		}
 		
-		// If the backup interval has elapsed and no one else is doing a backup then
-		// start one.
+		File lastBackup = getLatestBackup();
 		
-		if (now - lastBackupTime > this.interval && now - lastProgessTime > 60000) {
-			this.backup();
+		if (lastBackup == null && now - this.startTime < this.interval) {
+			return;
 		}
+		
+		if (lastBackup != null && now - this.getTimeFromFileName(lastBackup) < this.interval) {
+			return;
+		}
+		
+		this.backup();
 	}
 		
 	private void deleteOldBackups(File rootFile) {
