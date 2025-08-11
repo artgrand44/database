@@ -50,6 +50,7 @@ public class BackupManager {
 	
 	public void backup() {
 		try {
+			RecoveryManager.getInstance().setRecovered(false);
 			DiscoveryHandler.getServerInstance().pausePublishing();
 			this.lock.writeLock().lock();
 			
@@ -72,16 +73,22 @@ public class BackupManager {
 			}
 			
 			this.deleteOldBackups(rootDir);
-
+			
 			logger.info("backup complete");
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			logger.error("Backup exception " + exc.getMessage());
 		} finally {
+			
+			// Release all of the locks then do a recovery.  The recovery
+			// will apply the updates that were made on other instances while
+			// we were doing the backup.
+			
 			this.progressHandler.cancel(true);
 			this.progressFile.delete();
 			this.lock.writeLock().unlock();
-			DiscoveryHandler.getServerInstance().resumePublishing();
+			DiscoveryHandler.getServerInstance().resumePublishing(); 
+			RecoveryManager.getInstance().recover();
 		}
 		
 	}

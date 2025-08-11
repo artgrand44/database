@@ -36,7 +36,7 @@ public class RecoveryManager {
 	
 	private boolean hasMetadata;
 	
-	private boolean recovered;
+	private volatile boolean recovered;
 	
 	private final RestClient restClient = new RestClient(SecurityHandler.getInstance().getAdminUser(), SecurityHandler.getInstance().getAdminPassword());
 	
@@ -125,7 +125,7 @@ public class RecoveryManager {
 		return null;
 	}
 	
-	public void recover(DiscoveryHandler handler) {	
+	public void recover() {	
 		
 		// If the root directory is empty or just has a security file then do a restore.
 		
@@ -141,6 +141,7 @@ public class RecoveryManager {
 	
 		// Select a peer to work with
 		
+		DiscoveryHandler handler = DiscoveryHandler.getServerInstance();
 		URI peer = getPartner(handler);
 		boolean newShard = false;
 		
@@ -358,12 +359,15 @@ public class RecoveryManager {
 
 
 	public boolean hasMetadata() {
-		return hasMetadata;
+		return this.hasMetadata;
 	}
 
 
 	public boolean isRecovered() {
-		return recovered;
+		return this.recovered;
 	}
 
+	public void setRecovered(boolean recovered) {
+		this.recovered = recovered;
+	}
 }

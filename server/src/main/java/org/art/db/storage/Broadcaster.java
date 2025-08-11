@@ -164,19 +164,8 @@ public class Broadcaster {
 				if (cause instanceof ConnectException || cause instanceof HttpTimeoutException || exc instanceof TimeoutException) {
 					this.messages.addLast(new Message(instances.get(idx), path, body));
 					logger.info("added to queue " + exc.getClass().getName());
-					
-					if (cause != null) {
-						logger.info("cause " + cause);
-					}
 				} else {
 					logger.info("no add " + exc.getClass().getName() + " cause " + exc.getCause());
-					
-					if (exc.getCause() != null) {
-						logger.info("cause = " + exc.getCause().getClass().getName());
-					}
-					
-					
-					exc.printStackTrace();
 				}
 			}
 		}		
@@ -193,7 +182,7 @@ public class Broadcaster {
 	/**
 	 * Helper method to handle timeouts.
 	 */
-	private synchronized void timeoutHandler() {
+	private void timeoutHandler() {
 		
 		Iterator<Message> iterator = this.messages.iterator();
 		
@@ -211,6 +200,8 @@ public class Broadcaster {
 				if (message.timestamp + REQUEST_TTL > System.currentTimeMillis() || message.retries++ > MAX_RETRIES) {
 					message.cleanup();
 					iterator.remove();
+				} else {
+					Utils.sleepSafely(1000);
 				}
 			}
 		}

@@ -89,7 +89,7 @@ public class Server implements HttpHandler, FullBytesCallback {
 			
 			this.server.start();
 			
-			RecoveryManager.getInstance().recover(handler);
+			RecoveryManager.getInstance().recover();
 			MetricsLogger.getInstance().logStatus("Running");
 		} catch (Throwable exc) {
 			logger.error(exc.getClass().getName() + exc.getMessage());
