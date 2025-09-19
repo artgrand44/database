@@ -160,7 +160,7 @@ public class TreeStore implements Closeable, BlobStore {
 			for (Map.Entry<LogKey, LogValue> change : changes.entrySet()) {
 				LogKey key = change.getKey();
 				
-				this.currentBatch.compute(key, (x, y) -> y == null 
+				this.currentBatch.compute(key, (_, y) -> y == null 
 						                                 ? new LogValue(change.getValue().value, changes.size() > 1) 
 						                                 : new LogValue(change.getValue().value, changes.size() > 1 || y.transactional));
 			}
@@ -601,10 +601,8 @@ public class TreeStore implements Closeable, BlobStore {
 	}
 	
 	public void setHighGUID(GUID guid) throws Exception {
-		try (TypedOutputStream stream = new TypedOutputStream()) {
-			this.header.highGUID = guid;
-			this.writeHeader();
-		}
+		this.header.highGUID = guid;
+		this.writeHeader();
 	}
 	
 	public void setMetadata(Metadata metadata) throws Exception {

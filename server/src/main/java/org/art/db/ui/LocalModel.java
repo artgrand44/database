@@ -80,7 +80,7 @@ public class LocalModel {
 	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		
 		String key = clientName + "|" + escapeHtml4(sql);
-		ClientStats stats = this.getStats(key, ClientStats.class, x -> new ClientStats(this.cluster, this.shard,this.server, clientName, sql));
+		ClientStats stats = this.getStats(key, ClientStats.class, _ -> new ClientStats(this.cluster, this.shard,this.server, clientName, sql));
 	
 		stats.log(time, calls, matches);
 	

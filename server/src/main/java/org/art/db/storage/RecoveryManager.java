@@ -130,7 +130,7 @@ public class RecoveryManager {
 		// If the root directory is empty or just has a security file then do a restore.
 		
 		File root = DBFiles.getRoot();
-		File[] files = root.listFiles((x, y) -> !y.equals(DBFiles.getSecurity().getName()));
+		File[] files = root.listFiles((_, y) -> !y.equals(DBFiles.getSecurity().getName()));
 		
 		if (files == null || files.length == 0) {
 			logger.info("call restore");

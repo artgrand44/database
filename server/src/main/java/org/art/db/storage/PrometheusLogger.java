@@ -75,12 +75,12 @@ public class PrometheusLogger extends MetricsLogger {
 	private final OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 	
 	private final Cache<String, Counter> counters =   Caffeine.newBuilder()
-			                                                    .evictionListener((x, y, z) -> freeCounter((Counter)y))
+			                                                    .evictionListener((_, y, _) -> freeCounter((Counter)y))
 			                                                    .maximumSize(1000)
 			                                                    .build();
 
 	private final Cache<String, GaugeWrapper> gauges =   Caffeine.newBuilder()
-                                                                .evictionListener((x, y, z) -> freeGauge((GaugeWrapper)y))
+                                                                .evictionListener((_, y, _) -> freeGauge((GaugeWrapper)y))
                                                                 .maximumSize(1000)
                                                                 .build();
 

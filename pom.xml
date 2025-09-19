@@ -6,7 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<properties>
-		<java.version>18</java.version>
+		<java.version>25</java.version>
 		<maven.compiler.source>22</maven.compiler.source>
     	<maven.compiler.target>22</maven.compiler.target>
     	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

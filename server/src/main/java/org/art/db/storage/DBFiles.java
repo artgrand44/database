@@ -175,19 +175,19 @@ public class DBFiles {
 	public static File[] listDiskSegments(String table) {
 		File tableDir = new File(getRoot(), table);
 		
-		return tableDir.listFiles((dir, name) -> name.endsWith(".seg"));
+		return tableDir.listFiles((_, name) -> name.endsWith(".seg"));
 	}
 	
 	public static File[] listFiles(String table, String type) {
 		File tableDir = new File(getRoot(), table);
 		
-		return tableDir.listFiles((dir, name) -> name.endsWith(type));
+		return tableDir.listFiles((_, name) -> name.endsWith(type));
 	}
 	
 	public static File[] listTableLogs(String table) {
 		File tableDir = new File(getRoot(), table);
 		
-		return tableDir.listFiles((dir, name) -> name.endsWith(".log"));
+		return tableDir.listFiles((_, name) -> name.endsWith(".log"));
 	}
 	
 	public static File[] list(String table, FileFilter filter) {

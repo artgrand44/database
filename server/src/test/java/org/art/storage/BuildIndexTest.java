@@ -52,7 +52,7 @@ public class BuildIndexTest extends BaseIntegrationTest {
 					logger.info("after send flush");
 				}
 								
-				File[] segments = externalDir.listFiles((dir, name) -> name.endsWith(".seg"));
+				File[] segments = externalDir.listFiles((_, name) -> name.endsWith(".seg"));
 				
 				if (segments != null && segments.length > 1) {
 					break;

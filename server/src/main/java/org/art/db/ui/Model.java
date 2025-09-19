@@ -42,10 +42,10 @@ public class Model {
 		for (Stats stats : array) {
 			
 			switch(stats) {
-			case AlertStats alertStats -> key = alertStats.getShard() + "|" + alertStats.getServer() + "|" + alertStats.getAlert();
+			case AlertStats alertStats   -> key = alertStats.getShard() + "|" + alertStats.getServer() + "|" + alertStats.getAlert();
 			case ClientStats clientStats -> key = clientStats.getShard() + "|" + clientStats.getServer() + "|" + clientStats.getSql();
-			case QueryStats queryStats -> key = ((QueryStats)stats).getQuery();
-			case ServerStats serverStats -> key = stats.getServer();
+			case QueryStats _            -> key = ((QueryStats)stats).getQuery();
+			case ServerStats _           -> key = stats.getServer();
 			default -> logger.info("Bad stats type " + stats.getClass().getSimpleName());
 			}
 			

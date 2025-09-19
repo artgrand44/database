@@ -63,7 +63,7 @@ public class SQLHandler {
 			case Grant grant        -> DDLHandler.grant(grant, shard, database, user, password);
 			case Insert insert      -> DMLHandler.insert(insert, sql, shard, database, user, password, parameters);
 			case Update update      -> DMLHandler.update(update, sql, shard, database, user, password, parameters);
-			case Select select      -> throw new DBRuntimeException("Select statements must be called via Client.executeQuery.");
+			case Select _           -> throw new DBRuntimeException("Select statements must be called via Client.executeQuery.");
 			default                 -> throw new DBRuntimeException("Invalid statement " + sql);
 			}
 		} catch (JSQLParserException exc) {

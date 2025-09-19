@@ -9,7 +9,7 @@
   <groupId>org.art.org.art.database</groupId>
   <artifactId>common</artifactId>
   <properties>
-		<java.version>18</java.version>
+		<java.version>25</java.version>
 	</properties>
   <dependencies>
 	  <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->

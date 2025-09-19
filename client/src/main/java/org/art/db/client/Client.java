@@ -256,7 +256,7 @@ public class Client implements Closeable {
 				return null;
 			}
 
-			ClientCache cache = caches.computeIfAbsent(cluster, x -> new ClientCache(cacheSize, cacheDuration));
+			ClientCache cache = caches.computeIfAbsent(cluster, _ -> new ClientCache(cacheSize, cacheDuration));
 
 			cache.referenceCount++;
 

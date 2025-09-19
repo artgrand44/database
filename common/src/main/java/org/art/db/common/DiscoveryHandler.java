@@ -124,7 +124,7 @@ public class DiscoveryHandler {
 	}
 	
 	public synchronized static DiscoveryHandler getHandler(ConnectionInfo info) {
-		DiscoveryHandler handler = handlers.computeIfAbsent(info, name -> new DiscoveryHandler(info, false));
+		DiscoveryHandler handler = handlers.computeIfAbsent(info, _ -> new DiscoveryHandler(info, false));
 		
 		handler.referenceCount++;
 		return handler;

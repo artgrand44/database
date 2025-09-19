@@ -104,7 +104,7 @@ public class TypedOutputStream extends DataOutputStream {
 		case GUID guid ->       { this.writeByte(StreamType.GUID.ordinal());        guid.serialize(this); }
 		case String str ->      { this.writeByte(StreamType.String.ordinal());      this.writeString(str); }
 		case List<?> list ->    { this.writeByte(StreamType.List.ordinal());        this.writeList(list); }
-		case DBNull nl ->       { this.writeByte(StreamType.DBNull.ordinal()); }
+		case DBNull _ ->       { this.writeByte(StreamType.DBNull.ordinal()); }
 		
 		default ->              throw new IOException("Illegal field type");			
 		}

@@ -9,7 +9,7 @@ public class MultiValueMap<TKey, TValue> extends HashMap<TKey, List<TValue>> {
 	private static final long serialVersionUID = 1L;
 	
 	public void add(TKey key, TValue value) {
-		List<TValue> list = this.computeIfAbsent(key, x -> new ArrayList<>());
+		List<TValue> list = this.computeIfAbsent(key, _ -> new ArrayList<>());
 		
 		list.add(value);
 	}

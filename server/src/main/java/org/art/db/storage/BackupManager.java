@@ -149,7 +149,7 @@ public class BackupManager {
 	}
 	
 	private File getLatestBackup() {
-		File[] match = DBFiles.getBackupRoot().listFiles((x, y) -> y.endsWith(".zip"));
+		File[] match = DBFiles.getBackupRoot().listFiles((_, y) -> y.endsWith(".zip"));
 		
 		if (match == null || match.length == 0) {
 			logger.info("getBackup could not find any files " + Arrays.asList(DBFiles.getBackupRoot().list()));
