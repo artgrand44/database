@@ -50,8 +50,13 @@ public class TreeStore implements Closeable, BlobStore {
 		
 	}	
 	
-	static record LogValue(Object value, boolean transactional) {
+	static class LogValue {
+		final Object value;
+		boolean transactional;
 		
+		LogValue(Object value) {
+			this.value = value;
+		}
 	}
 	
 	private final ReentrantLock lock = new ReentrantLock();
@@ -157,12 +162,16 @@ public class TreeStore implements Closeable, BlobStore {
 			
 			// Merge the changes for this thread into the current batch
 			
+			boolean transactional = changes.size() > 1;
+			
 			for (Map.Entry<LogKey, LogValue> change : changes.entrySet()) {
 				LogKey key = change.getKey();
+				LogValue value = change.getValue();
+				LogValue oldValue = this.currentBatch.get(key);
 				
-				this.currentBatch.compute(key, (_, y) -> y == null 
-						                                 ? new LogValue(change.getValue().value, changes.size() > 1) 
-						                                 : new LogValue(change.getValue().value, changes.size() > 1 || y.transactional));
+				value.transactional = transactional || (oldValue != null && oldValue.transactional);
+				
+				this.currentBatch.put(key, value);
 			}
 					 
 			threadChanges.get().clear();
@@ -411,7 +420,7 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void releaseNode(long id) throws IOException {
 		
-		threadChanges.get().put(new LogKey(Operation.Release, id), new LogValue(NULL_NODE, false));
+		threadChanges.get().put(new LogKey(Operation.Release, id), new LogValue(NULL_NODE));
 	}
 	
 	
@@ -536,14 +545,14 @@ public class TreeStore implements Closeable, BlobStore {
 	
 	public void saveRoot(long id) throws IOException {
 		
-		threadChanges.get().put(ROOT_KEY, new LogValue(id, false));
+		threadChanges.get().put(ROOT_KEY, new LogValue(id));
 	}
 	
 	public void saveNode(TreeNode node) throws Exception {
 		NodeId id = new NodeId(this, node.getId());
 		
 		cache.put(id, node);	
-		threadChanges.get().put(new LogKey(Operation.Update, node.getId()), new LogValue(new TreeNode(node), false));
+		threadChanges.get().put(new LogKey(Operation.Update, node.getId()), new LogValue(new TreeNode(node)));
 		
 	}
 
