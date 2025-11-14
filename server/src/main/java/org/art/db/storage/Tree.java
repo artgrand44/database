@@ -751,6 +751,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 				this.size.decrementAndGet();
 				node.remove(cursor.index);
 				this.saveNode(node);
+				this.commit();
 				return;
 			} catch (UpgradeException exc) {
 			}
