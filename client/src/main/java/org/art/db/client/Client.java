@@ -32,6 +32,8 @@ import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
+
 public class Client implements Closeable {
 
 	@SuppressWarnings("unused")
@@ -49,8 +51,12 @@ public class Client implements Closeable {
 	private final String shard;
 	private boolean batch = true;
 	private AtomicBoolean closed = new AtomicBoolean();
+	public boolean cbor = false;
 	
+	private static final CBORMapper  CBOR_MAPPER = new CBORMapper();
+			
 	public static final String WILDCARD = "*";
+
 	
 	
 	public Client(URI uri, String user, String password) throws Exception {
@@ -143,6 +149,7 @@ public class Client implements Closeable {
 		return new Batch(this.database, this.shard);
 	}
 	
+	// url is db/execute or db/executeQuery
 	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
  		if (this.batch && this.shard.equals("*")) {
  			return this.router.batch("/db/batch", url, body); 
@@ -161,33 +168,26 @@ public class Client implements Closeable {
 	
 	public void execute(String statement, Object ... parameters) throws Exception {
 		this.checkParameters(parameters);
-		
-		try (TypedOutputStream stream = new TypedOutputStream()) {
-			List<Object> list = new ArrayList<>(Arrays.asList(parameters));
-			ClientArgs args = new ClientArgs(this.database, this.shard, statement, list);
 
-			stream.writeObject(args);
+		List<Object> list = new ArrayList<>(Arrays.asList(parameters));
+		ClientArgs args = new ClientArgs(this.database, this.shard, statement, list);
 
-			byte[] body = stream.toByteArray();
+		byte[] body = this.serialize(args);
+		String lower = statement.toLowerCase().trim();
+		String path = this.cbor ? "/db/execute?format=cbor" : "/db/execute";
 
-			String lower = statement.toLowerCase().trim();
-			
-			if (lower.startsWith("insert") || lower.startsWith("update") || lower.startsWith("delete")) {
-				this.doBatch("/db/execute", Collections.emptyMap(), body);
-			} else {
-				this.doPost("/db/execute", Collections.emptyMap(), body);
-			}
+		if (lower.startsWith("insert") || lower.startsWith("update") || lower.startsWith("delete")) {
+			this.doBatch(path, Collections.emptyMap(), body);
+		} else {
+			this.doPost(path, Collections.emptyMap(), body);
 		}
+		
 	}
 	
-	public void executeBatch(Batch batch) throws Exception {
+	public void executeBatch(Batch batch) throws Exception {	
+		String path = this.cbor ? "/db/executeBatch?format=cbor" : "/db/executeBatch";
 		
-		try (TypedOutputStream stream = new TypedOutputStream()) {
-			stream.writeObject(batch);
-			
-			byte[] body = stream.toByteArray();			
-			this.doPost("/db/executeBatch", Collections.emptyMap(), body);			
-		}
+		this.doPost(path, Collections.emptyMap(), this.serialize(batch));			
 	}
 
 	public DocumentSet executeQuery(String statement, Object ... parameters) throws Exception {
@@ -201,26 +201,18 @@ public class Client implements Closeable {
 			return set;
 		}
 			
-		try (TypedOutputStream stream = new TypedOutputStream()) {
-			List<Object> list = new ArrayList<>(Arrays.asList(parameters));
-			ClientArgs args = new ClientArgs(this.database, this.shard, statement, list);
 
-			stream.writeObject(args);
+		List<Object> list = new ArrayList<>(Arrays.asList(parameters));
+		ClientArgs args = new ClientArgs(this.database, this.shard, statement, list);
+		String path = this.cbor ? "/db/executeQuery?format=cbor" : "/db/executeQuery";
+		
+		set = this.deserialize(this.doBatch(path, Collections.emptyMap(), this.serialize(args)), DocumentSet.class);
 
-			byte[] body = stream.toByteArray();
+		if (select && this.cache != null) {
+			this.cache.put(key, set);
+		}	
 		
-			byte[] result = this.doBatch("/db/executeQuery", Collections.emptyMap(), body);
-		
-			try (TypedInputStream istream = new TypedInputStream(result)) {
-				set =  (DocumentSet)istream.readObject();
-				
-				if (select && this.cache != null) {
-					this.cache.put(key, set);
-				}
-				
-				return set;
-			}
-		}
+		return set;
 	}
 	
 	
@@ -231,6 +223,30 @@ public class Client implements Closeable {
 	public void use(String database) {
 		this.database = database;
 	}
+	
+	private <T> T deserialize(byte[] bytes, Class<T> clazz) throws Exception {		
+		if (this.cbor) {
+			return CBOR_MAPPER.readValue(bytes, clazz);
+		} else {
+			try (TypedInputStream stream = new TypedInputStream(bytes)) {
+				Object obj = stream.readObject();
+				
+				return clazz.cast(obj);
+			} 
+		}				
+	}
+	
+	private byte[] serialize(Object value) throws Exception {
+		if (this.cbor) {
+			return CBOR_MAPPER.writeValueAsBytes(value);
+		} else {
+			try (TypedOutputStream stream = new TypedOutputStream()) {
+				stream.writeObject(value);
+				return stream.toByteArray();
+			}
+		} 		
+	}
+	
 	
 	public void waitServerCount(int count) throws Exception {
 		for (int idx = 0; idx < 10; idx++) {
