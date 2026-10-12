@@ -67,7 +67,6 @@ public class LocalModel {
 		return result.toArray(new Stats[result.size()]);
 	}
 	
-	@SuppressWarnings("deprecation")
 	public void logAlert(String message) {
 		
 		String key = escapeHtml4(message);
@@ -76,7 +75,6 @@ public class LocalModel {
 		stats.log(1);		
 	}
 	
-	@SuppressWarnings("deprecation")
 	public void logClient(String clientName, String sql, long time, long calls, int matches) {
 		
 		String key = clientName + "|" + escapeHtml4(sql);
@@ -98,8 +96,7 @@ public class LocalModel {
     	this.serverStats.logInsert();;
     }
 	
-    @SuppressWarnings("deprecation")
-	public void logSelect(String queryString, long time, int matches) {
+    public void logSelect(String queryString, long time, int matches) {
 		this.serverStats.logSelect();
 		this.serverStats.logGet();
 		

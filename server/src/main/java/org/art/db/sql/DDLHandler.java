@@ -271,6 +271,7 @@ public class DDLHandler {
 		try {
 			metadata.store();
 			
+			logger.info("Stored table " + SQLUtils.getFQN(table, database));
 			if (targetShard.equals(Client.WILDCARD)) {
 				SQLUtils.broadcastAll(database, createTable.toString());
 			}

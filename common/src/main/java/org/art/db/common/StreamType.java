@@ -21,5 +21,7 @@ public enum StreamType {
 	GUID,
 	Date,
 	LogEntry,
+	ClientArgs,
+	Batch,
 }
 

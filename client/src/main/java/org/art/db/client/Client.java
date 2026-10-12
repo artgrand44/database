@@ -16,6 +16,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.art.db.client.dao.DAOCompiler;
+import org.art.db.common.Batch;
+import org.art.db.common.ClientArgs;
 import org.art.db.common.ConnectionInfo;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
@@ -162,8 +164,10 @@ public class Client implements Closeable {
 		
 		try (TypedOutputStream stream = new TypedOutputStream()) {
 			List<Object> list = new ArrayList<>(Arrays.asList(parameters));
+			ClientArgs args = new ClientArgs(this.database, this.shard, statement, list);
 
-			new ClientArgs(this.database, this.shard, statement, list).serialize(stream);
+			stream.writeObject(args);
+
 			byte[] body = stream.toByteArray();
 
 			String lower = statement.toLowerCase().trim();
@@ -179,9 +183,9 @@ public class Client implements Closeable {
 	public void executeBatch(Batch batch) throws Exception {
 		
 		try (TypedOutputStream stream = new TypedOutputStream()) {
-			batch.serialize(stream);
+			stream.writeObject(batch);
 			
-			byte[] body = stream.toByteArray();
+			byte[] body = stream.toByteArray();			
 			this.doPost("/db/executeBatch", Collections.emptyMap(), body);			
 		}
 	}
@@ -199,8 +203,10 @@ public class Client implements Closeable {
 			
 		try (TypedOutputStream stream = new TypedOutputStream()) {
 			List<Object> list = new ArrayList<>(Arrays.asList(parameters));
+			ClientArgs args = new ClientArgs(this.database, this.shard, statement, list);
 
-			new ClientArgs(this.database, this.shard, statement, list).serialize(stream);
+			stream.writeObject(args);
+
 			byte[] body = stream.toByteArray();
 		
 			byte[] result = this.doBatch("/db/executeQuery", Collections.emptyMap(), body);

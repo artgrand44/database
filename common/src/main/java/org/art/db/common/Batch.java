@@ -1,20 +1,20 @@
-package org.art.db.client;
+package org.art.db.common;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.art.db.common.Serializable;
-import org.art.db.common.TypedInputStream;
-import org.art.db.common.TypedOutputStream;
-
 public class Batch implements Serializable<Batch> {
 	private String database;
 	private String shard;
 	private List<ClientArgs> clientArgs = new ArrayList<>();
 	
-	Batch(String database, String shard) {
+	public Batch() {
+		
+	}
+	
+	public Batch(String database, String shard) {
 		this.database = database;
 		this.shard = shard;
 	}

@@ -14,7 +14,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.commons.io.IOUtils;
-import org.art.db.client.ClientArgs;
+import org.art.db.common.Batch;
+import org.art.db.common.ClientArgs;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
@@ -39,6 +40,8 @@ import org.slf4j.LoggerFactory;
 import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderValues;
@@ -51,7 +54,8 @@ public class Dispatcher {
 		Object handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception;
 	}
 	
-	private static ObjectMapper MAPPER = new ObjectMapper();
+	private static final ObjectMapper MAPPER = new ObjectMapper();
+	private static final CBORMapper  CBOR_MAPPER = new CBORMapper();
 	
 	private static final Map<String, Handler> HANDLERS = new HashMap<>();
 	
@@ -148,6 +152,47 @@ public class Dispatcher {
 			logger.info("error on host " + DiscoveryHandler.getServerInstance().getLocalInstance() + " client = " + client + " hosts " + hosts);
 			throw new DBRuntimeException(exchange.getRequestURI() + " can only be invoked from database servers");
 		}	
+	}
+	
+	private static <T> T deserialize(String format, byte[] bytes, Class<T> clazz) throws Exception {
+		
+		if (format == null || format.isEmpty()) {
+			try (TypedInputStream stream = new TypedInputStream(bytes)) {
+				Object obj = stream.readObject();
+				
+				try {
+					return clazz.cast(obj);
+				} catch (Exception exc) {
+					logger.info("deserialize exception clazz = " + clazz.getSimpleName() + " obj " + obj.getClass().getSimpleName());
+					throw exc;
+				}
+			} 
+		} else {
+			return CBOR_MAPPER.readValue(bytes, clazz);
+		}		
+	}
+	
+	@SuppressWarnings("unchecked")
+	private static <T> List<T> deserializeList(String format, byte[] bytes, Class<T> clazz) throws Exception {
+		if (format == null || format.isEmpty()) {
+			try (TypedInputStream stream = new TypedInputStream(bytes)) {
+				return (List<T>)(stream.readObject());
+			}
+		} else {
+			return CBOR_MAPPER.readValue(bytes, TypeFactory.defaultInstance().constructCollectionLikeType(ArrayList.class, clazz));
+		}		
+	}
+	
+	private static byte[] serialize(String format, Object value) throws Exception {
+		if (format == null || format.isEmpty()) {
+			try (TypedOutputStream stream = new TypedOutputStream()) {
+				stream.writeObject(value);
+				return stream.toByteArray();
+			}
+		} else {
+			return CBOR_MAPPER.writeValueAsBytes(value);
+		}
+		
 	}
 	
 	public static class BatchHandler implements Handler {
@@ -258,21 +303,20 @@ public class Dispatcher {
 			if (!RecoveryManager.getInstance().isRecovered()) {
 				throw new InstanceRecoveringException();
 			}
-			
-			try (TypedInputStream stream = new TypedInputStream(body)) {
-				ClientArgs args = new ClientArgs().deserialize(stream);
-				List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
-				long start = System.currentTimeMillis();
-			
-				SQLHandler.getInstance().execute(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
-				
-				HeaderValues values = exchange.getRequestHeaders().get("Client");
-				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
-					
-				MetricsLogger.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, 1);
-				
-				return new byte[0];
-			}
+						
+			ClientArgs args = deserialize(parameters.get("format"), body, ClientArgs.class);
+			List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
+			long start = System.currentTimeMillis();
+
+			SQLHandler.getInstance().execute(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
+
+			HeaderValues values = exchange.getRequestHeaders().get("Client");
+			String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
+
+			MetricsLogger.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, 1);
+
+			return new byte[0];
+
 		}
 		
 	}
@@ -286,26 +330,22 @@ public class Dispatcher {
 				throw new InstanceRecoveringException();
 			}
 			
-			try (TypedInputStream stream = new TypedInputStream(body)) {
-				int count = stream.readInt();
-				
-				for (int idx = 0; idx < count; idx++) {
-					ClientArgs args = new ClientArgs().deserialize(stream);
-					List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
-					long start = System.currentTimeMillis();
+			Batch batch = deserialize(parameters.get("format"), body, Batch.class);
+			
+			for (ClientArgs args : batch.getClientArgs()) {
+				List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
+				long start = System.currentTimeMillis();
 
-					SQLHandler.getInstance().execute(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
-					
-					HeaderValues values = exchange.getRequestHeaders().get("Client");
-					String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
-						
-					MetricsLogger.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, 1);
-				}
-				
-				return new byte[0];
+				SQLHandler.getInstance().execute(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
+
+				HeaderValues values = exchange.getRequestHeaders().get("Client");
+				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
+
+				MetricsLogger.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, 1);
 			}
+
+			return new byte[0];
 		}
-		
 	}
 
 	static class ExecuteQueryHandler implements Handler {
@@ -316,26 +356,19 @@ public class Dispatcher {
 			if (!RecoveryManager.getInstance().isRecovered()) {
 				throw new InstanceRecoveringException();
 			}
-			
-			try (TypedInputStream inStream = new TypedInputStream(body)) {
-				ClientArgs args = new ClientArgs().deserialize(inStream);
-				List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
-				long start = System.currentTimeMillis();
-			
-				DocumentSet set = SQLHandler.getInstance().executeQuery(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
-				
-				HeaderValues values = exchange.getRequestHeaders().get("Client");
-				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
-					
-				MetricsLogger.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, set.size());
-							
-				try (TypedOutputStream stream = new TypedOutputStream()) {
-					stream.writeObject(set);
-					return stream.toByteArray();
-				}
-			} catch (Exception exc) {
-				throw exc;
-			}			
+						
+			ClientArgs args = deserialize(parameters.get("format"), body, ClientArgs.class);
+			List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
+			long start = System.currentTimeMillis();
+
+			DocumentSet set = SQLHandler.getInstance().executeQuery(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
+
+			HeaderValues values = exchange.getRequestHeaders().get("Client");
+			String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
+
+			MetricsLogger.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, set.size());
+
+			return serialize(parameters.get("format"), set);					
 		}
 		
 	}
@@ -486,7 +519,6 @@ public class Dispatcher {
 			
 			return MAPPER.writeValueAsBytes(result);
 		}
-
 	}
 		
 	static class LogHandler implements Handler {

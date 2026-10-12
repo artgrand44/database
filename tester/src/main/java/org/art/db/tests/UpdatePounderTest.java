@@ -2,8 +2,8 @@ package org.art.db.tests;
 
 import java.util.Random;
 
-import org.art.db.client.Batch;
 import org.art.db.client.Client;
+import org.art.db.common.Batch;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.assertj.core.api.Assertions;

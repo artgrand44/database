@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TypedInputStream extends DataInputStream {
+	
 
 	public TypedInputStream(File file) throws FileNotFoundException {
 		super(new BufferedInputStream(new FileInputStream(file)));
@@ -64,6 +65,8 @@ public class TypedInputStream extends DataInputStream {
 		case GUID ->        new GUID().deserialize(this);
 		case Date ->        new Date(this.readLong());
 		case LogEntry ->    new LogEntry().deserialize(this);
+		case ClientArgs ->  new ClientArgs().deserialize(this);
+		case Batch ->  		new Batch().deserialize(this);
 		default ->          null;
 		};
 	}

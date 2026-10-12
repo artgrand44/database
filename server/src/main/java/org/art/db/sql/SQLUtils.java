@@ -7,7 +7,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.art.db.client.Client;
-import org.art.db.client.ClientArgs;
+import org.art.db.common.ClientArgs;
 import org.art.db.common.Comparison;
 import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.Document;
@@ -70,8 +70,7 @@ public class SQLUtils {
 		if (handler != null) {
 			for (String shard : handler.getShards()) {
 				try (TypedOutputStream stream = new TypedOutputStream()) {
-					new ClientArgs(database, shard, statement, Collections.emptyList()).serialize(stream); 
-					
+					stream.writeObject(new ClientArgs(database, shard, statement, Collections.emptyList()));
 					Broadcaster.getInstance().broadcast("/db/execute", stream.toByteArray(), shard);
 				}
 			}	

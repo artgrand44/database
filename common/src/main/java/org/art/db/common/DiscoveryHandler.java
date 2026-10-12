@@ -426,7 +426,7 @@ public class DiscoveryHandler {
 			}
 			
 			Utils.sleepSafely(Math.min(timeout, 1000));
-	this.loadEnvironment();
+			this.loadEnvironment();
 		}
 	
 	}

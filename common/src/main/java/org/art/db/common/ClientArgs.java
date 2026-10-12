@@ -1,11 +1,7 @@
-package org.art.db.client;
+package org.art.db.common;
 
 import java.io.IOException;
 import java.util.List;
-
-import org.art.db.common.Serializable;
-import org.art.db.common.TypedInputStream;
-import org.art.db.common.TypedOutputStream;
 
 public class ClientArgs implements Serializable<ClientArgs>{
 	private String database;
