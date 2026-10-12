@@ -67,6 +67,7 @@ public class TypedInputStream extends DataInputStream {
 		case LogEntry ->    new LogEntry().deserialize(this);
 		case ClientArgs ->  new ClientArgs().deserialize(this);
 		case Batch ->  		new Batch().deserialize(this);
+		case BatchEntry ->  new BatchEntry().deserialize(this);
 		default ->          null;
 		};
 	}

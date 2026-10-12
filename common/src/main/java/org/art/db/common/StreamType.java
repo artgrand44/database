@@ -23,5 +23,6 @@ public enum StreamType {
 	LogEntry,
 	ClientArgs,
 	Batch,
+	BatchEntry
 }
 

@@ -27,9 +27,6 @@ public class Router {
 		
 	}
 	
-	private record BatchEntry(String uri, byte[] body, CompletableFuture<byte[]> future, long startTime) {
-		
-	}
 	
 	private RestClient restClient;
 	
@@ -109,7 +106,7 @@ public class Router {
 		// request manually.
 		
 		try {			
-			return entry.future.get();
+			return entry.getFuture().get();
 		} catch (ExecutionException exc) {
 			throw exc.getCause() instanceof DBRuntimeException runtime ? runtime : new DBRuntimeException("Error processing batch", exc.getCause()); 
 		} 
@@ -221,13 +218,7 @@ public class Router {
 		if (!list.isEmpty()) {
 			try (TypedOutputStream stream = new TypedOutputStream()) {
 				
-				stream.writeInt(list.size());
-				
-				for (BatchEntry entry : list) {
-					stream.writeUTF(entry.uri);
-					stream.writeInt(entry.body.length);
-					stream.write(entry.body);
-				}
+				stream.writeObject(list);
 				
 				byte[] body = stream.toByteArray();
 				byte[] response = this.post(null, batchURI, body);
@@ -241,11 +232,11 @@ public class Router {
 								byte[] buffer = new byte[result.readInt()];
 
 								result.read(buffer);
-								entry.future.complete(buffer);
+								entry.getFuture().complete(buffer);
 							} else {
 								String message = result.readUTF();
 								
-								entry.future.completeExceptionally(new DBRuntimeException(message));
+								entry.getFuture().completeExceptionally(new DBRuntimeException(message));
 							}
 						} catch (Exception exc) {
 							logger.error("Got exception on " + exc.getMessage());

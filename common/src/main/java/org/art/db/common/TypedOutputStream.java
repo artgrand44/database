@@ -87,28 +87,29 @@ public class TypedOutputStream extends DataOutputStream {
 	public void writeObject(Object obj) throws IOException {
 		
 		switch (obj) {
-		case Boolean bool ->    { this.writeByte(StreamType.Boolean.ordinal());     this.writeBoolean(bool); }
-		case Byte b ->          { this.writeByte(StreamType.Byte.ordinal());        this.writeByte(b); }
-		case Character chr ->   { this.writeByte(StreamType.Character.ordinal());   this.writeChar(chr); }
-		case Double dbl ->      { this.writeByte(StreamType.Double.ordinal());      this.writeDouble(dbl); }
-		case Float fl ->        { this.writeByte(StreamType.Float.ordinal());       this.writeFloat(fl); }
-		case Integer in ->      { this.writeByte(StreamType.Integer.ordinal());     this.writeInt(in); }
-		case Long lng ->        { this.writeByte(StreamType.Long.ordinal());        this.writeLong(lng); }
-		case Short shrt ->      { this.writeByte(StreamType.Long.ordinal());        this.writeShort(shrt); }
-		case Date date ->       { this.writeByte(StreamType.Date.ordinal());        this.writeLong(date.getTime()); }
-		case LogEntry entry ->  { this.writeByte(StreamType.LogEntry.ordinal());    entry.serialize(this); }
-		case Document doc ->    { this.writeByte(StreamType.Document.ordinal());    doc.serialize(this); }
-		case DocumentSet set -> { this.writeByte(StreamType.DocumentSet.ordinal()); set.serialize(this); }
-		case Key key ->         { this.writeByte(StreamType.Key.ordinal());         key.serialize(this); }
-		case Blob blob ->       { this.writeByte(StreamType.Blob.ordinal());        blob.serialize(this); }
-		case GUID guid ->       { this.writeByte(StreamType.GUID.ordinal());        guid.serialize(this); }
-		case String str ->      { this.writeByte(StreamType.String.ordinal());      this.writeString(str); }
-		case List<?> list ->    { this.writeByte(StreamType.List.ordinal());        this.writeList(list); }
-		case ClientArgs args -> { this.writeByte(StreamType.ClientArgs.ordinal());  args.serialize(this); }
-		case Batch batch -> 	{ this.writeByte(StreamType.Batch.ordinal());       batch.serialize(this); }
-		case DBNull _ ->        { this.writeByte(StreamType.DBNull.ordinal()); }
+		case Boolean bool ->     { this.writeByte(StreamType.Boolean.ordinal());     this.writeBoolean(bool); }
+		case Byte b ->           { this.writeByte(StreamType.Byte.ordinal());        this.writeByte(b); }
+		case Character chr ->    { this.writeByte(StreamType.Character.ordinal());   this.writeChar(chr); }
+		case Double dbl ->       { this.writeByte(StreamType.Double.ordinal());      this.writeDouble(dbl); }
+		case Float fl ->         { this.writeByte(StreamType.Float.ordinal());       this.writeFloat(fl); }
+		case Integer in ->       { this.writeByte(StreamType.Integer.ordinal());     this.writeInt(in); }
+		case Long lng ->         { this.writeByte(StreamType.Long.ordinal());        this.writeLong(lng); }
+		case Short shrt ->       { this.writeByte(StreamType.Long.ordinal());        this.writeShort(shrt); }
+		case Date date ->        { this.writeByte(StreamType.Date.ordinal());        this.writeLong(date.getTime()); }
+		case LogEntry entry ->   { this.writeByte(StreamType.LogEntry.ordinal());    entry.serialize(this); }
+		case Document doc ->     { this.writeByte(StreamType.Document.ordinal());    doc.serialize(this); }
+		case DocumentSet set ->  { this.writeByte(StreamType.DocumentSet.ordinal()); set.serialize(this); }
+		case Key key ->          { this.writeByte(StreamType.Key.ordinal());         key.serialize(this); }
+		case Blob blob ->        { this.writeByte(StreamType.Blob.ordinal());        blob.serialize(this); }
+		case GUID guid ->        { this.writeByte(StreamType.GUID.ordinal());        guid.serialize(this); }
+		case String str ->       { this.writeByte(StreamType.String.ordinal());      this.writeString(str); }
+		case List<?> list ->     { this.writeByte(StreamType.List.ordinal());        this.writeList(list); }
+		case ClientArgs args ->  { this.writeByte(StreamType.ClientArgs.ordinal());  args.serialize(this); }
+		case Batch batch -> 	 { this.writeByte(StreamType.Batch.ordinal());       batch.serialize(this); }
+		case BatchEntry batch -> { this.writeByte(StreamType.BatchEntry.ordinal());       batch.serialize(this); }
+		case DBNull _ ->         { this.writeByte(StreamType.DBNull.ordinal()); }
 		
-		default ->              throw new IOException("Illegal field type " + obj.getClass().getSimpleName());			
+		default ->               throw new IOException("Illegal field type " + obj.getClass().getSimpleName());			
 		}
 	
 	}

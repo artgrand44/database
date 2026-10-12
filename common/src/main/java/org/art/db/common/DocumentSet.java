@@ -365,5 +365,45 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 		
 	}
 
+	public List<Document> getList() {
+		return list;
+	}
+
+	public void setList(List<Document> list) {
+		this.list = list;
+	}
+
+	public File getFile() {
+		return file;
+	}
+
+	public void setFile(File file) {
+		this.file = file;
+	}
+
+	public int getSize() {
+		return size;
+	}
+
+	public void setSize(int size) {
+		this.size = size;
+	}
+
+	public boolean isRemote() {
+		return isRemote;
+	}
+
+	public void setRemote(boolean isRemote) {
+		this.isRemote = isRemote;
+	}
+
+	public URI getServerURI() {
+		return serverURI;
+	}
+
+	public void setServerURI(URI serverURI) {
+		this.serverURI = serverURI;
+	}
+
 	
 }

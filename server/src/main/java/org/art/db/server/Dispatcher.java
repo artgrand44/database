@@ -15,6 +15,7 @@ import java.util.Objects;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.common.Batch;
+import org.art.db.common.BatchEntry;
 import org.art.db.common.ClientArgs;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
@@ -199,21 +200,13 @@ public class Dispatcher {
 
 		@Override
 		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
-			try (TypedInputStream input = new TypedInputStream(body); TypedOutputStream output = new TypedOutputStream()) {
+			try (TypedOutputStream output = new TypedOutputStream()) {
 				
-				int count = input.readInt();
-				
-				for (int idx = 0; idx < count; idx++) {
-					String uri = input.readUTF();
-					byte[] request = new byte[input.readInt()];
-					
-					
-					input.read(request);
-					
-					Handler handler = HANDLERS.get(uri);
+				for (BatchEntry entry : deserializeList(parameters.get("format"), body, BatchEntry.class)) {
+					Handler handler = HANDLERS.get(entry.getUri());
 					
 					try {
-						byte[] response = (byte[])handler.handle(exchange, parameters, request);
+						byte[] response = (byte[])handler.handle(exchange, parameters, entry.getBody());
 
 						output.writeBoolean(true);
 						output.writeInt(response.length);
