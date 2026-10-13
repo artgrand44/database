@@ -33,7 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
+import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 
 public class Client implements Closeable {
 
@@ -52,10 +53,16 @@ public class Client implements Closeable {
 	private final String shard;
 	private boolean batch = true;
 	private AtomicBoolean closed = new AtomicBoolean();
-	public boolean cbor = false;
+	private boolean cbor = false;
 	
-	private static final CBORMapper  CBOR_MAPPER = new CBORMapper();
-	private static final ObjectMapper MAPPER = new ObjectMapper();
+	private static final ObjectMapper  CBOR_MAPPER;
+	
+	static {
+		CBORFactory factory = new CBORFactory();
+		
+		factory.disable(CBORGenerator.Feature.WRITE_MINIMAL_INTS); 
+		CBOR_MAPPER = new ObjectMapper(factory);
+	}
 			
 	public static final String WILDCARD = "*";
 
@@ -93,6 +100,7 @@ public class Client implements Closeable {
 		this.uri = serverURI;
 		this.shard = "*";	
 		this.cache = ClientCache.getCache(cluster, cacheSize, cacheDuration);
+		this.cbor = System.getProperty("testcbor") != null;
 	}
 		
 	/**

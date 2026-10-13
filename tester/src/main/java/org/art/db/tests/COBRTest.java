@@ -19,11 +19,12 @@ public class COBRTest extends BaseIntegrationTest {
 	public void test() {
 
 		try  {
+			System.setProperty("testcbor", "true");
 			TestAdapter.getInstance().startPrimary("./application.properties");
 
 			Client client = TestAdapter.getInstance().getClusterClient("admin", "admin").batch(false);
 			
-			client.cbor = true;
+			
 			String drop = "drop table if exists grous";
 			String create = "CREATE TABLE batch (id int NOT NULL PRIMARY KEY, country varchar(255), state varchar(255), value int)";
 			String createIndex = "CREATE INDEX state ON batch(country)";
