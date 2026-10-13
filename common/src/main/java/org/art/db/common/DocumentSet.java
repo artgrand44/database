@@ -21,11 +21,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 
 
+@JsonIgnoreProperties("empty")
 public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document>, Closeable {
 	
 	private static final Logger logger = LoggerFactory.getLogger(DocumentSet.class);

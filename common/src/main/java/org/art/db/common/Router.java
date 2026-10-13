@@ -42,7 +42,7 @@ public class Router {
 	
 	private final RouterKey key;
 	
-	private final  LinkedBlockingQueue<BatchEntry> batchQueue = new  LinkedBlockingQueue<>();
+	private final  LinkedBlockingQueue<RouterBatch> batchQueue = new  LinkedBlockingQueue<>();
 	
 	private int referenceCount;
 	
@@ -88,17 +88,21 @@ public class Router {
 		
 	public static boolean trace = false;
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public byte[] batch(String batchURI, String uri, byte[] body) throws Exception {
+	
+	// batchURI is "/db/batch
+	// uri is db/execute or db/executeQuery
+	
+	public byte[] batch(String uri, byte[] body) throws Exception {
 		
 		// Add the request to the batch queue.  If the queue is large enough, process all of the
 		// queue entries.
 		
-		BatchEntry entry = new BatchEntry(uri, body, (CompletableFuture<byte[]>)new CompletableFuture(), System.currentTimeMillis());
+		RouterBatch entry = new RouterBatch(uri, body, (CompletableFuture<byte[]>)new CompletableFuture(), System.currentTimeMillis());
 		
 		this.batchQueue.add(entry);
 
 		if (this.batchQueue.size() >= this.maxBatchSize) {
-			SCHEDULER.submit(() -> processBatchQueue(batchURI));
+			SCHEDULER.submit(() -> processBatchQueue());
 		} 		
 		
 		// Wait for the queue entry to be processed.  If it times out, assume
@@ -210,21 +214,21 @@ public class Router {
 	 * Process all of the entrees on the batch queue.
 	 * @param batchURI
 	 */
-	private void processBatchQueue(String batchURI) {
-		List<BatchEntry> list = new ArrayList<>();
+	
+	private void processBatchQueue() {
+		List<RouterBatch> list = new ArrayList<>();
 		
 		this.batchQueue.drainTo(list);
 		
 		if (!list.isEmpty()) {
-			try (TypedOutputStream stream = new TypedOutputStream()) {
-				
+			try (TypedOutputStream stream = new TypedOutputStream()) {				
 				stream.writeObject(list);
 				
 				byte[] body = stream.toByteArray();
-				byte[] response = this.post(null, batchURI, body);
+				byte[] response = this.post(null, "/db/batch", body);
 				
 				try (TypedInputStream result = new TypedInputStream(response)) {
-					for (BatchEntry entry : list) {
+					for (RouterBatch entry : list) {
 						try {
 							boolean success = result.readBoolean();
 							

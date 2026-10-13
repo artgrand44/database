@@ -32,6 +32,7 @@ import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 
 public class Client implements Closeable {
@@ -54,6 +55,7 @@ public class Client implements Closeable {
 	public boolean cbor = false;
 	
 	private static final CBORMapper  CBOR_MAPPER = new CBORMapper();
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 			
 	public static final String WILDCARD = "*";
 
@@ -149,10 +151,9 @@ public class Client implements Closeable {
 		return new Batch(this.database, this.shard);
 	}
 	
-	// url is db/execute or db/executeQuery
 	private byte[] doBatch(String url, Map<String, String> parameters, byte[] body) throws Exception {
  		if (this.batch && this.shard.equals("*")) {
- 			return this.router.batch("/db/batch", url, body); 
+ 			return this.router.batch(url, body); 
  		} else {
  			return doPost(url, parameters, body);
  		}

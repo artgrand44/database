@@ -106,7 +106,7 @@ public class TypedOutputStream extends DataOutputStream {
 		case List<?> list ->     { this.writeByte(StreamType.List.ordinal());        this.writeList(list); }
 		case ClientArgs args ->  { this.writeByte(StreamType.ClientArgs.ordinal());  args.serialize(this); }
 		case Batch batch -> 	 { this.writeByte(StreamType.Batch.ordinal());       batch.serialize(this); }
-		case BatchEntry batch -> { this.writeByte(StreamType.BatchEntry.ordinal());       batch.serialize(this); }
+		case RouterBatch batch ->{ this.writeByte(StreamType.RouterBatch.ordinal());       batch.serialize(this); }
 		case DBNull _ ->         { this.writeByte(StreamType.DBNull.ordinal()); }
 		
 		default ->               throw new IOException("Illegal field type " + obj.getClass().getSimpleName());			

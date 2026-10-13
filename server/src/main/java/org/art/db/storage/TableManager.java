@@ -270,13 +270,8 @@ public class TableManager implements Closeable{
 			this.primaryKeyLockManager.writeLock(key);
 		}
 		
-		Document doc = this.table.get(key);
+		return this.table.get(key);
 		
-		if (doc != null) {
-			doc.setKey(key);
-		}
-		
-		return doc;
 	}
 	
 	public DocumentSet getDocuments(String indexName, Comparison comp, Key key) throws Exception {

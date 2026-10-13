@@ -8,6 +8,9 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties({"size", "guid"})
 public class Key implements Serializable<Key>, Comparable<Key> {
 	
 	private static final Logger logger = LoggerFactory.getLogger(Key.class);

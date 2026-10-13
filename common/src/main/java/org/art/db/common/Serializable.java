@@ -2,6 +2,9 @@ package org.art.db.common;
 
 import java.io.IOException;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties("size")
 public interface Serializable<T> {
 	public abstract void serialize(TypedOutputStream stream) throws IOException;
 	

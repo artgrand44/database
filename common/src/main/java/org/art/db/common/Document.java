@@ -15,7 +15,6 @@ public class Document implements Serializable<Document>, Iterable<Map.Entry<Stri
 	private static final Logger logger = LoggerFactory.getLogger(Document.class);
 	
 	private final Map<String, Object> map = new HashMap<>();
-	private Key key;
 	private final boolean zombie;
 	
 	public final static Document ZOMBIE = new Document(true);
@@ -29,7 +28,6 @@ public class Document implements Serializable<Document>, Iterable<Map.Entry<Stri
 	}
 	
 	public Document(Document that) {
-		this.key = that.key;
 		this.zombie = that.zombie;
 		
 		for (Map.Entry<String, Object> entry : that.map.entrySet()) {
@@ -154,14 +152,7 @@ public class Document implements Serializable<Document>, Iterable<Map.Entry<Stri
 		}
 	}
 	
-	public Key getKey() {
-		return key;
-	}
-
-	public void setKey(Key key) {
-		this.key = key;
-	}
-
+	
 	@Override
 	public String toString() {
 		return "Document [map=" + map + "]";

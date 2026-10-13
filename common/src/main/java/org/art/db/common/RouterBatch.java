@@ -7,18 +7,18 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties({"future", "startTime"}) 
 
-public class BatchEntry implements Serializable<BatchEntry> {
+public class RouterBatch implements Serializable<RouterBatch> {
 	
 	private String uri; 
 	private byte[] body;
 	private CompletableFuture<byte[]> future;
 	private long startTime;
 	
-	public BatchEntry() {
+	public RouterBatch() {
 		
 	}
 	
-	public BatchEntry(String uri, byte[] body, CompletableFuture<byte[]> future, long startTime)  {
+	public RouterBatch(String uri, byte[] body, CompletableFuture<byte[]> future, long startTime)  {
 		this.uri = uri;
 		this.body = body;
 		this.future = future;
@@ -26,7 +26,7 @@ public class BatchEntry implements Serializable<BatchEntry> {
 	}
 
 	@Override
-	public BatchEntry deserialize(TypedInputStream stream) throws IOException {
+	public RouterBatch deserialize(TypedInputStream stream) throws IOException {
 		this.uri = stream.readUTF();
 		this.body = new byte[stream.readInt()];
 		

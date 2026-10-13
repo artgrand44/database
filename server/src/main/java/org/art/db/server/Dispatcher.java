@@ -15,7 +15,7 @@ import java.util.Objects;
 
 import org.apache.commons.io.IOUtils;
 import org.art.db.common.Batch;
-import org.art.db.common.BatchEntry;
+import org.art.db.common.RouterBatch;
 import org.art.db.common.ClientArgs;
 import org.art.db.common.DBRuntimeException;
 import org.art.db.common.DiscoveryHandler;
@@ -202,7 +202,7 @@ public class Dispatcher {
 		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try (TypedOutputStream output = new TypedOutputStream()) {
 				
-				for (BatchEntry entry : deserializeList(parameters.get("format"), body, BatchEntry.class)) {
+				for (RouterBatch entry : deserializeList(parameters.get("format"), body, RouterBatch.class)) {
 					Handler handler = HANDLERS.get(entry.getUri());
 					
 					try {
