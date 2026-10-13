@@ -14,8 +14,8 @@ public class Document implements Serializable<Document>, Iterable<Map.Entry<Stri
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Document.class);
 	
-	private final Map<String, Object> map = new HashMap<>();
-	private final boolean zombie;
+	private Map<String, Object> map = new HashMap<>();
+	private boolean zombie;
 	
 	public final static Document ZOMBIE = new Document(true);
 	
@@ -46,6 +46,10 @@ public class Document implements Serializable<Document>, Iterable<Map.Entry<Stri
 		return zombie;
 	}
 
+	public void setZombie(boolean zombie) {
+		this.zombie = zombie;
+	}
+	
 	@Override
 	public Document deserialize(TypedInputStream stream) throws IOException {
 		int size = stream.readInt();
@@ -156,6 +160,14 @@ public class Document implements Serializable<Document>, Iterable<Map.Entry<Stri
 	@Override
 	public String toString() {
 		return "Document [map=" + map + "]";
+	}
+
+	public Map<String, Object> getMap() {
+		return map;
+	}
+
+	public void setMap(Map<String, Object> map) {
+		this.map = map;
 	}	
 	
 }

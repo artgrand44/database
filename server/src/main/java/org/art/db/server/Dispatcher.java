@@ -42,11 +42,10 @@ import org.vafer.jdeb.shaded.commons.io.FileUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
-
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderValues;
-
+import com.fasterxml.jackson.dataformat.cbor.CBORGenerator;
 public class Dispatcher {
 
 	private static final Logger logger = LoggerFactory.getLogger(Dispatcher.class);
@@ -56,7 +55,16 @@ public class Dispatcher {
 	}
 	
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-	private static final CBORMapper  CBOR_MAPPER = new CBORMapper();
+	private static final ObjectMapper  CBOR_MAPPER;
+	
+	
+	static {
+		CBORFactory factory = new CBORFactory();
+		
+		factory.disable(CBORGenerator.Feature.WRITE_MINIMAL_INTS); 
+		CBOR_MAPPER = new ObjectMapper(factory);
+	}
+	
 	
 	private static final Map<String, Handler> HANDLERS = new HashMap<>();
 	
@@ -197,16 +205,38 @@ public class Dispatcher {
 	}
 	
 	public static class BatchHandler implements Handler {
+		
+		private Map<String, String> parseQueryString(String query) {
+			Map<String, String> map = new HashMap<>();
+			
+			for (String parameter : query.split("&")) {
+				String[] pair = parameter.split("=");
+				
+				if (pair.length == 2) {
+					map.put(pair[0], pair[1]);
+				}
+			}
+			
+			return map;
+		}
 
 		@Override
 		public byte[] handle(HttpServerExchange exchange, Map<String, String> parameters, byte[] body) throws Exception {
 			try (TypedOutputStream output = new TypedOutputStream()) {
 				
 				for (RouterBatch entry : deserializeList(parameters.get("format"), body, RouterBatch.class)) {
-					Handler handler = HANDLERS.get(entry.getUri());
-					
+					String[] parts = entry.getUri().split("\\?");
+					String uri = parts[0];
+					Map<String, String> params = parts.length == 1 ? Collections.emptyMap() : this.parseQueryString(parts[1]);
+										
 					try {
-						byte[] response = (byte[])handler.handle(exchange, parameters, entry.getBody());
+						Handler handler = HANDLERS.get(uri);
+						
+						if (handler == null) {
+							logger.info("No handler for " + uri);
+							throw new Exception("No handler for " + uri);
+						}
+						byte[] response = (byte[])handler.handle(exchange, params, entry.getBody());
 
 						output.writeBoolean(true);
 						output.writeInt(response.length);
