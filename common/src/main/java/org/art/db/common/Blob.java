@@ -6,7 +6,7 @@ import java.lang.ref.SoftReference;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class Blob implements Serializable<Blob> {
+public class Blob {
 
 	private int size;
 	private byte[] bytes;
@@ -34,7 +34,6 @@ public class Blob implements Serializable<Blob> {
 	}
 	
 	
-	@Override
 	public void serialize(TypedOutputStream stream) throws IOException {
 		stream.writeBoolean(this.onDisk);
 		stream.writeInt(this.size);
@@ -47,7 +46,6 @@ public class Blob implements Serializable<Blob> {
 		
 	}
 
-	@Override
 	public Blob deserialize(TypedInputStream stream) throws IOException {
 		this.onDisk = stream.readBoolean();
 		this.size = stream.readInt();

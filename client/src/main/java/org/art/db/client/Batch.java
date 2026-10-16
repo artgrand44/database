@@ -5,11 +5,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.art.db.common.Serializable;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 
-public class Batch implements Serializable<Batch> {
+public class Batch  {
 	private String database;
 	private String shard;
 	private List<ClientArgs> clientArgs = new ArrayList<>();
@@ -24,7 +23,6 @@ public class Batch implements Serializable<Batch> {
 		this.clientArgs.add(new ClientArgs(this.database, this.shard, statement, list));
 	}
 	
-	@Override
 	public void serialize(TypedOutputStream stream) throws IOException {
 		stream.writeInt(this.clientArgs.size());
 		
@@ -34,7 +32,6 @@ public class Batch implements Serializable<Batch> {
 		
 	}
 	
-	@Override
 	public Batch deserialize(TypedInputStream stream) throws IOException {
 		int count = stream.readInt();
 		

@@ -79,6 +79,16 @@ public class TypedOutputStream extends DataOutputStream {
 	}
 		
 
+	private static int calulateSize(Object obj)  {
+		try (TypedOutputStream stream = new TypedOutputStream()) {
+			stream.writeObject(obj);
+			stream.flush();
+			
+			return stream.toByteArray().length;
+		} catch (Exception exc) {
+			throw new IllegalStateException(exc);
+		}
+	}
 
 	public static int getSize(Object obj) {
 		if (obj == null) {
@@ -95,17 +105,12 @@ public class TypedOutputStream extends DataOutputStream {
 		case Long _ ->        	8;
 		case Short _ ->      	2;
 		case Date _ ->       	8;
-		case LogEntry entry ->  entry.getSize();
-		case Document doc ->    doc.getSize();
-		case DocumentSet set -> set.getSize();
 		case Key key ->         key.getSize();
-		case Blob blob ->       blob.getSize();
-		case GUID guid ->       guid.getSize();
 		case String str ->      str.getBytes().length + 5;
 		case List<?> list ->    getListSize(list);
 		case DBNull _ ->        0;
 		
-		default ->              throw new IllegalStateException("Illegal field type");			
+		default ->              calulateSize(obj);			
 		};
 	}
 	

@@ -3,11 +3,10 @@ package org.art.db.client;
 import java.io.IOException;
 import java.util.List;
 
-import org.art.db.common.Serializable;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 
-public class ClientArgs implements Serializable<ClientArgs>{
+public class ClientArgs {
 	private String database;
 	private String shard;
 	private String sql;
@@ -56,7 +55,6 @@ public class ClientArgs implements Serializable<ClientArgs>{
 		this.parameters = parameters;
 	}
 
-	@Override
 	public void serialize(TypedOutputStream stream) throws IOException {
 		stream.writeUTF(this.database);
 		stream.writeUTF(this.shard);
@@ -66,7 +64,6 @@ public class ClientArgs implements Serializable<ClientArgs>{
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public ClientArgs deserialize(TypedInputStream stream) throws IOException {
 		this.database = stream.readUTF();
 		this.shard =  stream.readUTF();

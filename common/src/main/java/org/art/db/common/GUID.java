@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class GUID implements  Serializable<GUID>, Comparable<GUID> {
+public class GUID implements Comparable<GUID> {
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(GUID.class);
@@ -58,7 +58,6 @@ public class GUID implements  Serializable<GUID>, Comparable<GUID> {
 		return Arrays.compare(this.address, that.address);
 	}
 
-	@Override
 	public void serialize(TypedOutputStream stream) throws IOException {
 		stream.writeLong(this.time);
 		stream.writeLong(this.counter);
@@ -67,7 +66,6 @@ public class GUID implements  Serializable<GUID>, Comparable<GUID> {
 		
 	}
 
-	@Override
 	public GUID deserialize(TypedInputStream stream) throws IOException {
 		this.time = stream.readLong();
 		this.counter = stream.readLong();

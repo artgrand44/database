@@ -26,7 +26,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 
 
-public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document>, Closeable {
+public class DocumentSet implements Iterable<Document>, Closeable {
 	
 	private static final Logger logger = LoggerFactory.getLogger(DocumentSet.class);
 	
@@ -160,7 +160,6 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 		return Objects.equals(list, other.list);
 	}
 
-	@Override
 	public void serialize(TypedOutputStream stream) throws IOException {
 		if (this.hasFile()) {
 			stream.writeBoolean(true);
@@ -186,7 +185,6 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 	}
 	
 	@SuppressWarnings("unchecked")
-	@Override
 	public DocumentSet deserialize(TypedInputStream stream) throws IOException {
 		this.isRemote = stream.readBoolean();
 
@@ -232,9 +230,9 @@ public class DocumentSet implements Serializable<DocumentSet>, Iterable<Document
 		if (this.list.isEmpty()) {
 			return 1;
 		} else if (this.isRemote) {
-			return this.list.getFirst().getSize() * MAX_MEMORY;
+			return TypedOutputStream.getSize(this.list.getFirst()) * MAX_MEMORY;
 		} else {
-			return this.list.getFirst().getSize() * this.size;
+			return TypedOutputStream.getSize(this.list.getFirst()) * this.size;
 		} 
 	}
 	

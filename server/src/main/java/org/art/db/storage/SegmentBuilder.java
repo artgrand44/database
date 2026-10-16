@@ -112,7 +112,7 @@ public class SegmentBuilder {
 						// If the value is a big Blob then break it into chunks and
 						// set value to the disk-based chunk
 
-						if (value instanceof Blob blob && blob.getSize() > maxBlobSize) {
+						if (value instanceof Blob blob && TypedOutputStream.getSize(blob) > maxBlobSize) {
 							AtomicInteger nblocks = new AtomicInteger();
 
 							value = blob.toStream(stream, startBlock, diskBlockSize, nblocks);

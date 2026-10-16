@@ -20,6 +20,7 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Key;
 import org.art.db.common.Scheduler;
+import org.art.db.common.TypedOutputStream;
 import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -464,7 +465,7 @@ public class Table implements Closeable {
 		
 		@Override
 		public int weigh(DocId key, Document doc) {
-			return doc.getSize();
+			return TypedOutputStream.getSize(doc);
 		}
 	}
 

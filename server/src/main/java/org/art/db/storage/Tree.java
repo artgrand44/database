@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.art.db.common.Blob;
 import org.art.db.common.Comparison;
 import org.art.db.common.Key;
+import org.art.db.common.TypedOutputStream;
 import org.art.db.common.Utils;
 import org.art.db.storage.LockManager.UpgradeException;
 import org.slf4j.Logger;
@@ -549,7 +550,7 @@ public class Tree<TValue> implements Closeable, Iterable<Map.Entry<Key, TValue>>
 		Trace.clear();
 		visits.get().clear();
 
-		if (value instanceof Blob blob && !blob.isOnDisk() && blob.getSize() > this.nodeSize / 2) {
+		if (value instanceof Blob blob && !blob.isOnDisk() && TypedOutputStream.getSize(blob) > this.nodeSize / 2) {
 			value = (TValue) blob.toDisk(this.treeStore);
 		}
 

@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Document implements Serializable<Document>, Iterable<Map.Entry<String, Object>>{
+public class Document implements Iterable<Map.Entry<String, Object>>{
 	
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Document.class);
@@ -48,7 +48,6 @@ public class Document implements Serializable<Document>, Iterable<Map.Entry<Stri
 		return zombie;
 	}
 
-	@Override
 	public Document deserialize(TypedInputStream stream) throws IOException {
 		int size = stream.readInt();
 		

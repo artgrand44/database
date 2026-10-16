@@ -2,7 +2,7 @@ package org.art.db.common;
 
 import java.io.IOException;
 
-public class LogEntry  implements Serializable<LogEntry>{
+public class LogEntry {
 	
 	public enum Operation {
 		INSERT,
@@ -32,7 +32,6 @@ public class LogEntry  implements Serializable<LogEntry>{
 		this.propagate = propagate;
 	}
 	
-	@Override
 	public LogEntry deserialize(TypedInputStream stream) throws IOException {
 		this.key = (Key)stream.readObject();
 		this.timestamp = stream.readLong();

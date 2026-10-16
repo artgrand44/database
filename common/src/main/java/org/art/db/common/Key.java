@@ -8,7 +8,7 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Key implements Serializable<Key>, Comparable<Key> {
+public class Key implements Comparable<Key> {
 	
 	private static final Logger logger = LoggerFactory.getLogger(Key.class);
 	
@@ -99,7 +99,6 @@ public class Key implements Serializable<Key>, Comparable<Key> {
 
 	}
 	
-	@Override
 	public Key deserialize(TypedInputStream stream) throws IOException {
 		final int count = stream.readInt();
 		final Comparable<?>[] keys = new Comparable<?>[count];
@@ -124,7 +123,6 @@ public class Key implements Serializable<Key>, Comparable<Key> {
 	}
 	
 
-	@Override
 	public int getSize() {
 		return this.size;
 	}
