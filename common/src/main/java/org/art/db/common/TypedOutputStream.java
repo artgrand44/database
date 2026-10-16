@@ -9,50 +9,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Date;
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class TypedOutputStream extends DataOutputStream {
-	
-	private static final Class<?>[] SUPPORTED_TYPES = {
-			Boolean.class,
-			Byte.class,
-			Character.class,
-			Double.class,
-			Float.class,
-			Integer.class,
-			Long.class,
-			Short.class,
-			String.class,
-			Document.class,
-			Key.class,
-			List.class,
-			ArrayList.class,
-			LinkedList.class,
-			DocumentSet.class,
-			DBNull.class,
-			Blob.class,
-			GUID.class,
-			Date.class,
-			LogEntry.class,
-	};
-	
-	
-	private static final Map<Object, Integer> sizes = Map.of(
-			Boolean.class,   1,
-			Byte.class,      1,
-			Character.class, 2,
-			Double.class,    8,
-			Float.class,     4,
-			Integer.class,   2,
-			Short.class,     2,
-			Long.class,      8,
-			DBNull.class,    0,
-			Date.class,      8);
 	
 	public TypedOutputStream() {
 		super(new ByteArrayOutputStream());
@@ -118,47 +78,67 @@ public class TypedOutputStream extends DataOutputStream {
 		this.write(bytes);
 	}
 		
+
+
 	public static int getSize(Object obj) {
 		if (obj == null) {
 			return 0;
 		}
 		
-		Class<?> clazz = obj.getClass();
+		return switch (obj) {
+		case Boolean _ ->    	1;
+		case Byte _ ->          1;
+		case Character _ ->   	2;
+		case Double _ ->      	8;
+		case Float _ ->        	4;
+		case Integer _ ->      	4;
+		case Long _ ->        	8;
+		case Short _ ->      	2;
+		case Date _ ->       	8;
+		case LogEntry entry ->  entry.getSize();
+		case Document doc ->    doc.getSize();
+		case DocumentSet set -> set.getSize();
+		case Key key ->         key.getSize();
+		case Blob blob ->       blob.getSize();
+		case GUID guid ->       guid.getSize();
+		case String str ->      str.getBytes().length + 5;
+		case List<?> list ->    getListSize(list);
+		case DBNull _ ->        0;
 		
-		if (obj instanceof String str) {
-			return str.getBytes().length + 5;
-		}
+		default ->              throw new IllegalStateException("Illegal field type");			
+		};
+	}
+	
+	private static int getListSize(List<?> list) {
+		int size = 0;
 		
-		if (sizes.containsKey(clazz)) {
-			return sizes.get(clazz) + 1;
-		} 
+		list.forEach(x -> getSize(x));
 		
-		if (Serializable.class.isAssignableFrom(clazz)) {
-			return ((Serializable<?>)obj).getSize();
-		} 
-
-		if (List.class.isAssignableFrom(clazz)) {
-			List<?> list = (List<?>)obj;
-			
-			AtomicInteger size = new AtomicInteger(5);
-			
-			list.forEach(x -> size.addAndGet(getSize(x)));
-			
-			return size.intValue();
-		} 
-		
-		throw new DBRuntimeException("Illegal field type");				
+		return size;
 	}
 	
 	public static boolean isSerializable(Object obj) {
-		Class<?> clazz = obj.getClass();
-				
-		for (int idx = 0; idx < SUPPORTED_TYPES.length; idx++) {			
-			if (clazz == SUPPORTED_TYPES[idx]) {
-				return true;
-			}
-		}
+		return switch (obj) {
+		case Boolean _ ->    	true;
+		case Byte _ ->          true;
+		case Character _ ->   	true;
+		case Double _ ->      	true;
+		case Float _ ->        	true;
+		case Integer _ ->      	true;
+		case Long _ ->        	true;
+		case Short _ ->      	true;
+		case Date _ ->       	true;
+		case LogEntry _ ->      true;
+		case Document _ ->      true;
+		case DocumentSet _ ->   true;
+		case Key _ ->           true;
+		case Blob _ ->          true;
+		case GUID _ ->          true;
+		case String _ ->        true;
+		case List<?> _ ->       true;
+		case DBNull _ ->        true;
 		
-		return false;
+		default ->              false;			
+		};
 	}
 }
