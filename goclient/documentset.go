@@ -69,7 +69,7 @@ func (this *DocumentSet) write(buffer *bytes.Buffer) {
 
 		}
 	} else {
-		writeBool(true, buffer)
+		writeBool(false, buffer)
 		for _, doc := range this.list {
 			writeObjectTo(doc, buffer)
 		}
