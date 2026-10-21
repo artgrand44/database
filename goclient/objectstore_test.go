@@ -182,10 +182,32 @@ func TestDocumentSet(t *testing.T) {
 	bytes := writeObject(set)
 	out := readObject(bytes)
 
-	_, ok := out.(*DocumentSet)
+	result, ok := out.(*DocumentSet)
 
 	if !ok {
 		t.Errorf("error converting output")
+	}
+
+	slot := 0
+
+	for doc := range ListDocs(result) {
+		field := doc.GetField("index")
+
+		num, ok := field.(int)
+
+		if !ok {
+			t.Errorf("error converting output")
+		}
+
+		if slot != num {
+			t.Errorf("wrong num")
+		}
+
+		slot++
+	}
+
+	if slot != 10 {
+		t.Errorf("wrong size for docset")
 	}
 }
 func TestGUID(t *testing.T) {

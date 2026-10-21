@@ -1,11 +1,14 @@
 package artdb
 
-import "bytes"
+import (
+	"bytes"
+	"iter"
+)
 
 type DocumentSet struct {
 	list      []*Document
 	file      string
-	size      int64
+	size      int
 	remove    bool
 	serverUri string
 }
@@ -16,9 +19,19 @@ func (this *DocumentSet) addDocument(doc *Document) {
 	this.list = append(this.list, doc)
 }
 
+func ListDocs(set *DocumentSet) iter.Seq[*Document] {
+	return func(yield func(*Document) bool) {
+		for _, v := range set.list {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
 func (this *DocumentSet) read(buffer *bytes.Buffer) *DocumentSet {
 	if readBool(buffer) {
-		this.size = readInt64(buffer)
+		this.size = readInt(buffer)
 		this.file = readString(buffer)
 		this.serverUri = readString(buffer)
 
@@ -27,10 +40,10 @@ func (this *DocumentSet) read(buffer *bytes.Buffer) *DocumentSet {
 		}
 
 	} else {
-		list := readList(buffer)
+		this.size = readInt(buffer)
 
-		for _, field := range list {
-			this.list = append(this.list, field.(*Document))
+		for idx := 0; idx < this.size; idx++ {
+			this.list = append(this.list, (&Document{}).read(buffer))
 		}
 	}
 
@@ -40,7 +53,7 @@ func (this *DocumentSet) read(buffer *bytes.Buffer) *DocumentSet {
 func (this *DocumentSet) write(buffer *bytes.Buffer) {
 	if this.file != "" {
 		writeBool(true, buffer)
-		writeInt64(this.size, buffer)
+		writeInt(this.size, buffer)
 		writeString(this.file, buffer)
 		writeString(this.serverUri, buffer)
 
@@ -56,7 +69,10 @@ func (this *DocumentSet) write(buffer *bytes.Buffer) {
 
 		}
 	} else {
-		writeObjectTo(this.list, buffer)
+		writeBool(true, buffer)
+		for _, doc := range this.list {
+			writeObjectTo(doc, buffer)
+		}
 	}
 
 }

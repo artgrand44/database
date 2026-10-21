@@ -44,15 +44,6 @@ func writeInt64(data int64, buffer *bytes.Buffer) {
 	}
 }
 
-func writeList(data []any, buffer *bytes.Buffer) {
-	writeInt(len(data), buffer)
-
-	for _, v := range data {
-		writeObjectTo(v, buffer)
-	}
-
-}
-
 func writeString(data string, buffer *bytes.Buffer) {
 	bytes := []byte(data)
 
@@ -114,9 +105,6 @@ func writeObjectTo(obj any, buffer *bytes.Buffer) {
 	case *GUID:
 		writeByte(byte(ObjectTypeGUID), buffer)
 		v.write(buffer)
-	case []any:
-		writeByte(byte(ObjectTypeList), buffer)
-		writeList(v, buffer)
 	default:
 		fmt.Printf("Unknown type: %T\n", v)
 	}
