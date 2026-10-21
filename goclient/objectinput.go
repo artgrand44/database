@@ -73,7 +73,7 @@ func readObjectFrom(buffer *bytes.Buffer) any {
 	case ObjectTypeString:
 		return readString(buffer)
 	case ObjectTypeDocument:
-		return createDocument(false).read(buffer)
+		return Document{}.read(buffer)
 	case ObjectTypeDocumentSet:
 		return (&DocumentSet{}).read(buffer)
 	case ObjectTypeGUID:

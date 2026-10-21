@@ -146,7 +146,7 @@ func TestMap(t *testing.T) {
 	bytes := writeObject(top)
 	out := readObject(bytes)
 
-	result, ok := out.(*Document)
+	result, ok := out.(Document)
 
 	if !ok {
 		t.Errorf("error converting output")
@@ -158,7 +158,7 @@ func TestMap(t *testing.T) {
 
 	sub := result.GetField("sub")
 
-	subdoc, ok := sub.(*Document)
+	subdoc, ok := sub.(Document)
 
 	if !ok {
 		t.Errorf("error converting subddoc")
