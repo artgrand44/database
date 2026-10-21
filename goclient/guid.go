@@ -15,7 +15,7 @@ type GUID struct {
 
 var counter atomic.Int64
 
-func createGUID() *GUID {
+func createGUID() GUID {
 	var guid GUID
 
 	ips, err := net.LookupIP("localhost")
@@ -28,10 +28,11 @@ func createGUID() *GUID {
 	guid.counter = counter.Add(1)
 	guid.address = ips[0]
 
-	return &guid
+	return guid
 
 }
-func (this *GUID) read(buffer *bytes.Buffer) *GUID {
+
+func (this GUID) read(buffer *bytes.Buffer) GUID {
 	this.time = readInt64(buffer)
 	this.counter = readInt64(buffer)
 	this.address = readBytes(readInt(buffer), buffer)

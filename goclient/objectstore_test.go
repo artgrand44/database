@@ -175,7 +175,7 @@ func TestGUID(t *testing.T) {
 
 	out := readObject(bytes)
 
-	result, ok := out.(*GUID)
+	result, ok := out.(GUID)
 
 	if !ok {
 		t.Errorf("error converting output for guid")
