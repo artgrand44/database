@@ -133,7 +133,7 @@ func TestString(t *testing.T) {
 	}
 }
 
-func TestMap(t *testing.T) {
+func TestDocument(t *testing.T) {
 	top := createDocument(false)
 	bot := createDocument(false)
 
@@ -146,7 +146,7 @@ func TestMap(t *testing.T) {
 	bytes := writeObject(top)
 	out := readObject(bytes)
 
-	result, ok := out.(Document)
+	result, ok := out.(*Document)
 
 	if !ok {
 		t.Errorf("error converting output")
@@ -158,7 +158,7 @@ func TestMap(t *testing.T) {
 
 	sub := result.GetField("sub")
 
-	subdoc, ok := sub.(Document)
+	subdoc, ok := sub.(*Document)
 
 	if !ok {
 		t.Errorf("error converting subddoc")
@@ -169,6 +169,25 @@ func TestMap(t *testing.T) {
 	}
 }
 
+func TestDocumentSet(t *testing.T) {
+	set := &DocumentSet{}
+
+	for idx := range 10 {
+		doc := createDocument(false)
+
+		doc.SetField("index", idx)
+		set.addDocument(&doc)
+	}
+
+	bytes := writeObject(set)
+	out := readObject(bytes)
+
+	_, ok := out.(*DocumentSet)
+
+	if !ok {
+		t.Errorf("error converting output")
+	}
+}
 func TestGUID(t *testing.T) {
 	guid := createGUID()
 	bytes := writeObject(guid)

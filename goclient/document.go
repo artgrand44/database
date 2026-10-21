@@ -25,7 +25,7 @@ func (this *Document) SetField(name string, value any) {
 	this.entries[name] = value
 }
 
-func (this Document) read(buffer *bytes.Buffer) Document {
+func (this *Document) read(buffer *bytes.Buffer) *Document {
 	this.entries = make(map[string]any)
 
 	count := readInt(buffer)

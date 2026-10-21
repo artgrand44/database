@@ -40,6 +40,18 @@ func readInt64(buffer *bytes.Buffer) int64 {
 	return int64(binary.BigEndian.Uint64(data))
 }
 
+func readList(buffer *bytes.Buffer) []any {
+	var result []any
+
+	count := readInt(buffer)
+
+	for idx := 0; idx < count; idx++ {
+		result = append(result, readObjectFrom(buffer))
+	}
+
+	return result
+}
+
 func readString(buffer *bytes.Buffer) string {
 	count := readInt(buffer)
 
@@ -73,7 +85,7 @@ func readObjectFrom(buffer *bytes.Buffer) any {
 	case ObjectTypeString:
 		return readString(buffer)
 	case ObjectTypeDocument:
-		return Document{}.read(buffer)
+		return (&Document{}).read(buffer)
 	case ObjectTypeDocumentSet:
 		return (&DocumentSet{}).read(buffer)
 	case ObjectTypeGUID:
