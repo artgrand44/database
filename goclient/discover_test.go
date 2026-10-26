@@ -37,6 +37,13 @@ func TestDiscovery(t *testing.T) {
 		t.Errorf("wrong second server count")
 	}
 
+	server1, _ := handler.GetServer()
+	server2, _ := handler.GetServer()
+
+	if server1 == server2 {
+		t.Errorf("both servers match ")
+	}
+
 	go sendInBackground(t, "cluster", 8081)
 
 	for len(handler.servers) != 1 {
@@ -48,4 +55,6 @@ func TestDiscovery(t *testing.T) {
 	if len(handler.servers) != 1 {
 		t.Errorf("not killed")
 	}
+
+	fmt.Println("Success")
 }

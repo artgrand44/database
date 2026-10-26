@@ -49,6 +49,7 @@ func GetHandler(cluster string) *DiscoveryHandler {
 
 func (this *DiscoveryHandler) GetServer() (string, bool) {
 	this.lock.RLock()
+	defer this.lock.RUnlock()
 
 	if len(this.servers) == 0 {
 		return "", false
