@@ -29,4 +29,5 @@ const (
 	ObjectTypeGUID
 	ObjectTypeDate
 	ObjectTypeLogEntry
+	ObjectTypeClientArgs
 )

@@ -90,6 +90,8 @@ func readObjectFrom(buffer *bytes.Buffer) any {
 		return (&DocumentSet{}).read(buffer)
 	case ObjectTypeGUID:
 		return GUID{}.read(buffer)
+	case ObjectTypeClientArgs:
+		return (&ClientArgs{}).read(buffer)
 	default:
 		return nil
 	}

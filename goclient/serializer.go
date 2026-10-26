@@ -105,6 +105,12 @@ func writeObjectTo(obj any, buffer *bytes.Buffer) {
 	case *GUID:
 		writeByte(byte(ObjectTypeGUID), buffer)
 		v.write(buffer)
+	case ClientArgs:
+		writeByte(byte(ObjectTypeClientArgs), buffer)
+		v.write(buffer)
+	case *ClientArgs:
+		writeByte(byte(ObjectTypeClientArgs), buffer)
+		v.write(buffer)
 	default:
 		fmt.Printf("Unknown type: %T\n", v)
 	}

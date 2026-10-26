@@ -132,41 +132,36 @@ func TestString(t *testing.T) {
 		t.Errorf("Wrong deserialized value for integer bytes ")
 	}
 }
+func TestClientArgs(t *testing.T) {
+	var args = ClientArgs{shard: "", sql: "select x from y", parameters: []any{"a", 1, 2}}
 
-func TestDocument(t *testing.T) {
-	top := createDocument(false)
-	bot := createDocument(false)
-
-	top.SetField("int", 1)
-	top.SetField("string", "top")
-	top.SetField("sub", bot)
-	bot.SetField("int", 2)
-	bot.SetField("string", "bot")
-
-	bytes := writeObject(top)
+	bytes := writeObject(args)
 	out := readObject(bytes)
 
-	result, ok := out.(*Document)
+	result, ok := out.(*ClientArgs)
 
 	if !ok {
 		t.Errorf("error converting output")
 	}
 
-	if result.GetField("string") != "top" {
-		t.Errorf("Wrong string field")
+	if result.shard != args.shard {
+		t.Errorf("wrong shard")
 	}
 
-	sub := result.GetField("sub")
-
-	subdoc, ok := sub.(*Document)
-
-	if !ok {
-		t.Errorf("error converting subddoc")
+	if result.sql != args.sql {
+		t.Errorf("wrong wrong sql")
 	}
 
-	if subdoc.GetField("string") != "bot" {
-		t.Errorf("Wrong string field for bot")
+	if len(result.parameters) != len(args.parameters) {
+		t.Errorf("wrong param length")
 	}
+
+	for idx := 0; idx < len(result.parameters); idx++ {
+		if result.parameters[idx] != args.parameters[idx] {
+			t.Errorf("wrong param")
+		}
+	}
+
 }
 
 func TestDocumentSet(t *testing.T) {
