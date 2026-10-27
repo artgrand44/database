@@ -76,7 +76,3 @@ func (this *DocumentSet) write(buffer *bytes.Buffer) {
 	}
 
 }
-
-func (this *DocumentSet) getSize() int {
-	return size(this)
-}

@@ -46,7 +46,3 @@ func (this *GUID) write(buffer *bytes.Buffer) {
 	writeInt(len(this.address), buffer)
 	writeBytes(this.address, buffer)
 }
-
-func (this *GUID) getSize() int {
-	return size(this)
-}

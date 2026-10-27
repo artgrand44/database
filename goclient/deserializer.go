@@ -40,18 +40,6 @@ func readInt64(buffer *bytes.Buffer) int64 {
 	return int64(binary.BigEndian.Uint64(data))
 }
 
-func readList(buffer *bytes.Buffer) []any {
-	var result []any
-
-	count := readInt(buffer)
-
-	for idx := 0; idx < count; idx++ {
-		result = append(result, readObjectFrom(buffer))
-	}
-
-	return result
-}
-
 func readString(buffer *bytes.Buffer) string {
 	count := readInt(buffer)
 

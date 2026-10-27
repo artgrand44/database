@@ -48,7 +48,3 @@ func (this *Document) write(buffer *bytes.Buffer) {
 		writeObjectTo(value, buffer)
 	}
 }
-
-func (this *Document) getSize() int {
-	return size(this)
-}

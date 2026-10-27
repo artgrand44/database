@@ -6,10 +6,6 @@ import (
 	"fmt"
 )
 
-func size(data any) int {
-	return len(writeObject(data))
-}
-
 func writeByte(data byte, buffer *bytes.Buffer) {
 	buffer.WriteByte(data)
 }

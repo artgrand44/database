@@ -50,7 +50,7 @@ func TestDiscovery(t *testing.T) {
 		time.Sleep(1 * time.Second)
 	}
 
-	stopServer = true
+	stopDiscovery()
 
 	if len(handler.servers) != 1 {
 		t.Errorf("not killed")
