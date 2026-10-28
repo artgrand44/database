@@ -156,7 +156,7 @@ func poll() {
 
 }
 
-func startDiscovery() {
+func initDiscovery() {
 
 	// Replace with your multicast or broadcast address
 	addr := "224.0.0.1:9999" // Example multicast group

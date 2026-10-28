@@ -19,6 +19,14 @@ var routers = make(map[ClientInfo]*Router)
 var caches = make(map[ClientInfo]*Cache)
 var lock sync.Mutex
 
+func init() {
+	initAll()
+}
+
+func initAll() {
+	initDiscovery()
+	initRouter()
+}
 func NewClient(cluster string, user string, password string) *Client {
 	lock.Lock()
 	defer lock.Unlock()
