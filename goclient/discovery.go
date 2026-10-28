@@ -7,6 +7,7 @@ import (
 	"net"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -27,7 +28,7 @@ type DiscoveryHandler struct {
 var handlers map[string]*DiscoveryHandler = make(map[string]*DiscoveryHandler)
 var handlersLock sync.Mutex
 var connection *net.UDPConn
-var stopping bool
+var stopping atomic.Bool
 var serverTTL = 2 * time.Minute
 var pollDelay = 500 * time.Millisecond
 var checkDelay = 30 * time.Second
@@ -65,7 +66,7 @@ func (this *DiscoveryHandler) getServerCount() int {
 }
 
 func checkTimeouts() {
-	for !stopping {
+	for !stopping.Load() {
 		handlersLock.Lock()
 
 		list := slices.Collect(maps.Values(handlers))
@@ -92,6 +93,8 @@ func checkTimeouts() {
 
 		time.Sleep(checkDelay)
 	}
+
+	fmt.Println("end check loop")
 }
 
 func (this *DiscoveryHandler) deleteServer(uri string) {
@@ -116,7 +119,7 @@ func convertToURI(addr *net.UDPAddr, port int) string {
 }
 
 func poll() {
-	for !stopping {
+	for !stopping.Load() {
 		buf := make([]byte, 1024)
 
 		if len, remoteAddr, err := connection.ReadFromUDP(buf); err != nil {
@@ -144,10 +147,13 @@ func poll() {
 				handler.timestamps[uri] = time.Now().UnixMilli() + serverTTL.Milliseconds()
 				handler.lock.Unlock()
 			}
+
+			time.Sleep(pollDelay)
 		}
 	}
 
-	time.Sleep(pollDelay)
+	fmt.Println("end poll loop")
+
 }
 
 func startDiscovery() {
@@ -174,5 +180,5 @@ func startDiscovery() {
 }
 
 func stopDiscovery() {
-	stopping = true
+	stopping.Store(true)
 }
