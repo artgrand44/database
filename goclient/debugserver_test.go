@@ -3,6 +3,7 @@ package artdb
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"testing"
@@ -14,6 +15,18 @@ var stopServer bool
 func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Got request for ", r.URL.Path[1:])
 
+	path := r.URL.Path[1:]
+
+	if path == "execute" {
+		body, err := io.ReadAll(r.Body)
+
+		if err != nil {
+			fmt.Println("Got error reading body ", err)
+		} else {
+			clientarg := readClientArgs(body)
+			fmt.Println("got client ", clientarg)
+		}
+	}
 	fmt.Fprintf(w, "success")
 	//w.WriteHeader(http.StatusOK)
 }

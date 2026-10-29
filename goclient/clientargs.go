@@ -24,6 +24,12 @@ func (this *ClientArgs) read(buffer *bytes.Buffer) *ClientArgs {
 	return this
 }
 
+func readClientArgs(data []byte) *ClientArgs {
+	var args ClientArgs
+	var buf = bytes.NewBuffer(data)
+	return args.read(buf)
+}
+
 func (this *ClientArgs) toBytes() []byte {
 	var buf bytes.Buffer
 
