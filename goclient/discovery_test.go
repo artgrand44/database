@@ -27,14 +27,14 @@ func TestDiscovery(t *testing.T) {
 		t.Errorf("wrong server count")
 	}
 
-	fmt.Printf("uri is %s\n", handler.servers[0])
-
 	for range 10 {
 		sendPing(t, "cluster", 8081)
 	}
 
-	if handler.getServerCount() != 2 {
-		t.Errorf("wrong second server count")
+	count := handler.getServerCount()
+
+	if count != 2 {
+		t.Errorf("wrong second server count %v", count)
 	}
 
 	server1, _ := handler.GetServer()

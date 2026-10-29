@@ -133,21 +133,26 @@ func poll() {
 				continue
 			}
 
+			handlersLock.Lock()
+
 			handler, found := handlers[message.Cluster]
 
-			if found {
-				handler.lock.Lock()
-
-				var uri = convertToURI(remoteAddr, message.Port)
-
-				if _, found := handler.timestamps[uri]; !found {
-					fmt.Println("add server ", uri)
-					handler.servers = append(handler.servers, uri)
-				}
-
-				handler.timestamps[uri] = time.Now().UnixMilli() + serverTTL.Milliseconds()
-				handler.lock.Unlock()
+			if !found {
+				handler = &DiscoveryHandler{lock: &sync.RWMutex{}, timestamps: make(map[string]int64)}
+				handlers[message.Cluster] = handler
 			}
+
+			handlersLock.Unlock()
+			handler.lock.Lock()
+
+			var uri = convertToURI(remoteAddr, message.Port)
+
+			if _, found := handler.timestamps[uri]; !found {
+				handler.servers = append(handler.servers, uri)
+			}
+
+			handler.timestamps[uri] = time.Now().UnixMilli() + serverTTL.Milliseconds()
+			handler.lock.Unlock()
 
 			time.Sleep(pollDelay)
 		}
