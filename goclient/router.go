@@ -24,28 +24,42 @@ func (this *Router) post(_ string, template string, body []byte, args ...any) ([
 		host, success := this.handler.GetServer()
 
 		if !success || host == prevHost {
-			return nil, errors.New("No available servers")
+			return nil, errors.New("There are no servers available")
 		}
 
 		prevHost = host
 
-		path := "http//" + host + fmt.Sprintf(template, args...)
+		var path string
 
-		var buffer bytes.Buffer
-		buffer.Write(body)
+		if len(args) == 0 {
+			path = "http://" + host + template
+		} else {
+			path = "http://" + host + fmt.Sprintf(template, args)
+		}
 
-		req, _ := http.NewRequest("POST", path, &buffer)
+		req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
+
+		if err != nil {
+			return nil, err
+		}
 
 		req.Header.Set("Content-Type", "application/json")
 		req.SetBasicAuth(this.user, this.password)
 
 		resp, err := client.Do(req)
 
-		if err == nil {
-			return io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
 		}
 
 		defer resp.Body.Close()
+
+		if resp.StatusCode == 418 {
+			return nil, errors.New(resp.Header.Get("Warning"))
+		}
+
+		return io.ReadAll(resp.Body)
+
 	}
 
 }

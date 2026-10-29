@@ -141,6 +141,7 @@ func poll() {
 				var uri = convertToURI(remoteAddr, message.Port)
 
 				if _, found := handler.timestamps[uri]; !found {
+					fmt.Println("add server ", uri)
 					handler.servers = append(handler.servers, uri)
 				}
 

@@ -24,6 +24,13 @@ func (this *ClientArgs) read(buffer *bytes.Buffer) *ClientArgs {
 	return this
 }
 
+func (this *ClientArgs) toBytes() []byte {
+	var buf bytes.Buffer
+
+	this.write(&buf)
+	return buf.Bytes()
+}
+
 func (this *ClientArgs) write(buffer *bytes.Buffer) {
 	writeString(this.shard, buffer)
 	writeString(this.sql, buffer)
