@@ -17,7 +17,7 @@ func TestRouter(t *testing.T) {
 	go sendServerPings(t)
 	time.Sleep(10 * time.Second)
 
-	result, err := router.post("router", "/execute", cargs.toBytes())
+	result, err := router.post("/execute", cargs.save())
 
 	if err != nil {
 		t.Errorf("error from post %v", err)

@@ -10,40 +10,26 @@ type ClientArgs struct {
 	parameters []any
 }
 
-func (this *ClientArgs) read(buffer *bytes.Buffer) *ClientArgs {
+func (this *ClientArgs) load(buffer *bytes.Buffer) {
 	this.shard = readString(buffer)
 	this.sql = readString(buffer)
 	this.parameters = make([]any, 0)
 
-	count := readInt(buffer)
-
-	for range count {
+	for range readInt(buffer) {
 		this.parameters = append(this.parameters, readObjectFrom(buffer))
 	}
-
-	return this
 }
 
-func readClientArgs(data []byte) *ClientArgs {
-	var args ClientArgs
-	var buf = bytes.NewBuffer(data)
-	return args.read(buf)
-}
+func (this *ClientArgs) save() []byte {
+	var buffer bytes.Buffer
 
-func (this *ClientArgs) toBytes() []byte {
-	var buf bytes.Buffer
-
-	this.write(&buf)
-	return buf.Bytes()
-}
-
-func (this *ClientArgs) write(buffer *bytes.Buffer) {
-	writeString(this.shard, buffer)
-	writeString(this.sql, buffer)
-	writeInt(len(this.parameters), buffer)
+	writeString("*", &buffer)
+	writeString(this.sql, &buffer)
+	writeInt(len(this.parameters), &buffer)
 
 	for _, entry := range this.parameters {
-		writeObjectTo(entry, buffer)
+		writeObjectTo(entry, &buffer)
 	}
 
+	return buffer.Bytes()
 }

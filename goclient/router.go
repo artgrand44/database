@@ -3,7 +3,6 @@ package artdb
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -17,7 +16,11 @@ type Router struct {
 
 var client *http.Client
 
-func (this *Router) post(_ string, template string, body []byte, args ...any) ([]byte, error) {
+func (this *Router) batch(path string, body []byte) ([]byte, error) {
+	return nil, nil
+}
+
+func (this *Router) post(template string, body []byte) ([]byte, error) {
 	var prevHost = ""
 
 	for {
@@ -27,17 +30,7 @@ func (this *Router) post(_ string, template string, body []byte, args ...any) ([
 			return nil, errors.New("There are no servers available")
 		}
 
-		prevHost = host
-
-		var path string
-
-		if len(args) == 0 {
-			path = "http://" + host + template
-		} else {
-			path = "http://" + host + fmt.Sprintf(template, args)
-		}
-
-		req, err := http.NewRequest("POST", path, bytes.NewBuffer(body))
+		req, err := http.NewRequest("POST", "http://"+host+template, bytes.NewBuffer(body))
 
 		if err != nil {
 			return nil, err
@@ -49,8 +42,11 @@ func (this *Router) post(_ string, template string, body []byte, args ...any) ([
 		resp, err := client.Do(req)
 
 		if err != nil {
+			this.handler.deleteServer(host)
 			return nil, err
 		}
+
+		prevHost = host
 
 		defer resp.Body.Close()
 

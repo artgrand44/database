@@ -2,6 +2,7 @@ package artdb
 
 import (
 	"testing"
+	"time"
 )
 
 func add(t *testing.T, cache *Cache, idx int) {
@@ -63,7 +64,7 @@ func update(t *testing.T, cache *Cache, idx int) {
 
 }
 func TestCache(t *testing.T) {
-	cache := newCache(100)
+	cache := newCache(100, 5*time.Minute)
 
 	for idx := range 100 {
 		add(t, cache, idx)

@@ -1,6 +1,7 @@
 package artdb
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,29 +13,76 @@ import (
 
 var stopServer bool
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Got request for ", r.URL.Path[1:])
+func getBatch(r *http.Request) *Batch {
+	body, err := io.ReadAll(r.Body)
 
-	path := r.URL.Path[1:]
-
-	if path == "execute" {
-		body, err := io.ReadAll(r.Body)
-
-		if err != nil {
-			fmt.Println("Got error reading body ", err)
-		} else {
-			clientarg := readClientArgs(body)
-			fmt.Println("got client ", clientarg)
-		}
+	if err != nil {
+		fmt.Println("Got error reading body ", err)
+		return nil
 	}
-	fmt.Fprintf(w, "success")
-	//w.WriteHeader(http.StatusOK)
+
+	batch := Batch{}
+
+	batch.load(bytes.NewBuffer(body))
+	return &batch
+}
+
+func getClientArgs(r *http.Request) *ClientArgs {
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		fmt.Println("Got error reading body ", err)
+		return nil
+	}
+
+	args := ClientArgs{}
+
+	args.load(bytes.NewBuffer(body))
+	return &args
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+
+	switch path {
+	case "/db/execute":
+		args := getClientArgs(r)
+
+		if args != nil {
+			fmt.Println("execute ", args)
+		}
+	case "/db/executeQuery":
+		args := getClientArgs(r)
+
+		if args != nil {
+			fmt.Println("execute Query", args)
+		}
+
+		doc := createDocument(false)
+		set := DocumentSet{}
+
+		doc.SetField("value", "hi")
+
+		set.addDocument(&doc)
+		w.Write(writeObject(set))
+	case "/db/executeBatch":
+		batch := getBatch(r)
+
+		if batch != nil {
+			fmt.Println("execute Batch", batch)
+		}
+		fmt.Fprintf(w, "success")
+	case "/metrics":
+	default:
+		fmt.Println("Bad path ", path)
+		fmt.Fprintf(w, "success")
+	}
 }
 
 func startServer() {
+	http.DefaultServeMux = http.NewServeMux()
 	http.HandleFunc("/", handler)
 
-	fmt.Println("calling listen")
 	if err := http.ListenAndServe(":8082", nil); err != nil {
 		fmt.Println("Error starting server ", err)
 	}

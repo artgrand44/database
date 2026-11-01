@@ -132,37 +132,6 @@ func TestString(t *testing.T) {
 		t.Errorf("Wrong deserialized value for integer bytes ")
 	}
 }
-func TestClientArgs(t *testing.T) {
-	var args = ClientArgs{shard: "", sql: "select x from y", parameters: []any{"a", 1, 2}}
-
-	bytes := writeObject(args)
-	out := readObject(bytes)
-
-	result, ok := out.(*ClientArgs)
-
-	if !ok {
-		t.Errorf("error converting output")
-	}
-
-	if result.shard != args.shard {
-		t.Errorf("wrong shard")
-	}
-
-	if result.sql != args.sql {
-		t.Errorf("wrong wrong sql")
-	}
-
-	if len(result.parameters) != len(args.parameters) {
-		t.Errorf("wrong param length")
-	}
-
-	for idx := 0; idx < len(result.parameters); idx++ {
-		if result.parameters[idx] != args.parameters[idx] {
-			t.Errorf("wrong param")
-		}
-	}
-
-}
 
 func TestDocumentSet(t *testing.T) {
 	set := &DocumentSet{}

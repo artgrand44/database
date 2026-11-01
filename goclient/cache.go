@@ -3,6 +3,7 @@ package artdb
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 type Node struct {
@@ -17,11 +18,12 @@ type Cache struct {
 	first *Node
 	last  *Node
 	limit int
+	ttl   time.Duration
 	lock  sync.Mutex
 }
 
-func newCache(limit int) *Cache {
-	return &Cache{index: make(map[string]*Node), limit: limit}
+func newCache(limit int, ttl time.Duration) *Cache {
+	return &Cache{index: make(map[string]*Node), limit: limit, ttl: ttl}
 }
 
 func buildCacheKey(sql string, args []any) string {
@@ -35,7 +37,7 @@ func (this *Cache) get(sql string, args []any) (*DocumentSet, bool) {
 	key := buildCacheKey(sql, args)
 
 	if node, success := this.index[key]; success {
-		this.modeToEnd(node)
+		this.moveToEnd(node)
 		return node.value, success
 	}
 
@@ -50,7 +52,7 @@ func (this *Cache) add(sql string, args []any, set *DocumentSet) {
 
 	if node, found := this.index[key]; found {
 		node.value = set
-		this.modeToEnd(node)
+		this.moveToEnd(node)
 	} else {
 		node := &Node{key: key, value: set}
 
@@ -79,7 +81,7 @@ func (this *Cache) addToList(node *Node) {
 
 }
 
-func (this *Cache) modeToEnd(node *Node) {
+func (this *Cache) moveToEnd(node *Node) {
 	this.removeFromList(node)
 	this.addToList(node)
 }

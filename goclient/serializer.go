@@ -6,6 +6,48 @@ import (
 	"fmt"
 )
 
+func isSerializable(obj any) bool {
+	if obj == nil {
+		return false
+	}
+
+	switch obj.(type) {
+	case bool:
+		return true
+	case byte:
+		return true
+	case float32:
+		return true
+	case int:
+		return true
+	case int16:
+		return true
+	case int64:
+		return true
+	case string:
+		return true
+	case Document:
+		return true
+	case *Document:
+		return true
+	case DocumentSet:
+		return true
+	case *DocumentSet:
+		return true
+	case GUID:
+		return true
+	case *GUID:
+		return true
+	case ClientArgs:
+		return true
+	case *ClientArgs:
+		return true
+	default:
+		return false
+	}
+
+}
+
 func writeByte(data byte, buffer *bytes.Buffer) {
 	buffer.WriteByte(data)
 }
@@ -26,8 +68,6 @@ func writeInt(data int, buffer *bytes.Buffer) {
 	if err := binary.Write(buffer, binary.BigEndian, int32(data)); err != nil {
 		fmt.Println(err)
 	}
-
-	fmt.Println("after")
 }
 
 func writeInt16(data int16, buffer *bytes.Buffer) {
@@ -91,7 +131,7 @@ func writeObjectTo(obj any, buffer *bytes.Buffer) {
 		v.write(buffer)
 	case DocumentSet:
 		writeByte(byte(ObjectTypeDocumentSet), buffer)
-		writeObjectTo(v, buffer)
+		v.write(buffer)
 	case *DocumentSet:
 		writeByte(byte(ObjectTypeDocumentSet), buffer)
 		v.write(buffer)
@@ -100,12 +140,6 @@ func writeObjectTo(obj any, buffer *bytes.Buffer) {
 		v.write(buffer)
 	case *GUID:
 		writeByte(byte(ObjectTypeGUID), buffer)
-		v.write(buffer)
-	case ClientArgs:
-		writeByte(byte(ObjectTypeClientArgs), buffer)
-		v.write(buffer)
-	case *ClientArgs:
-		writeByte(byte(ObjectTypeClientArgs), buffer)
 		v.write(buffer)
 	default:
 		fmt.Printf("Unknown type: %T\n", v)

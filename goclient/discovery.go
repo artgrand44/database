@@ -30,7 +30,7 @@ var handlersLock sync.Mutex
 var connection *net.UDPConn
 var stopping atomic.Bool
 var serverTTL = 2 * time.Minute
-var pollDelay = 500 * time.Millisecond
+var pollDelay = 2 * time.Second
 var checkDelay = 30 * time.Second
 
 func GetHandler(cluster string) *DiscoveryHandler {
@@ -153,9 +153,9 @@ func poll() {
 
 			handler.timestamps[uri] = time.Now().UnixMilli() + serverTTL.Milliseconds()
 			handler.lock.Unlock()
-
-			time.Sleep(pollDelay)
 		}
+
+		time.Sleep(pollDelay)
 	}
 
 	fmt.Println("end poll loop")

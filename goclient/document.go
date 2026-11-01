@@ -1,6 +1,8 @@
 package artdb
 
-import "bytes"
+import (
+	"bytes"
+)
 
 type Document struct {
 	zombie  bool
