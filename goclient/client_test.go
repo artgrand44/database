@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestBatchClient(t *testing.T) {
+func TestClient(t *testing.T) {
 	initAll()
 	go startServer()
 
@@ -17,6 +17,29 @@ func TestBatchClient(t *testing.T) {
 
 }
 
+func TestBatchClient(t *testing.T) {
+	initAll()
+	go startServer()
+
+	go sendServerPings(t)
+	time.Sleep(10 * time.Second)
+
+	client := CreateClient("router", "admin", "admin", 0, 12*time.Hour)
+
+	for range 1 {
+		go doUpdates(t, client)
+	}
+
+	time.Sleep(5 * time.Minute)
+
+}
+func doUpdates(t *testing.T, client *Client) {
+	for range 10 {
+		if err := client.Execute("insert a into b", 1, "a"); err != nil {
+			t.Errorf("error from execute %v", err)
+		}
+	}
+}
 func doWork(t *testing.T, client *Client) {
 
 	for range 10 {

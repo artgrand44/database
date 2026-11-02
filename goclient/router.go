@@ -11,12 +11,12 @@ import (
 )
 
 type BatchEntry struct {
-	path      string
-	body      []byte
-	result    []byte
-	err       error
-	lock      *sync.Mutex
-	condition *sync.Cond
+	path     string
+	body     []byte
+	result   []byte
+	err      error
+	complete chan bool
+	done     bool
 }
 
 type Router struct {
@@ -32,7 +32,7 @@ type Router struct {
 var client *http.Client
 
 func createRouter(handler *DiscoveryHandler, user string, password string) *Router {
-	router := &Router{handler: handler, user: user, password: password}
+	router := &Router{handler: handler, user: user, password: password, queue: make(chan []BatchEntry, 1000)}
 
 	go drainQueue(router)
 
@@ -46,21 +46,23 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 		this.currentBatch = make([]BatchEntry, 0)
 	}
 
-	entry := BatchEntry{path: path, body: body, lock: &sync.Mutex{}, condition: &sync.Cond{}}
+	entry := BatchEntry{path: path, body: body}
 
 	this.currentBatch = append(this.currentBatch, entry)
 
-	if len(this.currentBatch) == 10 {
+	if len(this.currentBatch) >= 1 {
+		fmt.Println("Adding entry to queue ", len(this.currentBatch))
 		this.queue <- this.currentBatch
+		fmt.Println("after entry added")
 		this.currentBatch = nil
 	}
 
 	this.lock.Unlock()
 
-	entry.lock.Lock()
-	defer entry.lock.Unlock()
+	fmt.Println("before waiting for complete")
+	entry.done = <-entry.complete
 
-	entry.condition.Wait()
+	fmt.Println("***after wait")
 
 	return entry.result, entry.err
 
@@ -70,16 +72,19 @@ func drainQueue(router *Router) {
 	for {
 		entries := <-router.queue
 
+		fmt.Println("***got entry from q")
 		var buff bytes.Buffer
 
 		writeInt(len(entries), &buff)
 
 		for _, entry := range entries {
+			fmt.Println("writing patth ", entry.path, " len ", len(entry.body), " str ", string(entry.body))
 			writeString(entry.path, &buff)
 			writeInt(len(entry.body), &buff)
 			writeBytes(entry.body, &buff)
 		}
 
+		fmt.Println("sending /db/batch")
 		response, err := router.post("/db/batch", buff.Bytes())
 
 		if err != nil {
@@ -88,21 +93,29 @@ func drainQueue(router *Router) {
 
 		responseBuffer := bytes.NewBuffer(response)
 
+		count := readInt(responseBuffer)
+
+		if count != len(entries) {
+			fmt.Println("Wrong count for response")
+		}
+
 		for _, entry := range entries {
-			entry.lock.Lock()
-
 			success := readBool(responseBuffer)
-
+			fmt.Println("got success ", success)
 			if success {
+				fmt.Println("settting entry.result")
+				entry.result = readBytes(readInt(responseBuffer), &buff)
+
+				fmt.Println("set result to ", string(entry.result))
+				entry.err = nil
+			} else {
 				entry.result = nil
 				entry.err = errors.New(readString(&buff))
-			} else {
-				entry.result = readBytes(readInt(responseBuffer), &buff)
-				entry.err = nil
 			}
 
-			entry.condition.Signal()
-			entry.lock.Unlock()
+			fmt.Println("setting complete")
+			entry.complete <- true
+			fmt.Println("after stting complete")
 		}
 	}
 }

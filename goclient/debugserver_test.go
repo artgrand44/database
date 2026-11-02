@@ -45,6 +45,27 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
 	switch path {
+	case "/db/batch":
+		fmt.Println("got /db/batch")
+		var outBuffer bytes.Buffer
+		body, _ := io.ReadAll(r.Body)
+
+		buf := bytes.NewBuffer(body)
+
+		count := readInt(buf)
+		writeInt(count, &outBuffer)
+
+		for range count {
+			readString(buf)
+			bytes := readBytes(readInt(buf), buf)
+			query := string(bytes)
+
+			writeBool(true, &outBuffer)
+			writeString(query, &outBuffer)
+			writeString("", &outBuffer)
+		}
+
+		w.Write(outBuffer.Bytes())
 	case "/db/execute":
 		args := getClientArgs(r)
 

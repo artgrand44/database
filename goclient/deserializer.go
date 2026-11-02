@@ -12,7 +12,8 @@ func readByte(buffer *bytes.Buffer) byte {
 }
 
 func readBool(buffer *bytes.Buffer) bool {
-	return readByte(buffer) == 1
+	val := readByte(buffer)
+	return val == 1
 }
 
 func readBytes(count int, buffer *bytes.Buffer) []byte {
