@@ -52,7 +52,6 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 	this.currentBatch = append(this.currentBatch, entry)
 
 	if len(this.currentBatch) >= 5 {
-		fmt.Println("Adding entry to queue ", len(this.currentBatch))
 		batchToSend = this.currentBatch
 		this.currentBatch = nil
 	}
@@ -73,7 +72,6 @@ func drainQueue(router *Router) {
 	for {
 		entries := <-router.queue
 
-		fmt.Println("***got entry from q")
 		var buff bytes.Buffer
 
 		writeInt(len(entries), &buff)
@@ -84,7 +82,6 @@ func drainQueue(router *Router) {
 			writeBytes(entry.body, &buff)
 		}
 
-		fmt.Println("sending /db/batch")
 		response, err := router.post("/db/batch", buff.Bytes())
 
 		if err != nil {
@@ -101,27 +98,21 @@ func drainQueue(router *Router) {
 
 		for _, entry := range entries {
 			success := readBool(responseBuffer)
-			fmt.Println("got success ", success)
 
 			if success {
 				len := readInt(responseBuffer)
 				bytes := readBytes(len, responseBuffer)
 
-				res := string(bytes)
-
-				fmt.Println("got res ", res)
 				entry.result = bytes
-
 				fmt.Println("set result to ", string(entry.result))
 				entry.err = nil
 			} else {
+				fmt.Println("got error")
 				entry.result = nil
 				entry.err = errors.New(readString(&buff))
 			}
 
-			fmt.Println("setting complete")
 			entry.complete <- true
-			fmt.Println("after stting complete")
 		}
 	}
 }

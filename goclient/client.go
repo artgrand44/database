@@ -2,7 +2,6 @@ package artdb
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -95,7 +94,6 @@ func (this *Client) Execute(statement string, parameters ...any) error {
 
 	if (strings.HasPrefix(lower, "insert") || strings.HasPrefix(lower, "update") || strings.HasPrefix(lower, "delete")) && !this.batch {
 		_, err := this.router.batch("/db/execute", body)
-		fmt.Println("after call to router.batch")
 		return err
 	} else {
 		_, err := this.router.post("/db/execute", body)
