@@ -41,7 +41,7 @@ func createRouter(handler *DiscoveryHandler, user string, password string) *Rout
 
 func (this *Router) batch(path string, body []byte) ([]byte, error) {
 	batchToSend := make([]BatchEntry, 0)
-	entry := BatchEntry{path: path, body: body}
+	entry := BatchEntry{path: path, body: body, complete: make(chan bool, 1)}
 
 	this.lock.Lock()
 
@@ -51,7 +51,7 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 
 	this.currentBatch = append(this.currentBatch, entry)
 
-	if len(this.currentBatch) >= 1 {
+	if len(this.currentBatch) >= 5 {
 		fmt.Println("Adding entry to queue ", len(this.currentBatch))
 		batchToSend = this.currentBatch
 		this.currentBatch = nil
@@ -60,14 +60,10 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 	this.lock.Unlock()
 
 	if len(batchToSend) != 0 {
-		fmt.Println("sendibg batch")
 		this.queue <- batchToSend
 	}
 
-	fmt.Println("before waiting for complete")
 	entry.done = <-entry.complete
-
-	fmt.Println("***after wait")
 
 	return entry.result, entry.err
 
@@ -83,7 +79,6 @@ func drainQueue(router *Router) {
 		writeInt(len(entries), &buff)
 
 		for _, entry := range entries {
-			fmt.Println("writing patth ", entry.path, " len ", len(entry.body), " str ", string(entry.body))
 			writeString(entry.path, &buff)
 			writeInt(len(entry.body), &buff)
 			writeBytes(entry.body, &buff)
@@ -95,7 +90,7 @@ func drainQueue(router *Router) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Println("got response")
+
 		responseBuffer := bytes.NewBuffer(response)
 
 		count := readInt(responseBuffer)
@@ -104,13 +99,18 @@ func drainQueue(router *Router) {
 			fmt.Println("Wrong count for response")
 		}
 
-		fmt.Println("response count ", count)
 		for _, entry := range entries {
 			success := readBool(responseBuffer)
 			fmt.Println("got success ", success)
+
 			if success {
-				fmt.Println("settting entry.result")
-				entry.result = readBytes(readInt(responseBuffer), &buff)
+				len := readInt(responseBuffer)
+				bytes := readBytes(len, responseBuffer)
+
+				res := string(bytes)
+
+				fmt.Println("got res ", res)
+				entry.result = bytes
 
 				fmt.Println("set result to ", string(entry.result))
 				entry.err = nil

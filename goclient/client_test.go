@@ -26,7 +26,7 @@ func TestBatchClient(t *testing.T) {
 
 	client := CreateClient("router", "admin", "admin", 0, 12*time.Hour)
 
-	for range 1 {
+	for range 10 {
 		go doUpdates(t, client)
 	}
 

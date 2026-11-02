@@ -57,15 +57,21 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 		for range count {
 			readString(buf)
-			bytes := readBytes(readInt(buf), buf)
-			query := string(bytes)
+			data := readBytes(readInt(buf), buf)
+
+			args := ClientArgs{}
+
+			args.load(bytes.NewBuffer(data))
+
+			fmt.Println("loaded args ", args.sql)
+
+			sqlBytes := []byte(args.sql)
 
 			writeBool(true, &outBuffer)
-			writeString(query, &outBuffer)
-			writeString("", &outBuffer)
+			writeInt(len(sqlBytes), &outBuffer)
+			writeBytes(sqlBytes, &outBuffer)
 		}
 
-		fmt.Println("batch returning")
 		w.Write(outBuffer.Bytes())
 	case "/db/execute":
 		args := getClientArgs(r)
