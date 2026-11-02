@@ -13,7 +13,7 @@ func TestBatchClient(t *testing.T) {
 	go sendServerPings(t)
 	time.Sleep(10 * time.Second)
 
-	doWork(t, NewBatchClient("router", "admin", "admin"))
+	doWork(t, CreateBatchClient("router", "admin", "admin"))
 
 }
 

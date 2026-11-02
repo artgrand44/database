@@ -24,6 +24,39 @@ var routers = make(map[ClientInfo]*Router)
 var caches = make(map[ClientInfo]*Cache)
 var lock sync.Mutex
 
+func CreateBatchClient(cluster string, user string, password string) *Client {
+	client := CreateClient(cluster, user, password, 0, 60*time.Hour)
+
+	client.batch = true
+	return client
+}
+
+func CreateClient(cluster string, user string, password string, cacheSize int, cacheTTL time.Duration) *Client {
+	lock.Lock()
+	defer lock.Unlock()
+
+	info := ClientInfo{cluster: cluster, user: user, password: password}
+
+	router, success := routers[info]
+
+	if !success {
+		router = createRouter(GetHandler(cluster), user, password)
+		routers[info] = router
+	}
+
+	if cacheSize == 0 {
+		return &Client{router: router}
+	}
+
+	cache, success := caches[info]
+
+	if !success {
+		cache := newCache(cacheSize, cacheTTL)
+		caches[info] = cache
+	}
+
+	return &Client{router: router, cache: cache}
+}
 func checkParameters(args []any) bool {
 	for _, arg := range args {
 		if !isSerializable(arg) {
@@ -117,38 +150,4 @@ func init() {
 func initAll() {
 	initDiscovery()
 	initRouter()
-}
-
-func NewBatchClient(cluster string, user string, password string) *Client {
-	client := NewClient(cluster, user, password, 0, 60*time.Hour)
-
-	client.batch = true
-	return client
-}
-
-func NewClient(cluster string, user string, password string, cacheSize int, cacheTTL time.Duration) *Client {
-	lock.Lock()
-	defer lock.Unlock()
-
-	info := ClientInfo{cluster: cluster, user: user, password: password}
-
-	router, success := routers[info]
-
-	if !success {
-		router = &Router{handler: GetHandler(cluster), user: user, password: password}
-		routers[info] = router
-	}
-
-	if cacheSize == 0 {
-		return &Client{router: router}
-	}
-
-	cache, success := caches[info]
-
-	if !success {
-		cache := newCache(cacheSize, cacheTTL)
-		caches[info] = cache
-	}
-
-	return &Client{router: router, cache: cache}
 }
