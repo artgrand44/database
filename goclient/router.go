@@ -11,12 +11,12 @@ import (
 )
 
 type BatchEntry struct {
-	path     string
-	body     []byte
-	result   []byte
-	err      error
-	complete chan bool
-	done     bool
+	path   string
+	body   []byte
+	result []byte
+	err    error
+	done   bool
+	waiter *sync.WaitGroup
 }
 
 type Router struct {
@@ -41,7 +41,7 @@ func createRouter(handler *DiscoveryHandler, user string, password string) *Rout
 
 func (this *Router) batch(path string, body []byte) ([]byte, error) {
 	batchToSend := make([]BatchEntry, 0)
-	entry := BatchEntry{path: path, body: body, complete: make(chan bool, 1)}
+	entry := BatchEntry{path: path, body: body, waiter: &sync.WaitGroup{}}
 
 	this.lock.Lock()
 
@@ -58,12 +58,13 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 
 	this.lock.Unlock()
 
+	entry.waiter.Add(1)
 	if len(batchToSend) != 0 {
 		this.queue <- batchToSend
 	}
 
-	entry.done = <-entry.complete
-
+	entry.waiter.Wait()
+	fmt.Println("after wait")
 	return entry.result, entry.err
 
 }
@@ -112,7 +113,7 @@ func drainQueue(router *Router) {
 				entry.err = errors.New(readString(&buff))
 			}
 
-			entry.complete <- true
+			entry.waiter.Done()
 		}
 	}
 }
