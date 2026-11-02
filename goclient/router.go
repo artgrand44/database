@@ -40,24 +40,29 @@ func createRouter(handler *DiscoveryHandler, user string, password string) *Rout
 }
 
 func (this *Router) batch(path string, body []byte) ([]byte, error) {
+	batchToSend := make([]BatchEntry, 0)
+	entry := BatchEntry{path: path, body: body}
+
 	this.lock.Lock()
 
 	if this.currentBatch == nil {
 		this.currentBatch = make([]BatchEntry, 0)
 	}
 
-	entry := BatchEntry{path: path, body: body}
-
 	this.currentBatch = append(this.currentBatch, entry)
 
 	if len(this.currentBatch) >= 1 {
 		fmt.Println("Adding entry to queue ", len(this.currentBatch))
-		this.queue <- this.currentBatch
-		fmt.Println("after entry added")
+		batchToSend = this.currentBatch
 		this.currentBatch = nil
 	}
 
 	this.lock.Unlock()
+
+	if len(batchToSend) != 0 {
+		fmt.Println("sendibg batch")
+		this.queue <- batchToSend
+	}
 
 	fmt.Println("before waiting for complete")
 	entry.done = <-entry.complete
@@ -90,7 +95,7 @@ func drainQueue(router *Router) {
 		if err != nil {
 			fmt.Println(err)
 		}
-
+		fmt.Println("got response")
 		responseBuffer := bytes.NewBuffer(response)
 
 		count := readInt(responseBuffer)
@@ -99,6 +104,7 @@ func drainQueue(router *Router) {
 			fmt.Println("Wrong count for response")
 		}
 
+		fmt.Println("response count ", count)
 		for _, entry := range entries {
 			success := readBool(responseBuffer)
 			fmt.Println("got success ", success)

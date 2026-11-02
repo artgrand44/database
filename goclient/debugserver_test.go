@@ -65,6 +65,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			writeString("", &outBuffer)
 		}
 
+		fmt.Println("batch returning")
 		w.Write(outBuffer.Bytes())
 	case "/db/execute":
 		args := getClientArgs(r)
