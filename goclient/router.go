@@ -23,16 +23,16 @@ type Router struct {
 	handler        *DiscoveryHandler
 	user           string
 	password       string
-	currentBatch   []BatchEntry
+	currentBatch   []*BatchEntry
 	batchStartTime time.Time
 	lock           sync.Mutex
-	queue          chan []BatchEntry
+	queue          chan []*BatchEntry
 }
 
 var client *http.Client
 
 func createRouter(handler *DiscoveryHandler, user string, password string) *Router {
-	router := &Router{handler: handler, user: user, password: password, queue: make(chan []BatchEntry, 1000)}
+	router := &Router{handler: handler, user: user, password: password, queue: make(chan []*BatchEntry, 1000)}
 
 	go drainQueue(router)
 
@@ -40,16 +40,16 @@ func createRouter(handler *DiscoveryHandler, user string, password string) *Rout
 }
 
 func (this *Router) batch(path string, body []byte) ([]byte, error) {
-	batchToSend := make([]BatchEntry, 0)
+	batchToSend := make([]*BatchEntry, 0)
 	entry := BatchEntry{path: path, body: body, waiter: &sync.WaitGroup{}}
 
 	this.lock.Lock()
 
 	if this.currentBatch == nil {
-		this.currentBatch = make([]BatchEntry, 0)
+		this.currentBatch = make([]*BatchEntry, 0)
 	}
 
-	this.currentBatch = append(this.currentBatch, entry)
+	this.currentBatch = append(this.currentBatch, &entry)
 
 	if len(this.currentBatch) >= 5 {
 		batchToSend = this.currentBatch
@@ -64,7 +64,7 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 	}
 
 	entry.waiter.Wait()
-	fmt.Println("after wait")
+	fmt.Println("after wait ", string(entry.result))
 	return entry.result, entry.err
 
 }

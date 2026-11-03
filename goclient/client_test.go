@@ -41,8 +41,18 @@ func TestBatchClient(t *testing.T) {
 }
 func doUpdates(t *testing.T, comp *sync.WaitGroup, client *Client) {
 	for range 10 {
-		if err := client.Execute("insert a into b", 1, "a"); err != nil {
+		cargs := ClientArgs{shard: "", sql: "insert a into b", parameters: make([]any, 0)}
+		body := cargs.save()
+		resp, err := client.router.batch("/db/execute", body)
+
+		if err != nil {
 			t.Errorf("error from execute %v", err)
+		}
+
+		result := string(resp)
+
+		if result != "insert a into b" {
+			t.Errorf("bad result %s", result)
 		}
 	}
 
