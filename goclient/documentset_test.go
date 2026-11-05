@@ -24,8 +24,7 @@ func TestIterator(t *testing.T) {
 
 	count = 0
 
-	for xiter.hasNext() {
-		xiter.next()
+	for xiter.next() != nil {
 		count++
 	}
 

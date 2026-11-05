@@ -34,11 +34,22 @@ func ListDocs(set *DocumentSet) iter.Seq[*Document] {
 	return func(yield func(*Document) bool) {
 		iterator := set.iterator()
 
-		for iterator.hasNext() {
-			if !yield(iterator.next()) {
+		for {
+			doc := iterator.next()
+
+			if doc == nil || !yield(doc) {
 				return
 			}
 		}
+	}
+}
+
+func (this *DocIterator) next() *Document {
+	if this.currentIndex+1 < len(this.set.list) {
+		this.currentIndex++
+		return this.set.list[this.currentIndex]
+	} else {
+		return nil
 	}
 }
 
@@ -94,13 +105,4 @@ func (this *DocumentSet) write(buffer *bytes.Buffer) {
 		}
 	}
 
-}
-
-func (this *DocIterator) hasNext() bool {
-	return this.currentIndex+1 < len(this.set.list)
-}
-
-func (this *DocIterator) next() *Document {
-	this.currentIndex++
-	return this.set.list[this.currentIndex]
 }
