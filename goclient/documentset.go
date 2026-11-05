@@ -7,22 +7,35 @@ import (
 
 type DocumentSet struct {
 	list      []*Document
+	columns   []string
 	file      string
 	size      int
 	remove    bool
 	serverUri string
 }
 
+type DocIterator struct {
+	currentIndex int
+	set          *DocumentSet
+}
+
 const MAX_MEMORY = int(1000)
 
 func (this *DocumentSet) addDocument(doc *Document) {
 	this.list = append(this.list, doc)
+	this.size++
+}
+
+func (this *DocumentSet) iterator() DocIterator {
+	return DocIterator{currentIndex: -1, set: this}
 }
 
 func ListDocs(set *DocumentSet) iter.Seq[*Document] {
 	return func(yield func(*Document) bool) {
-		for _, v := range set.list {
-			if !yield(v) {
+		iterator := set.iterator()
+
+		for iterator.hasNext() {
+			if !yield(iterator.next()) {
 				return
 			}
 		}
@@ -81,4 +94,13 @@ func (this *DocumentSet) write(buffer *bytes.Buffer) {
 		}
 	}
 
+}
+
+func (this *DocIterator) hasNext() bool {
+	return this.currentIndex+1 < len(this.set.list)
+}
+
+func (this *DocIterator) next() *Document {
+	this.currentIndex++
+	return this.set.list[this.currentIndex]
 }

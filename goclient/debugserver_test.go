@@ -13,6 +13,20 @@ import (
 
 var stopServer bool
 
+func buildDocumentSet() *DocumentSet {
+	set := DocumentSet{columns: make([]string, 0)}
+
+	set.columns = append(set.columns, "value")
+
+	for range 5 {
+		doc := createDocument(false)
+		doc.SetField("value", "hi")
+		set.addDocument(&doc)
+	}
+
+	return &set
+}
+
 func getBatch(r *http.Request) *Batch {
 	body, err := io.ReadAll(r.Body)
 
@@ -86,12 +100,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("execute Query", args)
 		}
 
-		doc := createDocument(false)
-		set := DocumentSet{}
-
-		doc.SetField("value", "hi")
-
-		set.addDocument(&doc)
+		set := buildDocumentSet()
 		w.Write(writeObject(set))
 	case "/db/executeBatch":
 		batch := getBatch(r)
