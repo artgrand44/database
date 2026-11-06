@@ -21,7 +21,7 @@ func buildDocumentSet() *DocumentSet {
 	for range 5 {
 		doc := createDocument(false)
 		doc.SetField("value", "hi")
-		set.addDocument(&doc)
+		set.AddDocument(&doc)
 	}
 
 	return &set

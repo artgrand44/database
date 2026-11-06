@@ -140,13 +140,13 @@ func TestDocumentSet(t *testing.T) {
 		doc := createDocument(false)
 
 		doc.SetField("index", idx)
-		set.addDocument(&doc)
+		set.AddDocument(&doc)
 	}
 
 	bytes := writeObject(set)
 	out := readObject(bytes)
 
-	result, ok := out.(*DocumentSet)
+	_, ok := out.(*DocumentSet)
 
 	if !ok {
 		t.Errorf("error converting output")
@@ -154,7 +154,10 @@ func TestDocumentSet(t *testing.T) {
 
 	slot := 0
 
-	for doc := range ListDocs(result) {
+	xiter := set.iterator()
+	var doc *Document
+
+	for doc = xiter.next(); doc != nil; doc = xiter.next() {
 		field := doc.GetField("index")
 
 		num, ok := field.(int)

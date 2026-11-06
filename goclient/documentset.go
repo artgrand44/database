@@ -2,11 +2,13 @@ package artdb
 
 import (
 	"bytes"
+	"fmt"
 	"iter"
 )
 
 type DocumentSet struct {
 	list      []*Document
+	router    *Router
 	columns   []string
 	file      string
 	size      int
@@ -21,27 +23,25 @@ type DocIterator struct {
 
 const MAX_MEMORY = int(1000)
 
-func (this *DocumentSet) addDocument(doc *Document) {
+func (this *DocumentSet) AddDocument(doc *Document) {
 	this.list = append(this.list, doc)
 	this.size++
 }
 
-func (this *DocumentSet) iterator() DocIterator {
-	return DocIterator{currentIndex: -1, set: this}
-}
-
-func ListDocs(set *DocumentSet) iter.Seq[*Document] {
+func (set *DocumentSet) All() iter.Seq[*Document] {
 	return func(yield func(*Document) bool) {
-		iterator := set.iterator()
+		xiter := set.iterator()
 
-		for {
-			doc := iterator.next()
-
-			if doc == nil || !yield(doc) {
+		for doc := xiter.next(); doc != nil; doc = xiter.next() {
+			if !yield(doc) {
 				return
 			}
 		}
 	}
+}
+
+func (this *DocumentSet) iterator() DocIterator {
+	return DocIterator{currentIndex: -1, set: this}
 }
 
 func (this *DocIterator) next() *Document {
@@ -49,6 +49,24 @@ func (this *DocIterator) next() *Document {
 		this.currentIndex++
 		return this.set.list[this.currentIndex]
 	} else {
+		if this.set.file != "" {
+			path := fmt.Sprintf("%s?file=%s&index=%d&size=%d", "/db/fetch", this.set.file, this.currentIndex, this.set.size)
+
+			if data, err := this.set.router.post(path, make([]byte, 0)); err == nil {
+				this.set.list = make([]*Document, 0)
+
+				buff := bytes.NewBuffer(data)
+				count := readInt(buff)
+
+				for range count {
+					this.set.list = append(this.set.list, (readObjectFrom(buff)).(*Document))
+				}
+			}
+
+			this.currentIndex = 0
+			return this.set.list[0]
+		}
+
 		return nil
 	}
 }

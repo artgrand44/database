@@ -10,7 +10,7 @@ func add(t *testing.T, cache *Cache, idx int) {
 	set := DocumentSet{}
 
 	doc.SetField("value", idx)
-	set.addDocument(&doc)
+	set.AddDocument(&doc)
 
 	sql := "select doc where "
 	args := []any{idx}
@@ -39,7 +39,7 @@ func update(t *testing.T, cache *Cache, idx int) {
 	set := DocumentSet{}
 
 	doc.SetField("newvalue", idx+1000)
-	set.addDocument(&doc)
+	set.AddDocument(&doc)
 
 	sql := "select doc where "
 	args := []any{idx}
