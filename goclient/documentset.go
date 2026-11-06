@@ -28,9 +28,19 @@ func (this *DocumentSet) AddDocument(doc *Document) {
 	this.size++
 }
 
-func (set *DocumentSet) All() iter.Seq[*Document] {
+func (this *DocumentSet) Columns() iter.Seq[string] {
+	return func(yield func(string) bool) {
+
+		for _, col := range this.columns {
+			if !yield(col) {
+				return
+			}
+		}
+	}
+}
+func (this *DocumentSet) Documents() iter.Seq[*Document] {
 	return func(yield func(*Document) bool) {
-		xiter := set.iterator()
+		xiter := this.iterator()
 
 		for doc := xiter.next(); doc != nil; doc = xiter.next() {
 			if !yield(doc) {

@@ -11,7 +11,7 @@ func TestIterator(t *testing.T) {
 
 	count := 0
 
-	for doc := range set.All() {
+	for doc := range set.Documents() {
 		fmt.Println(doc)
 		count++
 	}
