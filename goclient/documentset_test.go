@@ -1,6 +1,7 @@
 package artdb
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -10,6 +11,15 @@ func TestIterator(t *testing.T) {
 
 	count := 0
 
+	for doc := range set.All() {
+		fmt.Println(doc)
+		count++
+	}
+
+	if count != size {
+		t.Errorf("wrong size for range")
+	}
+	count = 0
 	xiter := set.iterator()
 
 	count = 0
