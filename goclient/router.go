@@ -128,32 +128,13 @@ func (this *Router) post(template string, body []byte) ([]byte, error) {
 			return nil, errors.New("There are no servers available")
 		}
 
-		req, err := http.NewRequest("POST", "http://"+host+template, bytes.NewBuffer(body))
+		resp, err := post("http://"+host+template, this.user, this.password, body)
 
-		if err != nil {
-			return nil, err
+		if err == nil {
+			return resp, nil
 		}
 
-		req.Header.Set("Content-Type", "application/json")
-		req.SetBasicAuth(this.user, this.password)
-
-		resp, err := client.Do(req)
-
-		if err != nil {
-			this.handler.deleteServer(host)
-			return nil, err
-		}
-
-		prevHost = host
-
-		defer resp.Body.Close()
-
-		if resp.StatusCode == 418 {
-			return nil, errors.New(resp.Header.Get("Warning"))
-		}
-
-		return io.ReadAll(resp.Body)
-
+		this.handler.deleteServer(host)
 	}
 
 }
@@ -166,4 +147,27 @@ func initRouter() {
 
 	client = &http.Client{Timeout: 10 * time.Second, Transport: transport}
 
+}
+
+func post(uri string, user string, password string, body []byte) ([]byte, error) {
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(body))
+
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(user, password)
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == 418 {
+		return nil, errors.New(resp.Header.Get("Warning"))
+	}
+
+	return io.ReadAll(resp.Body)
 }

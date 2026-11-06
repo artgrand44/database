@@ -8,7 +8,6 @@ import (
 
 type DocumentSet struct {
 	list      []*Document
-	router    *Router
 	columns   []string
 	file      string
 	size      int
@@ -66,9 +65,9 @@ func (this *DocIterator) next() *Document {
 
 func (this *DocIterator) refill() bool {
 	if this.set.file != "" {
-		path := fmt.Sprintf("%s?file=%s&index=%d&size=%d", "/db/fetch", this.set.file, this.currentIndex, this.set.size)
+		path := fmt.Sprintf("%s/db/fetch?file=%s&index=%d&size=%d", this.set.serverUri, this.set.file, this.currentIndex, this.set.size)
 
-		if data, err := this.set.router.post(path, make([]byte, 0)); err == nil {
+		if data, err := post(path, "", "", make([]byte, 0)); err == nil {
 			this.set.list = make([]*Document, 0)
 
 			buff := bytes.NewBuffer(data)
