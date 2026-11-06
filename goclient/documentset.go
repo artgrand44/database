@@ -40,35 +40,40 @@ func (set *DocumentSet) All() iter.Seq[*Document] {
 	}
 }
 
-func (this *DocumentSet) iterator() DocIterator {
-	return DocIterator{currentIndex: -1, set: this}
+func (this *DocumentSet) iterator() *DocIterator {
+	return &DocIterator{currentIndex: -1, set: this}
 }
 
 func (this *DocIterator) next() *Document {
-	if this.currentIndex+1 < len(this.set.list) {
-		this.currentIndex++
-		return this.set.list[this.currentIndex]
-	} else {
-		if this.set.file != "" {
-			path := fmt.Sprintf("%s?file=%s&index=%d&size=%d", "/db/fetch", this.set.file, this.currentIndex, this.set.size)
-
-			if data, err := this.set.router.post(path, make([]byte, 0)); err == nil {
-				this.set.list = make([]*Document, 0)
-
-				buff := bytes.NewBuffer(data)
-				count := readInt(buff)
-
-				for range count {
-					this.set.list = append(this.set.list, (readObjectFrom(buff)).(*Document))
-				}
-			}
-
-			this.currentIndex = 0
-			return this.set.list[0]
-		}
-
+	if this.currentIndex+1 == len(this.set.list) && !this.refill() {
 		return nil
 	}
+
+	this.currentIndex++
+	return this.set.list[this.currentIndex]
+
+}
+
+func (this *DocIterator) refill() bool {
+	if this.set.file != "" {
+		path := fmt.Sprintf("%s?file=%s&index=%d&size=%d", "/db/fetch", this.set.file, this.currentIndex, this.set.size)
+
+		if data, err := this.set.router.post(path, make([]byte, 0)); err == nil {
+			this.set.list = make([]*Document, 0)
+
+			buff := bytes.NewBuffer(data)
+			count := readInt(buff)
+
+			for range count {
+				this.set.list = append(this.set.list, (readObjectFrom(buff)).(*Document))
+			}
+		}
+
+		this.currentIndex = 1
+		return true
+	}
+
+	return false
 }
 
 func (this *DocumentSet) read(buffer *bytes.Buffer) *DocumentSet {

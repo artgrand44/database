@@ -133,6 +133,7 @@ func (this *Client) ExecuteQuery(statement string, parameters ...any) (*Document
 	out := readObject(bytes)
 
 	result := out.(*DocumentSet)
+	result.router = this.router
 
 	if this.cache != nil {
 		this.cache.add(statement, parameters, result)
