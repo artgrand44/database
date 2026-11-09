@@ -33,7 +33,7 @@ Boolean,
 */
 
 const (
-	ObjectTypeUnknown   ObjectType = iota // 0
+	ObjectTypeBoolean   ObjectType = iota // 0
 	ObjectTypeByte                        //1
 	ObjectTypeCharacter                   //2
 	ObjectTypeDouble                      //3

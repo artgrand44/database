@@ -104,7 +104,7 @@ func writeObjectTo(obj any, buffer *bytes.Buffer) {
 
 	switch v := obj.(type) {
 	case bool:
-		writeByte(byte(ObjectTypeByte), buffer)
+		writeByte(byte(ObjectTypeBoolean), buffer)
 		writeBool(v, buffer)
 	case byte:
 		writeByte(byte(ObjectTypeByte), buffer)

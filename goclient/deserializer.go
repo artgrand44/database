@@ -59,6 +59,8 @@ func readObjectFrom(buffer *bytes.Buffer) any {
 	typ := ObjectType(readByte(buffer))
 
 	switch typ {
+	case ObjectTypeBoolean:
+		return readByte(buffer) != 0
 	case ObjectTypeByte:
 		return readByte(buffer)
 	case ObjectTypeFloat:

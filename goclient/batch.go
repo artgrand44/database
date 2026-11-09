@@ -17,8 +17,6 @@ func (this *Batch) add(statement string, paramaters ...any) *Batch {
 }
 
 func (this *Batch) load(buffer *bytes.Buffer) {
-	this.database = readString(buffer)
-	this.shard = readString(buffer)
 	this.clientArgs = make([]*ClientArgs, 0)
 
 	for range readInt(buffer) {
@@ -31,8 +29,6 @@ func (this *Batch) load(buffer *bytes.Buffer) {
 func (this *Batch) save() []byte {
 	var buf bytes.Buffer
 
-	writeString(this.database, &buf)
-	writeString("*", &buf)
 	writeInt(len(this.clientArgs), &buf)
 
 	for _, arg := range this.clientArgs {
