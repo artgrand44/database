@@ -110,6 +110,10 @@ func (this *DocumentSet) read(buffer *bytes.Buffer) *DocumentSet {
 	return this
 }
 
+func (this *DocumentSet) Size() int {
+	return this.size
+}
+
 func (this *DocumentSet) write(buffer *bytes.Buffer) {
 	if this.file != "" {
 		writeBool(true, buffer)

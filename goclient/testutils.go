@@ -128,7 +128,7 @@ func startServer() {
 }
 
 func sendPing(t *testing.T, cluster string, port int) {
-	addr, err := net.ResolveUDPAddr("udp4", "224.0.0.1:9999")
+	addr, err := net.ResolveUDPAddr("udp4", "224.0.0.1:4445")
 
 	conn, err := net.ListenUDP("udp", nil)
 

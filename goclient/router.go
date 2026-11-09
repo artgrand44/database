@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
+
+const NETWORK_ERROR = "There was a network error"
 
 type BatchEntry struct {
 	path   string
@@ -119,22 +122,20 @@ func drainQueue(router *Router) {
 }
 
 func (this *Router) post(template string, body []byte) ([]byte, error) {
-	var prevHost = ""
-
 	for {
 		host, success := this.handler.GetServer()
 
-		if !success || host == prevHost {
+		if !success {
 			return nil, errors.New("There are no servers available")
 		}
 
 		resp, err := post("http://"+host+template, this.user, this.password, body)
 
-		if err == nil {
-			return resp, nil
+		if err != nil && strings.HasPrefix(err.Error(), NETWORK_ERROR) {
+			this.handler.deleteServer(host)
+		} else {
+			return resp, err
 		}
-
-		this.handler.deleteServer(host)
 	}
 
 }
@@ -162,7 +163,7 @@ func post(uri string, user string, password string, body []byte) ([]byte, error)
 	resp, err := client.Do(req)
 
 	if err != nil {
-		return nil, err
+		return nil, errors.New(NETWORK_ERROR + err.Error())
 	}
 
 	if resp.StatusCode == 418 {
