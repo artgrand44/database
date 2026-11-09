@@ -52,7 +52,7 @@ public class Document implements Iterable<Map.Entry<String, Object>>{
 		int size = stream.readInt();
 		
 		for (int idx = 0; idx < size; idx++) {
-			final String key = stream.readUTF();
+			final String key = stream.readString();
 			final Object value = stream.readObject();
 			
 			this.map.put(key, value);
@@ -85,7 +85,7 @@ public class Document implements Iterable<Map.Entry<String, Object>>{
 		stream.writeInt(this.map.size());
 		
 		for (Map.Entry<String, Object> entry : this.map.entrySet()) {
-			stream.writeUTF(entry.getKey());
+			stream.writeString(entry.getKey());
 			stream.writeObject(entry.getValue());
 		}
 	}

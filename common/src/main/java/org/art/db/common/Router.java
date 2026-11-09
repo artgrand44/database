@@ -224,7 +224,7 @@ public class Router {
 				stream.writeInt(list.size());
 				
 				for (BatchEntry entry : list) {
-					stream.writeUTF(entry.uri);
+					stream.writeString(entry.uri);
 					stream.writeInt(entry.body.length);
 					stream.write(entry.body);
 				}
@@ -243,7 +243,7 @@ public class Router {
 								result.read(buffer);
 								entry.future.complete(buffer);
 							} else {
-								String message = result.readUTF();
+								String message = result.readString();
 								
 								entry.future.completeExceptionally(new DBRuntimeException(message));
 							}

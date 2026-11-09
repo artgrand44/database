@@ -35,7 +35,7 @@ public class LogEntry {
 	public LogEntry deserialize(TypedInputStream stream) throws IOException {
 		this.key = (Key)stream.readObject();
 		this.timestamp = stream.readLong();
-		this.op = Enum.valueOf(Operation.class,stream.readUTF());
+		this.op = Enum.valueOf(Operation.class, stream.readUTF());
 		this.propagate = stream.readBoolean();
 		
 		if (stream.readBoolean()) {

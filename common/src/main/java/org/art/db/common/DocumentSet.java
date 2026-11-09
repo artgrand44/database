@@ -164,8 +164,8 @@ public class DocumentSet implements Iterable<Document>, Closeable {
 		if (this.hasFile()) {
 			stream.writeBoolean(true);
 			stream.writeInt(this.size);
-			stream.writeUTF(this.file.getPath());
-			stream.writeUTF(DiscoveryHandler.getServerInstance().getLocalInstance().toString());
+			stream.writeString(this.file.getPath());
+			stream.writeString(DiscoveryHandler.getServerInstance().getLocalInstance().toString());
 			
 			int count = 0;
 			
@@ -191,8 +191,8 @@ public class DocumentSet implements Iterable<Document>, Closeable {
 		if (this.isRemote) {
 			try {
 				this.size = stream.readInt();
-				this.file = new File(stream.readUTF());
-				this.serverURI = new URI(stream.readUTF());
+				this.file = new File(stream.readString());
+				this.serverURI = new URI(stream.readString());
 
 				for (int idx = 0; idx < Math.min(this.size, MAX_MEMORY); idx++) {
 					this.list.add((Document)stream.readObject());

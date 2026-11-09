@@ -71,7 +71,7 @@ public class TypedOutputStream extends DataOutputStream {
 	
 	}
 	
-	private void writeString(String string) throws IOException {
+	public void writeString(String string) throws IOException {
 		byte[] bytes = string.getBytes();
 		
 		this.writeInt(bytes.length);

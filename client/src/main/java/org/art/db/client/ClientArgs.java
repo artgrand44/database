@@ -61,29 +61,21 @@ public class ClientArgs {
 	}
 
 	public void serialize(TypedOutputStream stream) throws IOException {
-		stream.writeUTF(this.database);
-		stream.writeUTF(this.shard);
-		stream.writeUTF(this.sql);
+		stream.writeString(this.database);
+		stream.writeString(this.shard);
+		stream.writeString(this.sql);
 		stream.writeObject(this.parameters);
 		
 	}
 
 	@SuppressWarnings("unchecked")
 	public ClientArgs deserialize(TypedInputStream stream) throws IOException {
-		try {
 		this.database = stream.readString();
 		this.shard =  stream.readString();
 		this.sql =  stream.readString();
-		logger.info("sql " + this.sql);
 		this.parameters = (List<Comparable<?>>)stream.readObject();
 		
-		logger.info("Got args " + this.sql + " " + this.parameters);
-		
 		return this;
-		} catch (IOException exc) {
-			exc.printStackTrace();
-			throw exc;
-		}
 	}
 
 }

@@ -161,7 +161,7 @@ public class Dispatcher {
 				int count = input.readInt();
 				
 				for (int idx = 0; idx < count; idx++) {
-					String uri = input.readUTF();
+					String uri = input.readString();
 					byte[] request = new byte[input.readInt()];
 					
 					
@@ -177,7 +177,7 @@ public class Dispatcher {
 						output.write(response);
 					} catch (Exception exc) {
 						output.writeBoolean(false);
-						output.writeUTF(exc.getMessage());
+						output.writeString(exc.getMessage());
 					}
 				}
 				
@@ -261,7 +261,6 @@ public class Dispatcher {
 				throw new InstanceRecoveringException();
 			}
 			
-			logger.info("byte = " + StreamType.Byte.ordinal() + " key = " + StreamType.Key.ordinal());
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				ClientArgs args = new ClientArgs().deserialize(stream);
 				List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
@@ -334,7 +333,6 @@ public class Dispatcher {
 							
 				try (TypedOutputStream stream = new TypedOutputStream()) {
 					stream.writeObject(set);
-					logger.info("wrote docset " + set + " " + StreamType.DocumentSet.ordinal() + " byte type " + StreamType.Byte.ordinal());
 					return stream.toByteArray();
 				}
 			} catch (Exception exc) {
