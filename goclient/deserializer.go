@@ -59,8 +59,6 @@ func readObjectFrom(buffer *bytes.Buffer) any {
 	typ := ObjectType(readByte(buffer))
 
 	switch typ {
-	case ObjectTypeBoolean:
-		return readBool(buffer)
 	case ObjectTypeByte:
 		return readByte(buffer)
 	case ObjectTypeFloat:
@@ -79,6 +77,11 @@ func readObjectFrom(buffer *bytes.Buffer) any {
 		return (&DocumentSet{}).read(buffer)
 	case ObjectTypeGUID:
 		return GUID{}.read(buffer)
+	case ObjectTypeClientArgs:
+		args := &ClientArgs{}
+
+		args.load(buffer)
+		return args
 	default:
 		return nil
 	}

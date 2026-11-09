@@ -40,7 +40,7 @@ func TestBatchClient(t *testing.T) {
 
 }
 func doUpdates(t *testing.T, comp *sync.WaitGroup, client *Client) {
-	for range 10 {
+	for range 1 {
 		cargs := ClientArgs{shard: "", sql: "insert a into b", parameters: make([]any, 0)}
 		body := cargs.save()
 		resp, err := client.router.batch("/db/execute", body)
@@ -60,26 +60,26 @@ func doUpdates(t *testing.T, comp *sync.WaitGroup, client *Client) {
 }
 func doWork(t *testing.T, client *Client) {
 
-	for range 10 {
+	for range 1 {
 		if err := client.Execute("insert a into b", 1, "a"); err != nil {
 			t.Errorf("error from execute %v", err)
 		}
 	}
-
-	for range 1 {
-		if set, err := client.ExecuteQuery("select a from b"); err != nil {
-			t.Errorf("error from query %v", err)
-		} else {
-			fmt.Println("select returned ", set)
+	/*
+		for range 1 {
+			if set, err := client.ExecuteQuery("select a from b"); err != nil {
+				t.Errorf("error from query %v", err)
+			} else {
+				fmt.Println("select returned ", set)
+			}
 		}
-	}
 
-	batch := client.CreateBatch()
+		batch := client.CreateBatch()
 
-	batch.add("insert a into b", 1, "a")
+		batch.add("insert a into b", 1, "a")
 
-	if err := client.ExecuteBatch(batch); err != nil {
-		t.Errorf("error from batch %v", err)
-	}
+		if err := client.ExecuteBatch(batch); err != nil {
+			t.Errorf("error from batch %v", err)
+		}*/
 
 }

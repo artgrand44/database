@@ -104,7 +104,7 @@ func writeObjectTo(obj any, buffer *bytes.Buffer) {
 
 	switch v := obj.(type) {
 	case bool:
-		writeByte(byte(ObjectTypeBoolean), buffer)
+		writeByte(byte(ObjectTypeByte), buffer)
 		writeBool(v, buffer)
 	case byte:
 		writeByte(byte(ObjectTypeByte), buffer)
@@ -140,6 +140,12 @@ func writeObjectTo(obj any, buffer *bytes.Buffer) {
 		v.write(buffer)
 	case *GUID:
 		writeByte(byte(ObjectTypeGUID), buffer)
+		v.write(buffer)
+	case ClientArgs:
+		writeByte(byte(ObjectTypeClientArgs), buffer)
+		v.write(buffer)
+	case *ClientArgs:
+		writeByte(byte(ObjectTypeClientArgs), buffer)
 		v.write(buffer)
 	default:
 		fmt.Printf("Unknown type: %T\n", v)

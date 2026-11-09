@@ -133,6 +133,29 @@ func TestString(t *testing.T) {
 	}
 }
 
+func TestClientArgs(t *testing.T) {
+	original := &ClientArgs{sql: "insert a in b", parameters: make([]any, 0)}
+
+	original.parameters = append(original.parameters, "p1")
+
+	bytes := writeObject(original)
+	out := readObject(bytes)
+
+	copy, ok := out.(*ClientArgs)
+
+	if !ok {
+		t.Errorf("error converting output")
+	}
+
+	if copy.sql != "insert a in b" {
+		t.Errorf("Wrong sql in copy ")
+	}
+
+	if len(copy.parameters) != 1 || copy.parameters[0] != "p1" {
+		t.Errorf("Wrong param in copy ")
+	}
+
+}
 func TestDocumentSet(t *testing.T) {
 	set := &DocumentSet{}
 

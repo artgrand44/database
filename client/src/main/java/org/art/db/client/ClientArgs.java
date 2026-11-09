@@ -5,12 +5,17 @@ import java.util.List;
 
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientArgs {
 	private String database;
 	private String shard;
 	private String sql;
 	private List<?> parameters;
+	
+	private static final Logger logger = LoggerFactory.getLogger(ClientArgs.class);
+	
 	
 	public ClientArgs() {
 		
@@ -65,12 +70,20 @@ public class ClientArgs {
 
 	@SuppressWarnings("unchecked")
 	public ClientArgs deserialize(TypedInputStream stream) throws IOException {
-		this.database = stream.readUTF();
-		this.shard =  stream.readUTF();
-		this.sql =  stream.readUTF();
+		try {
+		this.database = stream.readString();
+		this.shard =  stream.readString();
+		this.sql =  stream.readString();
+		logger.info("sql " + this.sql);
 		this.parameters = (List<Comparable<?>>)stream.readObject();
 		
+		logger.info("Got args " + this.sql + " " + this.parameters);
+		
 		return this;
+		} catch (IOException exc) {
+			exc.printStackTrace();
+			throw exc;
+		}
 	}
 
 }

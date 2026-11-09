@@ -39,7 +39,6 @@ func GetHandler(cluster string) *DiscoveryHandler {
 	handler, found := handlers[cluster]
 
 	if !found {
-		fmt.Println("created new handler for ", cluster)
 		handler = &DiscoveryHandler{lock: &sync.RWMutex{}, timestamps: make(map[string]int64)}
 		handlers[cluster] = handler
 	}
@@ -47,6 +46,12 @@ func GetHandler(cluster string) *DiscoveryHandler {
 	handlersLock.Unlock()
 
 	return handler
+}
+func (this *DiscoveryHandler) getServerCount() int {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+
+	return len(this.servers)
 }
 
 func (this *DiscoveryHandler) GetServer() (string, bool) {
@@ -60,13 +65,7 @@ func (this *DiscoveryHandler) GetServer() (string, bool) {
 
 	this.slot = (this.slot + 1) % len(this.servers)
 
-	fmt.Println("returning server ", this.servers[this.slot])
-
 	return this.servers[this.slot], true
-}
-
-func (this *DiscoveryHandler) getServerCount() int {
-	return len(this.servers)
 }
 
 func checkTimeouts() {
@@ -123,7 +122,6 @@ func convertToURI(addr *net.UDPAddr, port int) string {
 }
 
 func poll() {
-	fmt.Println("in poll")
 	for !stopping.Load() {
 		buf := make([]byte, 1024)
 
@@ -133,7 +131,6 @@ func poll() {
 		} else {
 			var message Message
 
-			fmt.Println("Got message")
 			if err := json.Unmarshal(buf[:len], &message); err != nil {
 				fmt.Println("Error unmarshalling:", err)
 				continue
@@ -146,15 +143,12 @@ func poll() {
 			if !found {
 				handler = &DiscoveryHandler{lock: &sync.RWMutex{}, timestamps: make(map[string]int64)}
 				handlers[message.Cluster] = handler
-				fmt.Println("Poll created handler for ", message.Cluster)
 			}
 
 			handlersLock.Unlock()
 			handler.lock.Lock()
 
 			var uri = convertToURI(remoteAddr, message.Port)
-
-			fmt.Println("cluster ", message.Cluster, " uri ", uri)
 
 			if _, found := handler.timestamps[uri]; !found {
 				handler.servers = append(handler.servers, uri)

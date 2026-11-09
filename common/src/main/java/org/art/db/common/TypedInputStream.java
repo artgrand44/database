@@ -68,7 +68,7 @@ public class TypedInputStream extends DataInputStream {
 		};
 	}
 	
-	private String readString() throws IOException {
+	public String readString() throws IOException {
 		int length = this.readInt();
 		byte[] bytes = new byte[length];
 		

@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import org.art.db.common.DiscoveryHandler;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.InstanceRecoveringException;
 import org.art.db.common.Scheduler;
+import org.art.db.common.StreamType;
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
 import org.art.db.common.Utils;
@@ -259,6 +261,7 @@ public class Dispatcher {
 				throw new InstanceRecoveringException();
 			}
 			
+			logger.info("byte = " + StreamType.Byte.ordinal() + " key = " + StreamType.Key.ordinal());
 			try (TypedInputStream stream = new TypedInputStream(body)) {
 				ClientArgs args = new ClientArgs().deserialize(stream);
 				List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
@@ -331,9 +334,11 @@ public class Dispatcher {
 							
 				try (TypedOutputStream stream = new TypedOutputStream()) {
 					stream.writeObject(set);
+					logger.info("wrote docset " + set + " " + StreamType.DocumentSet.ordinal() + " byte type " + StreamType.Byte.ordinal());
 					return stream.toByteArray();
 				}
 			} catch (Exception exc) {
+				exc.printStackTrace();
 				throw exc;
 			}			
 		}

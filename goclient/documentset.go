@@ -97,6 +97,7 @@ func (this *DocumentSet) read(buffer *bytes.Buffer) *DocumentSet {
 		}
 
 	} else {
+		readByte(buffer)
 		this.size = readInt(buffer)
 
 		for idx := 0; idx < this.size; idx++ {
@@ -134,6 +135,7 @@ func (this *DocumentSet) write(buffer *bytes.Buffer) {
 		}
 	} else {
 		writeBool(false, buffer)
+		writeByte(byte(ObjectTypeList), buffer)
 		writeInt(len(this.list), buffer)
 
 		for _, doc := range this.list {

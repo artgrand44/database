@@ -90,6 +90,7 @@ func (this *Client) Execute(statement string, parameters ...any) error {
 
 	cargs := ClientArgs{shard: "", sql: statement, parameters: parameters}
 	body := cargs.save()
+
 	lower := strings.ToLower(statement)
 
 	if (strings.HasPrefix(lower, "insert") || strings.HasPrefix(lower, "update") || strings.HasPrefix(lower, "delete")) && !this.batch {

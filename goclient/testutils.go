@@ -49,9 +49,13 @@ func getClientArgs(r *http.Request) *ClientArgs {
 		return nil
 	}
 
+	fmt.Println("getcl ", body)
+	buff := bytes.NewBuffer(body)
+
 	args := ClientArgs{}
 
-	args.load(bytes.NewBuffer(body))
+	args.load(buff)
+
 	return &args
 }
 
