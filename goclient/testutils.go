@@ -88,24 +88,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 		w.Write(outBuffer.Bytes())
 	case "/db/execute":
-		args := getClientArgs(r)
-
-		if args != nil {
-			fmt.Println("execute ", args)
-		}
 	case "/db/executeQuery":
 		set := buildDocumentSet()
 		w.Write(writeObject(set))
 	case "/db/executeBatch":
-		batch := getBatch(r)
 
-		if batch != nil {
-			fmt.Println("execute Batch", batch)
-		}
-		fmt.Fprintf(w, "success")
 	case "/metrics":
 	default:
-		fmt.Println("Bad path ", path)
 		fmt.Fprintf(w, "success")
 	}
 }
