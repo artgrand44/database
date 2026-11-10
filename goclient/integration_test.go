@@ -42,6 +42,10 @@ func TestIntegration(t *testing.T) {
 		t.Errorf("insert failed %s", err)
 	}
 
+	if err := client.Execute(insert); err == nil {
+		t.Errorf("Expected error")
+	}
+
 	set, err := client.ExecuteQuery(query)
 
 	if err != nil {
