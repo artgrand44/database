@@ -107,7 +107,13 @@ public class HeartbeatListener {
 				this.recieveSocket.receive(packet);
 				
 				InetAddress address = packet.getAddress();
-				Message message = MAPPER.readValue(packet.getData(), Message.class);
+				Message message;
+				
+				try {
+					message = MAPPER.readValue(packet.getData(), Message.class);
+				} catch (Exception exc) {
+					continue;
+				}
 				
 				if (trace) {
 					logger.info(this.port + " got " + message.toString());
