@@ -108,7 +108,6 @@ func drainQueue(router *Router) {
 				bytes := readBytes(len, responseBuffer)
 
 				entry.result = bytes
-				fmt.Println("set result to ", string(entry.result))
 				entry.err = nil
 			} else {
 				fmt.Println("got error")

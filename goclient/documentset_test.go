@@ -1,7 +1,6 @@
 package artdb
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -11,8 +10,7 @@ func TestIterator(t *testing.T) {
 
 	count := 0
 
-	for doc := range set.Documents() {
-		fmt.Println(doc)
+	for range set.Documents() {
 		count++
 	}
 
