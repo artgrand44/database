@@ -96,8 +96,6 @@ func checkTimeouts() {
 
 		time.Sleep(checkDelay)
 	}
-
-	fmt.Println("end check loop")
 }
 
 func (this *DiscoveryHandler) deleteServer(uri string) {
@@ -160,8 +158,6 @@ func poll() {
 
 		time.Sleep(pollDelay)
 	}
-
-	fmt.Println("end poll loop")
 
 }
 
