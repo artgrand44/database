@@ -49,7 +49,6 @@ func getClientArgs(r *http.Request) *ClientArgs {
 		return nil
 	}
 
-	fmt.Println("getcl ", body)
 	buff := bytes.NewBuffer(body)
 
 	args := ClientArgs{}
@@ -64,7 +63,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	switch path {
 	case "/db/batch":
-		fmt.Println("got /db/batch")
 		var outBuffer bytes.Buffer
 		body, _ := io.ReadAll(r.Body)
 
@@ -81,8 +79,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 			args.load(bytes.NewBuffer(data))
 
-			fmt.Println("loaded args ", args.sql)
-
 			sqlBytes := []byte(args.sql)
 
 			writeBool(true, &outBuffer)
@@ -98,12 +94,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("execute ", args)
 		}
 	case "/db/executeQuery":
-		args := getClientArgs(r)
-
-		if args != nil {
-			fmt.Println("execute Query", args)
-		}
-
 		set := buildDocumentSet()
 		w.Write(writeObject(set))
 	case "/db/executeBatch":
