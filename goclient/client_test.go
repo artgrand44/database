@@ -67,10 +67,8 @@ func doWork(t *testing.T, client *Client) {
 	}
 
 	for range 10 {
-		if set, err := client.ExecuteQuery("select a from b"); err != nil {
+		if _, err := client.ExecuteQuery("select a from b"); err != nil {
 			t.Errorf("error from query %v", err)
-		} else {
-			fmt.Println("select returned ", set)
 		}
 	}
 
