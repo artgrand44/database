@@ -27,37 +27,6 @@ func buildDocumentSet() *DocumentSet {
 	return &set
 }
 
-func getBatch(r *http.Request) *Batch {
-	body, err := io.ReadAll(r.Body)
-
-	if err != nil {
-		fmt.Println("Got error reading body ", err)
-		return nil
-	}
-
-	batch := Batch{}
-
-	batch.load(bytes.NewBuffer(body))
-	return &batch
-}
-
-func getClientArgs(r *http.Request) *ClientArgs {
-	body, err := io.ReadAll(r.Body)
-
-	if err != nil {
-		fmt.Println("Got error reading body ", err)
-		return nil
-	}
-
-	buff := bytes.NewBuffer(body)
-
-	args := ClientArgs{}
-
-	args.load(buff)
-
-	return &args
-}
-
 func handler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
