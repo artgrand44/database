@@ -160,8 +160,10 @@ public class Client implements Closeable {
 	public void execute(String statement, Object ... parameters) throws Exception {
 		this.checkParameters(parameters);
 		
+		
 		try (TypedOutputStream stream = new TypedOutputStream()) {
 			List<Object> list = new ArrayList<>(Arrays.asList(parameters));
+			
 
 			new ClientArgs(this.database, this.shard, statement, list).serialize(stream);
 			byte[] body = stream.toByteArray();

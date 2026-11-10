@@ -1,6 +1,7 @@
 package org.art.db.client;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.art.db.common.TypedInputStream;
@@ -64,16 +65,27 @@ public class ClientArgs {
 		stream.writeString(this.database);
 		stream.writeString(this.shard);
 		stream.writeString(this.sql);
-		stream.writeObject(this.parameters);
+		stream.writeInt(this.parameters.size());
 		
+		for (Object comp : this.parameters) {
+			stream.writeObject(comp);
+		}			
 	}
 
-	@SuppressWarnings("unchecked")
 	public ClientArgs deserialize(TypedInputStream stream) throws IOException {
 		this.database = stream.readString();
 		this.shard =  stream.readString();
 		this.sql =  stream.readString();
-		this.parameters = (List<Comparable<?>>)stream.readObject();
+		
+		
+		int size = stream.readInt();
+		List<Object> list = new ArrayList<>();
+				
+		for (int idx = 0; idx < size; idx++) {
+			list.add(stream.readObject());
+		}
+				
+		this.parameters = list;
 		
 		return this;
 	}

@@ -179,12 +179,15 @@ public class DocumentSet implements Iterable<Document>, Closeable {
 			}
 		} else {
 			stream.writeBoolean(false);
-			stream.writeObject(this.list);
+			stream.writeInt(this.list.size());
+			
+			for (Document doc : this.list) {
+				stream.writeObject(doc);
+			}
 		}
 		
 	}
 	
-	@SuppressWarnings("unchecked")
 	public DocumentSet deserialize(TypedInputStream stream) throws IOException {
 		this.isRemote = stream.readBoolean();
 
@@ -201,8 +204,12 @@ public class DocumentSet implements Iterable<Document>, Closeable {
 				throw new IOException("There was an error deserializing the DocumentSet", exc);
 			}
 		} else {
-			this.list = (List<Document>)stream.readObject();
-			this.size = this.list.size();
+			this.size = stream.readInt();
+			this.list = new ArrayList<>(this.size);
+			
+			for (int idx = 0; idx < this.size; idx++) {
+				this.list.add((Document)stream.readObject());
+			}
 		}
 
 		return this;

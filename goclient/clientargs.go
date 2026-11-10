@@ -17,8 +17,6 @@ func (this *ClientArgs) load(buffer *bytes.Buffer) {
 	this.sql = readString(buffer)
 	this.parameters = make([]any, 0)
 
-	readByte(buffer)
-
 	for range readInt(buffer) {
 		this.parameters = append(this.parameters, readObjectFrom(buffer))
 	}
@@ -36,7 +34,6 @@ func (this *ClientArgs) write(buffer *bytes.Buffer) {
 	writeString(this.database, buffer)
 	writeString("*", buffer)
 	writeString(this.sql, buffer)
-	writeByte(byte(ObjectTypeList), buffer)
 	writeInt(len(this.parameters), buffer)
 
 	for _, entry := range this.parameters {
