@@ -62,12 +62,12 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 	this.lock.Unlock()
 
 	entry.waiter.Add(1)
+
 	if len(batchToSend) != 0 {
 		this.queue <- batchToSend
 	}
 
 	entry.waiter.Wait()
-	fmt.Println("after wait ", string(entry.result))
 	return entry.result, entry.err
 
 }
