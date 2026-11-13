@@ -7,10 +7,11 @@ import (
 )
 
 type Node struct {
-	next  *Node
-	prev  *Node
-	key   string
-	value *DocumentSet
+	next      *Node
+	prev      *Node
+	key       string
+	value     *DocumentSet
+	timestamp time.Time
 }
 
 type Cache struct {
@@ -37,8 +38,15 @@ func (this *Cache) get(sql string, args []any) (*DocumentSet, bool) {
 	key := buildCacheKey(sql, args)
 
 	if node, success := this.index[key]; success {
-		this.moveToEnd(node)
-		return node.value, success
+		if time.Since(node.timestamp) > this.ttl {
+			this.removeFromList(node)
+			delete(this.index, node.key)
+
+			return nil, false
+		} else {
+			this.moveToEnd(node)
+			return node.value, success
+		}
 	}
 
 	return nil, false
@@ -52,9 +60,10 @@ func (this *Cache) add(sql string, args []any, set *DocumentSet) {
 
 	if node, found := this.index[key]; found {
 		node.value = set
+		node.timestamp = time.Now()
 		this.moveToEnd(node)
 	} else {
-		node := &Node{key: key, value: set}
+		node := &Node{key: key, value: set, timestamp: time.Now()}
 
 		this.index[key] = node
 		this.addToList(node)
