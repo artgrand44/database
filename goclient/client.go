@@ -2,6 +2,7 @@ package artdb
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -124,7 +125,11 @@ func (this *Client) ExecuteQuery(statement string, parameters ...any) (*Document
 	if this.batch {
 		bytes, err = this.router.post("/db/executeQuery", body)
 	} else {
-		bytes, err = this.router.batch("/db/execute", body)
+		bytes, err = this.router.batch("/db/executeQuery", body)
+
+		if err != nil {
+			fmt.Println("execq got error")
+		}
 	}
 
 	if err != nil {
@@ -135,7 +140,7 @@ func (this *Client) ExecuteQuery(statement string, parameters ...any) (*Document
 
 	result := out.(*DocumentSet)
 
-	if this.cache != nil {
+	if this.cache != nil && !result.isPaged() {
 		this.cache.add(statement, parameters, result)
 	}
 

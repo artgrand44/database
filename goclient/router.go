@@ -94,12 +94,6 @@ func drainQueue(router *Router) {
 
 		responseBuffer := bytes.NewBuffer(response)
 
-		count := readInt(responseBuffer)
-
-		if count != len(entries) {
-			fmt.Println("Wrong count for response")
-		}
-
 		for _, entry := range entries {
 			success := readBool(responseBuffer)
 
@@ -110,7 +104,7 @@ func drainQueue(router *Router) {
 				entry.result = bytes
 				entry.err = nil
 			} else {
-				fmt.Println("got error")
+				fmt.Println("got error in router")
 				entry.result = nil
 				entry.err = errors.New(readString(&buff))
 			}

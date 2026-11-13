@@ -13,6 +13,7 @@ type DocumentSet struct {
 	size      int
 	remove    bool
 	serverUri string
+	paged     bool
 }
 
 type DocIterator struct {
@@ -47,6 +48,10 @@ func (this *DocumentSet) Documents() iter.Seq[*Document] {
 			}
 		}
 	}
+}
+
+func (this *DocumentSet) isPaged() bool {
+	return this.paged
 }
 
 func (this *DocumentSet) iterator() *DocIterator {
@@ -91,6 +96,7 @@ func (this *DocumentSet) read(buffer *bytes.Buffer) *DocumentSet {
 		this.size = readInt(buffer)
 		this.file = readString(buffer)
 		this.serverUri = readString(buffer)
+		this.paged = true
 
 		for idx := 0; idx < min(int(this.size), MAX_MEMORY); idx++ {
 			this.list = append(this.list, (&Document{}).read(buffer))
@@ -98,6 +104,7 @@ func (this *DocumentSet) read(buffer *bytes.Buffer) *DocumentSet {
 
 	} else {
 		this.size = readInt(buffer)
+		this.paged = false
 
 		for idx := 0; idx < this.size; idx++ {
 			obj := readObjectFrom(buffer)

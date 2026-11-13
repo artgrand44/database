@@ -22,6 +22,8 @@ func isSerializable(obj any) bool {
 		return true
 	case int16:
 		return true
+	case int32:
+		return true
 	case int64:
 		return true
 	case string:
@@ -114,6 +116,9 @@ func writeObjectTo(obj any, buffer *bytes.Buffer) {
 	case int:
 		writeByte(byte(ObjectTypeInteger), buffer)
 		writeInt(v, buffer)
+	case int32:
+		writeByte(byte(ObjectTypeInteger), buffer)
+		writeInt(int(v), buffer)
 	case int16:
 		writeByte(byte(ObjectTypeShort), buffer)
 		writeInt16(v, buffer)

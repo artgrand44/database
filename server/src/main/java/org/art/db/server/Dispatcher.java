@@ -176,6 +176,7 @@ public class Dispatcher {
 						output.writeInt(response.length);
 						output.write(response);
 					} catch (Exception exc) {
+						exc.printStackTrace();
 						output.writeBoolean(false);
 						output.writeString(exc.getMessage());
 					}
