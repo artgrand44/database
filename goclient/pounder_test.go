@@ -3,6 +3,8 @@ package artdb
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"runtime/pprof"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -35,12 +37,19 @@ func TestPounderCached(t *testing.T) {
 	}
 
 	batchClient := CreateBatchClient("defaultcluster", "admin", "admin")
+	fmt.Println("after getting batch client")
 	batchContext := createPounderContext(t, batchClient, 10000, 100000, 20, 150+20)
 
 	batchContext.load()
 
+	fmt.Println("calling createClient")
 	client := CreateClient("defaultcluster", "admin", "admin", 1000, 30*time.Second)
-	context := createPounderContext(t, client, 10000, 100000, 20, 150+20)
+	context := createPounderContext(t, client, 10000, 1000, 20, 150+20)
+
+	f, _ := os.Create("cpu.prof")
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
 	context.startTest()
 }
 
@@ -58,10 +67,13 @@ func TestPounder(t *testing.T) {
 
 	client := CreateClient("defaultcluster", "admin", "admin", 0, 5*time.Hour)
 	context := createPounderContext(t, client, 10000, 100000, 20, 150+20)
+
 	context.startTest()
+	fmt.Println("Done")
 }
 
 func TestMini(t *testing.T) {
+	fmt.Println("TestMini")
 	handler := GetHandler("defaultcluster")
 
 	for handler.getServerCount() == 0 {
@@ -73,8 +85,12 @@ func TestMini(t *testing.T) {
 
 	batchContext.load()
 
-	client := CreateClient("defaultcluster", "admin", "admin", 0, 5*time.Hour)
-	context := createPounderContext(t, client, 100, 100, 1, 10)
+	client := CreateClient("defaultcluster", "admin", "admin", 1000, 5*time.Hour)
+	context := createPounderContext(t, client, 100, 1000, 1, 150)
+
+	f, _ := os.Create("cpu.prof")
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
 
 	context.startTest()
 }
@@ -190,16 +206,7 @@ func getName(idx int32) string {
 }
 
 func (this *PounderContext) getRandom() int32 {
-	val := rand.NormFloat64()*0.25 + 0.5
-
-	// Clamp to strictly [0, 1] if necessary
-	if val < 0 {
-		val = 0
-	} else if val > 1 {
-		val = 1
-	}
-
-	return int32(val * float64(this.items-1))
+	return rand.Int31() % int32(this.items)
 }
 
 func (this *PounderContext) insert(idx int32) {
@@ -245,11 +252,14 @@ func (this *PounderContext) runThread(index int) {
 		this.doSelects(index)
 	}
 
-	count := int32(this.threads) * 3 / 4
+	count := (int32(this.threads) * 3) / 4
 	comp := this.completions.Add(1)
 
 	if comp >= count {
+		fmt.Println("clear goon")
 		this.goon.Store(false)
+	} else {
+		fmt.Println("threads ", this.threads, " count ", count, "comp ", comp)
 	}
 }
 
@@ -281,7 +291,7 @@ func (this *PounderContext) stats() {
 	transactions := this.reads.Load() + this.writes.Load() + this.deletes.Load()
 	tps := float64(transactions) / float64(millis) * 1000
 
-	fmt.Printf("Per read %10.2f tps %d\n", timePerRead, int32(tps))
+	fmt.Printf("Per read %10.4f tps %d hits %d puts %d wait ms %d\n", timePerRead, int32(tps), getHitRatio(), totalPuts.Load(), getAverageWeight())
 }
 
 func (this *PounderContext) statsLoop() {

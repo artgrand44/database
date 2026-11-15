@@ -4,7 +4,17 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"sync"
 )
+
+var bufferPool = sync.Pool{
+	New: func() any {
+		var buf = new(bytes.Buffer)
+
+		buf.Grow(5000)
+		return buf
+	},
+}
 
 func isSerializable(obj any) bool {
 	if obj == nil {
@@ -90,9 +100,12 @@ func writeString(data string, buffer *bytes.Buffer) {
 }
 
 func writeObject(obj any) []byte {
-	var buf bytes.Buffer
+	buf := bufferPool.Get().(*bytes.Buffer)
+	defer bufferPool.Put(buf)
 
-	writeObjectTo(obj, &buf)
+	buf.Reset()
+
+	writeObjectTo(obj, buf)
 
 	return buf.Bytes()
 

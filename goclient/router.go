@@ -2,16 +2,25 @@ package artdb
 
 import (
 	"bytes"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"golang.org/x/net/http2"
 )
 
 const NETWORK_ERROR = "There was a network error"
+
+var totalPuts atomic.Int32
+var totalEntries atomic.Int32
+var totalWaitTime atomic.Int64
 
 type BatchEntry struct {
 	path   string
@@ -20,6 +29,7 @@ type BatchEntry struct {
 	err    error
 	done   bool
 	waiter *sync.WaitGroup
+	start  time.Time
 }
 
 type Router struct {
@@ -43,16 +53,17 @@ func createRouter(handler *DiscoveryHandler, user string, password string) *Rout
 }
 
 func (this *Router) batch(path string, body []byte) ([]byte, error) {
-	batchToSend := make([]*BatchEntry, 0)
-	entry := BatchEntry{path: path, body: body, waiter: &sync.WaitGroup{}}
-
 	this.lock.Lock()
+
+	batchToSend := make([]*BatchEntry, 0)
+	entry := BatchEntry{path: path, body: body, waiter: &sync.WaitGroup{}, start: time.Now()}
 
 	if this.currentBatch == nil {
 		this.currentBatch = make([]*BatchEntry, 0)
 	}
 
 	this.currentBatch = append(this.currentBatch, &entry)
+	totalEntries.Add(1)
 
 	if len(this.currentBatch) >= 5 {
 		batchToSend = this.currentBatch
@@ -72,6 +83,13 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 
 }
 
+func getAverageWeight() int64 {
+	if totalEntries.Load() == 0 {
+		return 0
+	}
+
+	return totalWaitTime.Load() / int64(totalEntries.Load())
+}
 func drainQueue(router *Router) {
 	for {
 		entries := <-router.queue
@@ -84,6 +102,7 @@ func drainQueue(router *Router) {
 			writeString(entry.path, &buff)
 			writeInt(len(entry.body), &buff)
 			writeBytes(entry.body, &buff)
+			totalWaitTime.Add(time.Since(entry.start).Milliseconds())
 		}
 
 		response, err := router.post("/db/batch", buff.Bytes())
@@ -134,16 +153,20 @@ func (this *Router) post(template string, body []byte) ([]byte, error) {
 }
 
 func initRouter() {
-	transport := &http.Transport{Protocols: &http.Protocols{}}
+	h2t := &http2.Transport{
+		AllowHTTP: true,
+		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
+			// Dial without TLS
+			return net.Dial(network, addr)
+		},
+	}
 
-	transport.Protocols.SetHTTP1(false)
-	transport.Protocols.SetHTTP2(true)
-
-	client = &http.Client{Timeout: 10 * time.Second, Transport: transport}
+	client = &http.Client{Timeout: 10 * time.Second, Transport: h2t}
 
 }
 
 func post(uri string, user string, password string, body []byte) ([]byte, error) {
+	totalPuts.Add(1)
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(body))
 
 	if err != nil {

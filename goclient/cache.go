@@ -3,6 +3,7 @@ package artdb
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -23,8 +24,11 @@ type Cache struct {
 	lock  sync.Mutex
 }
 
+var cacheGets atomic.Int32
+var cacheHits atomic.Int32
+
 func newCache(limit int, ttl time.Duration) *Cache {
-	return &Cache{index: make(map[string]*Node), limit: limit, ttl: ttl}
+	return &Cache{index: make(map[string]*Node), limit: limit, ttl: ttl, lock: sync.Mutex{}}
 }
 
 func buildCacheKey(sql string, args []any) string {
@@ -35,6 +39,7 @@ func (this *Cache) get(sql string, args []any) (*DocumentSet, bool) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
+	cacheGets.Add(1)
 	key := buildCacheKey(sql, args)
 
 	if node, success := this.index[key]; success {
@@ -45,11 +50,21 @@ func (this *Cache) get(sql string, args []any) (*DocumentSet, bool) {
 			return nil, false
 		} else {
 			this.moveToEnd(node)
+			cacheHits.Add(1)
+
 			return node.value, success
 		}
 	}
 
 	return nil, false
+}
+
+func getHitRatio() int32 {
+	if cacheGets.Load() == 0 {
+		return 0
+	}
+
+	return (cacheHits.Load() * 100) / cacheGets.Load()
 }
 
 func (this *Cache) add(sql string, args []any, set *DocumentSet) {

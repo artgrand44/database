@@ -52,7 +52,7 @@ func CreateClient(cluster string, user string, password string, cacheSize int, c
 	cache, success := caches[info]
 
 	if !success {
-		cache := newCache(cacheSize, cacheTTL)
+		cache = newCache(cacheSize, cacheTTL)
 		caches[info] = cache
 	}
 
