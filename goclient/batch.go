@@ -16,16 +16,6 @@ func (this *Batch) add(statement string, paramaters ...any) *Batch {
 	return this
 }
 
-func (this *Batch) load(buffer *bytes.Buffer) {
-	this.clientArgs = make([]*ClientArgs, 0)
-
-	for range readInt(buffer) {
-		arg := &ClientArgs{}
-		arg.load(buffer)
-		this.clientArgs = append(this.clientArgs, arg)
-	}
-}
-
 func (this *Batch) save() []byte {
 	var buf bytes.Buffer
 
