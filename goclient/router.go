@@ -43,12 +43,6 @@ type Router struct {
 
 var client *http.Client
 
-var routerPool = sync.Pool{
-	New: func() any {
-		return make([]byte, 1000)
-	},
-}
-
 func createRouter(handler *DiscoveryHandler, user string, password string) *Router {
 	return &Router{handler: handler, user: user, password: password}
 }
