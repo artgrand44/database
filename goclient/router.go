@@ -65,9 +65,8 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 		this.currentBatch = nil
 	}
 
-	this.lock.Unlock()
-
 	entry.waiter.Add(1)
+	this.lock.Unlock()
 
 	if len(batchToSend) != 0 {
 		go this.processBatch(batchToSend)
@@ -76,14 +75,6 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 	entry.waiter.Wait()
 	return entry.result, entry.err
 
-}
-
-func getAverageWeight() int64 {
-	if totalEntries.Load() == 0 {
-		return 0
-	}
-
-	return totalWaitTime.Load() / int64(totalEntries.Load())
 }
 
 func (this *Router) post(template string, body []byte) ([]byte, error) {
@@ -132,7 +123,6 @@ func post(uri string, user string, password string, body []byte) ([]byte, error)
 	resp, err := client.Do(req)
 
 	if err != nil {
-		resp.Body.Close()
 		return nil, errors.New(NETWORK_ERROR + err.Error())
 	}
 

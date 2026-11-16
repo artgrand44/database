@@ -44,7 +44,7 @@ func TestPounderCached(t *testing.T) {
 
 	fmt.Println("calling createClient")
 	client := CreateClient("defaultcluster", "admin", "admin", 1000, 30*time.Second)
-	context := createPounderContext(t, client, 10000, 1000, 20, 150+20)
+	context := createPounderContext(t, client, 10000, 1000000, 20, 150+20)
 
 	f, _ := os.Create("cpu.prof")
 	pprof.StartCPUProfile(f)
@@ -288,7 +288,13 @@ func (this *PounderContext) stats() {
 	transactions := this.reads.Load() + this.writes.Load() + this.deletes.Load()
 	tps := float64(transactions) / float64(millis) * 1000
 
-	fmt.Printf("Per read %10.4f tps %d hits %d puts %d wait ms %d\n", timePerRead, int32(tps), getHitRatio(), totalPuts.Load(), getAverageWeight())
+	fmt.Printf("Per read %10.4f tps %d hits %d puts %d reads %d completed %d\n",
+		timePerRead,
+		int32(tps),
+		getHitRatio(),
+		totalPuts.Load(),
+		this.writes.Load(),
+		this.completions.Load())
 }
 
 func (this *PounderContext) statsLoop() {
