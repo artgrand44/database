@@ -39,17 +39,12 @@ type Router struct {
 	currentBatch   []*BatchEntry
 	batchStartTime time.Time
 	lock           sync.Mutex
-	queue          chan []*BatchEntry
 }
 
 var client *http.Client
 
 func createRouter(handler *DiscoveryHandler, user string, password string) *Router {
-	router := &Router{handler: handler, user: user, password: password, queue: make(chan []*BatchEntry, 1000)}
-
-	go drainQueue(router)
-
-	return router
+	return &Router{handler: handler, user: user, password: password}
 }
 
 func (this *Router) batch(path string, body []byte) ([]byte, error) {
@@ -75,7 +70,7 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 	entry.waiter.Add(1)
 
 	if len(batchToSend) != 0 {
-		this.queue <- batchToSend
+		go this.processBatch(batchToSend)
 	}
 
 	entry.waiter.Wait()
@@ -89,48 +84,6 @@ func getAverageWeight() int64 {
 	}
 
 	return totalWaitTime.Load() / int64(totalEntries.Load())
-}
-func drainQueue(router *Router) {
-	for {
-		entries := <-router.queue
-
-		var buff bytes.Buffer
-
-		writeInt(len(entries), &buff)
-
-		for _, entry := range entries {
-			writeString(entry.path, &buff)
-			writeInt(len(entry.body), &buff)
-			writeBytes(entry.body, &buff)
-			totalWaitTime.Add(time.Since(entry.start).Milliseconds())
-		}
-
-		response, err := router.post("/db/batch", buff.Bytes())
-
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		responseBuffer := bytes.NewBuffer(response)
-
-		for _, entry := range entries {
-			success := readBool(responseBuffer)
-
-			if success {
-				len := readInt(responseBuffer)
-				bytes := readBytes(len, responseBuffer)
-
-				entry.result = bytes
-				entry.err = nil
-			} else {
-				fmt.Println("got error in router")
-				entry.result = nil
-				entry.err = errors.New(readString(&buff))
-			}
-
-			entry.waiter.Done()
-		}
-	}
 }
 
 func (this *Router) post(template string, body []byte) ([]byte, error) {
@@ -187,4 +140,43 @@ func post(uri string, user string, password string, body []byte) ([]byte, error)
 	}
 
 	return io.ReadAll(resp.Body)
+}
+
+func (this *Router) processBatch(entries []*BatchEntry) {
+	var buff bytes.Buffer
+
+	writeInt(len(entries), &buff)
+
+	for _, entry := range entries {
+		writeString(entry.path, &buff)
+		writeInt(len(entry.body), &buff)
+		writeBytes(entry.body, &buff)
+		totalWaitTime.Add(time.Since(entry.start).Milliseconds())
+	}
+
+	response, err := this.post("/db/batch", buff.Bytes())
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	responseBuffer := bytes.NewBuffer(response)
+
+	for _, entry := range entries {
+		success := readBool(responseBuffer)
+
+		if success {
+			len := readInt(responseBuffer)
+			bytes := readBytes(len, responseBuffer)
+
+			entry.result = bytes
+			entry.err = nil
+		} else {
+			fmt.Println("got error in router")
+			entry.result = nil
+			entry.err = errors.New(readString(&buff))
+		}
+
+		entry.waiter.Done()
+	}
 }

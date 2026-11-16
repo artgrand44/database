@@ -256,10 +256,7 @@ func (this *PounderContext) runThread(index int) {
 	comp := this.completions.Add(1)
 
 	if comp >= count {
-		fmt.Println("clear goon")
 		this.goon.Store(false)
-	} else {
-		fmt.Println("threads ", this.threads, " count ", count, "comp ", comp)
 	}
 }
 
