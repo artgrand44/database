@@ -43,6 +43,12 @@ type Router struct {
 
 var client *http.Client
 
+var routerPool = sync.Pool{
+	New: func() any {
+		return make([]byte, 1000)
+	},
+}
+
 func createRouter(handler *DiscoveryHandler, user string, password string) *Router {
 	return &Router{handler: handler, user: user, password: password}
 }
@@ -132,14 +138,22 @@ func post(uri string, user string, password string, body []byte) ([]byte, error)
 	resp, err := client.Do(req)
 
 	if err != nil {
+		resp.Body.Close()
 		return nil, errors.New(NETWORK_ERROR + err.Error())
 	}
+
+	defer resp.Body.Close()
 
 	if resp.StatusCode == 418 {
 		return nil, errors.New(resp.Header.Get("Warning"))
 	}
 
-	return io.ReadAll(resp.Body)
+	var buf bytes.Buffer
+
+	if _, err = io.Copy(&buf, resp.Body); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func (this *Router) processBatch(entries []*BatchEntry) {

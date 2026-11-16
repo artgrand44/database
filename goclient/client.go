@@ -2,7 +2,6 @@ package artdb
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -126,10 +125,6 @@ func (this *Client) ExecuteQuery(statement string, parameters ...any) (*Document
 		bytes, err = this.router.post("/db/executeQuery", body)
 	} else {
 		bytes, err = this.router.batch("/db/executeQuery", body)
-
-		if err != nil {
-			fmt.Println("execq got error")
-		}
 	}
 
 	if err != nil {
