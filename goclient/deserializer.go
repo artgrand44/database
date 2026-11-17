@@ -48,13 +48,12 @@ func readString(buffer *bytes.Buffer) string {
 }
 
 func readObject(data []byte) any {
-	buf := bufferPool.Get().(*bytes.Buffer)
-	defer bufferPool.Put(buf)
+	var buf bytes.Buffer
 
 	buf.Reset()
 	buf.Write(data)
 
-	return readObjectFrom(buf)
+	return readObjectFrom(&buf)
 }
 
 func readObjectFrom(buffer *bytes.Buffer) any {
