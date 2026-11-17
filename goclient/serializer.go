@@ -44,6 +44,7 @@ func isSerializable(obj any) bool {
 		return true
 	case *ClientArgs:
 		return true
+
 	default:
 		return false
 	}

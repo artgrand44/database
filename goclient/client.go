@@ -85,7 +85,7 @@ func (this *Client) ExecuteBatch(batch *Batch) error {
 
 func (this *Client) Execute(statement string, parameters ...any) error {
 	if !checkParameters(parameters) {
-		return errors.New("Some of the paramaters have invalid tyoes")
+		return errors.New("Some of the paramaters have invalid types")
 	}
 
 	cargs := ClientArgs{shard: "", sql: statement, parameters: parameters}
@@ -105,7 +105,7 @@ func (this *Client) Execute(statement string, parameters ...any) error {
 
 func (this *Client) ExecuteQuery(statement string, parameters ...any) (*DocumentSet, error) {
 	if !checkParameters(parameters) {
-		return nil, errors.New("Some of the paramaters have invalid tyoes")
+		return nil, errors.New("Some of the paramaters have invalid types")
 	}
 
 	if strings.HasPrefix(strings.ToLower(statement), "select") && this.cache != nil {
