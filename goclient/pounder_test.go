@@ -44,7 +44,7 @@ func TestPounderCached(t *testing.T) {
 
 	fmt.Println("calling createClient")
 	client := CreateClient("defaultcluster", "admin", "admin", 1000, 30*time.Second)
-	context := createPounderContext(t, client, 10000, 1000000, 20, 150+20)
+	context := createPounderContext(t, client, 10000, 10000, 20, 150+20)
 
 	f, _ := os.Create("cpu.prof")
 	pprof.StartCPUProfile(f)
@@ -73,7 +73,6 @@ func TestPounder(t *testing.T) {
 }
 
 func TestMini(t *testing.T) {
-	fmt.Println("TestMini")
 	handler := GetHandler("defaultcluster")
 
 	for handler.getServerCount() == 0 {
@@ -81,12 +80,14 @@ func TestMini(t *testing.T) {
 	}
 
 	batchClient := CreateBatchClient("defaultcluster", "admin", "admin")
-	batchContext := createPounderContext(t, batchClient, 1000, 1000, 10, 30)
+	fmt.Println("after getting batch client")
+	batchContext := createPounderContext(t, batchClient, 10000, 1000, 20, 150+20)
 
 	batchContext.load()
 
-	client := CreateClient("defaultcluster", "admin", "admin", 1000, 5*time.Hour)
-	context := createPounderContext(t, client, 100, 1000, 1, 150)
+	fmt.Println("calling createClient")
+	client := CreateClient("defaultcluster", "admin", "admin", 1000, 30*time.Second)
+	context := createPounderContext(t, client, 10000, 10000, 20, 150+20)
 
 	f, _ := os.Create("cpu.prof")
 	pprof.StartCPUProfile(f)
@@ -206,7 +207,16 @@ func getName(idx int32) string {
 }
 
 func (this *PounderContext) getRandom() int32 {
-	return rand.Int31() % int32(this.items)
+	const maxAttempts = 10000
+
+	for i := 0; i < maxAttempts; i++ {
+		val := rand.NormFloat64()*1 + 0
+		if val >= 0.0 && val <= float64(this.items-1) {
+			return int32(val)
+		}
+	}
+
+	return int32(this.items / 2)
 }
 
 func (this *PounderContext) insert(idx int32) {
