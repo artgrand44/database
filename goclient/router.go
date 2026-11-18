@@ -34,19 +34,26 @@ type BatchEntry struct {
 
 type Router struct {
 	handler        *DiscoveryHandler
-	cluster        string
 	user           string
 	password       string
 	currentBatch   []*BatchEntry
 	batchStartTime time.Time
 	lock           sync.Mutex
+	client         *http.Client
 }
 
 var client *http.Client
-var unitTestlient *http.Client
+var httpClient *http.Client
 
 func createRouter(cluster string, handler *DiscoveryHandler, user string, password string) *Router {
-	return &Router{cluster: cluster, handler: handler, user: user, password: password}
+	var myclient *http.Client
+
+	if cluster == "router" {
+		myclient = httpClient
+	} else {
+		myclient = client
+	}
+	return &Router{client: myclient, handler: handler, user: user, password: password}
 }
 
 func (this *Router) batch(path string, body []byte) ([]byte, error) {
@@ -79,25 +86,6 @@ func (this *Router) batch(path string, body []byte) ([]byte, error) {
 
 }
 
-func (this *Router) post(template string, body []byte) ([]byte, error) {
-	for {
-		host, success := this.handler.GetServer()
-
-		if !success {
-			return nil, errors.New("There are no servers available")
-		}
-
-		resp, err := post("http://"+host+template, this.user, this.password, body, this.cluster != "router")
-
-		if err != nil && strings.HasPrefix(err.Error(), NETWORK_ERROR) {
-			this.handler.deleteServer(host)
-		} else {
-			return resp, err
-		}
-	}
-
-}
-
 func initRouter() {
 	transport := &http2.Transport{
 		AllowHTTP: true,
@@ -113,19 +101,15 @@ func initRouter() {
 		DisableCompression: true,
 	}
 	client = &http.Client{Timeout: 10 * time.Second, Transport: transport}
-	unitTestlient = &http.Client{Timeout: 10 * time.Second, Transport: unitTestTransport}
+	httpClient = &http.Client{Timeout: 10 * time.Second, Transport: unitTestTransport}
 
 }
 
-func getClient(http2 bool) *http.Client {
-	if http2 {
-		return client
-	} else {
-		return unitTestlient
-	}
+func post(uri string, user string, password string, body []byte) ([]byte, error) {
+	return postWithClient(client, uri, user, password, body)
 }
 
-func post(uri string, user string, password string, body []byte, http2 bool) ([]byte, error) {
+func postWithClient(client *http.Client, uri string, user string, password string, body []byte) ([]byte, error) {
 	totalPuts.Add(1)
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(body))
 
@@ -136,7 +120,7 @@ func post(uri string, user string, password string, body []byte, http2 bool) ([]
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth(user, password)
 
-	resp, err := getClient(http2).Do(req)
+	resp, err := client.Do(req)
 
 	if err != nil {
 		return nil, errors.New(NETWORK_ERROR + err.Error())
@@ -154,6 +138,25 @@ func post(uri string, user string, password string, body []byte, http2 bool) ([]
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (this *Router) post(template string, body []byte) ([]byte, error) {
+	for {
+		host, success := this.handler.GetServer()
+
+		if !success {
+			return nil, errors.New("There are no servers available")
+		}
+
+		resp, err := postWithClient(this.client, "http://"+host+template, this.user, this.password, body)
+
+		if err != nil && strings.HasPrefix(err.Error(), NETWORK_ERROR) {
+			this.handler.deleteServer(host)
+		} else {
+			return resp, err
+		}
+	}
+
 }
 
 func (this *Router) processBatch(entries []*BatchEntry) {

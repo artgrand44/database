@@ -77,7 +77,7 @@ func (this *DocIterator) refill() bool {
 	if this.set.file != "" {
 		path := fmt.Sprintf("%s/db/fetch?file=%s&index=%d&size=%d", this.set.serverUri, this.set.file, this.currentIndex, this.set.size)
 
-		if data, err := post(path, "", "", make([]byte, 0), true); err == nil {
+		if data, err := post(path, "", "", make([]byte, 0)); err == nil {
 			this.set.list = make([]*Document, 0)
 
 			buff := bytes.NewBuffer(data)

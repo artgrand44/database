@@ -12,7 +12,7 @@ func TestRouter(t *testing.T) {
 	initAll()
 	go startServer()
 
-	router := Router{cluster: "router", user: "admin", password: "admin", handler: GetHandler("router")}
+	router := createRouter("router", GetHandler("router"), "admin", "admin")
 	cargs := ClientArgs{sql: "select a from b", shard: "", parameters: make([]any, 0)}
 
 	go sendServerPings(t)
