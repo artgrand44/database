@@ -7,11 +7,12 @@ import (
 )
 
 func TestRouter(t *testing.T) {
+	fmt.Println("Start TestRouter")
 
 	initAll()
 	go startServer()
 
-	router := Router{user: "admin", password: "admin", handler: GetHandler("router")}
+	router := Router{cluster: "router", user: "admin", password: "admin", handler: GetHandler("router")}
 	cargs := ClientArgs{sql: "select a from b", shard: "", parameters: make([]any, 0)}
 
 	go sendServerPings(t)

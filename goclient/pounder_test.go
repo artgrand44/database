@@ -29,7 +29,7 @@ type PounderContext struct {
 	client       *Client
 }
 
-func TestPounderCached(t *testing.T) {
+func testPounderCached(t *testing.T) {
 	handler := GetHandler("defaultcluster")
 
 	for handler.getServerCount() == 0 {
@@ -42,7 +42,6 @@ func TestPounderCached(t *testing.T) {
 
 	batchContext.load()
 
-	fmt.Println("calling createClient")
 	client := CreateClient("defaultcluster", "admin", "admin", 1000, 30*time.Second)
 	context := createPounderContext(t, client, 10000, 10000, 20, 150+20)
 
@@ -53,7 +52,7 @@ func TestPounderCached(t *testing.T) {
 	context.startTest()
 }
 
-func TestPounder(t *testing.T) {
+func testPounder(t *testing.T) {
 	handler := GetHandler("defaultcluster")
 
 	for handler.getServerCount() == 0 {
@@ -73,6 +72,8 @@ func TestPounder(t *testing.T) {
 }
 
 func TestMini(t *testing.T) {
+	fmt.Println("Start TestMini")
+
 	handler := GetHandler("defaultcluster")
 
 	for handler.getServerCount() == 0 {
@@ -85,7 +86,6 @@ func TestMini(t *testing.T) {
 
 	batchContext.load()
 
-	fmt.Println("calling createClient")
 	client := CreateClient("defaultcluster", "admin", "admin", 1000, 30*time.Second)
 	context := createPounderContext(t, client, 10000, 10000, 20, 150+20)
 

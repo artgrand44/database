@@ -7,6 +7,8 @@ import (
 )
 
 func TestGUID1(t *testing.T) {
+	fmt.Println("Start TestGUID")
+
 	handler := GetHandler("defaultcluster")
 
 	for handler.getServerCount() == 0 {

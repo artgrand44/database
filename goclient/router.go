@@ -34,6 +34,7 @@ type BatchEntry struct {
 
 type Router struct {
 	handler        *DiscoveryHandler
+	cluster        string
 	user           string
 	password       string
 	currentBatch   []*BatchEntry
@@ -42,9 +43,10 @@ type Router struct {
 }
 
 var client *http.Client
+var unitTestlient *http.Client
 
-func createRouter(handler *DiscoveryHandler, user string, password string) *Router {
-	return &Router{handler: handler, user: user, password: password}
+func createRouter(cluster string, handler *DiscoveryHandler, user string, password string) *Router {
+	return &Router{cluster: cluster, handler: handler, user: user, password: password}
 }
 
 func (this *Router) batch(path string, body []byte) ([]byte, error) {
@@ -85,7 +87,7 @@ func (this *Router) post(template string, body []byte) ([]byte, error) {
 			return nil, errors.New("There are no servers available")
 		}
 
-		resp, err := post("http://"+host+template, this.user, this.password, body)
+		resp, err := post("http://"+host+template, this.user, this.password, body, this.cluster != "router")
 
 		if err != nil && strings.HasPrefix(err.Error(), NETWORK_ERROR) {
 			this.handler.deleteServer(host)
@@ -97,7 +99,7 @@ func (this *Router) post(template string, body []byte) ([]byte, error) {
 }
 
 func initRouter() {
-	h2t := &http2.Transport{
+	transport := &http2.Transport{
 		AllowHTTP: true,
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			// Dial without TLS
@@ -105,11 +107,25 @@ func initRouter() {
 		},
 	}
 
-	client = &http.Client{Timeout: 10 * time.Second, Transport: h2t}
+	unitTestTransport := &http.Transport{
+		MaxIdleConns:       10,
+		IdleConnTimeout:    30 * time.Second,
+		DisableCompression: true,
+	}
+	client = &http.Client{Timeout: 10 * time.Second, Transport: transport}
+	unitTestlient = &http.Client{Timeout: 10 * time.Second, Transport: unitTestTransport}
 
 }
 
-func post(uri string, user string, password string, body []byte) ([]byte, error) {
+func getClient(http2 bool) *http.Client {
+	if http2 {
+		return client
+	} else {
+		return unitTestlient
+	}
+}
+
+func post(uri string, user string, password string, body []byte, http2 bool) ([]byte, error) {
 	totalPuts.Add(1)
 	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(body))
 
@@ -120,7 +136,7 @@ func post(uri string, user string, password string, body []byte) ([]byte, error)
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth(user, password)
 
-	resp, err := client.Do(req)
+	resp, err := getClient(http2).Do(req)
 
 	if err != nil {
 		return nil, errors.New(NETWORK_ERROR + err.Error())

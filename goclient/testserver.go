@@ -20,7 +20,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		buf := bytes.NewBuffer(body)
 
 		count := readInt(buf)
-		writeInt(count, &outBuffer)
 
 		for range count {
 			readString(buf)

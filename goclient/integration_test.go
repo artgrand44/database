@@ -7,6 +7,7 @@ import (
 )
 
 func TestIntegration(t *testing.T) {
+	fmt.Println("Start TestIntegration")
 
 	handler := GetHandler("defaultcluster")
 

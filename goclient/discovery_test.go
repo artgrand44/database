@@ -7,6 +7,8 @@ import (
 )
 
 func TestDiscovery(t *testing.T) {
+	fmt.Println("Start TestDiscovery")
+
 	serverTTL = 100 * time.Millisecond
 	pollDelay = 50 * time.Microsecond
 	checkDelay = 5 * time.Second

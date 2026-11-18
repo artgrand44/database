@@ -40,7 +40,7 @@ func CreateClient(cluster string, user string, password string, cacheSize int, c
 	router, success := routers[info]
 
 	if !success {
-		router = createRouter(GetHandler(cluster), user, password)
+		router = createRouter(cluster, GetHandler(cluster), user, password)
 		routers[info] = router
 	}
 

@@ -8,6 +8,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
+	fmt.Println("Start TestClient")
 	initAll()
 	go startServer()
 
@@ -19,6 +20,7 @@ func TestClient(t *testing.T) {
 }
 
 func TestBatchClient(t *testing.T) {
+	fmt.Println("Start TestBatchClient")
 	initAll()
 	go startServer()
 

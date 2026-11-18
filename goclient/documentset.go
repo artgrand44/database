@@ -18,6 +18,7 @@ type DocumentSet struct {
 
 type DocIterator struct {
 	currentIndex int
+	listOffet    int
 	set          *DocumentSet
 }
 
@@ -59,6 +60,10 @@ func (this *DocumentSet) iterator() *DocIterator {
 }
 
 func (this *DocIterator) next() *Document {
+	if this.currentIndex+this.listOffet == this.set.size-1 {
+		return nil
+	}
+
 	if this.currentIndex+1 == len(this.set.list) && !this.refill() {
 		return nil
 	}
@@ -72,7 +77,7 @@ func (this *DocIterator) refill() bool {
 	if this.set.file != "" {
 		path := fmt.Sprintf("%s/db/fetch?file=%s&index=%d&size=%d", this.set.serverUri, this.set.file, this.currentIndex, this.set.size)
 
-		if data, err := post(path, "", "", make([]byte, 0)); err == nil {
+		if data, err := post(path, "", "", make([]byte, 0), true); err == nil {
 			this.set.list = make([]*Document, 0)
 
 			buff := bytes.NewBuffer(data)
@@ -81,9 +86,11 @@ func (this *DocIterator) refill() bool {
 			for range count {
 				this.set.list = append(this.set.list, (readObjectFrom(buff)).(*Document))
 			}
+
+			this.listOffet += count
+			this.currentIndex = -1
 		}
 
-		this.currentIndex = 1
 		return true
 	}
 
@@ -99,9 +106,10 @@ func (this *DocumentSet) read(buffer *bytes.Buffer) *DocumentSet {
 		this.paged = true
 
 		for idx := 0; idx < min(int(this.size), MAX_MEMORY); idx++ {
-			this.list = append(this.list, (&Document{}).read(buffer))
+			obj := readObjectFrom(buffer)
+			doc := obj.(*Document)
+			this.list = append(this.list, doc)
 		}
-
 	} else {
 		this.size = readInt(buffer)
 		this.paged = false

@@ -1,10 +1,13 @@
 package artdb
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestIterator(t *testing.T) {
+	fmt.Println("Start TestIteraot")
+
 	set := buildDocumentSet()
 	size := set.size
 

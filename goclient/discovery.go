@@ -88,6 +88,7 @@ func checkTimeouts() {
 
 					idx := slices.Index(handler.servers, uri)
 					handler.servers = slices.Delete(handler.servers, idx, idx+1)
+					fmt.Println("timeout ", uri)
 				}
 			}
 
@@ -100,6 +101,8 @@ func checkTimeouts() {
 
 func (this *DiscoveryHandler) deleteServer(uri string) {
 	this.lock.Lock()
+
+	fmt.Println("delete ", uri)
 
 	delete(this.timestamps, uri)
 
