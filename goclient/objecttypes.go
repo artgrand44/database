@@ -55,3 +55,6 @@ const (
 	ObjectTypeLogEntry
 	ObjectTypeClientArgs
 )
+
+type DBNull struct {
+}

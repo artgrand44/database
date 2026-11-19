@@ -31,6 +31,7 @@ public class DocumentSet implements Iterable<Document>, Closeable {
 	private static final Logger logger = LoggerFactory.getLogger(DocumentSet.class);
 	
 	private List<Document> list = new ArrayList<>();
+	private List<String> columns = new ArrayList<>();
 	private TypedOutputStream outputStream;
 	private File file;
 	private int size;
@@ -100,6 +101,9 @@ public class DocumentSet implements Iterable<Document>, Closeable {
 		}
 	}
 	
+	public List<String> getColumns() {
+		return this.columns;
+	}
 	public boolean hasFile() {
 		return this.file != null;
 	}
@@ -161,6 +165,12 @@ public class DocumentSet implements Iterable<Document>, Closeable {
 	}
 
 	public void serialize(TypedOutputStream stream) throws IOException {
+		stream.writeInt(this.columns.size());
+		
+		for (String col : this.columns) {
+			stream.writeString(col);
+		}
+		
 		if (this.hasFile()) {
 			stream.writeBoolean(true);
 			stream.writeInt(this.size);
@@ -189,8 +199,16 @@ public class DocumentSet implements Iterable<Document>, Closeable {
 	}
 	
 	public DocumentSet deserialize(TypedInputStream stream) throws IOException {
-		this.isRemote = stream.readBoolean();
+		int count = stream.readInt();
+		
+		this.columns.clear();
+		
+		for (int idx = 0; idx < count; idx++) {
+			this.columns.add(stream.readString());
+		}
 
+		this.isRemote = stream.readBoolean();
+				
 		if (this.isRemote) {
 			try {
 				this.size = stream.readInt();

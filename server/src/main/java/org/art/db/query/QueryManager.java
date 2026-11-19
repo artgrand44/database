@@ -43,6 +43,8 @@ public class QueryManager {
 				
 		DocumentSet set = plan.execute(manager, limit, lock);
 		
+		set.getColumns().addAll(metadata.getColumns().keySet());
+		
 		// Go through the documents, find the null values, and merge in the defaults
 		
 		for (Document doc : set) {
@@ -63,6 +65,8 @@ public class QueryManager {
 		if (selectColumns != null && !selectColumns.isEmpty()) {
 			DocumentSet newSet = new DocumentSet();
 
+			newSet.getColumns().addAll(selectColumns);
+			
 			for (Document doc : set) {
 				Document newDoc = new Document();
 
@@ -80,6 +84,8 @@ public class QueryManager {
 			}
 			
 			set = newSet;
+		} else {
+			
 		}
 
 		return set;

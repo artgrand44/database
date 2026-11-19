@@ -85,6 +85,8 @@ func readObjectFrom(buffer *bytes.Buffer) any {
 
 		args.load(buffer)
 		return args
+	case ObjectTypeDBNull:
+		return DBNull{}
 	default:
 		return nil
 	}

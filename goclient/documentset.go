@@ -98,6 +98,11 @@ func (this *DocIterator) refill() bool {
 }
 
 func (this *DocumentSet) read(buffer *bytes.Buffer) *DocumentSet {
+	count := readInt(buffer)
+
+	for range count {
+		this.columns = append(this.columns, readString(buffer))
+	}
 
 	if readBool(buffer) {
 		this.size = readInt(buffer)
@@ -130,6 +135,12 @@ func (this *DocumentSet) Size() int {
 }
 
 func (this *DocumentSet) write(buffer *bytes.Buffer) {
+	writeInt(len(this.columns), buffer)
+
+	for _, col := range this.columns {
+		writeString(col, buffer)
+	}
+
 	if this.file != "" {
 		writeBool(true, buffer)
 		writeInt(this.size, buffer)

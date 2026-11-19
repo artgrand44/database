@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql/driver"
 	"errors"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -14,7 +15,7 @@ type DBDriver struct {
 
 type DBStatement struct {
 	sql    string
-	client Client
+	client *Client
 }
 
 type DBResult struct {
@@ -28,7 +29,7 @@ type DBRows struct {
 }
 
 type DBConn struct {
-	client Client
+	client *Client
 }
 
 type DBDriverContext struct {
@@ -39,7 +40,7 @@ type DBConnector struct {
 }
 
 func (this *DBConnector) Connect(context.Context) (driver.Conn, error) {
-	return &DBConn{client: *this.client}, nil
+	return &DBConn{client: this.client}, nil
 }
 
 func (this *DBConnector) Driver() driver.Driver {
@@ -58,7 +59,13 @@ func (this DBStatement) NumInput() int {
 	return -1
 }
 func (this DBStatement) Query(args []driver.Value) (driver.Rows, error) {
-	docs, err := this.client.ExecuteQuery(this.sql, args)
+	params := make([]any, 0)
+
+	for _, val := range args {
+		params = append(params, val)
+	}
+
+	docs, err := this.client.ExecuteQuery(this.sql, params...)
 
 	if err != nil {
 		return nil, err
@@ -67,7 +74,13 @@ func (this DBStatement) Query(args []driver.Value) (driver.Rows, error) {
 	}
 }
 func (this DBDriver) Open(name string) (driver.Conn, error) {
-	return nil, nil
+	client, err := createClientFromSQLName(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &DBConn{client: client}, nil
 }
 func (this *DBConn) Close() error {
 	return nil
@@ -78,7 +91,13 @@ func (this *DBConn) Begin() (driver.Tx, error) {
 }
 
 func (this DBStatement) Exec(args []driver.Value) (driver.Result, error) {
-	if err := this.client.Execute(this.sql, args); err != nil {
+	params := make([]any, 0)
+
+	for _, val := range args {
+		params = append(params, val)
+	}
+
+	if err := this.client.Execute(this.sql, params...); err != nil {
 		return nil, err
 	}
 
@@ -101,6 +120,32 @@ func (this *DBRows) Columns() []string {
 	return result
 }
 
+func (this *DBRows) convertValue(value any) (any, error) {
+	if value == nil {
+		return nil, nil
+	}
+
+	switch v := value.(type) {
+	case int:
+		return int64(v), nil
+	case int32:
+		return int64(v), nil
+	case int64:
+		return v, nil
+	case float32:
+		return float64(v), nil
+	case float64:
+		return v, nil
+	case string:
+		return v, nil
+	case bool:
+		return v, nil
+	case DBNull:
+		return nil, nil
+	default:
+		return nil, errors.New("The column type is not supported")
+	}
+}
 func (this *DBRows) Close() error {
 	return nil
 }
@@ -114,19 +159,23 @@ func (this *DBRows) Next(dest []driver.Value) error {
 
 	if doc1 != nil {
 		for idx, name := range this.Columns() {
-			dest[idx] = doc1.GetField(name)
+			value, err := this.convertValue(doc1.GetField(name))
+
+			if err == nil {
+				dest[idx] = value
+			} else {
+				return err
+			}
 		}
 
 		return nil
 	} else {
-		return errors.New("There are no more rows")
+		return io.EOF
 	}
 
 }
 
-// This is the start of the open process.  The parameter is db-specific and can be used to open a Client
-
-func (this *DBDriverContext) OpenConnector(name string) (driver.Connector, error) {
+func createClientFromSQLName(name string) (*Client, error) {
 	tokens := strings.Split(name, "-")
 
 	if len(tokens) < 3 {
@@ -171,5 +220,16 @@ func (this *DBDriverContext) OpenConnector(name string) (driver.Connector, error
 	client := CreateClient(cluster, user, password, cacheSize, ttl)
 	client.batch = batch
 
+	return client, nil
+}
+
+// This is the start of the open process.  The parameter is db-specific and can be used to open a Client
+
+func (this *DBDriverContext) OpenConnector(name string) (driver.Connector, error) {
+	client, err := createClientFromSQLName(name)
+
+	if err != nil {
+		return nil, err
+	}
 	return &DBConnector{client: client}, nil
 }
