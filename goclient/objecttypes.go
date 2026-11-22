@@ -57,4 +57,5 @@ const (
 )
 
 type DBNull struct {
+	value any
 }

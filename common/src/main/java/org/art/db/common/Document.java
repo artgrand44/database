@@ -140,7 +140,7 @@ public class Document implements Iterable<Map.Entry<String, Object>>{
 			final String suffix = name.substring(dot + 1);
 			final Object existingValue = this.map.get(prefix);
 			
-			if (existingValue == null || existingValue == DBNull.NULL) {
+			if (existingValue == null || existingValue instanceof DBNull) {
 				final Document doc = new Document();
 				
 				this.map.put(prefix, doc);

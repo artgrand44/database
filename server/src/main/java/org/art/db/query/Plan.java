@@ -73,7 +73,7 @@ public abstract class Plan  {
 				
 				break;
 			default:
-				if (!comparison.matches(actual == null ? DBNull.NULL : actual, expected, expected.getClass())) {
+				if (!comparison.matches(actual == null ? new DBNull() : actual, expected, expected.getClass())) {
 					return false;
 				}	
 			}

@@ -59,7 +59,7 @@ public class TypedInputStream extends DataInputStream {
 		case Key ->         new Key().deserialize(this);
 		case List ->        this.readList();
 		case DocumentSet -> new DocumentSet().deserialize(this); 
-		case DBNull ->      DBNull.NULL;
+		case DBNull ->      new DBNull(this.readObject());
 		case Blob ->        new Blob().deserialize(this);
 		case GUID ->        new GUID().deserialize(this);
 		case Date ->        new Date(this.readLong());

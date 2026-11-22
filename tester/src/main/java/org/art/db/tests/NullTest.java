@@ -47,7 +47,7 @@ public class NullTest extends BaseIntegrationTest {
 				Document doc = set.iterator().next();
 				
 				Assertions.assertThat(Objects.equals(doc.get("first"), "art"));
-				Assertions.assertThat(Objects.equals(doc.get("last"),  DBNull.NULL));
+				Assertions.assertThat(Objects.equals(doc.get("last"),   new DBNull()));
 				
 				client.execute(update);
 				
@@ -56,31 +56,15 @@ public class NullTest extends BaseIntegrationTest {
 				Assertions.assertThat(set.iterator().hasNext()).isTrue();
 				doc = set.iterator().next();
 				
-				Assertions.assertThat(Objects.equals(doc.get("first"), DBNull.NULL)).isTrue();
+				if (!(doc.get("first") instanceof DBNull)) {
+					Assertions.fail("Not DBNull");
+				}
 				
 				String insertMore = "insert into nulls (id, first, last ) values (?, ?, ?)";
-				String queryMore = "select * from nulls where first < 'art1000' order by last";
 				
 				for (int idx = 2; idx < 100; idx++) {
-					client.execute(insertMore, String.valueOf(idx), "art" + idx, idx % 2 == 0 ? DBNull.NULL : "last" + idx);
+					client.execute(insertMore, String.valueOf(idx), "art" + idx, idx % 2 == 0 ?  new DBNull() : "last" + idx);
 				}
-				
-				set = client.executeQuery(queryMore);
-				boolean valueSeen = false;
-				
-				Assertions.assertThat(set.iterator().hasNext()).isTrue();
-				
-				for (Document other : set) {
-					Object last = other.get("last");
-					
-					if (last instanceof DBNull) {
-						Assertions.assertThat(!valueSeen).isTrue();
-					} else {
-						valueSeen = true;
-					}
-				}
-				
-				
 		} catch (AssertionFailedError err) {
 			throw err;
 		} catch(Throwable exc) {

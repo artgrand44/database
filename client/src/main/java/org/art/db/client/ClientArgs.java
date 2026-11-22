@@ -6,17 +6,12 @@ import java.util.List;
 
 import org.art.db.common.TypedInputStream;
 import org.art.db.common.TypedOutputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ClientArgs {
 	private String database;
 	private String shard;
 	private String sql;
 	private List<?> parameters;
-	
-	private static final Logger logger = LoggerFactory.getLogger(ClientArgs.class);
-	
 	
 	public ClientArgs() {
 		

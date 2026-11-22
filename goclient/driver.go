@@ -121,10 +121,6 @@ func (this *DBRows) Columns() []string {
 }
 
 func (this *DBRows) convertValue(value any) (any, error) {
-	if value == nil {
-		return nil, nil
-	}
-
 	switch v := value.(type) {
 	case int:
 		return int64(v), nil

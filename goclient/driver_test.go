@@ -35,7 +35,7 @@ func TestDriver(t *testing.T) {
 	}
 
 	drop := "drop table if exists insert"
-	create := "CREATE TABLE insert (id int NOT NULL PRIMARY KEY, last varchar(255) NOT NULL, first varchar(255), count int)"
+	create := "CREATE TABLE insert (id int NOT NULL PRIMARY KEY, last varchar(255) NOT NULL, first varchar(255), count int, abc varchar(255), a int)"
 	createIndex := "CREATE INDEX name ON insert(first)"
 	insert := "insert into insert (id, first, last, count) values (?, 'art', 'grand', '1')"
 	query := "select * from insert where first = 'art' order by id"
@@ -77,15 +77,55 @@ func TestDriver(t *testing.T) {
 	// Scan results
 
 	prevId := -1
+	var id int
+	var last string
+	var first string
+	var count int
+	var abc sql.NullString
+	var a sql.NullInt64
 
 	fmt.Println("loop")
 	for rows.Next() {
-		var id int
-		var last string
-		var first string
-		var count int
 
-		if err := rows.Scan(&count, &first, &id, &last); err != nil {
+		if err := rows.Scan(&a, &abc, &count, &first, &id, &last); err != nil {
+			t.Errorf("error scan db %v", err)
+		}
+
+		if id != prevId+1 {
+			t.Errorf("wrong id")
+		}
+
+		if a.Valid {
+			t.Errorf("a is valid")
+		}
+
+		prevId = id
+		fmt.Println(id, " ", last, " ", first, " ", count, " ", abc.Valid)
+	}
+
+	stmt, err := db.Prepare("select * from insert where first = ? order by id")
+
+	if err != nil {
+		t.Errorf("error prepate %v", err)
+		return
+	}
+	defer stmt.Close()
+
+	// Execute the prepared statement, passing in an id value for the
+	// parameter whose placeholder is ?
+
+	rows, err = stmt.Query("art")
+
+	if err != nil {
+		t.Errorf("error stmt.prepare %v", err)
+		return
+	}
+
+	prevId = -1
+
+	for rows.Next() {
+
+		if err := rows.Scan(&a, &abc, &count, &first, &id, &last); err != nil {
 			t.Errorf("error scan db %v", err)
 		}
 
@@ -94,7 +134,7 @@ func TestDriver(t *testing.T) {
 		}
 
 		prevId = id
-		fmt.Println(id, " ", last, " ", first, " ", count)
+		fmt.Println(id, " ", last, " ", first, " ", count, " ", abc.Valid)
 	}
 
 }

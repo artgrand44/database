@@ -157,6 +157,7 @@ func writeObjectTo(obj any, buffer *bytes.Buffer) {
 		v.write(buffer)
 	case DBNull:
 		writeByte(byte(ObjectTypeDBNull), buffer)
+		writeObjectTo(v.value, buffer)
 	default:
 		fmt.Printf("Unknown type: %T\n", v)
 	}

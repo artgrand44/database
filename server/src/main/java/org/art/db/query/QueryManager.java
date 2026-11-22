@@ -11,8 +11,12 @@ import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
 import org.art.db.storage.TableManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryManager {
+	private static final Logger logger = LoggerFactory.getLogger(QueryManager.class);
+	
 	private static QueryManager instance = new QueryManager();
 	
 	public static QueryManager getInstance() {
@@ -53,10 +57,19 @@ public class QueryManager {
 				ColumnInfo info = entry.getValue();
 				Object value = doc.get(name);
 				
-				if (value == DBNull.NULL && ! metadata.getColumn(name).nullable()) {
-					doc.put(name, info.defaultValue());
-				}
 				
+				if (name.equals("a")) {
+					logger.info("value for a is " + value);
+				}
+				if (value instanceof DBNull dbNull) {
+					if (metadata.getColumn(name).nullable()) {
+						dbNull.setValue(info.defaultValue());
+					} else {
+						doc.put(name, info.defaultValue());
+					}					
+				} else if (value == null && selectColumns.contains(name)) {
+					doc.put(name, new DBNull(info.defaultValue()));
+				}
 			}
 		}
 		
@@ -73,10 +86,14 @@ public class QueryManager {
 				for (String name : selectColumns) {
 					Object value = doc.get(name);
 
-					if (value == DBNull.NULL && ! metadata.getColumn(name).nullable()) {
-						value = metadata.getColumn(name).defaultValue();
+					if (value instanceof DBNull dbNull) {
+						if (metadata.getColumn(name).nullable()) {
+							dbNull.setValue(metadata.getColumn(name).defaultValue());
+						} else {
+							value = metadata.getColumn(name).defaultValue();
+						}
 					}
-
+					
 					newDoc.put(name, value);
 				}
 

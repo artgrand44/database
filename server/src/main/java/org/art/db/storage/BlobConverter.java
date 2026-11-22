@@ -36,7 +36,7 @@ public class BlobConverter {
 			for (String column : metadata.getColumns().keySet()) {
 				Object value = doc.get(column);
 
-				stream.writeObject(value == null ? DBNull.NULL : value);
+				stream.writeObject(value == null ? new DBNull() : value);
 			}
 
 			return new Blob(ZipUtils.compress(stream.toByteArray()));

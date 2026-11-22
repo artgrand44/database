@@ -213,7 +213,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 				if (expression == null) {
 					value = null;
 				} else if (expression instanceof NullValue) {
-					value = DBNull.NULL;
+					value = new DBNull();
 				} else if (expression instanceof List list) {
 					value =  list.stream().map(x-> this.evaluate((Expression)x, type)).toList();
 				} else {
@@ -264,7 +264,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 
 	@Override
 	public void visit(NullValue nullValue) {
-		this.result = DBNull.NULL;
+		this.result = new DBNull();
 		
 	}
 
@@ -685,7 +685,7 @@ public class ExpressionEvaluator implements ExpressionVisitor {
 	@Override
 	public void visit(IsNullExpression isNullExpression) {
 		Object value = this.evaluate(isNullExpression.getLeftExpression());
-		boolean isNull = value == null || value == DBNull.NULL;
+		boolean isNull = value == null || value instanceof DBNull;
 		
 		this.result =  isNullExpression.isNot() ? !isNull : isNull;
 		

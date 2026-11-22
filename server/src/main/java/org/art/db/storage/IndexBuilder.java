@@ -126,7 +126,7 @@ public class IndexBuilder {
 		for (String name : names) {
 			Comparable<?>  value = (Comparable<?>)doc.get(name);
 
-			keys.add(value == null ? DBNull.NULL : value);
+			keys.add(value == null ? new DBNull() : value);
 		}
 
 		return new Key(keys);

@@ -48,9 +48,9 @@ public enum Comparison {
 	}
 	
 	public static int compare(Object obj1, Object obj2) {
-		if (obj1 == DBNull.NULL && obj2 != DBNull.NULL) {
+		if (obj1 instanceof DBNull && ! (obj2 instanceof DBNull)) {
 			return -1;
-		} else if (obj1 != DBNull.NULL && obj2 == DBNull.NULL) {
+		} else if (!(obj1 instanceof DBNull) && obj2 instanceof DBNull) {
 			return +1;
 		} else {
 			return compare(obj1, obj2, obj2.getClass());

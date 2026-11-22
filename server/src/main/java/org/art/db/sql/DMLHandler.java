@@ -306,7 +306,7 @@ public class DMLHandler {
 				
 				Object value = evaluator.evaluate(expressions.get(idx), null, parameters);
 				
-				if (value == DBNull.NULL && !info.nullable()) {
+				if (value instanceof DBNull && !info.nullable()) {
 					throw new DBRuntimeException("The value for " + column + " cannot be null");
 				}
 				
@@ -320,9 +320,11 @@ public class DMLHandler {
 				if (!doc.containsKey(name)) {
 					Object dflt = info.defaultValue();
 					
-					if (dflt == null && !info.nullable()) {
+					if (info.nullable()) {
+						doc.put(name, new DBNull(dflt));
+					} else if (dflt == null) {
 						throw new DBRuntimeException("The insert must supply a value for " + name);
-					} else if (dflt != null) {
+					} else {
 						doc.put(name, Converter.convert(dflt, info.type()));
 					}
 				}
@@ -558,6 +560,8 @@ public class DMLHandler {
 			SelectItem<?> item = select.getSelectItems().get(0);
 			Alias alias = item.getAlias();
 			String column = alias == null ? "count" : alias.getName();
+			
+			set.getColumns().add("count");
 
 			doc.put(column, count);
 			set.add(doc);
@@ -712,7 +716,7 @@ public class DMLHandler {
 						ColumnInfo info = dot == -1 ? metadata.getColumn(column) : metadata.getColumn(column.substring(0, dot));
 						Object value = evaluator.evaluate(values.get(idx), dod, parameters);
 						
-						if (value == DBNull.NULL && !info.nullable()) {
+						if (value instanceof DBNull && !info.nullable()) {
 							throw new DBRuntimeException("The value for " + column + " cannot be null");
 						}
 						

@@ -42,7 +42,7 @@ public class BeanMapper {
 				Object value = prop.get(bean);
 
 				if (value == null) {
-					doc.put(column, DBNull.NULL);
+					doc.put(column, new DBNull());
 				} else if (value instanceof Map) {
 					doc.put(column, toDocument(value));
 				} else if (value instanceof List list) {
@@ -91,7 +91,7 @@ public class BeanMapper {
 			for (Property prop : metadata.getProperties(x -> x.hasAnnotation(Discriminator.class))) {
 				Object value = (String)doc.get(prop.name());
 				
-				if (value == DBNull.NULL) {
+				if (value instanceof DBNull) {
 					throw new Exception("The descriminator field is null");
 				}
 				
@@ -115,7 +115,7 @@ public class BeanMapper {
 			if (prop == null) {
 				System.out.println("key " + entry.getKey());
 			}
-			if (value == DBNull.NULL) {
+			if (value instanceof DBNull) {
 				continue;
 			} else if (value instanceof Document) {
 				prop.set(result, toBean((Document)value, Map.class));

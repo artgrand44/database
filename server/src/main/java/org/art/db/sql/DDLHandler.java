@@ -42,6 +42,7 @@ public class DDLHandler {
 	private static final Logger logger = LoggerFactory.getLogger(DDLHandler.class);
 	
 	private static final Map<String, Class<?>> SQL_TYPES = new HashMap<>();
+	private static final Map<String, Object> SQL_DEFAULTS = new HashMap<>();
 	
 	static {
 		SQL_TYPES.put("BIT",      Boolean.class);
@@ -60,6 +61,23 @@ public class DDLHandler {
 		SQL_TYPES.put("DOCUMENT", Document.class);
 		SQL_TYPES.put("GUID",     GUID.class);
 		SQL_TYPES.put("LIST",     List.class);    
+		
+		SQL_DEFAULTS.put("BIT",      Boolean.TRUE);
+		SQL_DEFAULTS.put("TINYINT",  Byte.valueOf((byte)0));
+		SQL_DEFAULTS.put("SMALLINT", Integer.valueOf(0));
+		SQL_DEFAULTS.put("INT",      Long.valueOf(0));
+		SQL_DEFAULTS.put("FLOAT",    Float.valueOf(0f));
+		SQL_DEFAULTS.put("REAL",     Double.valueOf(0d));
+		SQL_DEFAULTS.put("DATE",     new Date(0));
+		SQL_DEFAULTS.put("CHAR",     "");
+		SQL_DEFAULTS.put("VARCHAR",  "");
+		SQL_DEFAULTS.put("TEXT",     "");
+		SQL_DEFAULTS.put("NCHAR",    "");
+		SQL_DEFAULTS.put("NVARCHAR", "");
+		SQL_DEFAULTS.put("NTEXT",    "");
+		SQL_DEFAULTS.put("DOCUMENT", new Document());
+		SQL_DEFAULTS.put("GUID",     new GUID());
+		SQL_DEFAULTS.put("LIST",     new ArrayList<String>());    
 	}
  
 	private static Map<String, Integer> privs = Map.of("delete", User.DELETE, "select", User.SELECT, "insert", User.INSERT, "update", User.UPDATE);
@@ -392,7 +410,7 @@ public class DDLHandler {
 		List<String> specs = col.getColumnSpecs();
 		boolean nullable = true;
 		boolean primary = false;
-		Object defaultValue = null;
+		Object defaultValue = sqlTypeToDEFAULT(col.getColDataType().getDataType()); 
 		
 		if (specs != null) {
 			for (int idx = 0; idx < specs.size(); idx++) {
@@ -426,6 +444,17 @@ public class DDLHandler {
 		}
 		
 		return SQL_TYPES.get(sqlClass.toUpperCase());
+	
+	}
+	
+	private static Object sqlTypeToDEFAULT(String sqlClass) {
+		int idx = sqlClass.indexOf('(');
+		
+		if (idx != -1) {
+			sqlClass = sqlClass.substring(0, idx);
+		}
+		
+		return SQL_DEFAULTS.get(sqlClass.toUpperCase());
 	
 	}
 	
