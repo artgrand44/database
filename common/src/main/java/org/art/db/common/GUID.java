@@ -3,26 +3,13 @@ package org.art.db.common;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
-
-@JsonSerialize(using = GUID.GUIDSerializer.class)
-@JsonDeserialize(using = GUID.GUIDDeserializer.class)
 public class GUID implements Comparable<GUID> {
 	
 	@SuppressWarnings("unused")
@@ -116,43 +103,6 @@ public class GUID implements Comparable<GUID> {
 	}
 
 	
-	public class GUIDDeserializer extends StdDeserializer<GUID> {
-	    private static final long serialVersionUID = 1L;
 
-		public GUIDDeserializer() { this(null); }
-	    public GUIDDeserializer(Class<GUID> vc) { super(vc); }
-
-	    @Override
-	    public GUID deserialize(JsonParser jp, DeserializationContext ctxt) 
-	      throws IOException {
-	        JsonNode node = jp.getCodec().readTree(jp);
-	        
-	        GUID guid = new GUID();
-	        
-	        guid.time = node.get("time").asLong();
-	        guid.counter = node.get("counter").asLong();
-	        guid.address = Base64.getDecoder().decode(node.get("address").asText());
-	        
-	        
-	        return guid;
-	    }
-	}   
-	
-	static class GUIDSerializer extends StdSerializer<GUID> {
-	    private static final long serialVersionUID = 1L;
-
-		public GUIDSerializer() { this(null); }
-	    public GUIDSerializer(Class<GUID> t) { super(t); }
-
-	    @Override
-	    public void serialize(GUID value, JsonGenerator gen, SerializerProvider provider) 
-	            throws IOException {
-	        gen.writeStartObject();
-	        gen.writeNumberField("time", value.time);
-	        gen.writeNumberField("counter", value.counter);
-	        gen.writeStringField("address", Base64.getEncoder().encodeToString(value.address));
-	        gen.writeEndObject();
-	    }
-	}   
 
 }

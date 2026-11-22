@@ -320,11 +320,9 @@ public class DMLHandler {
 				if (!doc.containsKey(name)) {
 					Object dflt = info.defaultValue();
 					
-					if (info.nullable()) {
-						doc.put(name, new DBNull(dflt));
-					} else if (dflt == null) {
+					if (dflt == null && !info.nullable()) {
 						throw new DBRuntimeException("The insert must supply a value for " + name);
-					} else {
+					} else if (dflt != null) {
 						doc.put(name, Converter.convert(dflt, info.type()));
 					}
 				}
