@@ -39,6 +39,7 @@ func TestDriver(t *testing.T) {
 	createIndex := "CREATE INDEX name ON insert(first)"
 	insert := "insert into insert (id, first, last, count) values (?, 'art', 'grand', '1')"
 	query := "select * from insert where first = 'art' order by id"
+	upper := "select upper(first) as UP from insert where first = 'art'"
 
 	if _, err = db.Exec(drop); err != nil {
 		t.Errorf("error create %v", err)
@@ -84,9 +85,7 @@ func TestDriver(t *testing.T) {
 	var abc sql.NullString
 	var a sql.NullInt64
 
-	fmt.Println("loop")
 	for rows.Next() {
-
 		if err := rows.Scan(&a, &abc, &count, &first, &id, &last); err != nil {
 			t.Errorf("error scan db %v", err)
 		}
@@ -103,6 +102,23 @@ func TestDriver(t *testing.T) {
 		fmt.Println(id, " ", last, " ", first, " ", count, " ", abc.Valid)
 	}
 
+	xrows, err := db.Query(upper)
+
+	if xrows.Err() != nil {
+		t.Errorf("error upper rows %v", rows.Err())
+	}
+
+	defer xrows.Close()
+
+	for xrows.Next() {
+		if err := xrows.Scan(&first); err != nil {
+			t.Errorf("error upper scan db %v", err)
+		}
+
+		if first != "ART" {
+			t.Errorf("Not upper case")
+		}
+	}
 	stmt, err := db.Prepare("select * from insert where first = ? order by id")
 
 	if err != nil {

@@ -2,6 +2,7 @@ package org.art.db.sql;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -352,7 +353,9 @@ public class DMLHandler {
 	}
 	
 	private static DocumentSet processSelectItems(DocumentSet set, List<SelectItem<?>> items, ExpressionEvaluator evaluator, List<Comparable<?>> parameters) {
-		if (!items.stream().anyMatch(x -> x.getExpression() instanceof AllColumns)) {		
+		if (!items.stream().anyMatch(x -> x.getExpression() instanceof AllColumns)) {	
+			Set<String> columns = new HashSet<>();
+			
 			for (Document doc : set) {
 				for (SelectItem<?> item : items) {
 					Alias alias = item.getAlias();
@@ -360,6 +363,7 @@ public class DMLHandler {
 					
 					if (exp instanceof Column col && alias != null) {
 						doc.put(alias.getName(), doc.get(col.getColumnName()));
+						columns.add(alias.getName());
 					} else if (exp instanceof Column) {
 						continue;
 					} else if (alias == null) {
@@ -369,9 +373,13 @@ public class DMLHandler {
 						Object value = evaluator.evaluate(exp, doc, parameters);
 						
 						doc.put(name, value);
+						columns.add(name);
 					}
 				}	
 			}
+			
+			set.getColumns().clear();
+			set.getColumns().addAll(columns);
 		}
 		
 		return set;
