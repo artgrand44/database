@@ -117,7 +117,7 @@ func createPounderContext(t *testing.T, client *Client, items, loops, updaters, 
 func (this *PounderContext) delete(idx int32) {
 	delete := "delete from pounder where ID = ?"
 
-	if err := this.client.Execute(delete, getId(idx)); err != nil {
+	if _, err := this.client.Execute(delete, getId(idx)); err != nil {
 		this.t.Errorf("create failed %x", err)
 	}
 }
@@ -176,7 +176,7 @@ func (this *PounderContext) doSelects(index int) {
 		}
 
 		if loop%10 == 0 {
-			if err := this.client.Execute(update, index); err != nil {
+			if _, err := this.client.Execute(update, index); err != nil {
 				this.t.Errorf("bad update in doSearch %d", names.size)
 				return
 			}
@@ -222,7 +222,7 @@ func (this *PounderContext) getRandom() int32 {
 func (this *PounderContext) insert(idx int32) {
 	insert := "insert into pounder (ID, FirstName, LastName, Age) values (?, ?, 'grand', '1')"
 
-	if err := this.client.Execute(insert, getId(idx), getName(idx)); err != nil {
+	if _, err := this.client.Execute(insert, getId(idx), getName(idx)); err != nil {
 		this.t.Errorf("create failed %x", err)
 	}
 }
@@ -232,15 +232,15 @@ func (this *PounderContext) load() {
 	create := "CREATE TABLE pounder (  ID int NOT NULL PRIMARY KEY, LastName varchar(255) NOT NULL default 'art', FirstName varchar(255), Age int)"
 	createIndex := "CREATE INDEX firstname ON pounder(FirstName)"
 
-	if err := this.client.Execute(drop); err != nil {
+	if _, err := this.client.Execute(drop); err != nil {
 		fmt.Println("drop failed ", err)
 	}
 
-	if err := this.client.Execute(create); err != nil {
+	if _, err := this.client.Execute(create); err != nil {
 		this.t.Errorf("create failed %x", err)
 	}
 
-	if err := this.client.Execute(createIndex); err != nil {
+	if _, err := this.client.Execute(createIndex); err != nil {
 		this.t.Errorf("create failed %x", err)
 	}
 

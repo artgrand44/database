@@ -26,11 +26,11 @@ func TestIntegration(t *testing.T) {
 	fmt.Println("call exec")
 	client.Execute(drop)
 
-	if err := client.Execute(create); err != nil {
+	if _, err := client.Execute(create); err != nil {
 		t.Errorf("create failed %x", err)
 	}
 
-	if err := client.Execute(createIndex); err != nil {
+	if _, err := client.Execute(createIndex); err != nil {
 		t.Errorf("create index failed %s", err)
 	}
 
@@ -39,11 +39,11 @@ func TestIntegration(t *testing.T) {
 	delete := "delete from insert where id = '1'"
 	query := "select * from insert where id = '1'"
 
-	if err := client.Execute(insert); err != nil {
+	if _, err := client.Execute(insert); err != nil {
 		t.Errorf("insert failed %s", err)
 	}
 
-	if err := client.Execute(insert); err == nil {
+	if _, err := client.Execute(insert); err == nil {
 		t.Errorf("Expected error")
 	}
 
@@ -71,7 +71,7 @@ func TestIntegration(t *testing.T) {
 		t.Errorf("Wrong last name")
 	}
 
-	if err := client.Execute(update); err != nil {
+	if _, err := client.Execute(update); err != nil {
 		t.Errorf("update failed %s", err)
 	}
 
@@ -91,7 +91,7 @@ func TestIntegration(t *testing.T) {
 		t.Errorf("wrong count field after update")
 	}
 
-	if err = client.Execute(delete); err != nil {
+	if _, err = client.Execute(delete); err != nil {
 		t.Errorf("delete failed %x", err)
 	}
 
@@ -108,7 +108,7 @@ func TestIntegration(t *testing.T) {
 	insertTemplate := "insert into insert (id, first, last, count) values (?, ?, ?, '1')"
 
 	for idx := range 10 {
-		if err := client.Execute(insertTemplate, idx, idx, idx); err != nil {
+		if _, err := client.Execute(insertTemplate, idx, idx, idx); err != nil {
 			t.Errorf("failure after insert with params %x", err)
 		}
 	}
@@ -123,7 +123,7 @@ func TestIntegration(t *testing.T) {
 		t.Errorf("wrong doc count after insert with params")
 	}
 
-	if err = client.Execute(delete); err != nil {
+	if _, err = client.Execute(delete); err != nil {
 		t.Errorf("second delete failed %x", err)
 	}
 

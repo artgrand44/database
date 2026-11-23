@@ -265,14 +265,16 @@ public class Dispatcher {
 				List<Comparable<?>> parms = (List<Comparable<?>>)args.getParameters();
 				long start = System.currentTimeMillis();
 			
-				SQLHandler.getInstance().execute(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
+				int count = SQLHandler.getInstance().execute(args.getShard(), args.getDatabase(), getUser(exchange), getPassword(exchange), args.getSql(), parms);
 				
 				HeaderValues values = exchange.getRequestHeaders().get("Client");
 				String client = values == null || values.size() != 1 ? "unknown" : values.get(0);
 					
 				MetricsLogger.getInstance().logClient(client, args.getSql(), System.currentTimeMillis() - start, 1, 1);
 				
-				return new byte[0];
+				return MAPPER.writeValueAsBytes(count);
+			} catch (Exception exc) {
+				throw exc;
 			}
 		}
 		

@@ -23,27 +23,27 @@ func TestGUID1(t *testing.T) {
 	createNameIndex := "CREATE UNIQUE INDEX name ON duptest(name)"
 	createColorIndex := "CREATE INDEX color ON duptest(color)"
 
-	if err := client.Execute(drop); err != nil {
+	if _, err := client.Execute(drop); err != nil {
 		t.Errorf("drop failed %x", err)
 		return
 	}
 
-	if err := client.Execute(create); err != nil {
+	if _, err := client.Execute(create); err != nil {
 		t.Errorf("create %x", err)
 		return
 	}
-	if err := client.Execute(createNameIndex); err != nil {
+	if _, err := client.Execute(createNameIndex); err != nil {
 		t.Errorf("create index failed %x", err)
 		return
 	}
-	if err := client.Execute(createColorIndex); err != nil {
+	if _, err := client.Execute(createColorIndex); err != nil {
 		t.Errorf("create color %x", err)
 		return
 	}
 
 	guid1 := createGUID()
 
-	if err := client.Execute("insert into duptest (id, name, color ) values (?, 'art', 'red')", guid1); err != nil {
+	if _, err := client.Execute("insert into duptest (id, name, color ) values (?, 'art', 'red')", guid1); err != nil {
 		t.Errorf("inert failed %x", err)
 		return
 	}

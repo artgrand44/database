@@ -1,6 +1,7 @@
 package artdb
 
 import (
+	"bytes"
 	"errors"
 	"strings"
 	"sync"
@@ -83,24 +84,32 @@ func (this *Client) ExecuteBatch(batch *Batch) error {
 	return err
 }
 
-func (this *Client) Execute(statement string, parameters ...any) error {
+func (this *Client) Execute(statement string, parameters ...any) (int, error) {
 	if !checkParameters(parameters) {
-		return errors.New("Some of the paramaters have invalid types")
+		return 0, errors.New("Some of the paramaters have invalid types")
 	}
 
 	cargs := ClientArgs{shard: "", sql: statement, parameters: parameters}
 	body := cargs.save()
 
-	lower := strings.ToLower(statement)
+	var lower = strings.ToLower(statement)
+	var data []byte
+	var err error
 
 	if (strings.HasPrefix(lower, "insert") || strings.HasPrefix(lower, "update") || strings.HasPrefix(lower, "delete")) && !this.batch {
-		_, err := this.router.batch("/db/execute", body)
-		return err
+		data, err = this.router.batch("/db/execute", body)
 	} else {
-		_, err := this.router.post("/db/execute", body)
-
-		return err
+		data, err = this.router.post("/db/execute", body)
 	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	buf := bytes.NewBuffer(data)
+
+	return readInt(buf), nil
+
 }
 
 func (this *Client) ExecuteQuery(statement string, parameters ...any) (*DocumentSet, error) {

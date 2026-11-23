@@ -25,22 +25,22 @@ func TestBigSet(t *testing.T) {
 	createIndex := "CREATE INDEX bigset ON bigset(count)"
 	query := "select * from bigset where count < 5000 order by count"
 
-	if err := client.Execute(drop); err != nil {
+	if _, err := client.Execute(drop); err != nil {
 		t.Errorf("drop failed %x", err)
 		return
 	}
 
-	if err := client.Execute(create); err != nil {
+	if _, err := client.Execute(create); err != nil {
 		t.Errorf("create %x", err)
 		return
 	}
-	if err := client.Execute(createIndex); err != nil {
+	if _, err := client.Execute(createIndex); err != nil {
 		t.Errorf("create index failed %x", err)
 		return
 	}
 
 	for idx := range 2000 {
-		if err := client.Execute(insert, idx, "last"+strconv.Itoa(idx), idx); err != nil {
+		if _, err := client.Execute(insert, idx, "last"+strconv.Itoa(idx), idx); err != nil {
 			t.Errorf("inert failed %x", err)
 			return
 		}

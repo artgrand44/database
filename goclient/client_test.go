@@ -63,7 +63,7 @@ func doUpdates(t *testing.T, comp *sync.WaitGroup, client *Client) {
 func doWork(t *testing.T, client *Client) {
 
 	for range 10 {
-		if err := client.Execute("insert a into b", 1, "a"); err != nil {
+		if _, err := client.Execute("insert a into b", 1, "a"); err != nil {
 			t.Errorf("error from execute %v", err)
 		}
 	}

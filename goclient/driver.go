@@ -97,8 +97,8 @@ func (this DBStatement) Exec(args []driver.Value) (driver.Result, error) {
 		params = append(params, val)
 	}
 
-	if err := this.client.Execute(this.sql, params...); err != nil {
-		return nil, err
+	if count, err := this.client.Execute(this.sql, params...); err != nil {
+		return &DBResult{rowCount: int64(count)}, err
 	}
 
 	return &DBResult{}, nil

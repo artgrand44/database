@@ -33,12 +33,12 @@ public class SQLHandler {
 	
 	private final Cache<String, Statement> cache = Caffeine.newBuilder().maximumSize(1000).build();
 	
-	public void execute(String shard, String database, String user, String password, String sql, List<Comparable<?>> parameters) throws Exception {
+	public int execute(String shard, String database, String user, String password, String sql, List<Comparable<?>> parameters) throws Exception {
 			
 		if (!BackupManager.getInstance().startUpdate()) {
 			logger.info("****forward");
 			SQLUtils.forwardExecute(database, DiscoveryHandler.getServerInstance().getLocalShard(), sql, user, password, parameters);
-			return;
+			return 0;
 		}
 		
 		try {
@@ -49,23 +49,26 @@ public class SQLHandler {
 				&& tokens[1].equalsIgnoreCase("user")
 				&& tokens[3].equalsIgnoreCase("password") ){
 				DDLHandler.createUser(sql, shard, database, user, password, tokens[2], tokens[4]);
-				return;
+				return 1;
 			}
 			
 			Statement statement = this.parse(sql);
+			int result = 0;
 			
 			switch (statement) {
 			case Alter alter        -> DDLHandler.alter(alter, shard, database, user, password);
 			case CreateTable create -> DDLHandler.createTable(create, shard, database, user, password);
 			case CreateIndex create -> DDLHandler.createIndex(create, shard, database, user, password);
-			case Delete delete      -> DMLHandler.delete(delete, sql, shard, database, user, password, parameters);
+			case Delete delete      -> result = DMLHandler.delete(delete, sql, shard, database, user, password, parameters).size();
 			case Drop drop          -> DDLHandler.drop(drop, shard, database, user, password);
 			case Grant grant        -> DDLHandler.grant(grant, shard, database, user, password);
 			case Insert insert      -> DMLHandler.insert(insert, sql, shard, database, user, password, parameters);
-			case Update update      -> DMLHandler.update(update, sql, shard, database, user, password, parameters);
+			case Update update      -> result = DMLHandler.update(update, sql, shard, database, user, password, parameters).size();
 			case Select _           -> throw new DBRuntimeException("Select statements must be called via Client.executeQuery.");
 			default                 -> throw new DBRuntimeException("Invalid statement " + sql);
 			}
+			
+			return result;
 		} catch (JSQLParserException exc) {
 			String[] lines = exc.getMessage().split("\\n");
 			String message = "The statement was invalid\n" + sql + "\n" + lines[0] + "\n" + lines[1];

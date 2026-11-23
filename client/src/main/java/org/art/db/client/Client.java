@@ -30,10 +30,15 @@ import org.art.db.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class Client implements Closeable {
 
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(Client.class);
+	
+	private static ObjectMapper MAPPER = new ObjectMapper();
+	
 	
 	static record QueryKey(String query, List<Object> args) {
 		
@@ -157,7 +162,7 @@ public class Client implements Closeable {
 		}
 	}
 	
-	public void execute(String statement, Object ... parameters) throws Exception {
+	public int execute(String statement, Object ... parameters) throws Exception {
 		this.checkParameters(parameters);
 		
 		
@@ -169,12 +174,15 @@ public class Client implements Closeable {
 			byte[] body = stream.toByteArray();
 
 			String lower = statement.toLowerCase().trim();
+			byte[] result;
 			
 			if (lower.startsWith("insert") || lower.startsWith("update") || lower.startsWith("delete")) {
-				this.doBatch("/db/execute", Collections.emptyMap(), body);
+				result = this.doBatch("/db/execute", Collections.emptyMap(), body);
 			} else {
-				this.doPost("/db/execute", Collections.emptyMap(), body);
+				result = this.doPost("/db/execute", Collections.emptyMap(), body);
 			}
+			
+			return MAPPER.readValue(result, Integer.class);
 		}
 	}
 	
