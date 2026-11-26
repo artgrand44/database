@@ -6,6 +6,7 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
 import org.art.db.common.Key;
+import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
 
 public class IndexScan extends Plan {
@@ -16,8 +17,8 @@ public class IndexScan extends Plan {
 	private final List<String> keyFields;
 	private final List<String> selectColumns;
 	
-	public IndexScan(String table, List<Filter> filters, List<String> selectColumns, Scan scan, List<String> keyFields, Key key) throws Exception {
-		super(table, filters);
+	public IndexScan(String table, List<Filter> filters, List<String> selectColumns, Scan scan, List<String> keyFields, Key key, Metadata metadata) throws Exception {
+		super(table, filters, selectColumns, metadata);
 		
 		this.scan = scan;
 		this.keyFields = keyFields;
@@ -41,7 +42,7 @@ public class IndexScan extends Plan {
 				doc.put(name, parts[index]);
 				
 				if (this.matches(key, doc, this.filters)) {
-					result.add(doc);
+					result.add(this.filterFields(doc));
 				}
 				
 				if (result.size() == limit) {

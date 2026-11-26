@@ -22,11 +22,10 @@ public class Planner {
 	
 	
 	@SuppressWarnings("unchecked")
-	public static Plan buildPlan(String table, List<String> selectColumns, List<Filter> filters) throws Exception {
+	public static Plan buildPlan(String table, List<String> selectColumns, List<Filter> filters, Metadata metadata) throws Exception {
 		
 		// Build some useful maps
 		
-		Metadata metadata = Metadata.getMetadata(table);
 		List<IndexInfo> indices = metadata.getIndices().stream().filter(x -> x.isBuilt() && !x.isFulltext()).toList();
 		List<String> primaryKeys = metadata.getPrimaryKeyFields();
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
@@ -39,7 +38,7 @@ public class Planner {
 		Scan primaryKeyScan = getScan("", primaryKeys, filters);		
 				
 		if (primaryKeyScan != null && equals) {
-			return new  TableLookup(table, filters, primaryKeyScan.getKey());
+			return new  TableLookup(table, filters, primaryKeyScan.getKey(), selectColumns, metadata);
 		}
 		
 		// If we are doing an IN on the leading field of the primary key then do a 
@@ -47,7 +46,7 @@ public class Planner {
 		
 		for (Filter filter : filters) {
 			if (filter.getField().equals(primaryKeys.get(0)) && filter.getComparison() == Comparison.IN) {
-				return new TableInLookup(table, filters, (List<Comparable<?>>) filter.getValue());
+				return new TableInLookup(table, filters, (List<Comparable<?>>) filter.getValue(), selectColumns, metadata);
 			}
 		}
 		
@@ -76,7 +75,7 @@ public class Planner {
 				}
 
 				if (covers) {
-					return new IndexScan(table, filters, selectColumns, scan, info.getFields(), scan.getKey());
+					return new IndexScan(table, filters, selectColumns, scan, info.getFields(), scan.getKey(), metadata);
 				}
 			}
 		}
@@ -89,7 +88,7 @@ public class Planner {
 			Filter filter = findFilter(filters, x -> x.getField().equals(firstKey) && x.getComparison() ==  Comparison.IN);
 			
 			if (filter != null) {
-				return new IndexInLookup(table, filters, info.getName(), (List<Comparable<?>>) filter.getValue());
+				return new IndexInLookup(table, filters, info.getName(), (List<Comparable<?>>) filter.getValue(), selectColumns, metadata);
 			}
 		}
 		
@@ -103,7 +102,7 @@ public class Planner {
 			if (filter != null) {
 				List<Key> keys = filter.getKeys();
 				
-				return new IndexBetweenLookup(table, filters, info.getName(), keys.get(0), keys.get(1));
+				return new IndexBetweenLookup(table, filters, info.getName(), keys.get(0), keys.get(1), selectColumns, metadata);
 			}
 		}
 		
@@ -122,7 +121,7 @@ public class Planner {
 				}
 			}
 			
-			return new IndexLookup(table, filters, alternateKeyLookups);
+			return new IndexLookup(table, filters, alternateKeyLookups, selectColumns, metadata);
 		}
 		
 		throw new DBRuntimeException("Please provide a normal (not fulltext) index for this query.");
@@ -165,7 +164,7 @@ public class Planner {
 	
 	static class DummyPlan extends Plan {
 		DummyPlan() throws Exception {
-			super("$DUMMY$", null);
+			super("$DUMMY$", null, null, null);
 		}
 
 		@Override

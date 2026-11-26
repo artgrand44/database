@@ -6,6 +6,7 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
 import org.art.db.common.Key;
+import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +20,8 @@ public class IndexBetweenLookup extends Plan {
 	private final Key first;
 	private final Key last;
 	
-	public IndexBetweenLookup(String table, List<Filter> filters, String indexName, Key first, Key last) throws Exception {
-		super(table, filters);
+	public IndexBetweenLookup(String table, List<Filter> filters, String indexName, Key first, Key last, List<String> selectColumns, Metadata metadata) throws Exception {
+		super(table, filters, selectColumns, metadata);
 		
 		this.indexName = indexName;
 		this.first = first;
@@ -38,7 +39,7 @@ public class IndexBetweenLookup extends Plan {
 			Document doc = engine.getDocument(key, lock);
 			
 			if (doc != null && this.matches(key, doc, this.filters)) {
-				result.add(doc);
+				result.add(this.filterFields(doc));
 			} else if (lock){
 				engine.unlockPrimaryKey(key);
 			}

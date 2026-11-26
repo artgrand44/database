@@ -6,13 +6,14 @@ import org.art.db.common.Document;
 import org.art.db.common.Key;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
+import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
 
 public class TableInLookup extends Plan {
 	private final List<Comparable<?>> inClause;
 	
-	public TableInLookup(String table, List<Filter> filters, final List<Comparable<?>> inClause) throws Exception {
-		super(table, filters);
+	public TableInLookup(String table, List<Filter> filters, final List<Comparable<?>> inClause, List<String> selectColumns, Metadata metadata) throws Exception {
+		super(table, filters, selectColumns, metadata);
 		
 		this.inClause = inClause;
 	}
@@ -27,8 +28,8 @@ public class TableInLookup extends Plan {
 			
 			Document doc = engine.getDocument(key, lock);
 
-			if (doc != null && super.matches(key, doc, filters)) {		
-				result.add(doc);
+			if (doc != null && super.matches(key, doc, filters)) {
+				result.add(this.filterFields(doc));
 			} else if (lock) {
 				engine.unlockPrimaryKey(key);
 			}

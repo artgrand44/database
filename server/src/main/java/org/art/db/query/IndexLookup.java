@@ -8,6 +8,7 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
 import org.art.db.common.Key;
+import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +20,8 @@ public class IndexLookup extends Plan {
 			
 	private final List<Scan> scans;
 	
-	public IndexLookup(String table, List<Filter> filters, List<Scan> scans) throws Exception {
-		super(table, filters);
+	public IndexLookup(String table, List<Filter> filters, List<Scan> scans, List<String> selectColumns, Metadata metadata) throws Exception {
+		super(table, filters, selectColumns, metadata);
 		this.scans = scans;
 	}
 	
@@ -42,7 +43,7 @@ public class IndexLookup extends Plan {
 			Document doc = engine.getDocument(key, lock);
 			
 			if (doc != null && this.matches(key, doc, this.filters)) {
-				result.add(doc);
+				result.add(this.filterFields(doc));
 			} else if (lock) {
 				engine.unlockPrimaryKey(key);
 			}

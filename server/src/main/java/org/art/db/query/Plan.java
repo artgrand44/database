@@ -10,6 +10,7 @@ import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
 import org.art.db.common.Key;
+import org.art.db.storage.Metadata;
 import org.art.db.storage.TableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +22,14 @@ public abstract class Plan  {
 	
 	protected final List<Filter> filters;
 	protected final String table;
+	protected final List<String> selectColumns;
+	protected final Metadata metadata;
 	
-	protected Plan(String table, List<Filter> filters) throws Exception {
+	protected Plan(String table, List<Filter> filters, List<String> selectColumns, Metadata metadata) throws Exception {
 		this.filters = filters;
-		this.table = table;;
+		this.table = table;
+		this.selectColumns = selectColumns;
+		this.metadata = metadata;
 	}
 	
 	public abstract DocumentSet execute(TableManager engine, long limit, boolean lock) throws Exception;
@@ -44,6 +49,26 @@ public abstract class Plan  {
 	}
 	
 		
+	protected Document filterFields(Document doc) {
+		if (selectColumns != null && !selectColumns.isEmpty()) {
+			Document newDoc = new Document();
+			
+			for (String name : selectColumns) {
+				Object value = doc.get(name);
+
+				if (value instanceof DBNull && ! metadata.getColumn(name).nullable()) {
+					value = metadata.getColumn(name).defaultValue();
+				}
+
+				newDoc.put(name, value);
+			}
+
+			return newDoc;
+		} else {
+			return doc;
+		}
+	}
+	
 	protected boolean matches(Key key, Document doc, List<Filter> filters) {
 		
 		// If the document has been moved to another shard then return false.

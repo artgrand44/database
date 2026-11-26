@@ -1,13 +1,10 @@
 package org.art.db.query;
 
 import java.util.List;
-import java.util.Map;
 
-import org.art.db.common.DBNull;
 import org.art.db.common.Document;
 import org.art.db.common.DocumentSet;
 import org.art.db.common.Filter;
-import org.art.db.storage.ColumnInfo;
 import org.art.db.storage.Metadata;
 import org.art.db.storage.StorageManager;
 import org.art.db.storage.TableManager;
@@ -39,55 +36,17 @@ public class QueryManager {
 		// Find the documents that match the filter
 		
 		Metadata metadata = Metadata.getMetadata(table);
-		Plan plan = Planner.buildPlan(table, selectColumns, filters);
+		Plan plan = Planner.buildPlan(table, selectColumns, filters, metadata);
 		TableManager manager = StorageManager.getInstance().getTableManager(table);
 				
 		DocumentSet set = plan.execute(manager, limit, lock);
 		
-		set.getColumns().addAll(metadata.getColumns().keySet());
-		
-		// Go through the documents, find the null values, and merge in the defaults
-		
-		for (Document doc : set) {
-			for (Map.Entry<String, ColumnInfo> entry : metadata.getColumns().entrySet()) {
-				String name = entry.getKey();
-				ColumnInfo info = entry.getValue();
-				Object value = doc.get(name);
-				
-				if (value instanceof DBNull && ! metadata.getColumn(name).nullable()) {
-					doc.put(name, info.defaultValue());
-				}
-			}
-		}
-		
-		// Handle the selected columns
-		
-		if (selectColumns != null && !selectColumns.isEmpty()) {
-			DocumentSet newSet = new DocumentSet();
-
-			newSet.getColumns().addAll(selectColumns);
-			
-			for (Document doc : set) {
-				Document newDoc = new Document();
-
-				for (String name : selectColumns) {
-					Object value = doc.get(name);
-
-					if (value instanceof DBNull && ! metadata.getColumn(name).nullable()) {
-						value = metadata.getColumn(name).defaultValue();
-					}
-					
-					newDoc.put(name, value);
-				}
-
-				newSet.add(newDoc);
-			}
-			
-			set = newSet;
+		if (selectColumns == null || selectColumns.isEmpty()) {
+			set.getColumns().addAll(metadata.getColumns().keySet());
 		} else {
-			
+			set.getColumns().addAll(selectColumns);
 		}
-
+		
 		return set;
 	}
 
